@@ -66,6 +66,15 @@ const INTENT_COMPAT = {
   'collaborate':        ['collaborate','exchange-ideas','build-relationships']
 };
 
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 function matchScore(a, b) {
   let interest = 0, intent = 0, context = 0, location = 0;
 
@@ -101,9 +110,18 @@ function matchScore(a, b) {
     if (expWords.some(w => b.working_on.toLowerCase().includes(w))) context = Math.min(context + 8, 20);
   }
 
-  // Location (20%)
-  if (a.location && b.location && a.location.toLowerCase() === b.location.toLowerCase()) location = 20;
-  else if (a.remote && b.remote) location = 10;
+  // Location (20%) — Haversine distance if lat/lng available
+  if (a.lat && b.lat && a.lng && b.lng) {
+    const dist = haversine(parseFloat(a.lat), parseFloat(a.lng), parseFloat(b.lat), parseFloat(b.lng));
+    if (dist < 10) location = 20;
+    else if (dist < 50) location = 15;
+    else if (dist < 200) location = 8;
+    else location = 3;
+  } else if (a.location && b.location && a.location.toLowerCase() === b.location.toLowerCase()) {
+    location = 20;
+  } else if (a.remote && b.remote) {
+    location = 10;
+  }
 
   return Math.min(Math.max(interest + intent + context + location + 5, 1), 99);
 }
@@ -145,7 +163,7 @@ app.post('/api/signup', async (req, res) => {
   users.insert({
     id, email, password: await bcrypt.hash(password, 10), name,
     bio: '', photo: '', instagram: '', linkedin: '', website: '',
-    location: '', remote: false,
+    location: '', lat: null, lng: null, remote: false,
     skills: [], interests: [],
     currently_exploring: '', working_on: '', interested_in: '',
     intent: 'explore-network',
@@ -176,7 +194,7 @@ app.get('/api/me', auth, (req, res) => {
 app.put('/api/me', auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
-  ['name','bio','instagram','linkedin','website','location','remote',
+  ['name','bio','instagram','linkedin','website','location','lat','lng','remote',
    'skills','interests','currently_exploring','working_on','interested_in','intent','photo']
     .forEach(f => { if (req.body[f] !== undefined) user[f] = req.body[f]; });
   users.update(user);

@@ -481,6 +481,8 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 const API='';
 let token=localStorage.getItem('nw_tok');
 let me=JSON.parse(localStorage.getItem('nw_me')||'null');
+// Refresh user data from server on load
+if(token){fetch('/api/me',{headers:{Authorization:'Bearer '+token}}).then(r=>r.ok?r.json():null).then(u=>{if(u&&u.id){me=u;localStorage.setItem('nw_me',JSON.stringify(u));updateNav();}}).catch(()=>{});}
 let mySkills=[], myInterests=[];
 let discCards=[], discIdx=0, remoteOn=false, discMode='explore';
 let activeConnId=null, activeChatUserId=null, chatPoll=null;
@@ -498,8 +500,10 @@ function closeOverlay(id){document.getElementById(id).classList.remove('open');}
 async function api(method,path,body,isForm){
   const opts={method,headers:{Authorization:token?'Bearer '+token:''}};
   if(body){if(isForm)opts.body=body;else{opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json';}}
-  const r=await fetch(API+path,opts);const d=await r.json();
-  if(!r.ok)throw new Error(d.error||'Error');return d;
+  const r=await fetch(API+path,opts);
+  let d;
+  try{d=await r.json();}catch(e){if(!r.ok)throw new Error('Server error');return {};}
+  if(!r.ok)throw new Error((d&&d.error)||'Error');return d||{};
 }
 function fmt(iso){return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
 
@@ -581,7 +585,7 @@ async function loadDiscover(){
       if(remoteOn)p.set('remote','true');
     }
     const res=await api('GET','/api/discover?'+p);
-    discCards=res.profiles||[];discIdx=0;
+    discCards=Array.isArray(res.profiles)?res.profiles:[];discIdx=0;
     const rem=document.getElementById('remaining-badge');
     rem.style.display=discCards.length?'block':'none';
     document.getElementById('rem-count').textContent=res.remaining||0;
@@ -600,6 +604,7 @@ function renderStack(){
     return;
   }
   stack.innerHTML='';
+  if(!Array.isArray(discCards))discCards=[];
   const visible=discCards.slice(discIdx,discIdx+2).reverse();
   visible.forEach((p,i)=>{
     const isTop=i===visible.length-1;
