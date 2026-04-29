@@ -6,6 +6,8 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+fs.mkdirSync(require('path').join(__dirname, 'public', 'uploads'), { recursive: true });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -204,6 +206,7 @@ app.put('/api/me', auth, (req, res) => {
 app.post('/api/me/photo', auth, upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const user = users.findOne({ id: req.user.id });
+  if (!user) return res.status(404).json({ error: 'User not found' });
   const url = '/uploads/' + req.file.filename;
   user.photo = url; users.update(user);
   res.json({ url });
@@ -223,6 +226,7 @@ app.get('/api/discover', auth, (req, res) => {
     return res.json({ limited: true, remaining: 0, profiles: [] });
 
   const me = users.findOne({ id: req.user.id });
+  if (!me) return res.status(404).json({ error: 'User not found' });
   const swiped = new Set(swipes.find({ from: req.user.id }).map(s => s.to));
   const connected = new Set(connections.find({ $or: [{ user1: req.user.id }, { user2: req.user.id }] })
     .map(c => c.user1 === req.user.id ? c.user2 : c.user1));
@@ -367,4 +371,5 @@ app.delete('/api/works/:id', auth, (req, res) => {
   works.remove(work); res.json({ ok: true });
 });
 
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
