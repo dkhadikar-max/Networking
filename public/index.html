@@ -306,10 +306,15 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
     <h1 class="serif" style="font-size:1.5rem">Connections</h1>
     <p style="color:var(--sub);font-size:.82rem;margin-top:4px">Mutual connections</p>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:20px">
-    <input id="search-q" placeholder="Search people by name or interest…" onkeydown="if(event.key==='Enter')runSearch()" style="flex:1;background:var(--sur);border:1px solid var(--border);border-radius:var(--rb);padding:9px 14px;color:var(--text);font-size:.85rem;outline:none;font-family:Inter,sans-serif"/>
+  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+    <input id="search-q" placeholder="Search people by name or interest…" onkeydown="if(event.key==='Enter')runSearch()" style="flex:1;min-width:160px;background:var(--sur);border:1px solid var(--border);border-radius:var(--rb);padding:9px 14px;color:var(--text);font-size:.85rem;outline:none;font-family:Inter,sans-serif"/>
     <button class="btn btn-ghost btn-sm" onclick="runSearch()">Search</button>
-    <button class="btn btn-ghost btn-sm" onclick="clearSearch()">All</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearSearch()">Clear</button>
+    <select id="conn-sort" onchange="loadConnections()" style="background:var(--sur);border:1px solid var(--border);border-radius:var(--rb);padding:9px 12px;color:var(--text);font-size:.8rem;outline:none;font-family:Inter,sans-serif">
+      <option value="recent">Recent</option>
+      <option value="active">Active first</option>
+      <option value="unread">Unread first</option>
+    </select>
   </div>
   <div id="search-results" style="display:none;margin-bottom:20px"></div>
   <div id="conn-list" class="conn-list"><div class="center"><span class="spin"></span></div></div>
@@ -649,8 +654,6 @@ async function loadDiscover(){
   document.getElementById('disc-stack').innerHTML='<div class="center"><span class="spin"></span></div>';
   try{
     const p=new URLSearchParams();
-    const sort=document.getElementById('disc-sort').value;
-    if(sort)p.set('sort',sort);
     if(discMode==='precision'){
       const fi=document.getElementById('f-interest').value;
       const fs=document.getElementById('f-skill').value;
