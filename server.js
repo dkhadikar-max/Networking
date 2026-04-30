@@ -35,8 +35,28 @@ function dbReady() {
   app.listen(PORT, () => console.log('Server on port ' + PORT));
 }
 
-app.use(cors());
-app.use(express.json());
+// ── SECURITY HEADERS ────────────────────────────────────────────────────────
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// ── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
+app.use(cors({
+  origin: allowedOrigin,
+  methods: ['GET','POST','PUT','DELETE'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true
+}));
+
+// ── RATE LIMITERS ─────────────────────────────────────────────────────────────
+const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests, slow down' } });
+const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many login attempts' } });
+const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
+const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
+const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
+
+app.use(globalLimiter);
+app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -44,7 +64,15 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'public/uploads')),
   filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
 });
-const upload = multer({ storage, limits: { fileSize: 8 * 1024 * 1024 } });
+const ALLOWED_MIMETYPES = ['image/jpeg','image/png','image/webp'];
+const upload = multer({
+  storage,
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_MIMETYPES.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+  }
+});
 
 // ── AUTH MIDDLEWARE ─────────────────────────────────────────────────────────
 
@@ -64,6 +92,28 @@ function adminAuth(req, res, next) {
     if (!user || user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     req.user = u; next();
   } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
+}
+
+// ── INPUT SANITIZATION ───────────────────────────────────────────────────────
+function sanitize(s) {
+  if (typeof s !== 'string') return s;
+  return s.replace(/<[^>]*>/g, '').replace(/[<>"]/g, '').trim().slice(0, 1000);
+}
+function sanitizeObj(obj, fields) {
+  fields.forEach(f => { if (obj[f] !== undefined) obj[f] = sanitize(String(obj[f])); });
+  return obj;
+}
+const URL_PATTERN = /https?:\/\/[^\s]+/gi;
+
+// ── PUBLIC CLEAN (strips sensitive fields) ────────────────────────────────────
+function cleanPublic(u) {
+  if (!u) return null;
+  const r = Object.assign({}, u);
+  delete r.password; delete r.$loki; delete r.meta;
+  delete r.email;          // don't expose email to other users
+  delete r.lat; delete r.lng; // don't expose exact GPS
+  delete r.banned;
+  return r;
 }
 
 function clean(u) {
@@ -176,7 +226,7 @@ function incrementViewed(userId, add) {
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
 
-app.post('/api/signup', async (req, res) => {
+app.post('/api/signup', authLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body;
     if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
@@ -184,7 +234,7 @@ app.post('/api/signup', async (req, res) => {
     if (users.findOne({ email })) return res.status(400).json({ error: 'Email already exists' });
     const id = uuidv4();
     users.insert({
-      id, email, password: await bcrypt.hash(password, 10), name,
+      id, email, password: await bcrypt.hash(password, 12), name,
       bio: '', photos: [], instagram: '', linkedin: '', website: '',
       location: '', lat: null, lng: null, remote: false,
       skills: [], interests: [],
@@ -200,7 +250,7 @@ app.post('/api/signup', async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login',  authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = users.findOne({ email });
@@ -226,6 +276,12 @@ app.get('/api/me', auth, (req, res) => {
 app.put('/api/me', auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
+  // Sanitize text fields
+  sanitizeObj(req.body, ['name','bio','instagram','linkedin','website','location',
+    'currently_exploring','working_on','interested_in']);
+  // Round GPS to 2 decimal places (~1.1km precision) for privacy
+  if (req.body.lat != null) req.body.lat = Math.round(parseFloat(req.body.lat) * 100) / 100;
+  if (req.body.lng != null) req.body.lng = Math.round(parseFloat(req.body.lng) * 100) / 100;
   ['name','bio','instagram','linkedin','website','location','lat','lng','remote',
    'skills','interests','currently_exploring','working_on','interested_in','intent']
     .forEach(f => { if (req.body[f] !== undefined) user[f] = req.body[f]; });
@@ -237,7 +293,7 @@ app.put('/api/me', auth, (req, res) => {
 });
 
 // Multiple photos: add
-app.post('/api/me/photos', auth, upload.single('photo'), (req, res) => {
+app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
@@ -264,7 +320,7 @@ app.delete('/api/me/photos/:idx', auth, (req, res) => {
 });
 
 // Photo verification (self-reported; plug in ML API later)
-app.post('/api/me/verify', auth, (req, res) => {
+app.post('/api/me/verify', verifyLimiter, auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
   const { confidence } = req.body; // 0-100 sent from frontend challenge
@@ -278,7 +334,7 @@ app.post('/api/me/verify', auth, (req, res) => {
 app.get('/api/profiles/:id', (req, res) => {
   const user = users.findOne({ id: req.params.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
-  const u = clean(user); u.works = works.find({ user_id: user.id }).map(cleanDoc);
+  const u = cleanPublic(user); u.works = works.find({ user_id: user.id }).map(cleanDoc);
   res.json(u);
 });
 
@@ -387,7 +443,7 @@ app.get('/api/connections', auth, (req, res) => {
       const lastMsg = msgs.length ? msgs[msgs.length-1] : null;
       const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at)-now)/3600000));
       return {
-        connection: cleanDoc(c), user: clean(other),
+        connection: cleanDoc(c), user: cleanPublic(other),
         lastMessage: lastMsg?cleanDoc(lastMsg):null,
         hoursLeft, active: !!c.active, msgCount: msgs.length
       };
@@ -404,7 +460,7 @@ app.get('/api/messages/:connId', auth, (req, res) => {
   res.json(messages.find({ connection_id: req.params.connId }).map(cleanDoc));
 });
 
-app.post('/api/messages/:connId', auth, (req, res) => {
+app.post('/api/messages/:connId', msgLimiter, auth, (req, res) => {
   const conn = connections.findOne({ id: req.params.connId });
   if (!conn||(conn.user1!==req.user.id&&conn.user2!==req.user.id))
     return res.status(403).json({ error: 'Access denied' });
@@ -449,8 +505,10 @@ app.post('/api/priority-message', auth, (req, res) => {
   if (priorityMsgs.findOne({ from: req.user.id, to: targetId, month }))
     return res.status(400).json({ error: 'Already sent a priority message to this person' });
 
+  // Strip URLs from priority messages (anti-spam)
+  const cleanText = text.trim().replace(URL_PATTERN, '[link removed]');
   const pm = { id: uuidv4(), from: req.user.id, to: targetId,
-    text: text.trim(), month, read: false, created_at: new Date().toISOString() };
+    text: cleanText, month, read: false, created_at: new Date().toISOString() };
   priorityMsgs.insert(pm);
   res.json({ ok: true, remaining: limit - monthCount - 1 });
 });
@@ -531,6 +589,7 @@ app.post('/api/admin/ban', adminAuth, (req, res) => {
   const user = users.findOne({ id: targetId });
   if (!user) return res.status(404).json({ error: 'Not found' });
   user.banned = !!banned; users.update(user);
+  auditLog(req.user.id, banned?'ban':'unban', targetId);
   res.json({ ok: true });
 });
 
@@ -541,6 +600,7 @@ app.post('/api/admin/verify', adminAuth, (req, res) => {
   user.verification = { status: 'verified', confidence: 100, verified_at: new Date().toISOString() };
   user.trust_score = calcTrust(user);
   users.update(user);
+  auditLog(req.user.id, 'verify', targetId);
   res.json({ ok: true });
 });
 
@@ -549,6 +609,7 @@ app.post('/api/admin/upgrade', adminAuth, (req, res) => {
   const user = users.findOne({ id: targetId });
   if (!user) return res.status(404).json({ error: 'Not found' });
   user.premium = !!premium; users.update(user);
+  auditLog(req.user.id, premium?'grant_premium':'revoke_premium', targetId);
   res.json({ ok: true });
 });
 
@@ -563,6 +624,17 @@ app.get('/api/admin/analytics', adminAuth, (req, res) => {
     reports: reports.count(),
     blocks: blocks.count(),
   });
+});
+
+// ── ADMIN AUDIT LOG ───────────────────────────────────────────────────────────
+const adminAuditLog = [];
+function auditLog(adminId, action, targetId) {
+  adminAuditLog.push({ adminId, action, targetId, at: new Date().toISOString() });
+  if (adminAuditLog.length > 1000) adminAuditLog.shift(); // keep last 1000
+}
+
+app.get('/api/admin/audit', adminAuth, (req, res) => {
+  res.json(adminAuditLog.slice(-200).reverse());
 });
 
 // ── ADMIN BOOTSTRAP (create first admin via secret) ────────────────────────────
