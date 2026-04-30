@@ -75,28 +75,29 @@ function cleanDoc(d) { const r = Object.assign({}, d); delete r.$loki; delete r.
 
 // ── TRUST SCORE (7 steps, max 100) ──────────────────────────────────────────
 
+// Trust score: 7 steps = 100 points total
+// 15 + 15 + 10 + 10 + 10 + 10 + 30 = 100
 function calcTrust(u) {
   let score = 0;
-  if ((u.photos || []).length >= 4)   score += 15; // step 1
-  const fields = ['bio','currently_exploring','working_on','interested_in'];
-  if (fields.every(f => u[f] && u[f].trim())) score += 15; // step 2
-  if ((u.interests || []).length >= 1) score += 10; // step 3
-  if ((u.skills    || []).length >= 1) score += 10; // step 4
-  if (u.lat && u.lng)                  score += 10; // step 5
-  if (u.linkedin || u.website || u.instagram) score += 10; // step 6
-  if (u.verification && u.verification.status === 'verified') score += 30; // step 7
-  return score;
+  if ((u.photos || []).length >= 4)                        score += 15; // 1. 4+ photos
+  if (u.bio && u.bio.trim())                               score += 15; // 2. Bio filled
+  if ((u.currently_exploring||'').trim() || (u.working_on||'').trim()) score += 10; // 3. Intent & context
+  if ((u.interests || []).length >= 1)                     score += 10; // 4. Interests
+  if ((u.skills    || []).length >= 1)                     score += 10; // 5. Skills
+  if (u.linkedin || u.website || u.instagram)              score += 10; // 6. Social media link
+  if (u.verification && u.verification.status === 'verified') score += 30; // 7. Verified
+  return score; // max 100
 }
 
 function trustSteps(u) {
   return [
-    { label: '4+ photos uploaded',    done: (u.photos||[]).length >= 4 },
-    { label: 'Profile complete',       done: ['bio','currently_exploring','working_on','interested_in'].every(f=>u[f]&&u[f].trim()) },
-    { label: 'Interests added',        done: (u.interests||[]).length >= 1 },
-    { label: 'Skills added',           done: (u.skills||[]).length >= 1 },
-    { label: 'Location enabled',       done: !!(u.lat && u.lng) },
-    { label: 'External link added',    done: !!(u.linkedin||u.website||u.instagram) },
-    { label: 'Photo verified',         done: !!(u.verification && u.verification.status==='verified') },
+    { label: '4+ photos uploaded',         done: (u.photos||[]).length >= 4 },
+    { label: 'Bio written',                done: !!(u.bio && u.bio.trim()) },
+    { label: 'Intent & context set',       done: !!(((u.currently_exploring||'').trim()) || ((u.working_on||'').trim())) },
+    { label: 'Interests added',            done: (u.interests||[]).length >= 1 },
+    { label: 'Skills added',              done: (u.skills||[]).length >= 1 },
+    { label: 'Social media / link added',  done: !!(u.linkedin||u.website||u.instagram) },
+    { label: 'Identity verified',          done: !!(u.verification && u.verification.status==='verified') },
   ];
 }
 
