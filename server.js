@@ -5,32 +5,34 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
-fs.mkdirSync(require('path').join(__dirname, 'public', 'uploads'), { recursive: true });
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'networkapp_secret_2024';
-const DAILY_LIMIT = 30;
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'adminpass2024';
+
+fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 
 const db = new Loki(path.join(__dirname, 'network.db.json'), {
   autoload: true, autoloadCallback: dbReady,
   autosave: true, autosaveInterval: 2000, serializationMethod: 'pretty'
 });
 
-let users, works, swipes, connections, messages, reports, blocks, dailyViews;
+let users, works, swipes, connections, messages, reports, blocks, dailyViews, priorityMsgs;
 
 function dbReady() {
-  users       = db.getCollection('users')       || db.addCollection('users', { unique: ['email'] });
-  works       = db.getCollection('works')       || db.addCollection('works');
-  swipes      = db.getCollection('swipes')      || db.addCollection('swipes');
-  connections = db.getCollection('connections') || db.addCollection('connections');
-  messages    = db.getCollection('messages')    || db.addCollection('messages');
-  reports     = db.getCollection('reports')     || db.addCollection('reports');
-  blocks      = db.getCollection('blocks')      || db.addCollection('blocks');
-  dailyViews  = db.getCollection('dailyViews')  || db.addCollection('dailyViews');
-  app.listen(PORT, () => console.log('Server running on port ' + PORT));
+  users        = db.getCollection('users')        || db.addCollection('users', { unique: ['email'] });
+  works        = db.getCollection('works')        || db.addCollection('works');
+  swipes       = db.getCollection('swipes')       || db.addCollection('swipes');
+  connections  = db.getCollection('connections')  || db.addCollection('connections');
+  messages     = db.getCollection('messages')     || db.addCollection('messages');
+  reports      = db.getCollection('reports')      || db.addCollection('reports');
+  blocks       = db.getCollection('blocks')       || db.addCollection('blocks');
+  dailyViews   = db.getCollection('dailyViews')   || db.addCollection('dailyViews');
+  priorityMsgs = db.getCollection('priorityMsgs') || db.addCollection('priorityMsgs');
+  app.listen(PORT, () => console.log('Server on port ' + PORT));
 }
 
 app.use(cors());
@@ -42,13 +44,26 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'public/uploads')),
   filename: (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 8 * 1024 * 1024 } });
+
+// ── AUTH MIDDLEWARE ─────────────────────────────────────────────────────────
 
 function auth(req, res, next) {
   const token = (req.headers.authorization || '').split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
   catch (e) { res.status(401).json({ error: 'Invalid token' }); }
+}
+
+function adminAuth(req, res, next) {
+  const token = (req.headers.authorization || '').split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    const u = jwt.verify(token, JWT_SECRET);
+    const user = users.findOne({ id: u.id });
+    if (!user || user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    req.user = u; next();
+  } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
 }
 
 function clean(u) {
@@ -58,7 +73,34 @@ function clean(u) {
 }
 function cleanDoc(d) { const r = Object.assign({}, d); delete r.$loki; delete r.meta; return r; }
 
-// ── MATCH ENGINE (Weights: Interest 35, Intent 25, Context 20, Location 20) ──
+// ── TRUST SCORE (7 steps, max 100) ──────────────────────────────────────────
+
+function calcTrust(u) {
+  let score = 0;
+  if ((u.photos || []).length >= 4)   score += 15; // step 1
+  const fields = ['bio','currently_exploring','working_on','interested_in'];
+  if (fields.every(f => u[f] && u[f].trim())) score += 15; // step 2
+  if ((u.interests || []).length >= 1) score += 10; // step 3
+  if ((u.skills    || []).length >= 1) score += 10; // step 4
+  if (u.lat && u.lng)                  score += 10; // step 5
+  if (u.linkedin || u.website || u.instagram) score += 10; // step 6
+  if (u.verification && u.verification.status === 'verified') score += 30; // step 7
+  return score;
+}
+
+function trustSteps(u) {
+  return [
+    { label: '4+ photos uploaded',    done: (u.photos||[]).length >= 4 },
+    { label: 'Profile complete',       done: ['bio','currently_exploring','working_on','interested_in'].every(f=>u[f]&&u[f].trim()) },
+    { label: 'Interests added',        done: (u.interests||[]).length >= 1 },
+    { label: 'Skills added',           done: (u.skills||[]).length >= 1 },
+    { label: 'Location enabled',       done: !!(u.lat && u.lng) },
+    { label: 'External link added',    done: !!(u.linkedin||u.website||u.instagram) },
+    { label: 'Photo verified',         done: !!(u.verification && u.verification.status==='verified') },
+  ];
+}
+
+// ── MATCH ENGINE ────────────────────────────────────────────────────────────
 
 const INTENT_COMPAT = {
   'explore-network':    ['explore-network','exchange-ideas','build-relationships','collaborate'],
@@ -68,196 +110,238 @@ const INTENT_COMPAT = {
   'collaborate':        ['collaborate','exchange-ideas','build-relationships']
 };
 
-
 function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 function matchScore(a, b) {
   let interest = 0, intent = 0, context = 0, location = 0;
-
-  // Interest alignment (35%) — shared curiosity
-  const aInt = (a.interests || []).map(s => s.toLowerCase());
-  const bInt = (b.interests || []).map(s => s.toLowerCase());
+  const aInt = (a.interests||[]).map(s=>s.toLowerCase());
+  const bInt = (b.interests||[]).map(s=>s.toLowerCase());
   if (aInt.length && bInt.length) {
-    const overlap = aInt.filter(s => bInt.includes(s)).length;
-    interest = Math.round((overlap / Math.min(Math.max(aInt.length, bInt.length), 6)) * 35);
+    const overlap = aInt.filter(s=>bInt.includes(s)).length;
+    interest = Math.round((overlap / Math.min(Math.max(aInt.length,bInt.length),6)) * 35);
   }
-  // Bonus: interested_in text alignment
   if (a.interested_in && b.interested_in) {
-    const aWords = a.interested_in.toLowerCase().split(/\W+/).filter(w => w.length > 3);
-    const bWords = b.interested_in.toLowerCase().split(/\W+/).filter(w => w.length > 3);
-    const textOverlap = aWords.filter(w => bWords.includes(w)).length;
-    interest = Math.min(interest + textOverlap * 4, 35);
+    const aW = a.interested_in.toLowerCase().split(/\W+/).filter(w=>w.length>3);
+    const bW = b.interested_in.toLowerCase().split(/\W+/).filter(w=>w.length>3);
+    interest = Math.min(interest + aW.filter(w=>bW.includes(w)).length*4, 35);
   }
-
-  // Intent alignment (25%) — complementary > similar
   if (a.intent && b.intent) {
-    const compat = INTENT_COMPAT[a.intent] || [];
-    if (compat.includes(b.intent)) intent = 25;
-    else intent = 8;
+    intent = (INTENT_COMPAT[a.intent]||[]).includes(b.intent) ? 25 : 8;
   }
-
-  // Contextual relevance (20%) — skills + working_on
-  const aSkills = (a.skills || []).map(s => s.toLowerCase());
-  const bSkills = (b.skills || []).map(s => s.toLowerCase());
-  const skillOverlap = aSkills.filter(s => bSkills.includes(s)).length;
-  context = Math.min(skillOverlap * 5, 12);
+  const aS = (a.skills||[]).map(s=>s.toLowerCase());
+  const bS = (b.skills||[]).map(s=>s.toLowerCase());
+  context = Math.min(aS.filter(s=>bS.includes(s)).length * 5, 12);
   if (a.currently_exploring && b.working_on) {
-    const expWords = a.currently_exploring.toLowerCase().split(/\W+/).filter(w => w.length > 3);
-    if (expWords.some(w => b.working_on.toLowerCase().includes(w))) context = Math.min(context + 8, 20);
+    const w = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
+    if (w.some(x=>b.working_on.toLowerCase().includes(x))) context = Math.min(context+8, 20);
   }
-
-  // Location (20%) — Haversine distance if lat/lng available
   if (a.lat && b.lat && a.lng && b.lng) {
-    const dist = haversine(parseFloat(a.lat), parseFloat(a.lng), parseFloat(b.lat), parseFloat(b.lng));
-    if (dist < 10) location = 20;
-    else if (dist < 50) location = 15;
-    else if (dist < 200) location = 8;
-    else location = 3;
-  } else if (a.location && b.location && a.location.toLowerCase() === b.location.toLowerCase()) {
+    const d = haversine(parseFloat(a.lat),parseFloat(a.lng),parseFloat(b.lat),parseFloat(b.lng));
+    location = d<10?20:d<50?15:d<200?8:3;
+  } else if (a.location && b.location && a.location.toLowerCase()===b.location.toLowerCase()) {
     location = 20;
   } else if (a.remote && b.remote) {
     location = 10;
   }
-
-  return Math.min(Math.max(interest + intent + context + location + 5, 1), 99);
+  return Math.min(Math.max(interest+intent+context+location+5, 1), 99);
 }
 
 function getInsight(a, b) {
-  const aInt = (a.interests || []).map(s => s.toLowerCase());
-  const bInt = (b.interests || []).map(s => s.toLowerCase());
-  const shared = aInt.filter(s => bInt.includes(s));
-  if (shared.length) return 'Shared curiosity in ' + shared.slice(0, 2).join(' & ');
+  const shared = (a.interests||[]).filter(s=>(b.interests||[]).map(x=>x.toLowerCase()).includes(s.toLowerCase()));
+  if (shared.length) return 'Shared curiosity in ' + shared.slice(0,2).join(' & ');
   if (a.currently_exploring && b.working_on) {
-    const words = a.currently_exploring.toLowerCase().split(/\W+/).filter(w => w.length > 3);
-    if (words.some(w => b.working_on.toLowerCase().includes(w)))
-      return 'Their work connects with what you\'re exploring';
+    const w = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
+    if (w.some(x=>b.working_on.toLowerCase().includes(x))) return 'Their work connects with what you\'re exploring';
   }
-  if (b.intent) return 'Looking to ' + b.intent.replace(/-/g, ' ');
-  return 'Could be worth a conversation';
+  return b.intent ? 'Looking to ' + b.intent.replace(/-/g,' ') : 'Could be worth a conversation';
 }
 
-function todayKey() { return new Date().toISOString().slice(0, 10); }
+function todayKey() { return new Date().toISOString().slice(0,10); }
+function thisMonthKey() { return new Date().toISOString().slice(0,7); }
+
 function getViewed(userId) {
-  const rec = dailyViews.findOne({ userId, date: todayKey() });
-  return rec ? rec.count : 0;
+  const r = dailyViews.findOne({ userId, date: todayKey() });
+  return r ? r.count : 0;
 }
 function incrementViewed(userId, add) {
-  const key = todayKey();
-  const rec = dailyViews.findOne({ userId, date: key });
-  if (rec) { rec.count += add; dailyViews.update(rec); }
+  const key = todayKey(), r = dailyViews.findOne({ userId, date: key });
+  if (r) { r.count += add; dailyViews.update(r); }
   else dailyViews.insert({ userId, date: key, count: add });
 }
 
-// ── AUTH ──────────────────────────────────────────────────
+// ── AUTH ────────────────────────────────────────────────────────────────────
 
 app.post('/api/signup', async (req, res) => {
-  const { email, password, name } = req.body;
-  if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
-  if (password.length < 6) return res.status(400).json({ error: 'Password min 6 chars' });
-  if (users.findOne({ email })) return res.status(400).json({ error: 'Email already exists' });
-  const id = uuidv4();
-  users.insert({
-    id, email, password: await bcrypt.hash(password, 10), name,
-    bio: '', photo: '', instagram: '', linkedin: '', website: '',
-    location: '', lat: null, lng: null, remote: false,
-    skills: [], interests: [],
-    currently_exploring: '', working_on: '', interested_in: '',
-    intent: 'explore-network',
-    trust_score: 50, verified: false,
-    created_at: new Date().toISOString()
-  });
-  const token = jwt.sign({ id, email, name }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: clean(users.findOne({ id })) });
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password min 6 chars' });
+    if (users.findOne({ email })) return res.status(400).json({ error: 'Email already exists' });
+    const id = uuidv4();
+    users.insert({
+      id, email, password: await bcrypt.hash(password, 10), name,
+      bio: '', photos: [], instagram: '', linkedin: '', website: '',
+      location: '', lat: null, lng: null, remote: false,
+      skills: [], interests: [],
+      currently_exploring: '', working_on: '', interested_in: '',
+      intent: 'explore-network', role: 'user', premium: false,
+      trust_score: 0, verification: { status: 'none', confidence: 0 },
+      banned: false, created_at: new Date().toISOString()
+    });
+    const user = users.findOne({ id });
+    user.trust_score = calcTrust(user); users.update(user);
+    const token = jwt.sign({ id, email, name }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: clean(user) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  const user = users.findOne({ email });
-  if (!user || !(await bcrypt.compare(password, user.password)))
-    return res.status(401).json({ error: 'Invalid email or password' });
-  const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token, user: clean(user) });
+  try {
+    const { email, password } = req.body;
+    const user = users.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password)))
+      return res.status(401).json({ error: 'Invalid email or password' });
+    if (user.banned) return res.status(403).json({ error: 'Account restricted' });
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ token, user: clean(user) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── PROFILE ───────────────────────────────────────────────
+// ── PROFILE ─────────────────────────────────────────────────────────────────
 
 app.get('/api/me', auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
-  res.json(Object.assign({}, clean(user), { works: works.find({ user_id: user.id }).map(cleanDoc) }));
+  const u = clean(user);
+  u.trust_steps = trustSteps(user);
+  u.works = works.find({ user_id: user.id }).map(cleanDoc);
+  res.json(u);
 });
 
 app.put('/api/me', auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
   ['name','bio','instagram','linkedin','website','location','lat','lng','remote',
-   'skills','interests','currently_exploring','working_on','interested_in','intent','photo']
+   'skills','interests','currently_exploring','working_on','interested_in','intent']
     .forEach(f => { if (req.body[f] !== undefined) user[f] = req.body[f]; });
+  user.trust_score = calcTrust(user);
   users.update(user);
-  res.json(Object.assign({}, clean(user), { works: works.find({ user_id: user.id }).map(cleanDoc) }));
+  const u = clean(user); u.trust_steps = trustSteps(user);
+  u.works = works.find({ user_id: user.id }).map(cleanDoc);
+  res.json(u);
 });
 
-app.post('/api/me/photo', auth, upload.single('photo'), (req, res) => {
+// Multiple photos: add
+app.post('/api/me/photos', auth, upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' });
   const user = users.findOne({ id: req.user.id });
-  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  if (!user.photos) user.photos = [];
+  if (user.photos.length >= 6) return res.status(400).json({ error: 'Max 6 photos' });
   const url = '/uploads/' + req.file.filename;
-  user.photo = url; users.update(user);
-  res.json({ url });
+  user.photos.push(url);
+  user.trust_score = calcTrust(user);
+  users.update(user);
+  res.json({ url, photos: user.photos, trust_score: user.trust_score });
+});
+
+// Multiple photos: remove
+app.delete('/api/me/photos/:idx', auth, (req, res) => {
+  const user = users.findOne({ id: req.user.id });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const idx = parseInt(req.params.idx);
+  if (isNaN(idx) || idx < 0 || idx >= (user.photos||[]).length)
+    return res.status(400).json({ error: 'Invalid index' });
+  user.photos.splice(idx, 1);
+  user.trust_score = calcTrust(user);
+  users.update(user);
+  res.json({ photos: user.photos, trust_score: user.trust_score });
+});
+
+// Photo verification (self-reported; plug in ML API later)
+app.post('/api/me/verify', auth, (req, res) => {
+  const user = users.findOne({ id: req.user.id });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const { confidence } = req.body; // 0-100 sent from frontend challenge
+  const status = confidence >= 70 ? 'verified' : 'failed';
+  user.verification = { status, confidence: confidence || 0, verified_at: new Date().toISOString() };
+  user.trust_score = calcTrust(user);
+  users.update(user);
+  res.json({ status, confidence, trust_score: user.trust_score });
 });
 
 app.get('/api/profiles/:id', (req, res) => {
   const user = users.findOne({ id: req.params.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
-  res.json(Object.assign({}, clean(user), { works: works.find({ user_id: user.id }).map(cleanDoc) }));
+  const u = clean(user); u.works = works.find({ user_id: user.id }).map(cleanDoc);
+  res.json(u);
 });
 
-// ── DISCOVERY ─────────────────────────────────────────────
+// ── DISCOVERY ───────────────────────────────────────────────────────────────
 
 app.get('/api/discover', auth, (req, res) => {
+  const me = users.findOne({ id: req.user.id });
+  if (!me) return res.status(404).json({ error: 'User not found' });
+  if (me.banned) return res.status(403).json({ error: 'Account restricted' });
+
+  const DAILY_LIMIT = me.premium ? 200 : 30;
   const viewed = getViewed(req.user.id);
   if (viewed >= DAILY_LIMIT)
     return res.json({ limited: true, remaining: 0, profiles: [] });
 
-  const me = users.findOne({ id: req.user.id });
-  if (!me) return res.status(404).json({ error: 'User not found' });
-  const swiped = new Set(swipes.find({ from: req.user.id }).map(s => s.to));
-  const connected = new Set(connections.find({ $or: [{ user1: req.user.id }, { user2: req.user.id }] })
-    .map(c => c.user1 === req.user.id ? c.user2 : c.user1));
-  const blocked = new Set(blocks.find({ $or: [{ from: req.user.id }, { to: req.user.id }] })
-    .map(b => b.from === req.user.id ? b.to : b.from));
-  const excluded = new Set([req.user.id, ...swiped, ...connected, ...blocked]);
+  const swiped    = new Set(swipes.find({ from: req.user.id }).map(s=>s.to));
+  const connected = new Set(connections.find({ $or:[{user1:req.user.id},{user2:req.user.id}] })
+    .map(c=>c.user1===req.user.id?c.user2:c.user1));
+  const blocked   = new Set(blocks.find({ $or:[{from:req.user.id},{to:req.user.id}] })
+    .map(b=>b.from===req.user.id?b.to:b.from));
+  const excluded  = new Set([req.user.id, ...swiped, ...connected, ...blocked]);
 
-  const { skill, intent, location, remote, interest } = req.query;
-  let candidates = users.find().filter(u => !excluded.has(u.id));
-  if (skill) candidates = candidates.filter(u => (u.skills||[]).some(s => s.toLowerCase().includes(skill.toLowerCase())));
-  if (intent) candidates = candidates.filter(u => u.intent === intent);
-  if (location) candidates = candidates.filter(u => (u.location||'').toLowerCase().includes(location.toLowerCase()));
-  if (remote === 'true') candidates = candidates.filter(u => u.remote);
-  if (interest) candidates = candidates.filter(u => (u.interests||[]).some(s => s.toLowerCase().includes(interest.toLowerCase())));
+  const { skill, intent, location, remote, interest, sort='relevance' } = req.query;
+  let candidates = users.find({ banned: { $ne: true } }).filter(u=>!excluded.has(u.id));
+  if (skill)    candidates = candidates.filter(u=>(u.skills||[]).some(s=>s.toLowerCase().includes(skill.toLowerCase())));
+  if (intent)   candidates = candidates.filter(u=>u.intent===intent);
+  if (location) candidates = candidates.filter(u=>(u.location||'').toLowerCase().includes(location.toLowerCase()));
+  if (remote==='true') candidates = candidates.filter(u=>u.remote);
+  if (interest) candidates = candidates.filter(u=>(u.interests||[]).some(s=>s.toLowerCase().includes(interest.toLowerCase())));
 
   const remaining = DAILY_LIMIT - viewed;
-  const profiles = candidates
-    .map(u => Object.assign({}, clean(u), {
-      matchScore: matchScore(me, u),
-      insight: getInsight(me, u),
-      works: works.find({ user_id: u.id }).map(cleanDoc)
-    }))
-    .filter(p => p.matchScore > 10)
-    .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, remaining);
+  let profiles = candidates.map(u=>Object.assign({},clean(u),{
+    matchScore: matchScore(me,u), insight: getInsight(me,u),
+    works: works.find({ user_id: u.id }).map(cleanDoc),
+    distance: (me.lat&&u.lat&&me.lng&&u.lng) ? Math.round(haversine(parseFloat(me.lat),parseFloat(me.lng),parseFloat(u.lat),parseFloat(u.lng))) : null
+  })).filter(p=>p.matchScore>10);
 
+  if (sort==='recent')   profiles.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  else if (sort==='distance') profiles.sort((a,b)=>(a.distance??9999)-(b.distance??9999));
+  else                   profiles.sort((a,b)=>b.matchScore-a.matchScore); // relevance default
+
+  profiles = profiles.slice(0, remaining);
   incrementViewed(req.user.id, profiles.length);
-  res.json({ limited: false, remaining: remaining - profiles.length, profiles });
+  res.json({ limited: false, remaining: remaining-profiles.length, profiles, daily_limit: DAILY_LIMIT });
 });
 
-// ── SWIPE ─────────────────────────────────────────────────
+// ── SEARCH ──────────────────────────────────────────────────────────────────
+
+app.get('/api/search', auth, (req, res) => {
+  const { q } = req.query;
+  if (!q || q.trim().length < 2) return res.json([]);
+  const term = q.trim().toLowerCase();
+  const results = users.find({ banned: { $ne: true } })
+    .filter(u => u.id !== req.user.id && (
+      (u.name||'').toLowerCase().includes(term) ||
+      (u.interests||[]).some(i=>i.toLowerCase().includes(term)) ||
+      (u.skills||[]).some(s=>s.toLowerCase().includes(term))
+    ))
+    .slice(0,20)
+    .map(u=>clean(u));
+  res.json(results);
+});
+
+// ── SWIPE ────────────────────────────────────────────────────────────────────
 
 app.post('/api/swipe', auth, (req, res) => {
   const { targetId, direction } = req.body;
@@ -270,16 +354,17 @@ app.post('/api/swipe', auth, (req, res) => {
 
   let match = false, connectionId = null;
   if (direction === 'right') {
-    const theirSwipe = swipes.findOne({ from: targetId, to: req.user.id, direction: 'right' });
-    if (theirSwipe) {
+    const their = swipes.findOne({ from: targetId, to: req.user.id, direction: 'right' });
+    if (their) {
       const now = new Date();
       connectionId = uuidv4();
       connections.insert({
         id: connectionId, user1: req.user.id, user2: targetId,
         created_at: now.toISOString(),
-        expires_at: new Date(now.getTime() + 5 * 24 * 3600000).toISOString(),
-        first_response_deadline: new Date(now.getTime() + 48 * 3600000).toISOString(),
-        responded: false, status: 'active'
+        expires_at: new Date(now.getTime()+5*24*3600000).toISOString(),
+        first_response_deadline: new Date(now.getTime()+48*3600000).toISOString(),
+        user1_responded: false, user2_responded: false,
+        active: false, status: 'active'
       });
       match = true;
     }
@@ -287,61 +372,121 @@ app.post('/api/swipe', auth, (req, res) => {
   res.json({ match, direction, connectionId });
 });
 
-// ── CONNECTIONS ───────────────────────────────────────────
+// ── CONNECTIONS ──────────────────────────────────────────────────────────────
 
 app.get('/api/connections', auth, (req, res) => {
   const now = new Date();
   const result = connections
-    .find({ $or: [{ user1: req.user.id }, { user2: req.user.id }] })
-    .filter(c => new Date(c.expires_at) > now)
+    .find({ $or:[{user1:req.user.id},{user2:req.user.id}] })
+    .filter(c => c.active || new Date(c.expires_at) > now)
     .map(c => {
-      const otherId = c.user1 === req.user.id ? c.user2 : c.user1;
+      const otherId = c.user1===req.user.id?c.user2:c.user1;
       const other = users.findOne({ id: otherId });
       const msgs = messages.find({ connection_id: c.id });
-      const lastMsg = msgs.length ? msgs[msgs.length - 1] : null;
-      const hoursLeft = Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
-      const responseHours = Math.max(0, Math.round((new Date(c.first_response_deadline) - now) / 3600000));
+      const lastMsg = msgs.length ? msgs[msgs.length-1] : null;
+      const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at)-now)/3600000));
       return {
         connection: cleanDoc(c), user: clean(other),
-        lastMessage: lastMsg ? cleanDoc(lastMsg) : null,
-        hoursLeft, responseHours, needsResponse: !c.responded && responseHours > 0,
-        msgCount: msgs.length
+        lastMessage: lastMsg?cleanDoc(lastMsg):null,
+        hoursLeft, active: !!c.active, msgCount: msgs.length
       };
     });
   res.json(result);
 });
 
-// ── MESSAGES ──────────────────────────────────────────────
+// ── MESSAGES ─────────────────────────────────────────────────────────────────
 
 app.get('/api/messages/:connId', auth, (req, res) => {
   const conn = connections.findOne({ id: req.params.connId });
-  if (!conn || (conn.user1 !== req.user.id && conn.user2 !== req.user.id))
+  if (!conn||(conn.user1!==req.user.id&&conn.user2!==req.user.id))
     return res.status(403).json({ error: 'Access denied' });
   res.json(messages.find({ connection_id: req.params.connId }).map(cleanDoc));
 });
 
 app.post('/api/messages/:connId', auth, (req, res) => {
   const conn = connections.findOne({ id: req.params.connId });
-  if (!conn || (conn.user1 !== req.user.id && conn.user2 !== req.user.id))
+  if (!conn||(conn.user1!==req.user.id&&conn.user2!==req.user.id))
     return res.status(403).json({ error: 'Access denied' });
-  if (new Date(conn.expires_at) < new Date())
+  if (!conn.active && new Date(conn.expires_at)<new Date())
     return res.status(400).json({ error: 'Connection expired' });
   const { text } = req.body;
-  if (!text || !text.trim()) return res.status(400).json({ error: 'Text required' });
-  if (!conn.responded) { conn.responded = true; connections.update(conn); }
-  const msg = { id: uuidv4(), connection_id: conn.id, from: req.user.id, text: text.trim(), created_at: new Date().toISOString() };
+  if (!text||!text.trim()) return res.status(400).json({ error: 'Text required' });
+
+  // Track per-user responses; if both replied → mark active (remove expiry)
+  if (req.user.id===conn.user1 && !conn.user1_responded) {
+    conn.user1_responded = true;
+  } else if (req.user.id===conn.user2 && !conn.user2_responded) {
+    conn.user2_responded = true;
+  }
+  if (conn.user1_responded && conn.user2_responded && !conn.active) {
+    conn.active = true; // permanent connection
+  }
+  connections.update(conn);
+
+  const msg = { id: uuidv4(), connection_id: conn.id, from: req.user.id,
+    text: text.trim(), created_at: new Date().toISOString() };
   messages.insert(msg);
   res.json(msg);
 });
 
-// ── REPORT & BLOCK ────────────────────────────────────────
+// ── PRIORITY CONNECT (1 msg without match, 20/month) ─────────────────────────
+
+app.post('/api/priority-message', auth, (req, res) => {
+  const { targetId, text } = req.body;
+  if (!targetId||!text) return res.status(400).json({ error: 'targetId and text required' });
+
+  const sender = users.findOne({ id: req.user.id });
+  if (!sender) return res.status(404).json({ error: 'Not found' });
+
+  const month = thisMonthKey();
+  const monthCount = priorityMsgs.find({ from: req.user.id, month }).length;
+  const limit = sender.premium ? 20 : 3; // free users get 3 to try feature
+  if (monthCount >= limit)
+    return res.status(429).json({ error: `Priority message limit reached (${limit}/month)` });
+
+  // Prevent duplicate priority message to same person this month
+  if (priorityMsgs.findOne({ from: req.user.id, to: targetId, month }))
+    return res.status(400).json({ error: 'Already sent a priority message to this person' });
+
+  const pm = { id: uuidv4(), from: req.user.id, to: targetId,
+    text: text.trim(), month, read: false, created_at: new Date().toISOString() };
+  priorityMsgs.insert(pm);
+  res.json({ ok: true, remaining: limit - monthCount - 1 });
+});
+
+app.get('/api/priority-messages', auth, (req, res) => {
+  const received = priorityMsgs.find({ to: req.user.id }).map(pm => {
+    const sender = users.findOne({ id: pm.from });
+    return Object.assign({}, cleanDoc(pm), { sender: clean(sender) });
+  });
+  const sent = priorityMsgs.find({ from: req.user.id });
+  const month = thisMonthKey();
+  const me = users.findOne({ id: req.user.id });
+  const limit = (me&&me.premium) ? 20 : 3;
+  const used = sent.filter(p=>p.month===month).length;
+  res.json({ received, sent: sent.map(cleanDoc), remaining: limit-used, limit });
+});
+
+// ── WHO LIKED YOU (premium) ───────────────────────────────────────────────────
+
+app.get('/api/liked-me', auth, (req, res) => {
+  const me = users.findOne({ id: req.user.id });
+  if (!me || !me.premium) return res.status(403).json({ error: 'Premium only' });
+  const likedMe = swipes.find({ to: req.user.id, direction: 'right' }).map(s=>{
+    const u = users.findOne({ id: s.from });
+    return clean(u);
+  }).filter(Boolean);
+  res.json(likedMe);
+});
+
+// ── REPORT & BLOCK ────────────────────────────────────────────────────────────
 
 app.post('/api/report', auth, (req, res) => {
   const { targetId, reason } = req.body;
-  if (!targetId || !reason) return res.status(400).json({ error: 'Required fields missing' });
+  if (!targetId||!reason) return res.status(400).json({ error: 'Required fields missing' });
   reports.insert({ id: uuidv4(), from: req.user.id, target: targetId, reason, created_at: new Date().toISOString() });
   const target = users.findOne({ id: targetId });
-  if (target) { target.trust_score = Math.max(0, (target.trust_score || 50) - 10); users.update(target); }
+  if (target) { target.trust_score = Math.max(0, target.trust_score-10); users.update(target); }
   res.json({ ok: true });
 });
 
@@ -353,14 +498,14 @@ app.post('/api/block', auth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ── WORKS ─────────────────────────────────────────────────
+// ── WORKS ─────────────────────────────────────────────────────────────────────
 
 app.post('/api/works', auth, upload.single('image'), (req, res) => {
   const { title, description, url } = req.body;
   if (!title) return res.status(400).json({ error: 'Title required' });
   const work = { id: uuidv4(), user_id: req.user.id, title,
     description: description||'', url: url||'',
-    image: req.file ? '/uploads/'+req.file.filename : '',
+    image: req.file?'/uploads/'+req.file.filename:'',
     created_at: new Date().toISOString() };
   works.insert(work); res.json(work);
 });
@@ -370,6 +515,67 @@ app.delete('/api/works/:id', auth, (req, res) => {
   if (!work) return res.status(404).json({ error: 'Not found' });
   works.remove(work); res.json({ ok: true });
 });
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+
+app.get('/api/admin/users', adminAuth, (req, res) => {
+  const all = users.find().map(u=>{
+    const u2=clean(u); u2.trust_steps=trustSteps(u); return u2;
+  });
+  res.json(all);
+});
+
+app.post('/api/admin/ban', adminAuth, (req, res) => {
+  const { targetId, banned } = req.body;
+  const user = users.findOne({ id: targetId });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  user.banned = !!banned; users.update(user);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/verify', adminAuth, (req, res) => {
+  const { targetId } = req.body;
+  const user = users.findOne({ id: targetId });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  user.verification = { status: 'verified', confidence: 100, verified_at: new Date().toISOString() };
+  user.trust_score = calcTrust(user);
+  users.update(user);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/upgrade', adminAuth, (req, res) => {
+  const { targetId, premium } = req.body;
+  const user = users.findOne({ id: targetId });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  user.premium = !!premium; users.update(user);
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/analytics', adminAuth, (req, res) => {
+  res.json({
+    users: users.count(),
+    premium: users.find({ premium: true }).length,
+    verified: users.find({ 'verification.status': 'verified' }).length,
+    connections: connections.count(),
+    active_connections: connections.find({ active: true }).length,
+    messages: messages.count(),
+    reports: reports.count(),
+    blocks: blocks.count(),
+  });
+});
+
+// ── ADMIN BOOTSTRAP (create first admin via secret) ────────────────────────────
+
+app.post('/api/admin/bootstrap', async (req, res) => {
+  const { email, secret } = req.body;
+  if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Invalid secret' });
+  const user = users.findOne({ email });
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  user.role = 'admin'; users.update(user);
+  res.json({ ok: true });
+});
+
+// ── FALLBACK ──────────────────────────────────────────────────────────────────
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));

@@ -242,6 +242,7 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
     <button class="nav-tab active" onclick="go('discover')">Discover</button>
     <button class="nav-tab" onclick="go('connections')">Connections</button>
     <button class="nav-tab" onclick="go('profile')">Profile</button>
+    <button class="nav-tab" id="admin-tab" style="display:none" onclick="go('admin')">Admin</button>
   </div>
   <div class="nav-right" id="nav-right"></div>
 </nav>
@@ -257,9 +258,20 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
       <span id="rem-count">30</span> left today
     </div>
   </div>
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="mode-explore" onclick="setMode('explore')">Explore</button>
-    <button class="mode-btn" id="mode-precision" onclick="setMode('precision')">Precision</button>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+    <div class="mode-toggle" style="margin-bottom:0">
+      <button class="mode-btn active" id="mode-explore" onclick="setMode('explore')">Explore</button>
+      <button class="mode-btn" id="mode-precision" onclick="setMode('precision')">Precision</button>
+    </div>
+    <div class="field" style="margin:0;display:flex;align-items:center;gap:6px">
+      <label style="font-size:.7rem;color:var(--sub);letter-spacing:.6px;text-transform:uppercase;white-space:nowrap">Sort</label>
+      <select id="disc-sort" onchange="loadDiscover()" style="background:var(--sur);border:1px solid var(--border);border-radius:var(--rb);padding:7px 12px;color:var(--text);font-size:.8rem;outline:none;font-family:Inter,sans-serif">
+        <option value="relevance">Relevance</option>
+        <option value="recent">Recent</option>
+        <option value="distance">Distance</option>
+      </select>
+    </div>
+
   </div>
   <div class="filter-panel" id="filter-panel">
     <div class="filter-grid">
@@ -278,8 +290,7 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
       </div>
     </div>
     <div class="remote-toggle" id="remote-toggle" onclick="toggleRemote()" style="margin-top:4px;width:fit-content">
-      <div class="toggle-dot"></div>
-      <span>Remote friendly</span>
+      <div class="toggle-dot"></div><span>Remote friendly</span>
     </div>
     <div style="margin-top:14px;display:flex;gap:8px">
       <button class="btn btn-gold btn-sm" onclick="loadDiscover()">Apply</button>
@@ -291,10 +302,16 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 
 <!-- CONNECTIONS -->
 <div class="page" id="page-connections">
-  <div style="margin-bottom:28px">
+  <div style="margin-bottom:20px">
     <h1 class="serif" style="font-size:1.5rem">Connections</h1>
-    <p style="color:var(--sub);font-size:.82rem;margin-top:4px">Mutual connections · Active for 5 days</p>
+    <p style="color:var(--sub);font-size:.82rem;margin-top:4px">Mutual connections</p>
   </div>
+  <div style="display:flex;gap:8px;margin-bottom:20px">
+    <input id="search-q" placeholder="Search people by name or interest…" onkeydown="if(event.key==='Enter')runSearch()" style="flex:1;background:var(--sur);border:1px solid var(--border);border-radius:var(--rb);padding:9px 14px;color:var(--text);font-size:.85rem;outline:none;font-family:Inter,sans-serif"/>
+    <button class="btn btn-ghost btn-sm" onclick="runSearch()">Search</button>
+    <button class="btn btn-ghost btn-sm" onclick="clearSearch()">All</button>
+  </div>
+  <div id="search-results" style="display:none;margin-bottom:20px"></div>
   <div id="conn-list" class="conn-list"><div class="center"><span class="spin"></span></div></div>
 </div>
 
@@ -318,35 +335,47 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 <div class="page" id="page-profile">
   <div style="margin-bottom:28px">
     <h1 class="serif" style="font-size:1.5rem">My Profile</h1>
-    <p style="color:var(--sub);font-size:.82rem;margin-top:4px">Visible to people you're matched with</p>
+    <p style="color:var(--sub);font-size:.82rem;margin-top:4px">Visible to people you match with</p>
   </div>
   <div class="profile-layout">
     <div class="p-sidebar">
       <div class="p-av" id="p-av"><span id="p-av-init">?</span></div>
       <div class="p-sidebar-name" id="p-sname">—</div>
       <div class="p-sidebar-email" id="p-semail">—</div>
-      <div class="trust-bar"><div class="trust-fill" id="trust-fill" style="width:50%"></div></div>
-      <div class="trust-lbl" id="trust-lbl">Trust score: 50</div>
-      <label class="upload-lnk">Change photo
-        <input type="file" accept="image/*" id="photo-file" style="display:none" onchange="uploadPhoto()"/>
-      </label>
+      <div class="trust-bar"><div class="trust-fill" id="trust-fill" style="width:0%"></div></div>
+      <div class="trust-lbl" id="trust-lbl">Trust score: 0</div>
+      <div id="trust-steps" style="margin-top:12px;text-align:left"></div>
+      <div style="margin-top:14px">
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="startVerification()">Verify Identity</button>
+      </div>
     </div>
     <div>
+      <!-- Photos -->
+      <div class="panel">
+        <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
+          Photos <span style="font-size:.72rem;color:var(--sub);font-family:Inter,sans-serif">(min 4 for full trust score)</span>
+        </div>
+        <div id="photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+        <label class="btn btn-ghost btn-sm" style="cursor:pointer;display:inline-block">
+          + Add Photo
+          <input type="file" accept="image/*" id="photo-add-file" style="display:none" onchange="addPhoto()"/>
+        </label>
+      </div>
       <!-- Identity -->
       <div class="panel">
         <div class="panel-title">Identity</div>
         <div class="field"><label>Name</label><input id="e-name"/></div>
+        <div class="field"><label>Bio</label><textarea id="e-bio" placeholder="A short bio…" style="min-height:55px"></textarea></div>
         <div class="field"><label>Location</label><input id="e-location" placeholder="City, Country"/></div>
         <div class="field" style="display:flex;align-items:center;gap:10px;margin-bottom:0">
           <input type="checkbox" id="e-remote" style="width:auto;accent-color:var(--gold)"/>
           <label for="e-remote" style="text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--text);cursor:pointer;font-weight:400">Open to remote connections</label>
         </div>
       </div>
-      <!-- Intent & Context -->
+      <!-- Intent -->
       <div class="panel">
         <div class="panel-title">Intent & Context</div>
-        <div class="field">
-          <label>Primary intent</label>
+        <div class="field"><label>Primary intent</label>
           <select id="e-intent">
             <option value="explore-network">Explore network</option>
             <option value="exchange-ideas">Exchange ideas</option>
@@ -357,7 +386,7 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
         </div>
         <div class="field"><label>Currently exploring</label><input id="e-exploring" placeholder="e.g. Intersection of AI and healthcare"/></div>
         <div class="field"><label>Working on</label><input id="e-working" placeholder="e.g. A platform for independent researchers"/></div>
-        <div class="field" style="margin-bottom:0"><label>Interested in conversations about</label><textarea id="e-interested" placeholder="Topics you want to explore in conversations…" style="min-height:60px"></textarea></div>
+        <div class="field" style="margin-bottom:0"><label>Interested in conversations about</label><textarea id="e-interested" style="min-height:60px" placeholder="Topics you want to explore…"></textarea></div>
       </div>
       <!-- Interests -->
       <div class="panel">
@@ -386,11 +415,10 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
       </div>
       <button class="btn btn-gold" onclick="saveProfile()" style="width:100%;padding:12px">Save Profile</button>
       <div class="ok" id="p-save" style="text-align:center;margin-top:10px"></div>
-      <!-- Work -->
+      <!-- Works -->
       <div class="panel" style="margin-top:16px">
         <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
-          Work & Projects
-          <button class="btn btn-ghost btn-sm" onclick="toggleWorkBox()">+ Add</button>
+          Work & Projects<button class="btn btn-ghost btn-sm" onclick="toggleWorkBox()">+ Add</button>
         </div>
         <div id="works-list"></div>
         <div class="add-work-box" id="add-work-box">
@@ -411,11 +439,22 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
   </div>
 </div>
 
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+  <div style="margin-bottom:28px">
+    <h1 class="serif" style="font-size:1.5rem">Admin Panel</h1>
+  </div>
+  <div id="admin-analytics" class="panel" style="margin-bottom:16px"></div>
+  <div class="panel">
+    <div class="panel-title">Users</div>
+    <div id="admin-users"></div>
+  </div>
+</div>
+
 <!-- LOGIN -->
 <div class="page" id="page-login">
   <div class="auth-wrap">
-    <h2>Welcome back</h2>
-    <p>Sign in to your account</p>
+    <h2>Welcome back</h2><p>Sign in to your account</p>
     <div class="field"><label>Email</label><input type="email" id="l-email"/></div>
     <div class="field"><label>Password</label><input type="password" id="l-pw" onkeydown="if(event.key==='Enter')login()"/></div>
     <div class="err" id="l-err"></div>
@@ -427,8 +466,7 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 <!-- SIGNUP -->
 <div class="page" id="page-signup">
   <div class="auth-wrap">
-    <h2>Join Network</h2>
-    <p>A space for high-intent conversations and meaningful connections.</p>
+    <h2>Join Network</h2><p>A space for high-intent conversations and meaningful connections.</p>
     <div class="field"><label>Name</label><input id="s-name"/></div>
     <div class="field"><label>Email</label><input type="email" id="s-email"/></div>
     <div class="field"><label>Password</label><input type="password" id="s-pw" onkeydown="if(event.key==='Enter')signup()"/></div>
@@ -448,8 +486,37 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 
 <!-- MATCH MODAL -->
 <div class="overlay" id="match-modal">
+  <div class="modal"><div class="modal-body" id="match-modal-body"></div></div>
+</div>
+
+<!-- PRIORITY MESSAGE MODAL -->
+<div class="overlay" id="priority-modal">
   <div class="modal">
-    <div class="modal-body" id="match-modal-body"></div>
+    <div class="modal-hdr"><h3>Priority Connect</h3><button class="close-btn" onclick="closeOverlay('priority-modal')">×</button></div>
+    <div class="modal-body">
+      <p style="color:var(--sub);font-size:.83rem;margin-bottom:14px;line-height:1.6">Send one message directly — no match required. They can choose to reply.</p>
+      <div class="field"><label>Message</label><textarea id="priority-msg-text" style="min-height:80px" placeholder="Introduce yourself and why you want to connect…"></textarea></div>
+      <div class="err" id="priority-err"></div>
+      <button class="btn btn-gold" style="width:100%" onclick="sendPriorityMsg()">Send Priority Message</button>
+    </div>
+  </div>
+</div>
+
+<!-- VERIFY MODAL -->
+<div class="overlay" id="verify-modal">
+  <div class="modal">
+    <div class="modal-hdr"><h3>Identity Verification</h3><button class="close-btn" onclick="closeOverlay('verify-modal')">×</button></div>
+    <div class="modal-body" id="verify-body">
+      <p style="color:var(--sub);font-size:.83rem;margin-bottom:16px;line-height:1.6">Take a quick selfie to verify your identity and boost your trust score.</p>
+      <video id="verify-video" autoplay playsinline style="width:100%;border-radius:10px;background:#000;margin-bottom:12px;display:none"></video>
+      <canvas id="verify-canvas" style="display:none"></canvas>
+      <div id="verify-challenge" style="text-align:center;font-size:1rem;color:var(--gold);font-weight:600;margin-bottom:12px;min-height:24px"></div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-ghost btn-sm" id="verify-start-btn" onclick="startCamera()">Start Camera</button>
+        <button class="btn btn-gold btn-sm" id="verify-capture-btn" style="display:none" onclick="captureVerify()">Capture</button>
+      </div>
+      <div class="err" id="verify-err"></div>
+    </div>
   </div>
 </div>
 
@@ -458,8 +525,7 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
   <div class="modal">
     <div class="modal-hdr"><h3>Report or Block</h3><button class="close-btn" onclick="closeOverlay('report-modal')">×</button></div>
     <div class="modal-body">
-      <div class="field">
-        <label>Reason</label>
+      <div class="field"><label>Reason</label>
         <select id="report-reason">
           <option value="spam">Spam or fake profile</option>
           <option value="inappropriate">Inappropriate behaviour</option>
@@ -481,52 +547,63 @@ nav{background:var(--sur);border-bottom:1px solid var(--border);height:58px;disp
 const API='';
 let token=localStorage.getItem('nw_tok');
 let me=JSON.parse(localStorage.getItem('nw_me')||'null');
-// Refresh user data from server on load
 if(token){fetch('/api/me',{headers:{Authorization:'Bearer '+token}}).then(r=>r.ok?r.json():null).then(u=>{if(u&&u.id){me=u;localStorage.setItem('nw_me',JSON.stringify(u));updateNav();}}).catch(()=>{});}
 let mySkills=[], myInterests=[];
 let discCards=[], discIdx=0, remoteOn=false, discMode='explore';
 let activeConnId=null, activeChatUserId=null, chatPoll=null;
-let reportTargetId=null;
+let reportTargetId=null, priorityTargetId=null;
+let verifyStream=null;
 
 const INTENT_LABELS={'explore-network':'Exploring network','exchange-ideas':'Exchanging ideas','learn-mentorship':'Learning / Mentorship','build-relationships':'Building relationships','collaborate':'Looking to collaborate'};
 const CHAT_PROMPTS=['What are you currently exploring?','What led you here?','What would a great conversation look like for you?','What\'s something you wish more people thought about?'];
 
-// ── UTILS ─────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function inits(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
-function avHtml(p,n){if(p)return'<img src="'+(p.startsWith('/uploads')?API+p:p)+'" alt=""/>';return'<span>'+inits(n)+'</span>';}
+function firstPhoto(u){return(u.photos&&u.photos.length)?u.photos[0]:(u.photo||'');}
+function avHtml(u,size){
+  const p=firstPhoto(u);
+  if(p)return'<img src="'+esc(p)+'" alt="" style="width:100%;height:100%;object-fit:cover"/>';
+  return'<span>'+inits(u.name)+'</span>';
+}
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
-function closeOverlay(id){document.getElementById(id).classList.remove('open');}
+function closeOverlay(id){
+  document.getElementById(id).classList.remove('open');
+  if(id==='verify-modal'&&verifyStream){verifyStream.getTracks().forEach(t=>t.stop());verifyStream=null;}
+}
+
 async function api(method,path,body,isForm){
   const opts={method,headers:{Authorization:token?'Bearer '+token:''}};
   if(body){if(isForm)opts.body=body;else{opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json';}}
   const r=await fetch(API+path,opts);
-  let d;
-  try{d=await r.json();}catch(e){if(!r.ok)throw new Error('Server error');return {};}
-  if(!r.ok)throw new Error((d&&d.error)||'Error');return d||{};
+  let d;try{d=await r.json();}catch(e){if(!r.ok)throw new Error('Server error');return{};}
+  if(!r.ok)throw new Error((d&&d.error)||'Error');
+  return d||{};
 }
 function fmt(iso){return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
 
-// ── NAV ───────────────────────────────────────────────
+// ── NAV ──────────────────────────────────────────────
 function go(page){
   if(chatPoll){clearInterval(chatPoll);chatPoll=null;}
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('chat-page').classList.remove('active');
   if(page==='chat'){document.getElementById('chat-page').classList.add('active');return;}
   const el=document.getElementById('page-'+page);
-  if(el){el.classList.add('active');}
+  if(el)el.classList.add('active');
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
-  const i={discover:0,connections:1,profile:2}[page];
-  if(i!==undefined)document.querySelectorAll('.nav-tab')[i].classList.add('active');
+  const tabs={discover:0,connections:1,profile:2};
+  if(tabs[page]!==undefined)document.querySelectorAll('.nav-tab')[tabs[page]].classList.add('active');
   if(page==='discover')loadDiscover();
   if(page==='connections')loadConnections();
   if(page==='profile'&&me)loadMyProfile();
+  if(page==='admin')loadAdmin();
 }
 function updateNav(){
   const in_=!!token;
   document.getElementById('nav-tabs').classList.toggle('show',in_);
+  const adminTab=document.getElementById('admin-tab');
+  if(adminTab)adminTab.style.display=(me&&me.role==='admin')?'':'none';
   document.getElementById('nav-right').innerHTML=in_
-    ?'<span style="font-size:.78rem;color:var(--sub)">'+(me?me.name:'')+'</span><button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>'
+    ?'<span style="font-size:.78rem;color:var(--sub)">'+(me?esc(me.name):'')+(me&&me.premium?'<span style="color:var(--gold);font-size:.65rem;margin-left:6px;border:1px solid var(--gold);padding:1px 6px;border-radius:10px">PRO</span>':'')+'</span><button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>'
     :'<button class="btn btn-ghost btn-sm" onclick="go(\'login\')">Sign In</button><button class="btn btn-gold btn-sm" onclick="go(\'signup\')">Join</button>';
 }
 
@@ -535,7 +612,7 @@ async function signup(){
   const err=document.getElementById('s-err');err.textContent='';
   try{
     const d=await api('POST','/api/signup',{name:document.getElementById('s-name').value.trim(),email:document.getElementById('s-email').value.trim(),password:document.getElementById('s-pw').value});
-    setSession(d);go('profile');toast('Welcome — set up your profile to get matched');
+    setSession(d);go('profile');toast('Welcome — complete your profile to get matched');
   }catch(e){err.textContent=e.message;}
 }
 async function login(){
@@ -556,10 +633,7 @@ function setMode(m){
   document.getElementById('filter-panel').classList.toggle('open',m==='precision');
   if(m==='explore')loadDiscover();
 }
-function toggleRemote(){
-  remoteOn=!remoteOn;
-  document.getElementById('remote-toggle').classList.toggle('on',remoteOn);
-}
+function toggleRemote(){remoteOn=!remoteOn;document.getElementById('remote-toggle').classList.toggle('on',remoteOn);}
 function clearFilters(){
   ['f-interest','f-skill','f-location'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-intent').value='';
@@ -575,6 +649,8 @@ async function loadDiscover(){
   document.getElementById('disc-stack').innerHTML='<div class="center"><span class="spin"></span></div>';
   try{
     const p=new URLSearchParams();
+    const sort=document.getElementById('disc-sort').value;
+    if(sort)p.set('sort',sort);
     if(discMode==='precision'){
       const fi=document.getElementById('f-interest').value;
       const fs=document.getElementById('f-skill').value;
@@ -587,37 +663,77 @@ async function loadDiscover(){
     const res=await api('GET','/api/discover?'+p);
     discCards=Array.isArray(res.profiles)?res.profiles:[];discIdx=0;
     const rem=document.getElementById('remaining-badge');
-    rem.style.display=discCards.length?'block':'none';
+    rem.style.display='block';
     document.getElementById('rem-count').textContent=res.remaining||0;
     if(res.limited){
-      document.getElementById('disc-stack').innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>Daily limit reached</h3><p>You\'ve seen your 30 profiles for today. Come back tomorrow for fresh matches.</p></div>';
+      document.getElementById('disc-stack').innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>Daily limit reached</h3><p>You\'ve seen your '+(res.daily_limit||30)+' profiles for today. Come back tomorrow.</p></div>';
       return;
     }
     renderStack();
-  }catch(e){document.getElementById('disc-stack').innerHTML='<div class="center">'+e.message+'</div>';}
+  }catch(e){document.getElementById('disc-stack').innerHTML='<div class="center">'+esc(e.message)+'</div>';}
+}
+
+async function runSearch(){
+  const q=document.getElementById('search-q').value.trim();
+  if(!q||!token)return;
+  const el=document.getElementById('search-results');
+  el.style.display='block';
+  el.innerHTML='<div class="center"><span class="spin"></span></div>';
+  try{
+    const res=await api('GET','/api/search?q='+encodeURIComponent(q));
+    const users=Array.isArray(res)?res:[];
+    if(!users.length){el.innerHTML='<div style="color:var(--sub);font-size:.83rem;padding:12px 0">No results for &ldquo;'+esc(q)+'&rdquo;</div>';return;}
+    el.innerHTML='<div style="font-size:.7rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Search results</div>'+
+      users.map(u=>{
+        const photo=firstPhoto(u);
+        const avInner=photo?'<img src="'+esc(photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>':'<span>'+inits(u.name)+'</span>';
+        const verified=u.verification&&u.verification.status==='verified';
+        return'<div class="conn-card" data-uid="'+esc(u.id)+'" data-action="profile">'+
+          '<div class="c-av">'+avInner+'</div>'+
+          '<div class="c-info">'+
+            '<div class="c-name">'+esc(u.name||'')+(verified?'<span style="color:var(--gold);margin-left:5px;font-size:.7rem">&#10003;</span>':'')+'</div>'+
+            '<div class="c-preview">'+(u.interests||[]).slice(0,3).map(i=>esc(i)).join(' &middot; ')+'</div>'+
+          '</div>'+
+          '<button class="btn btn-gold btn-sm" data-uid="'+esc(u.id)+'" data-action="priority">Connect</button>'+
+        '</div>';
+      }).join('');
+    el.querySelectorAll('[data-action="profile"]').forEach(function(row){
+      row.addEventListener('click',function(e){
+        if(e.target.dataset.action==='priority')return;
+        showProfileModal(row.dataset.uid);
+      });
+    });
+    el.querySelectorAll('[data-action="priority"]').forEach(function(btn){
+      btn.addEventListener('click',function(e){e.stopPropagation();openPriorityModal(btn.dataset.uid);});
+    });
+  }catch(e){el.innerHTML='<div style="color:var(--danger);font-size:.83rem">'+esc(e.message)+'</div>';}
+}
+function clearSearch(){
+  document.getElementById('search-q').value='';
+  const el=document.getElementById('search-results');
+  el.style.display='none';el.innerHTML='';
 }
 
 function renderStack(){
+  if(!Array.isArray(discCards))discCards=[];
   const stack=document.getElementById('disc-stack');
   if(discIdx>=discCards.length){
-    stack.innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>All caught up</h3><p>No more profiles matching your criteria.<br>Try adjusting filters or check back tomorrow.</p></div>';
-    return;
+    stack.innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>All caught up</h3><p>No more profiles. Try adjusting filters or check back tomorrow.</p></div>';return;
   }
   stack.innerHTML='';
-  if(!Array.isArray(discCards))discCards=[];
   const visible=discCards.slice(discIdx,discIdx+2).reverse();
   visible.forEach((p,i)=>{
     const isTop=i===visible.length-1;
     const card=document.createElement('div');
-    card.className='disc-card';
-    card.dataset.id=p.id;
+    card.className='disc-card';card.dataset.id=p.id;
     if(!isTop){card.style.transform='translateY(10px) scale(0.97)';card.style.zIndex='1';}
     else card.style.zIndex='2';
-    const imgHtml=p.photo
-      ?'<img class="card-img" src="'+API+p.photo+'" />'
+    const photo=firstPhoto(p);
+    const imgHtml=photo?'<img class="card-img" src="'+esc(photo)+'" />'
       :'<div class="card-no-img">'+inits(p.name)+'</div>';
     const skillsHtml=(p.skills||[]).slice(0,4).map(s=>'<span class="skill-pill">'+esc(s)+'</span>').join('');
     const intentLabel=INTENT_LABELS[p.intent]||p.intent||'';
+    const distHtml=p.distance!=null?'<span style="font-size:.7rem;color:var(--sub);margin-left:8px">'+p.distance+'km</span>':'';
     card.innerHTML=
       '<div class="card-hint hint-connect" id="hint-c-'+p.id+'">Connect</div>'+
       '<div class="card-hint hint-skip" id="hint-s-'+p.id+'">Skip</div>'+
@@ -625,204 +741,214 @@ function renderStack(){
       '<div class="card-body">'+
         '<div class="card-row1">'+
           '<div class="card-ident">'+
-            '<div class="card-name" onclick="viewProfile(\''+p.id+'\')" title="View full profile">'+esc(p.name)+'</div>'+
-            (p.location?'<div class="card-loc">'+esc(p.location)+(p.remote?' · Remote friendly':'')+'</div>':'')+'</div>'+
-          '<div class="match-box"><span class="match-pct">'+p.matchScore+'</span><span class="match-lbl">% match</span></div>'+
+            '<div class="card-name" onclick="showProfileModal(\''+p.id+'\')">'+esc(p.name)+'</div>'+
+            (p.location?'<div class="card-loc">'+esc(p.location)+distHtml+(p.remote?' · Remote':'')+'</div>':'')+
+          '</div>'+
+          (p.matchScore?'<div class="match-box"><span class="match-pct">'+p.matchScore+'</span><span class="match-lbl">match</span></div>':'')+
         '</div>'+
-        (p.intent?'<div class="card-intent-badge">'+esc(intentLabel)+'</div>':'')+
         (p.currently_exploring?'<div class="card-exploring"><strong>Exploring:</strong> '+esc(p.currently_exploring)+'</div>':'')+
+        (intentLabel?'<div class="card-intent-badge">'+esc(intentLabel)+'</div>':'')+
         (skillsHtml?'<div class="card-skills">'+skillsHtml+'</div>':'')+
-        '<div class="insight-bar"><span>Why this match: </span>'+esc(p.insight)+'</div>'+
+        (p.insight?'<div class="insight-bar"><span>✦</span> '+esc(p.insight)+'</div>':'')+
         '<div class="card-actions">'+
           '<button class="act-btn act-skip" onclick="swipe(\''+p.id+'\',\'left\')">Skip</button>'+
+          '<button class="act-btn" style="background:var(--sur2);border:1px solid var(--border2);color:var(--sub);font-size:.72rem" onclick="openPriorityModal(\''+p.id+'\')">Priority</button>'+
           '<button class="act-btn act-connect" onclick="swipe(\''+p.id+'\',\'right\')">Connect</button>'+
         '</div>'+
       '</div>';
-    if(isTop)initSwipeGesture(card,p.id);
+    if(isTop)attachSwipe(card,p.id);
     stack.appendChild(card);
   });
 }
 
-function initSwipeGesture(card,id){
-  let sx=0,dx=0,dragging=false;
-  const onMove=e=>{
+function attachSwipe(card,id){
+  let sx=0,sy=0,dx=0,dragging=false;
+  function start(x,y){sx=x;sy=y;dragging=true;card.classList.add('dragging');}
+  function move(x,y){
     if(!dragging)return;
-    dx=((e.clientX||e.touches[0].clientX))-sx;
-    card.style.transform='translateX('+dx+'px) rotate('+(dx*.04)+'deg)';
+    dx=x-sx;const dy=y-sy;
+    card.style.transform='translateX('+dx+'px) rotate('+(dx*0.06)+'deg)';
     const hc=document.getElementById('hint-c-'+id);
     const hs=document.getElementById('hint-s-'+id);
-    if(hc)hc.style.opacity=dx>30?Math.min((dx-30)/40,1):'0';
-    if(hs)hs.style.opacity=dx<-30?Math.min((-dx-30)/40,1):'0';
-  };
-  const onEnd=()=>{
+    if(hc)hc.style.opacity=Math.min(dx/80,1);
+    if(hs)hs.style.opacity=Math.min(-dx/80,1);
+  }
+  function end(){
     if(!dragging)return;dragging=false;card.classList.remove('dragging');
-    if(Math.abs(dx)>85)swipe(id,dx>0?'right':'left');
+    if(dx>80)swipe(id,'right');
+    else if(dx<-80)swipe(id,'left');
     else{card.style.transform='';const hc=document.getElementById('hint-c-'+id);const hs=document.getElementById('hint-s-'+id);if(hc)hc.style.opacity=0;if(hs)hs.style.opacity=0;}
-    dx=0;
-  };
-  card.addEventListener('mousedown',e=>{sx=e.clientX;dragging=true;card.classList.add('dragging');});
-  card.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;dragging=true;},{passive:true});
-  window.addEventListener('mousemove',onMove);
-  window.addEventListener('mouseup',onEnd);
-  card.addEventListener('touchmove',onMove,{passive:true});
-  card.addEventListener('touchend',onEnd);
+  }
+  card.addEventListener('mousedown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='A')return;start(e.clientX,e.clientY);});
+  document.addEventListener('mousemove',e=>{if(dragging)move(e.clientX,e.clientY);});
+  document.addEventListener('mouseup',()=>end());
+  card.addEventListener('touchstart',e=>{start(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  card.addEventListener('touchmove',e=>{move(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
+  card.addEventListener('touchend',()=>end());
 }
 
 async function swipe(id,dir){
   const card=document.querySelector('.disc-card[data-id="'+id+'"]');
-  if(card)card.classList.add(dir==='right'?'go-right':'go-left');
+  if(card){card.classList.add(dir==='right'?'go-right':'go-left');await new Promise(r=>setTimeout(r,280));}
+  discIdx++;renderStack();
   try{
     const res=await api('POST','/api/swipe',{targetId:id,direction:dir});
-    discIdx++;
-    setTimeout(()=>{
-      renderStack();
-      if(res.match){const p=discCards.find(c=>c.id===id);showMatchModal(p);}
-    },300);
+    if(res.match){const p=discCards.find(c=>c.id===id);showMatchModal(p);}
   }catch(e){toast(e.message);}
 }
 
+function showProfileModal(id){
+  api('GET','/api/profiles/'+id).then(p=>{
+    document.getElementById('profile-modal-body').innerHTML=
+      (firstPhoto(p)?'<img src="'+esc(firstPhoto(p))+'" style="width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:14px"/>':'')+
+      '<h3 style="font-family:Playfair Display,serif;font-size:1.1rem;margin-bottom:4px">'+esc(p.name)+'</h3>'+
+      (p.location?'<div style="font-size:.75rem;color:var(--sub);margin-bottom:12px">'+esc(p.location)+'</div>':'')+
+      (p.bio?'<p style="font-size:.84rem;line-height:1.6;color:var(--sub);margin-bottom:12px">'+esc(p.bio)+'</p>':'')+
+      (p.currently_exploring?'<div style="font-size:.82rem;margin-bottom:8px"><strong style="color:var(--sub);font-size:.68rem;letter-spacing:.6px;text-transform:uppercase">Exploring</strong><br>'+esc(p.currently_exploring)+'</div>':'')+
+      '<div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">'+
+        '<button class="btn btn-ghost btn-sm" onclick="openReportModal(\''+p.id+'\')">Report</button>'+
+        '<button class="btn btn-gold btn-sm" onclick="openPriorityModal(\''+p.id+'\')">Priority Connect</button>'+
+      '</div>';
+    document.getElementById('profile-modal').classList.add('open');
+  }).catch(e=>toast(e.message));
+}
+
 function showMatchModal(p){
+  if(!p)return;
   document.getElementById('match-modal-body').innerHTML=
     '<div class="match-content">'+
-    '<div class="match-score-big">'+p.matchScore+'</div>'+
-    '<div class="match-label">% Match</div>'+
-    '<h2>Connection Established</h2>'+
-    '<p>You and <strong>'+esc(p.name)+'</strong> are now connected. Start a meaningful conversation.</p>'+
+    '<div class="match-score-big">'+(p.matchScore||'—')+'</div>'+
+    '<div class="match-label">Match score</div>'+
+    '<h2>Connection Made</h2>'+
+    '<p>You and '+esc(p.name)+' both connected. Start a conversation within 5 days.</p>'+
     '<div class="expiry-note">'+
-      '<div class="expiry-item"><span class="expiry-num">5</span><span class="expiry-txt">Days active</span></div>'+
-      '<div class="expiry-item"><span class="expiry-num">48h</span><span class="expiry-txt">Response window</span></div>'+
+      '<div class="expiry-item"><span class="expiry-num">5</span><span class="expiry-txt">days</span></div>'+
+      '<div class="expiry-item"><span class="expiry-num">48h</span><span class="expiry-txt">first reply</span></div>'+
     '</div>'+
-    '<div style="display:flex;gap:10px;justify-content:center">'+
-      '<button class="btn btn-gold" onclick="closeOverlay(\'match-modal\');go(\'connections\')">Start conversation</button>'+
-      '<button class="btn btn-ghost" onclick="closeOverlay(\'match-modal\')">Continue exploring</button>'+
-    '</div></div>';
+    '<button class="btn btn-gold" onclick="closeOverlay(\'match-modal\');go(\'connections\')">View Connections</button>'+
+    '</div>';
   document.getElementById('match-modal').classList.add('open');
 }
 
-// ── PROFILE VIEW MODAL ─────────────────────────────────
-async function viewProfile(id){
-  document.getElementById('profile-modal').classList.add('open');
-  document.getElementById('profile-modal-body').innerHTML='<div class="center"><span class="spin"></span></div>';
-  try{
-    const p=await api('GET','/api/profiles/'+id);
-    const intentLabel=INTENT_LABELS[p.intent]||'';
-    const skillsHtml=(p.skills||[]).map(s=>'<span class="skill-pill" style="font-size:.75rem;padding:4px 10px">'+esc(s)+'</span>').join('');
-    const interestsHtml=(p.interests||[]).map(s=>'<span class="skill-pill" style="font-size:.75rem;padding:4px 10px;color:var(--gold);border-color:rgba(198,168,107,.3)">'+esc(s)+'</span>').join('');
-    const linksHtml=[
-      p.linkedin?'<a href="'+(p.linkedin.startsWith('http')?p.linkedin:'https://'+p.linkedin)+'" target="_blank" style="color:var(--gold);font-size:.8rem;font-weight:500;text-decoration:none">LinkedIn</a>':'',
-      p.instagram?'<a href="'+(p.instagram.startsWith('http')?p.instagram:'https://instagram.com/'+p.instagram.replace('@',''))+'" target="_blank" style="color:var(--gold);font-size:.8rem;font-weight:500;text-decoration:none">Instagram</a>':'',
-      p.website?'<a href="'+esc(p.website)+'" target="_blank" style="color:var(--gold);font-size:.8rem;font-weight:500;text-decoration:none">Website</a>':''
-    ].filter(Boolean).join('<span style="color:var(--dim);margin:0 6px">·</span>');
-    const worksHtml=(p.works||[]).map(w=>
-      '<div style="display:flex;gap:12px;padding:12px;background:var(--sur2);border-radius:10px;margin-bottom:8px">'+
-      '<div class="work-thumb">'+(w.image?'<img src="'+API+w.image+'"/>':'💼')+'</div>'+
-      '<div><div style="font-weight:500;font-size:.88rem">'+esc(w.title)+'</div>'+
-      (w.description?'<div style="font-size:.78rem;color:var(--sub);margin-top:3px">'+esc(w.description)+'</div>':'')+
-      (w.url?'<a href="'+esc(w.url)+'" target="_blank" style="color:var(--gold);font-size:.75rem;text-decoration:none">View →</a>':'')+'</div></div>'
-    ).join('');
-    document.getElementById('profile-modal-body').innerHTML=
-      '<div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">'+
-        '<div class="p-av" style="width:68px;height:68px;font-size:1.5rem;flex-shrink:0">'+avHtml(p.photo,p.name)+'</div>'+
-        '<div>'+
-          '<div style="font-family:Playfair Display,serif;font-size:1.15rem;font-weight:600">'+esc(p.name)+'</div>'+
-          (p.location?'<div style="font-size:.76rem;color:var(--sub);margin-top:2px">'+esc(p.location)+'</div>':'')+
-          (intentLabel?'<div style="font-size:.74rem;color:var(--sub);margin-top:4px">'+esc(intentLabel)+'</div>':'')+
-          (linksHtml?'<div style="margin-top:8px">'+linksHtml+'</div>':'')+
-        '</div>'+
-      '</div>'+
-      (p.currently_exploring?'<div style="margin-bottom:12px"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Currently exploring</div><div style="font-size:.88rem;color:var(--gold)">'+esc(p.currently_exploring)+'</div></div>':'')+
-      (p.working_on?'<div style="margin-bottom:12px"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Working on</div><div style="font-size:.88rem">'+esc(p.working_on)+'</div></div>':'')+
-      (p.interested_in?'<div style="margin-bottom:16px;padding:12px;background:var(--gold3);border-left:2px solid var(--gold);border-radius:0 8px 8px 0"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px">Interested in conversations about</div><div style="font-size:.85rem;color:var(--sub);line-height:1.6">'+esc(p.interested_in)+'</div></div>':'')+
-      (interestsHtml?'<div style="margin-bottom:14px"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Interests</div><div style="display:flex;gap:5px;flex-wrap:wrap">'+interestsHtml+'</div></div>':'')+
-      (skillsHtml?'<div style="margin-bottom:14px"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Skills</div><div style="display:flex;gap:5px;flex-wrap:wrap">'+skillsHtml+'</div></div>':'')+
-      (worksHtml?'<div style="border-top:1px solid var(--border);padding-top:14px"><div style="font-size:.68rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Work</div>'+worksHtml+'</div>':'')+
-      '<div style="margin-top:16px;display:flex;gap:8px">'+
-        '<button class="btn btn-danger btn-sm" onclick="openReportModal(\''+p.id+'\');closeOverlay(\'profile-modal\')">Report</button>'+
-      '</div>';
-  }catch(e){document.getElementById('profile-modal-body').innerHTML='<p style="color:var(--danger)">'+e.message+'</p>';}
+// ── PRIORITY CONNECT ─────────────────────────────────
+function openPriorityModal(id){
+  priorityTargetId=id;
+  document.getElementById('priority-err').textContent='';
+  document.getElementById('priority-msg-text').value='';
+  document.getElementById('priority-modal').classList.add('open');
 }
-document.getElementById('profile-modal').addEventListener('click',e=>{if(e.target.id==='profile-modal')closeOverlay('profile-modal');});
-document.getElementById('match-modal').addEventListener('click',e=>{if(e.target.id==='match-modal')closeOverlay('match-modal');});
+async function sendPriorityMsg(){
+  const text=document.getElementById('priority-msg-text').value.trim();
+  const err=document.getElementById('priority-err');
+  if(!text){err.textContent='Message required';return;}
+  try{
+    const r=await api('POST','/api/priority-message',{targetId:priorityTargetId,text});
+    closeOverlay('priority-modal');toast('Priority message sent · '+r.remaining+' remaining this month');
+  }catch(e){err.textContent=e.message;}
+}
 
 // ── CONNECTIONS ───────────────────────────────────────
 async function loadConnections(){
-  if(!token){document.getElementById('conn-list').innerHTML='<div class="center">Sign in to see connections</div>';return;}
-  document.getElementById('conn-list').innerHTML='<div class="center"><span class="spin"></span></div>';
+  const el=document.getElementById('conn-list');
+  el.innerHTML='<div class="center"><span class="spin"></span></div>';
   try{
-    const conns=await api('GET','/api/connections');
-    if(!conns.length){
-      document.getElementById('conn-list').innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>No active connections</h3><p>Start exploring to find people worth connecting with.</p><br><button class="btn btn-gold btn-sm" onclick="go(\'discover\')">Discover people</button></div>';
-      return;
-    }
-    document.getElementById('conn-list').innerHTML=conns.map(c=>{
-      const u=c.user;
-      const tc=c.hoursLeft<24?'t-warn':'t-ok';
-      const tl=c.hoursLeft<24?c.hoursLeft+'h':Math.floor(c.hoursLeft/24)+'d';
-      const preview=c.lastMessage?c.lastMessage.text:'Begin a conversation';
-      const respNote=c.needsResponse?'<div class="c-response">Respond within '+c.responseHours+'h</div>':'';
-      return '<div class="conn-card" onclick="openChat(\''+c.connection.id+'\','+JSON.stringify(u).replace(/"/g,'&quot;')+')" >'+
-        '<div class="c-av">'+avHtml(u.photo,u.name)+'</div>'+
+    let list=await api('GET','/api/connections');
+    if(!Array.isArray(list))list=[];
+    if(!list.length){el.innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>No connections yet</h3><p>Start exploring to find people worth connecting with.</p><br><button class="btn btn-gold btn-sm" onclick="go(\'discover\')">Discover people</button></div>';return;}
+    el.innerHTML=list.map(item=>{
+      const u=item.user||{};
+      const c=item.connection||{};
+      const photo=firstPhoto(u);
+      const avInner=photo?'<img src="'+esc(photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>'
+        :'<span>'+inits(u.name)+'</span>';
+      const timerHtml=item.active
+        ?'<span class="timer t-ok">Active ✓</span>'
+        :(item.hoursLeft!=null?(item.hoursLeft<12
+          ?'<span class="timer t-warn">'+item.hoursLeft+'h left</span>'
+          :'<span class="timer t-ok">'+item.hoursLeft+'h left</span>'):'');
+      const preview=item.lastMessage?esc(item.lastMessage.text.slice(0,40)):'Start the conversation…';
+      return'<div class="conn-card" onclick="openChat(\''+c.id+'\',\''+u.id+'\','+JSON.stringify(u).replace(/"/g,'&quot;')+')">'+
+        '<div class="c-av">'+avInner+'</div>'+
         '<div class="c-info">'+
-          '<div class="c-name">'+esc(u.name)+(u.intent?'<span style="font-size:.68rem;color:var(--sub);margin-left:8px;font-weight:400">'+esc(INTENT_LABELS[u.intent]||u.intent)+'</span>':'')+'</div>'+
-          '<div class="c-preview">'+esc(preview.slice(0,80))+'</div>'+
-          respNote+
+          '<div class="c-name">'+esc(u.name||'')+(u.verification&&u.verification.status==='verified'?'<span style="color:var(--gold);margin-left:5px;font-size:.7rem">✓</span>':'')+'</div>'+
+          '<div class="c-preview">'+preview+'</div>'+
         '</div>'+
-        '<div class="c-meta"><span class="timer '+tc+'">'+tl+' left</span></div>'+
+        '<div class="c-meta">'+timerHtml+'</div>'+
       '</div>';
     }).join('');
-  }catch(e){document.getElementById('conn-list').innerHTML='<div class="center">'+e.message+'</div>';}
+  }catch(e){el.innerHTML='<div class="center">'+esc(e.message)+'</div>';}
 }
 
-// ── CHAT ─────────────────────────────────────────────
-function openChat(connId,user){
-  activeConnId=connId;activeChatUserId=user.id;
-  document.getElementById('chat-name').textContent=user.name;
-  document.getElementById('chat-av').innerHTML=avHtml(user.photo,user.name);
-  // Context-based prompts
-  const prompts=CHAT_PROMPTS.slice(0,3);
-  document.getElementById('chat-prompts').innerHTML=prompts.map(p=>'<div class="prompt-chip" onclick="usePrompt(\''+esc(p)+'\')">'+esc(p)+'</div>').join('');
-  go('chat');
-  loadMessages();
+function openChat(connId,userId,user){
+  activeConnId=connId;activeChatUserId=userId;
+  const photo=firstPhoto(user);
+  const av=document.getElementById('chat-av');
+  av.innerHTML=photo?'<img src="'+esc(photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>'
+    :'<span>'+inits(user.name)+'</span>';
+  document.getElementById('chat-name').textContent=user.name||'';
+  document.getElementById('chat-meta').textContent='Connection active';
+  go('chat');loadMessages();
   chatPoll=setInterval(loadMessages,4000);
+  // Show prompts if no messages yet
+  const prompts=document.getElementById('chat-prompts');
+  prompts.innerHTML=CHAT_PROMPTS.slice(0,3).map(q=>
+    '<div class="prompt-chip" onclick="usePrompt(\''+esc(q)+'\')">'+esc(q)+'</div>'
+  ).join('');
 }
-function usePrompt(p){document.getElementById('chat-input').value=p;document.getElementById('chat-input').focus();}
+
 async function loadMessages(){
   if(!activeConnId)return;
   try{
     const msgs=await api('GET','/api/messages/'+activeConnId);
-    const conns=await api('GET','/api/connections');
-    const c=conns.find(c=>c.connection.id===activeConnId);
-    if(c){
-      const note=c.needsResponse?' · Respond within '+c.responseHours+'h':'';
-      document.getElementById('chat-meta').textContent=c.hoursLeft+'h remaining'+note;
-      if(c.msgCount>0)document.getElementById('chat-prompts').style.display='none';
-    }
+    if(!Array.isArray(msgs))return;
+    if(msgs.length)document.getElementById('chat-prompts').innerHTML='';
     const el=document.getElementById('chat-msgs');
-    const atBot=el.scrollHeight-el.scrollTop-el.clientHeight<60;
-    if(!msgs.length){el.innerHTML='<div class="empty" style="padding:40px 20px"><h3 style="font-size:1rem">Start the conversation</h3><p>What would make this connection worthwhile?</p></div>';return;}
+    const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<40;
     el.innerHTML=msgs.map(m=>{
       const mine=m.from===me.id;
-      return '<div class="msg '+(mine?'msg-mine':'msg-theirs')+'">'+esc(m.text)+'<div class="msg-time">'+fmt(m.created_at)+'</div></div>';
+      return'<div class="msg '+(mine?'msg-mine':'msg-theirs')+'">'+esc(m.text)+'<div class="msg-time">'+fmt(m.created_at)+'</div></div>';
     }).join('');
-    if(atBot)el.scrollTop=el.scrollHeight;
+    if(atBottom||msgs.length<=1)el.scrollTop=el.scrollHeight;
   }catch(e){}
 }
+
+function usePrompt(q){document.getElementById('chat-input').value=q;document.getElementById('chat-prompts').innerHTML='';}
+
 async function sendMsg(){
-  const input=document.getElementById('chat-input');
-  const text=input.value.trim();
-  if(!text||!activeConnId)return;
-  input.value='';
+  const inp=document.getElementById('chat-input');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
   try{await api('POST','/api/messages/'+activeConnId,{text});loadMessages();}
-  catch(e){toast(e.message);}
+  catch(e){toast(e.message);inp.value=text;}
 }
 
-// ── MY PROFILE ────────────────────────────────────────
+// ── PROFILE ───────────────────────────────────────────
 async function loadMyProfile(){
   try{
     const u=await api('GET','/api/me');
     me=u;localStorage.setItem('nw_me',JSON.stringify(u));
-    mySkills=u.skills||[];myInterests=u.interests||[];
+    // Sidebar
+    const photo=firstPhoto(u);
+    const av=document.getElementById('p-av');
+    av.innerHTML=photo?'<img src="'+esc(photo)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>'
+      :'<span>'+inits(u.name)+'</span>';
+    document.getElementById('p-sname').textContent=u.name||'';
+    document.getElementById('p-semail').textContent=u.email||'';
+    const score=u.trust_score||0;
+    document.getElementById('trust-fill').style.width=score+'%';
+    document.getElementById('trust-lbl').textContent='Trust score: '+score+'/100';
+    // Trust steps
+    if(u.trust_steps){
+      document.getElementById('trust-steps').innerHTML=u.trust_steps.map(s=>
+        '<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;margin-bottom:5px;color:'+(s.done?'var(--gold)':'var(--sub)')+'">'+
+        '<span>'+(s.done?'✓':'○')+'</span><span>'+esc(s.label)+'</span></div>'
+      ).join('');
+    }
+    // Photos grid
+    renderPhotosGrid(u.photos||[]);
+    // Form fields
     document.getElementById('e-name').value=u.name||'';
+    document.getElementById('e-bio').value=u.bio||'';
     document.getElementById('e-location').value=u.location||'';
     document.getElementById('e-remote').checked=!!u.remote;
     document.getElementById('e-intent').value=u.intent||'explore-network';
@@ -832,22 +958,57 @@ async function loadMyProfile(){
     document.getElementById('e-linkedin').value=u.linkedin||'';
     document.getElementById('e-instagram').value=u.instagram||'';
     document.getElementById('e-website').value=u.website||'';
-    document.getElementById('p-sname').textContent=u.name||'';
-    document.getElementById('p-semail').textContent=u.email||'';
-    const ts=u.trust_score||50;
-    document.getElementById('trust-fill').style.width=ts+'%';
-    document.getElementById('trust-lbl').textContent='Trust score: '+ts;
-    const av=document.getElementById('p-av');
-    av.innerHTML=u.photo?'<img src="'+API+u.photo+'" />':'<span>'+inits(u.name)+'</span>';
+    mySkills=[...(u.skills||[])];myInterests=[...(u.interests||[])];
     renderTags('skill');renderTags('interest');
     renderWorks(u.works||[]);
-  }catch(e){toast('Failed to load profile');}
+  }catch(e){toast(e.message);}
 }
+
+function renderPhotosGrid(photos){
+  const grid=document.getElementById('photos-grid');
+  if(!grid)return;
+  grid.innerHTML=photos.map((url,i)=>
+    '<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--sur2)">'+
+    '<img src="'+esc(url)+'" style="width:100%;height:100%;object-fit:cover"/>'+
+    '<button onclick="removePhoto('+i+')" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center;padding:0">×</button>'+
+    '</div>'
+  ).join('')+
+  (photos.length<6?'':'');
+  if(photos.length<4){
+    grid.innerHTML+='<div style="aspect-ratio:1;border:1px dashed var(--border2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--dim)">'+
+    (4-photos.length)+' more needed</div>';
+  }
+}
+
+async function addPhoto(){
+  const file=document.getElementById('photo-add-file').files[0];if(!file)return;
+  const fd=new FormData();fd.append('photo',file);
+  try{
+    const r=await api('POST','/api/me/photos',fd,true);
+    renderPhotosGrid(r.photos||[]);
+    document.getElementById('trust-fill').style.width=(r.trust_score||0)+'%';
+    document.getElementById('trust-lbl').textContent='Trust score: '+(r.trust_score||0)+'/100';
+    toast('Photo added');
+  }catch(e){toast(e.message);}
+}
+
+async function removePhoto(idx){
+  try{
+    const r=await api('DELETE','/api/me/photos/'+idx);
+    renderPhotosGrid(r.photos||[]);
+    document.getElementById('trust-fill').style.width=(r.trust_score||0)+'%';
+    toast('Photo removed');
+  }catch(e){toast(e.message);}
+}
+
 async function saveProfile(){
   const st=document.getElementById('p-save');st.textContent='';
   try{
+    // Try geolocation
+    if(!me||!me.lat){await new Promise(res=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{if(me){me.lat=p.coords.latitude;me.lng=p.coords.longitude;}res();},()=>res(),{timeout:4000}):res());}
     const u=await api('PUT','/api/me',{
       name:document.getElementById('e-name').value.trim(),
+      bio:document.getElementById('e-bio').value.trim(),
       location:document.getElementById('e-location').value.trim(),
       remote:document.getElementById('e-remote').checked,
       intent:document.getElementById('e-intent').value,
@@ -857,24 +1018,66 @@ async function saveProfile(){
       linkedin:document.getElementById('e-linkedin').value.trim(),
       instagram:document.getElementById('e-instagram').value.trim(),
       website:document.getElementById('e-website').value.trim(),
-      skills:mySkills,interests:myInterests,photo:me.photo||''
+      skills:mySkills,interests:myInterests,
+      lat:(me&&me.lat!=null)?me.lat:undefined,
+      lng:(me&&me.lng!=null)?me.lng:undefined
     });
     me=u;localStorage.setItem('nw_me',JSON.stringify(u));
     document.getElementById('p-sname').textContent=u.name;
-    document.getElementById('user-name-nav')&&(document.getElementById('user-name-nav').textContent=u.name);
-    st.textContent='Saved';setTimeout(()=>st.textContent='',2500);toast('Profile updated');
+    const score=u.trust_score||0;
+    document.getElementById('trust-fill').style.width=score+'%';
+    document.getElementById('trust-lbl').textContent='Trust score: '+score+'/100';
+    if(u.trust_steps){
+      document.getElementById('trust-steps').innerHTML=u.trust_steps.map(s=>
+        '<div style="display:flex;align-items:center;gap:6px;font-size:.72rem;margin-bottom:5px;color:'+(s.done?'var(--gold)':'var(--sub)')+'">'+
+        '<span>'+(s.done?'✓':'○')+'</span><span>'+esc(s.label)+'</span></div>'
+      ).join('');
+    }
+    updateNav();st.textContent='Saved ✓';setTimeout(()=>st.textContent='',2500);toast('Profile updated');
   }catch(e){toast(e.message);}
 }
-async function uploadPhoto(){
-  const file=document.getElementById('photo-file').files[0];if(!file)return;
-  const fd=new FormData();fd.append('photo',file);
+
+// ── VERIFICATION ─────────────────────────────────────
+const CHALLENGES=['Smile','Blink slowly','Turn head left','Raise your hand','Nod your head'];
+let challengeIdx=0;
+
+function startVerification(){
+  document.getElementById('verify-err').textContent='';
+  document.getElementById('verify-modal').classList.add('open');
+}
+async function startCamera(){
   try{
-    const {url}=await api('POST','/api/me/photo',fd,true);
-    me.photo=url;localStorage.setItem('nw_me',JSON.stringify(me));
-    document.getElementById('p-av').innerHTML='<img src="'+API+url+'" />';
-    toast('Photo updated');
-  }catch(e){toast(e.message);}
+    verifyStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+    const video=document.getElementById('verify-video');
+    video.srcObject=verifyStream;video.style.display='block';
+    document.getElementById('verify-start-btn').style.display='none';
+    document.getElementById('verify-capture-btn').style.display='';
+    challengeIdx=Math.floor(Math.random()*CHALLENGES.length);
+    document.getElementById('verify-challenge').textContent=CHALLENGES[challengeIdx];
+  }catch(e){document.getElementById('verify-err').textContent='Camera access denied. Allow camera to verify.';}
 }
+async function captureVerify(){
+  const video=document.getElementById('verify-video');
+  const canvas=document.getElementById('verify-canvas');
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  canvas.getContext('2d').drawImage(video,0,0);
+  // Stop camera
+  if(verifyStream){verifyStream.getTracks().forEach(t=>t.stop());verifyStream=null;}
+  video.style.display='none';
+  document.getElementById('verify-capture-btn').style.display='none';
+  document.getElementById('verify-challenge').textContent='Verifying…';
+  // Simulate verification (plug in real ML API here)
+  await new Promise(r=>setTimeout(r,1200));
+  const confidence=75+Math.floor(Math.random()*20); // 75-94
+  try{
+    const r=await api('POST','/api/me/verify',{confidence});
+    closeOverlay('verify-modal');
+    toast('Identity verified ✓ Trust score: '+r.trust_score);
+    loadMyProfile();
+  }catch(e){document.getElementById('verify-err').textContent=e.message;}
+}
+
+// ── TAGS ─────────────────────────────────────────────
 function addTag(type){
   const inp=document.getElementById(type+'-input');
   const val=inp.value.trim();if(!val)return;
@@ -894,6 +1097,7 @@ function renderTags(type){
   ).join('');
 }
 function toggleWorkBox(){document.getElementById('add-work-box').classList.toggle('open');}
+
 async function addWork(){
   const title=document.getElementById('w-title').value.trim();
   const err=document.getElementById('w-err');err.textContent='';
@@ -916,7 +1120,7 @@ function renderWorks(wks){
   const el=document.getElementById('works-list');
   if(!wks.length){el.innerHTML='<p style="color:var(--sub);font-size:.82rem;margin-bottom:12px">No projects added yet.</p>';return;}
   el.innerHTML=wks.map(w=>'<div class="work-item">'+
-    '<div class="work-thumb">'+(w.image?'<img src="'+API+w.image+'"/>':'💼')+'</div>'+
+    '<div class="work-thumb">'+(w.image?'<img src="'+esc(w.image)+'"/>':'💼')+'</div>'+
     '<div style="flex:1"><div style="font-weight:500;font-size:.88rem">'+esc(w.title)+'</div>'+
     (w.description?'<div style="font-size:.78rem;color:var(--sub);margin-top:2px;line-height:1.5">'+esc(w.description)+'</div>':'')+
     (w.url?'<a href="'+esc(w.url)+'" target="_blank" style="color:var(--gold);font-size:.75rem;text-decoration:none">View →</a>':'')+'</div>'+
@@ -925,23 +1129,50 @@ function renderWorks(wks){
 }
 
 // ── REPORT / BLOCK ────────────────────────────────────
-function openReportModal(id){reportTargetId=id;document.getElementById('report-modal').classList.add('open');}
+function openReportModal(id){reportTargetId=id;closeOverlay('profile-modal');document.getElementById('report-modal').classList.add('open');}
 async function submitReport(){
   if(!reportTargetId)return;
-  try{
-    await api('POST','/api/report',{targetId:reportTargetId,reason:document.getElementById('report-reason').value});
-    closeOverlay('report-modal');toast('Report submitted');
-  }catch(e){toast(e.message);}
+  try{await api('POST','/api/report',{targetId:reportTargetId,reason:document.getElementById('report-reason').value});closeOverlay('report-modal');toast('Report submitted');}
+  catch(e){toast(e.message);}
 }
 async function submitBlock(){
   if(!reportTargetId)return;
+  try{await api('POST','/api/block',{targetId:reportTargetId});closeOverlay('report-modal');toast('User blocked');loadDiscover();}
+  catch(e){toast(e.message);}
+}
+
+// ── ADMIN ─────────────────────────────────────────────
+async function loadAdmin(){
   try{
-    await api('POST','/api/block',{targetId:reportTargetId});
-    closeOverlay('report-modal');toast('User blocked');
-    loadDiscover();
+    const [analytics,users]=await Promise.all([api('GET','/api/admin/analytics'),api('GET','/api/admin/users')]);
+    document.getElementById('admin-analytics').innerHTML=
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px">'+
+      Object.entries(analytics).map(([k,v])=>'<div style="text-align:center"><div style="font-family:Playfair Display,serif;font-size:1.8rem;color:var(--gold)">'+v+'</div><div style="font-size:.7rem;color:var(--sub);text-transform:uppercase;letter-spacing:.6px">'+k.replace(/_/g,' ')+'</div></div>').join('')+
+      '</div>';
+    document.getElementById('admin-users').innerHTML=users.map(u=>
+      '<div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border)">'+
+      '<div style="flex:1"><div style="font-size:.88rem;font-weight:500">'+esc(u.name)+'</div>'+
+      '<div style="font-size:.72rem;color:var(--sub)">'+esc(u.email)+'  ·  Trust: '+u.trust_score+
+      (u.premium?' · <span style="color:var(--gold)">PRO</span>':'')+
+      (u.verification&&u.verification.status==='verified'?' · <span style="color:var(--gold)">Verified</span>':'')+
+      (u.banned?' · <span style="color:var(--danger)">Banned</span>':'')+'</div></div>'+
+      '<div style="display:flex;gap:6px">'+
+      '<button class="btn btn-ghost btn-sm" onclick="adminVerify(\''+u.id+'\')">Verify</button>'+
+      '<button class="btn btn-ghost btn-sm" onclick="adminPremium(\''+u.id+'\','+(u.premium?'false':'true')+')">'+( u.premium?'Revoke PRO':'Grant PRO')+'</button>'+
+      '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="adminBan(\''+u.id+'\','+(u.banned?'false':'true')+')">'+( u.banned?'Unban':'Ban')+'</button>'+
+      '</div></div>'
+    ).join('');
   }catch(e){toast(e.message);}
 }
-document.getElementById('report-modal').addEventListener('click',e=>{if(e.target.id==='report-modal')closeOverlay('report-modal');});
+async function adminVerify(id){try{await api('POST','/api/admin/verify',{targetId:id});toast('Verified');loadAdmin();}catch(e){toast(e.message);}}
+async function adminBan(id,ban){try{await api('POST','/api/admin/ban',{targetId:id,banned:ban});toast(ban?'Banned':'Unbanned');loadAdmin();}catch(e){toast(e.message);}}
+async function adminPremium(id,prem){try{await api('POST','/api/admin/upgrade',{targetId:id,premium:prem});toast(prem?'PRO granted':'PRO revoked');loadAdmin();}catch(e){toast(e.message);}}
+
+// ── OVERLAY CLOSE ON BACKDROP ─────────────────────────
+['profile-modal','match-modal','report-modal','priority-modal','verify-modal'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener('click',e=>{if(e.target.id===id)closeOverlay(id);});
+});
 
 // ── INIT ─────────────────────────────────────────────
 updateNav();
