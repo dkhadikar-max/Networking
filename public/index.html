@@ -665,9 +665,6 @@ async function loadDiscover(){
     }
     const res=await api('GET','/api/discover?'+p);
     discCards=Array.isArray(res.profiles)?res.profiles:[];discIdx=0;
-    const rem=document.getElementById('remaining-badge');
-    rem.style.display='block';
-    document.getElementById('rem-count').textContent=res.remaining||0;
     if(res.limited){
       document.getElementById('disc-stack').innerHTML='<div class="empty"><span class="empty-icon">◎</span><h3>Daily limit reached</h3><p>You\'ve seen your '+(res.daily_limit||30)+' profiles for today. Come back tomorrow.</p></div>';
       return;
@@ -818,18 +815,20 @@ function showProfileModal(id){
 
 function showMatchModal(p){
   if(!p)return;
+  const photo=p.photos&&p.photos[0]?'<img src="'+esc(p.photos[0])+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);margin:0 auto 6px;display:block" onerror="this.style.display=\'none\'">'
+    :'<div style="width:80px;height:80px;border-radius:50%;background:var(--sur2);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:\'Playfair Display\',serif;font-size:2rem;color:var(--gold);margin:0 auto 6px">'+(p.name||'?')[0].toUpperCase()+'</div>';
   document.getElementById('match-modal-body').innerHTML=
-    '<div class="match-content">'+
-    '<div class="match-score-big">'+(p.matchScore||'—')+'</div>'+
-    '<div class="match-label">Match score</div>'+
-    '<h2>Connection Made</h2>'+
-    '<p>You and '+esc(p.name)+' both connected. Start a conversation within 5 days.</p>'+
-    '<div class="expiry-note">'+
-      '<div class="expiry-item"><span class="expiry-num">5</span><span class="expiry-txt">days</span></div>'+
-      '<div class="expiry-item"><span class="expiry-num">48h</span><span class="expiry-txt">first reply</span></div>'+
-    '</div>'+
-    '<button class="btn btn-gold" onclick="closeOverlay(\'match-modal\');go(\'connections\')">View Connections</button>'+
-    '</div>';
+    '<div class="match-content" style="text-align:center;padding:8px 0">'+
+    '<div style="font-size:2rem;margin-bottom:12px;letter-spacing:2px">✦</div>'+
+    '<div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:10px">It\'s a match</div>'+
+    photo+
+    '<h2 style="font-family:\'Playfair Display\',serif;font-size:1.4rem;color:var(--text);margin:4px 0 6px">'+esc(p.name)+'</h2>'+
+    (p.matchScore?'<div style="font-size:.75rem;color:var(--gold);font-weight:600;letter-spacing:.5px;margin-bottom:14px">'+p.matchScore+'% compatibility</div>':'<div style="margin-bottom:14px"></div>')+
+    '<p style="color:var(--sub);font-size:.85rem;line-height:1.6;margin-bottom:20px">You both connected. Send the first message within 48 hours to keep this match alive.</p>'+
+    '<div style="display:flex;gap:10px;justify-content:center">'+
+    '<button class="btn" style="background:var(--sur2);border:1px solid var(--border);color:var(--sub)" onclick="closeOverlay(\'match-modal\')">Keep swiping</button>'+
+    '<button class="btn btn-gold" onclick="closeOverlay(\'match-modal\');go(\'connections\')">Say hello →</button>'+
+    '</div></div>';
   document.getElementById('match-modal').classList.add('open');
 }
 

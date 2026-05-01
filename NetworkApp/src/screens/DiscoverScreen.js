@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator,
-  PanResponder, Animated, Dimensions, ScrollView, Alert
+  PanResponder, Animated, Dimensions, ScrollView, Modal
 } from 'react-native';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +20,48 @@ function initials(name) {
   return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
 }
 
+// ── MATCH MODAL ───────────────────────────────────────────────────────────────
+function MatchModal({ profile, onClose, onChat }) {
+  if (!profile) return null;
+  const photo = (profile.photos||[])[0];
+  return (
+    <Modal transparent animationType="fade" visible={!!profile} onRequestClose={onClose}>
+      <View style={ms.overlay}>
+        <View style={ms.card}>
+          <Text style={ms.star}>✦</Text>
+          <Text style={ms.label}>IT'S A MATCH</Text>
+
+          {photo
+            ? <Image source={{ uri: photo }} style={ms.avatar} />
+            : <View style={ms.avatarFallback}>
+                <Text style={ms.avatarInit}>{initials(profile.name)}</Text>
+              </View>
+          }
+
+          <Text style={ms.name}>{profile.name}</Text>
+          {profile.matchScore ? (
+            <Text style={ms.score}>{profile.matchScore}% compatibility</Text>
+          ) : null}
+
+          <Text style={ms.sub}>
+            You both connected. Send the first message within 48 hours to keep this match alive.
+          </Text>
+
+          <View style={ms.actions}>
+            <TouchableOpacity style={ms.btnSecondary} onPress={onClose}>
+              <Text style={ms.btnSecondaryTxt}>Keep swiping</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={ms.btnPrimary} onPress={onChat}>
+              <Text style={ms.btnPrimaryTxt}>Say hello →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── SWIPE CARD ────────────────────────────────────────────────────────────────
 function SwipeCard({ profile, onSwipe, isTop }) {
   const pos = useRef(new Animated.ValueXY()).current;
   const rotate = pos.x.interpolate({ inputRange:[-W/2,0,W/2], outputRange:['-15deg','0deg','15deg'] });
@@ -54,11 +96,26 @@ function SwipeCard({ profile, onSwipe, isTop }) {
         ? <Image source={{uri: photo}} style={s.cardImg} />
         : <View style={s.cardNoImg}><Text style={s.cardInitials}>{initials(profile.name)}</Text></View>
       }
+      {/* Verified badge overlay on photo */}
+      {profile.verification?.status === 'verified' && (
+        <View style={s.verifiedBadge}>
+          <Text style={s.verifiedTxt}>✓ Verified</Text>
+        </View>
+      )}
+      {/* Online dot */}
+      {profile.is_recently_active && (
+        <View style={s.onlineDot} />
+      )}
       <View style={s.cardBody}>
         <View style={s.cardRow}>
           <View style={{flex:1}}>
-            <Text style={s.cardName}>{profile.name||''}</Text>
-            {profile.location ? <Text style={s.cardLoc}>{profile.location}</Text> : null}
+            <View style={s.nameRow}>
+              <Text style={s.cardName}>{profile.name||''}</Text>
+              {profile.verification?.status === 'verified' && (
+                <Text style={s.verifiedIcon}>✓</Text>
+              )}
+            </View>
+            {profile.location ? <Text style={s.cardLoc}>📍 {profile.location}{profile.distance != null ? ` · ${profile.distance}km` : ''}</Text> : null}
           </View>
           {profile.matchScore ? (
             <View style={s.matchBox}>
@@ -94,13 +151,15 @@ function SwipeCard({ profile, onSwipe, isTop }) {
   );
 }
 
-export default function DiscoverScreen() {
+// ── DISCOVER SCREEN ───────────────────────────────────────────────────────────
+export default function DiscoverScreen({ navigation }) {
   const { user } = useAuth();
-  const [profiles, setProfiles] = useState([]);
-  const [idx, setIdx]           = useState(0);
-  const [loading, setLoading]   = useState(true);
-  const [limited, setLimited]   = useState(false);
-  const [remaining, setRemaining] = useState(0);
+  const [profiles,      setProfiles]      = useState([]);
+  const [idx,           setIdx]           = useState(0);
+  const [loading,       setLoading]       = useState(true);
+  const [limited,       setLimited]       = useState(false);
+  const [matchedProfile, setMatchedProfile] = useState(null);
+  const [matchConnId,   setMatchConnId]   = useState(null);
 
   useEffect(() => { loadProfiles(); }, []);
 
@@ -110,18 +169,30 @@ export default function DiscoverScreen() {
       const { data } = await api.get('/api/discover');
       if (data.limited) { setLimited(true); return; }
       setProfiles(data.profiles || []);
-      setRemaining(data.remaining || 0);
       setIdx(0);
-    } catch (e) { Alert.alert('Error', e.response?.data?.error || e.message); }
+    } catch (e) { /* handled by empty state */ }
     finally { setLoading(false); }
   }
 
-  async function handleSwipe(profileId, direction) {
+  async function handleSwipe(profile, direction) {
     setIdx(i => i + 1);
     try {
-      const { data } = await api.post('/api/swipe', { targetId: profileId, direction });
-      if (data.match) Alert.alert('🎉 Connection!', 'You both connected. Check your Chat tab.');
+      const { data } = await api.post('/api/swipe', { targetId: profile.id, direction });
+      if (data.match) {
+        setMatchedProfile(profile);
+        setMatchConnId(data.connectionId);
+      }
     } catch {}
+  }
+
+  function handleMatchClose() {
+    setMatchedProfile(null);
+    setMatchConnId(null);
+  }
+
+  function handleMatchChat() {
+    setMatchedProfile(null);
+    navigation.navigate('Connections');
   }
 
   if (loading) return (
@@ -151,27 +222,51 @@ export default function DiscoverScreen() {
     <View style={s.screen}>
       <View style={s.header}>
         <Text style={s.title}>Discover</Text>
-        <View style={s.badge}><Text style={{color:C.gold,fontSize:12,fontWeight:'600'}}>{remaining}</Text><Text style={{color:C.sub,fontSize:12}}> left</Text></View>
       </View>
       <View style={s.stack}>
         {[...visible].reverse().map((p, i) => (
           <SwipeCard
             key={p.id} profile={p}
             isTop={i === visible.length - 1}
-            onSwipe={(dir) => handleSwipe(p.id, dir)}
+            onSwipe={(dir) => handleSwipe(p, dir)}
           />
         ))}
       </View>
+
+      <MatchModal
+        profile={matchedProfile}
+        onClose={handleMatchClose}
+        onChat={handleMatchChat}
+      />
     </View>
   );
 }
 
+// ── MATCH MODAL STYLES ────────────────────────────────────────────────────────
+const ms = StyleSheet.create({
+  overlay:        { flex:1, backgroundColor:'rgba(0,0,0,0.85)', justifyContent:'center', alignItems:'center', padding:24 },
+  card:           { backgroundColor:C.sur, borderWidth:1, borderColor:C.border, borderRadius:20, padding:28, alignItems:'center', width:'100%', maxWidth:360 },
+  star:           { fontSize:28, color:C.gold, marginBottom:10 },
+  label:          { fontSize:10, fontWeight:'700', letterSpacing:3, color:C.sub, marginBottom:18 },
+  avatar:         { width:90, height:90, borderRadius:45, borderWidth:3, borderColor:C.gold, marginBottom:12 },
+  avatarFallback: { width:90, height:90, borderRadius:45, borderWidth:3, borderColor:C.gold, backgroundColor:C.sur2, justifyContent:'center', alignItems:'center', marginBottom:12 },
+  avatarInit:     { fontSize:32, color:C.gold, fontWeight:'700' },
+  name:           { fontSize:22, fontWeight:'700', color:C.text, marginBottom:4 },
+  score:          { fontSize:13, color:C.gold, fontWeight:'600', marginBottom:14 },
+  sub:            { fontSize:13, color:C.sub, lineHeight:20, textAlign:'center', marginBottom:24 },
+  actions:        { flexDirection:'row', gap:10, width:'100%' },
+  btnPrimary:     { flex:1, backgroundColor:C.gold, borderRadius:10, padding:13, alignItems:'center' },
+  btnPrimaryTxt:  { color:C.bg, fontWeight:'700', fontSize:14 },
+  btnSecondary:   { flex:1, backgroundColor:C.sur2, borderWidth:1, borderColor:C.border2, borderRadius:10, padding:13, alignItems:'center' },
+  btnSecondaryTxt:{ color:C.sub, fontWeight:'600', fontSize:14 },
+});
+
+// ── CARD STYLES ───────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   screen:  { flex:1, backgroundColor:C.bg },
   center:  { flex:1, backgroundColor:C.bg, justifyContent:'center', alignItems:'center', padding:24 },
   header:  { flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:20, paddingTop:16 },
   title:   { fontSize:22, fontWeight:'700', color:C.text },
-  badge:   { flexDirection:'row', backgroundColor:C.sur, borderWidth:1, borderColor:C.border, borderRadius:20, paddingHorizontal:12, paddingVertical:5 },
   stack:   { flex:1, alignItems:'center', justifyContent:'center' },
   card:    { position:'absolute', width:W-32, backgroundColor:C.sur, borderWidth:1, borderColor:C.border, borderRadius:16, overflow:'hidden', shadowColor:'#000', shadowOpacity:.4, shadowRadius:20, shadowOffset:{width:0,height:8} },
   hint:    { position:'absolute', top:20, paddingHorizontal:14, paddingVertical:6, borderRadius:20, zIndex:20 },
@@ -182,6 +277,11 @@ const s = StyleSheet.create({
   cardImg:  { width:'100%', height:200, resizeMode:'cover' },
   cardNoImg:{ width:'100%', height:180, backgroundColor:C.sur2, justifyContent:'center', alignItems:'center' },
   cardInitials:{ fontSize:52, color:C.gold, fontWeight:'700' },
+  verifiedBadge:{ position:'absolute', top:10, left:10, backgroundColor:'rgba(34,197,94,0.9)', borderRadius:20, paddingHorizontal:10, paddingVertical:4, zIndex:5 },
+  verifiedTxt:{ color:'#fff', fontSize:11, fontWeight:'700' },
+  onlineDot:{ position:'absolute', top:10, right:10, width:12, height:12, borderRadius:6, backgroundColor:'#22c55e', borderWidth:2, borderColor:C.sur, zIndex:5 },
+  nameRow:  { flexDirection:'row', alignItems:'center', gap:6 },
+  verifiedIcon:{ color:'#22c55e', fontSize:14, fontWeight:'700' },
   cardBody: { padding:16 },
   cardRow:  { flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 },
   cardName: { fontSize:18, fontWeight:'700', color:C.text },

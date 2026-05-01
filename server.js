@@ -281,23 +281,23 @@ function getInsight(a, b) {
 function todayKey()     { return new Date().toISOString().slice(0,10); }
 function thisMonthKey() { return new Date().toISOString().slice(0,7);  }
 
-// ── DAILY VIEWS ───────────────────────────────────────────────────────────────
-async function getViewed(userId) {
-  const { data } = await supabase.from('daily_views')
-    .select('count').eq('user_id', userId).eq('date', todayKey()).maybeSingle();
-  return data ? data.count : 0;
+// ── DAILY SWIPE COUNT (based on actual swipes, not profile views) ─────────────
+async function getTodaySwipeCount(userId) {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const { data } = await supabase.from('swipes')
+    .select('id', { count: 'exact', head: true })
+    .eq('from_user', userId)
+    .gte('created_at', todayStart.toISOString());
+  return data ? (data.length || 0) : 0;
 }
 
-async function incrementViewed(userId, add) {
-  const key = todayKey();
-  const { data: existing } = await supabase.from('daily_views')
-    .select('count').eq('user_id', userId).eq('date', key).maybeSingle();
-  if (existing) {
-    await supabase.from('daily_views').update({ count: existing.count + add })
-      .eq('user_id', userId).eq('date', key);
-  } else {
-    await supabase.from('daily_views').insert({ user_id: userId, date: key, count: add });
-  }
+async function getTodaySwipeCountExact(userId) {
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const { count } = await supabase.from('swipes')
+    .select('*', { count: 'exact', head: true })
+    .eq('from_user', userId)
+    .gte('created_at', todayStart.toISOString());
+  return count || 0;
 }
 
 // ── PUSH NOTIFICATIONS ────────────────────────────────────────────────────────
@@ -663,8 +663,8 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     if (me.banned) return res.status(403).json({ error: 'Account restricted' });
 
     const DAILY_LIMIT = me.premium ? 200 : 30;
-    const viewed = await getViewed(req.user.id);
-    if (viewed >= DAILY_LIMIT)
+    const swipedToday = await getTodaySwipeCountExact(req.user.id);
+    if (swipedToday >= DAILY_LIMIT)
       return res.json({ limited: true, remaining: 0, profiles: [] });
 
     // Build exclusion sets
@@ -726,7 +726,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
 
     const ACTIVE_BOOST = 8;
     const oneDayAgo    = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const remaining    = DAILY_LIMIT - viewed;
+    const remaining    = DAILY_LIMIT - swipedToday;
 
     let profiles = candidates.map(u => {
       const dist = (me.lat && u.lat && me.lng && u.lng)
@@ -747,8 +747,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     else                          profiles.sort((a,b) => b.matchScore - a.matchScore);
 
     profiles = profiles.slice(0, remaining);
-    await incrementViewed(req.user.id, profiles.length);
-    res.json({ limited: false, remaining: remaining - profiles.length, profiles, daily_limit: DAILY_LIMIT });
+    res.json({ limited: false, remaining, profiles, daily_limit: DAILY_LIMIT });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
