@@ -1,11 +1,13 @@
-const express = require('express');
-const Loki = require('lokijs');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
+const express   = require('express');
+const Loki      = require('lokijs');
+const bcrypt    = require('bcryptjs');
+const jwt       = require('jsonwebtoken');
+const cors      = require('cors');
+const multer    = require('multer');
+const path      = require('path');
+const fs        = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
