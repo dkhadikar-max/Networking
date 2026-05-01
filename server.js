@@ -110,6 +110,24 @@ function profileGuard(req, res, next) {
   next();
 }
 
+// ── TRUST GUARD MIDDLEWARE ───────────────────────────────────────────────────
+
+function trustGuard(req, res, next) {
+  const user = users.findOne({ id: req.user.id });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const score = calcTrust(user);
+  if (score < 60) {
+    return res.status(403).json({
+      error: 'Build your trust score to 60+ to unlock Discovery',
+      code: 'TRUST_TOO_LOW',
+      trust_score: score,
+      required: 60,
+      trust_steps: trustSteps(user),
+    });
+  }
+  next();
+}
+
 // ── INPUT SANITIZATION ───────────────────────────────────────────────────────
 function sanitize(s) {
   if (typeof s !== 'string') return s;
@@ -142,15 +160,15 @@ function cleanDoc(d) { const r = Object.assign({}, d); delete r.$loki; delete r.
 // ── TRUST SCORE (7 steps, max 100) ──────────────────────────────────────────
 
 // Trust score: 7 steps = 100 points total
-// 15 + 15 + 10 + 10 + 10 + 10 + 30 = 100
+// 20 + 10 + 10 + 10 + 10 + 10 + 30 = 100
 function calcTrust(u) {
   let score = 0;
-  if ((u.photos || []).length >= 4)                        score += 15; // 1. 4+ photos
-  if (u.bio && u.bio.trim())                               score += 15; // 2. Bio filled
-  if ((u.currently_exploring||'').trim() || (u.working_on||'').trim()) score += 10; // 3. Intent & context
-  if ((u.interests || []).length >= 1)                     score += 10; // 4. Interests
-  if ((u.skills    || []).length >= 1)                     score += 10; // 5. Skills
-  if (u.linkedin || u.website || u.instagram)              score += 10; // 6. Social media link
+  if ((u.photos || []).length >= 4)                           score += 20; // 1. 4+ photos
+  if ((u.interests || []).length >= 1)                        score += 10; // 2. Interests
+  if (u.intent && u.intent.length > 0)                       score += 10; // 3. Intent / goal
+  if (u.bio && u.bio.trim().length >= 10)                    score += 10; // 4. Bio (10+ chars)
+  if (u.location && u.location.trim().length > 0)            score += 10; // 5. Location
+  if (u.linkedin || u.website || u.instagram)                score += 10; // 6. External link
   if (u.verification && u.verification.status === 'verified') score += 30; // 7. Verified
   return score; // max 100
 }
@@ -183,13 +201,13 @@ function syncProfileScore(user) {
 
 function trustSteps(u) {
   return [
-    { label: '4+ photos uploaded',         done: (u.photos||[]).length >= 4 },
-    { label: 'Bio written',                done: !!(u.bio && u.bio.trim()) },
-    { label: 'Intent & context set',       done: !!(((u.currently_exploring||'').trim()) || ((u.working_on||'').trim())) },
-    { label: 'Interests added',            done: (u.interests||[]).length >= 1 },
-    { label: 'Skills added',              done: (u.skills||[]).length >= 1 },
-    { label: 'Social media / link added',  done: !!(u.linkedin||u.website||u.instagram) },
-    { label: 'Identity verified',          done: !!(u.verification && u.verification.status==='verified') },
+    { label: '4+ photos uploaded (+20)',  done: (u.photos||[]).length >= 4 },
+    { label: 'Interests added (+10)',      done: (u.interests||[]).length >= 1 },
+    { label: 'Networking goal set (+10)', done: !!(u.intent && u.intent.length > 0) },
+    { label: 'Bio written (+10)',          done: !!(u.bio && u.bio.trim().length >= 10) },
+    { label: 'Location added (+10)',       done: !!(u.location && u.location.trim().length > 0) },
+    { label: 'Social link added (+10)',    done: !!(u.linkedin||u.website||u.instagram) },
+    { label: 'Identity verified (+30)',    done: !!(u.verification && u.verification.status==='verified') },
   ];
 }
 
@@ -393,9 +411,11 @@ app.delete('/api/me/photos/:idx', auth, (req, res) => {
   if (isNaN(idx) || idx < 0 || idx >= (user.photos||[]).length)
     return res.status(400).json({ error: 'Invalid index' });
   user.photos.splice(idx, 1);
-  user.trust_score = calcTrust(user);
+  user.trust_score         = calcTrust(user);
+  user.profile_score       = calcProfileScore(user);
+  user.is_profile_complete = user.profile_score >= 70;
   users.update(user);
-  res.json({ photos: user.photos, trust_score: user.trust_score });
+  res.json({ photos: user.photos, trust_score: user.trust_score, profile_score: user.profile_score, is_profile_complete: user.is_profile_complete });
 });
 
 // Photo verification (self-reported; plug in ML API later)
@@ -419,7 +439,7 @@ app.get('/api/profiles/:id', (req, res) => {
 
 // ── DISCOVERY ───────────────────────────────────────────────────────────────
 
-app.get('/api/discover', auth, profileGuard, (req, res) => {
+app.get('/api/discover', auth, profileGuard, trustGuard, (req, res) => {
   const me = users.findOne({ id: req.user.id });
   if (!me) return res.status(404).json({ error: 'User not found' });
   if (me.banned) return res.status(403).json({ error: 'Account restricted' });
@@ -479,7 +499,7 @@ app.get('/api/search', auth, (req, res) => {
 
 // ── SWIPE ────────────────────────────────────────────────────────────────────
 
-app.post('/api/swipe', auth, profileGuard, (req, res) => {
+app.post('/api/swipe', auth, profileGuard, trustGuard, (req, res) => {
   const { targetId, direction } = req.body;
   if (!targetId || !['right','left'].includes(direction))
     return res.status(400).json({ error: 'Invalid' });
