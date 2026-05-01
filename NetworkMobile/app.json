@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Network",
+    "slug": "network-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0B0C"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.network.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0B0C"
+      },
+      "package": "com.network.mobile"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-location",
+      "expo-image-picker",
+      "expo-camera",
+      ["expo-notifications", {
+        "icon": "./assets/icon.png",
+        "color": "#C6A86B"
+      }]
+    ]
+  }
+}

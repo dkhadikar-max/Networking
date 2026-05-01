@@ -94,6 +94,20 @@ function adminAuth(req, res, next) {
   } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
 }
 
+// ── PROFILE GUARD MIDDLEWARE ─────────────────────────────────────────────────
+
+function profileGuard(req, res, next) {
+  const user = users.findOne({ id: req.user.id });
+  const score = user ? calcProfileScore(user) : 0;
+  if (!user || score < 70) {
+    return res.status(403).json({
+      error: 'Complete your profile to continue',
+      code:  'PROFILE_INCOMPLETE',
+    });
+  }
+  next();
+}
+
 // ── INPUT SANITIZATION ───────────────────────────────────────────────────────
 function sanitize(s) {
   if (typeof s !== 'string') return s;
@@ -137,6 +151,32 @@ function calcTrust(u) {
   if (u.linkedin || u.website || u.instagram)              score += 10; // 6. Social media link
   if (u.verification && u.verification.status === 'verified') score += 30; // 7. Verified
   return score; // max 100
+}
+
+// ── PROFILE COMPLETION SCORE ─────────────────────────────────────────────────
+
+function calcProfileScore(u) {
+  let score = 0;
+  const photos    = u.photos    || [];
+  const interests = u.interests || [];
+  if (photos.length >= 4)        score += 30;
+  else if (photos.length >= 1)   score += 10;
+  if (interests.length >= 3)     score += 20;
+  else if (interests.length >= 1) score += 8;
+  if (u.intent && u.intent.length > 0)       score += 20;
+  if (u.bio && u.bio.length >= 10)            score += 10;
+  if (u.name && u.name.length >= 2)           score += 10;
+  if (u.location && u.location.length > 0)   score += 10;
+  return Math.min(score, 100);
+}
+
+function syncProfileScore(user) {
+  const score    = calcProfileScore(user);
+  const complete = score >= 70;
+  user.profile_score       = score;
+  user.is_profile_complete = complete;
+  users.update(user);
+  return { profile_score: score, is_profile_complete: complete };
 }
 
 function trustSteps(u) {
@@ -244,7 +284,10 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       banned: false, created_at: new Date().toISOString()
     });
     const user = users.findOne({ id });
-    user.trust_score = calcTrust(user); users.update(user);
+    user.trust_score       = calcTrust(user);
+    user.profile_score     = calcProfileScore(user);
+    user.is_profile_complete = user.profile_score >= 70;
+    users.update(user);
     const token = jwt.sign({ id, email, name }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: clean(user) });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -258,6 +301,11 @@ app.post('/api/login',  authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+    // Ensure profile score is current on login
+    const ps = calcProfileScore(user);
+    user.profile_score       = ps;
+    user.is_profile_complete = ps >= 70;
+    users.update(user);
     res.json({ token, user: clean(user) });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -267,10 +315,35 @@ app.post('/api/login',  authLimiter, async (req, res) => {
 app.get('/api/me', auth, (req, res) => {
   const user = users.findOne({ id: req.user.id });
   if (!user) return res.status(404).json({ error: 'Not found' });
+  // Always recompute profile score so it stays current
+  user.profile_score       = calcProfileScore(user);
+  user.is_profile_complete = user.profile_score >= 70;
+  users.update(user);
   const u = clean(user);
   u.trust_steps = trustSteps(user);
   u.works = works.find({ user_id: user.id }).map(cleanDoc);
   res.json(u);
+});
+
+app.get('/api/profile-status', auth, (req, res) => {
+  const user = users.findOne({ id: req.user.id });
+  if (!user) return res.status(404).json({ error: 'Not found' });
+  const score    = calcProfileScore(user);
+  const complete = score >= 70;
+  user.profile_score       = score;
+  user.is_profile_complete = complete;
+  users.update(user);
+  res.json({
+    profile_score:       score,
+    is_profile_complete: complete,
+    checklist: {
+      photos:    (user.photos    || []).length >= 4,
+      interests: (user.interests || []).length >= 3,
+      intent:    !!(user.intent && user.intent.length > 0),
+      bio:       !!(user.bio && user.bio.length >= 10),
+      name:      !!(user.name && user.name.length >= 2),
+    },
+  });
 });
 
 app.put('/api/me', auth, (req, res) => {
@@ -285,7 +358,9 @@ app.put('/api/me', auth, (req, res) => {
   ['name','bio','instagram','linkedin','website','location','lat','lng','remote',
    'skills','interests','currently_exploring','working_on','interested_in','intent']
     .forEach(f => { if (req.body[f] !== undefined) user[f] = req.body[f]; });
-  user.trust_score = calcTrust(user);
+  user.trust_score         = calcTrust(user);
+  user.profile_score       = calcProfileScore(user);
+  user.is_profile_complete = user.profile_score >= 70;
   users.update(user);
   const u = clean(user); u.trust_steps = trustSteps(user);
   u.works = works.find({ user_id: user.id }).map(cleanDoc);
@@ -301,9 +376,11 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), (req, re
   if (user.photos.length >= 6) return res.status(400).json({ error: 'Max 6 photos' });
   const url = '/uploads/' + req.file.filename;
   user.photos.push(url);
-  user.trust_score = calcTrust(user);
+  user.trust_score         = calcTrust(user);
+  user.profile_score       = calcProfileScore(user);
+  user.is_profile_complete = user.profile_score >= 70;
   users.update(user);
-  res.json({ url, photos: user.photos, trust_score: user.trust_score });
+  res.json({ url, photos: user.photos, trust_score: user.trust_score, profile_score: user.profile_score, is_profile_complete: user.is_profile_complete });
 });
 
 // Multiple photos: remove
@@ -340,7 +417,7 @@ app.get('/api/profiles/:id', (req, res) => {
 
 // ── DISCOVERY ───────────────────────────────────────────────────────────────
 
-app.get('/api/discover', auth, (req, res) => {
+app.get('/api/discover', auth, profileGuard, (req, res) => {
   const me = users.findOne({ id: req.user.id });
   if (!me) return res.status(404).json({ error: 'User not found' });
   if (me.banned) return res.status(403).json({ error: 'Account restricted' });
@@ -400,7 +477,7 @@ app.get('/api/search', auth, (req, res) => {
 
 // ── SWIPE ────────────────────────────────────────────────────────────────────
 
-app.post('/api/swipe', auth, (req, res) => {
+app.post('/api/swipe', auth, profileGuard, (req, res) => {
   const { targetId, direction } = req.body;
   if (!targetId || !['right','left'].includes(direction))
     return res.status(400).json({ error: 'Invalid' });
@@ -431,7 +508,7 @@ app.post('/api/swipe', auth, (req, res) => {
 
 // ── CONNECTIONS ──────────────────────────────────────────────────────────────
 
-app.get('/api/connections', auth, (req, res) => {
+app.get('/api/connections', auth, profileGuard, (req, res) => {
   const now = new Date();
   const result = connections
     .find({ $or:[{user1:req.user.id},{user2:req.user.id}] })
@@ -453,14 +530,14 @@ app.get('/api/connections', auth, (req, res) => {
 
 // ── MESSAGES ─────────────────────────────────────────────────────────────────
 
-app.get('/api/messages/:connId', auth, (req, res) => {
+app.get('/api/messages/:connId', auth, profileGuard, (req, res) => {
   const conn = connections.findOne({ id: req.params.connId });
   if (!conn||(conn.user1!==req.user.id&&conn.user2!==req.user.id))
     return res.status(403).json({ error: 'Access denied' });
   res.json(messages.find({ connection_id: req.params.connId }).map(cleanDoc));
 });
 
-app.post('/api/messages/:connId', msgLimiter, auth, (req, res) => {
+app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, (req, res) => {
   const conn = connections.findOne({ id: req.params.connId });
   if (!conn||(conn.user1!==req.user.id&&conn.user2!==req.user.id))
     return res.status(403).json({ error: 'Access denied' });
@@ -488,7 +565,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, (req, res) => {
 
 // ── PRIORITY CONNECT (1 msg without match, 20/month) ─────────────────────────
 
-app.post('/api/priority-message', auth, (req, res) => {
+app.post('/api/priority-message', auth, profileGuard, (req, res) => {
   const { targetId, text } = req.body;
   if (!targetId||!text) return res.status(400).json({ error: 'targetId and text required' });
 
