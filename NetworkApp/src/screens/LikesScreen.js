@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, Image, TouchableOpacity, StyleSheet,
   FlatList, ActivityIndicator, Modal,
@@ -13,7 +13,9 @@ function initials(name) {
 
 function Avatar({ photos, name, size = 60 }) {
   const photo = (photos || [])[0];
-  if (photo) return <Image source={{ uri: photo }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  if (photo) {
+    return <Image source={{ uri: photo }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  }
   return (
     <View style={[av.fallback, { width: size, height: size, borderRadius: size / 2 }]}>
       <Text style={[av.init, { fontSize: size * 0.35 }]}>{initials(name)}</Text>
@@ -26,26 +28,25 @@ const av = StyleSheet.create({
 });
 
 // ── LOCKED STATE (free users) ─────────────────────────────────────────────────
-function LockedView({ count, previews }) {
+function LockedView({ count, previews, onUpgrade }) {
   return (
     <View style={s.lockedWrap}>
       <Text style={s.lockedIcon}>♡</Text>
       <Text style={s.lockedTitle}>{count} {count === 1 ? 'person' : 'people'} liked you</Text>
-      <Text style={s.lockedSub}>Upgrade to Premium to see who they are and swipe back</Text>
+      <Text style={s.lockedSub}>Upgrade to Premium to see who they are and connect back</Text>
 
-      {/* Blurred preview thumbnails */}
       <View style={s.blurRow}>
         {(previews || []).slice(0, 4).map((p, i) => (
           <View key={i} style={s.blurCard}>
             {(p.photos || [])[0]
-              ? <Image source={{ uri: p.photos[0] }} style={s.blurImg} blurRadius={18} />
+              ? <Image source={{ uri: p.photos[0] }} style={s.blurImg} blurRadius={20} />
               : <View style={[s.blurImg, { backgroundColor: C.sur2 }]} />
             }
           </View>
         ))}
       </View>
 
-      <TouchableOpacity style={s.upgradeBtn}>
+      <TouchableOpacity style={s.upgradeBtn} onPress={onUpgrade}>
         <Text style={s.upgradeBtnTxt}>✦  Unlock with Premium</Text>
       </TouchableOpacity>
     </View>
@@ -53,36 +54,39 @@ function LockedView({ count, previews }) {
 }
 
 // ── PROFILE CARD ──────────────────────────────────────────────────────────────
-function LikeCard({ profile, onConnect, onSkip }) {
-  const photo = (profile.photos || [])[0];
+function LikeCard({ profile, onConnect, onSkip, onProfile }) {
   return (
     <View style={s.card}>
-      <View style={s.cardLeft}>
-        <View style={s.avatarWrap}>
-          <Avatar photos={profile.photos} name={profile.name} size={58} />
-          {profile.verification?.status === 'verified' && (
-            <View style={s.verifiedDot}>
-              <Text style={{ color: '#fff', fontSize: 8 }}>✓</Text>
-            </View>
-          )}
+      {/* Left + Mid: tappable to open profile */}
+      <TouchableOpacity style={s.cardTapArea} onPress={onProfile} activeOpacity={0.7}>
+        <View style={s.cardLeft}>
+          <View style={s.avatarWrap}>
+            <Avatar photos={profile.photos} name={profile.name} size={58} />
+            {profile.verification?.status === 'verified' && (
+              <View style={s.verifiedDot}>
+                <Text style={{ color: '#fff', fontSize: 8 }}>✓</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+        <View style={s.cardMid}>
+          <Text style={s.name} numberOfLines={1}>{profile.name || '—'}</Text>
+          {profile.location
+            ? <Text style={s.loc} numberOfLines={1}>📍 {profile.location}</Text>
+            : null}
+          {profile.intent
+            ? <View style={s.intentBadge}>
+                <Text style={s.intentTxt} numberOfLines={1}>{profile.intent.replace(/-/g, ' ')}</Text>
+              </View>
+            : null}
+          {(profile.skills || []).length > 0 && (
+            <Text style={s.skills} numberOfLines={1}>{profile.skills.slice(0, 3).join(' · ')}</Text>
+          )}
+          <Text style={s.viewProfile}>View profile →</Text>
+        </View>
+      </TouchableOpacity>
 
-      <View style={s.cardMid}>
-        <Text style={s.name} numberOfLines={1}>{profile.name || '—'}</Text>
-        {profile.location
-          ? <Text style={s.loc} numberOfLines={1}>📍 {profile.location}</Text>
-          : null}
-        {profile.intent
-          ? <View style={s.intentBadge}>
-              <Text style={s.intentTxt} numberOfLines={1}>{profile.intent.replace(/-/g, ' ')}</Text>
-            </View>
-          : null}
-        {(profile.skills || []).length > 0 && (
-          <Text style={s.skills} numberOfLines={1}>{(profile.skills || []).slice(0, 3).join(' · ')}</Text>
-        )}
-      </View>
-
+      {/* Right: score + action buttons (not part of profile tap) */}
       <View style={s.cardRight}>
         {profile.matchScore ? (
           <View style={s.scoreBox}>
@@ -91,10 +95,10 @@ function LikeCard({ profile, onConnect, onSkip }) {
           </View>
         ) : null}
         <View style={s.actions}>
-          <TouchableOpacity style={s.skipBtn} onPress={onSkip}>
+          <TouchableOpacity style={s.skipBtn} onPress={onSkip} hitSlop={{top:8,bottom:8,left:8,right:8}}>
             <Text style={s.skipTxt}>✕</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.connectBtn} onPress={onConnect}>
+          <TouchableOpacity style={s.connectBtn} onPress={onConnect} hitSlop={{top:8,bottom:8,left:8,right:8}}>
             <Text style={s.connectTxt}>♡</Text>
           </TouchableOpacity>
         </View>
@@ -104,7 +108,8 @@ function LikeCard({ profile, onConnect, onSkip }) {
 }
 
 // ── MATCH MODAL ───────────────────────────────────────────────────────────────
-function MatchModal({ profile, onClose, onChat }) {
+function MatchModal({ matchData, onClose, onChat }) {
+  const profile = matchData?.profile;
   if (!profile) return null;
   return (
     <Modal transparent animationType="fade" visible={!!profile} onRequestClose={onClose}>
@@ -132,10 +137,11 @@ function MatchModal({ profile, onClose, onChat }) {
 
 // ── MAIN SCREEN ───────────────────────────────────────────────────────────────
 export default function LikesScreen({ navigation }) {
-  const [data,     setData]     = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [matched,    setMatched]    = useState(null);   // { profile, connectionId }
-  const [skipped,  setSkipped]  = useState(new Set());
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [matched, setMatched] = useState(null);  // { profile, connectionId }
+  const [skipped, setSkipped] = useState(new Set());
+  const pendingRef = useRef(new Set()); // IDs currently being processed (prevent double-tap)
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
@@ -143,8 +149,10 @@ export default function LikesScreen({ navigation }) {
     setLoading(true);
     try {
       const { data: res } = await api.get('/api/liked-me');
+      console.log('[Likes] response:', JSON.stringify({ count: res?.count, premium_required: res?.premium_required, profiles: res?.profiles?.length }));
       setData(res);
     } catch (e) {
+      console.log('[Likes] error:', e?.response?.data || e.message);
       setData(null);
     } finally {
       setLoading(false);
@@ -152,33 +160,67 @@ export default function LikesScreen({ navigation }) {
   }
 
   async function handleConnect(profile) {
+    if (pendingRef.current.has(profile.id)) return; // prevent double-tap
+    pendingRef.current.add(profile.id);
+    // Optimistic: hide card immediately
+    setSkipped(prev => new Set([...prev, profile.id]));
     try {
       const { data: res } = await api.post('/api/swipe', { targetId: profile.id, direction: 'right' });
-      setSkipped(prev => new Set([...prev, profile.id]));
+      console.log('[Likes] connect result:', JSON.stringify(res));
       if (res.match) setMatched({ profile, connectionId: res.connectionId });
-    } catch {}
+    } catch (e) {
+      console.log('[Likes] connect error:', e?.response?.data || e.message);
+      // Rollback optimistic update on failure
+      setSkipped(prev => { const s = new Set(prev); s.delete(profile.id); return s; });
+    } finally {
+      pendingRef.current.delete(profile.id);
+    }
   }
 
   function handleSkip(profile) {
-    api.post('/api/swipe', { targetId: profile.id, direction: 'left' }).catch(() => {});
+    if (pendingRef.current.has(profile.id)) return;
+    pendingRef.current.add(profile.id);
     setSkipped(prev => new Set([...prev, profile.id]));
+    api.post('/api/swipe', { targetId: profile.id, direction: 'left' })
+      .then(r => console.log('[Likes] skip result:', JSON.stringify(r.data)))
+      .catch(e => console.log('[Likes] skip error:', e?.response?.data || e.message))
+      .finally(() => pendingRef.current.delete(profile.id));
   }
 
+  function openChat() {
+    const m = matched;
+    setMatched(null);
+    navigation.navigate('Connections', {
+      screen: 'ChatDetail',
+      params: { connId: m?.connectionId, otherUser: m?.profile },
+    });
+  }
+
+  function openProfile(userId) {
+    console.log('[Likes] opening profile:', userId);
+    navigation.navigate('UserProfile', { userId });
+  }
+
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (loading) {
     return <View style={s.center}><ActivityIndicator color={C.gold} size="large" /></View>;
   }
 
+  // ── Error / no data ──────────────────────────────────────────────────────────
   if (!data) {
     return (
       <View style={s.center}>
         <Text style={s.emptyIcon}>♡</Text>
         <Text style={s.emptyTitle}>Check back soon</Text>
         <Text style={s.emptySub}>People who like your profile will appear here.</Text>
+        <TouchableOpacity style={s.refreshBtn} onPress={load}>
+          <Text style={s.refreshTxt}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
-  // Free user — locked view
+  // ── Free users — locked view ─────────────────────────────────────────────────
   if (data.premium_required) {
     return (
       <View style={s.screen}>
@@ -186,22 +228,19 @@ export default function LikesScreen({ navigation }) {
           <Text style={s.screenTitle}>Likes</Text>
           <View style={s.countBadge}><Text style={s.countTxt}>{data.count}</Text></View>
         </View>
-        <LockedView count={data.count} previews={data.previews} />
-        <MatchModal profile={matched?.profile} onClose={() => setMatched(null)}
-          onChat={() => {
-            const m = matched;
-            setMatched(null);
-            navigation.navigate('Connections', {
-              screen: 'ChatDetail',
-              params: { connId: m?.connectionId, otherUser: m?.profile },
-            });
-          }} />
+        <LockedView
+          count={data.count}
+          previews={data.previews}
+          onUpgrade={() => navigation.navigate('Upgrade')}
+        />
+        <MatchModal matchData={matched} onClose={() => setMatched(null)} onChat={openChat} />
       </View>
     );
   }
 
   const visible = (data.profiles || []).filter(p => !skipped.has(p.id));
 
+  // ── Premium — all caught up ──────────────────────────────────────────────────
   if (!visible.length) {
     return (
       <View style={s.screen}>
@@ -216,35 +255,19 @@ export default function LikesScreen({ navigation }) {
             <Text style={s.refreshTxt}>Refresh</Text>
           </TouchableOpacity>
         </View>
-        <MatchModal profile={matched?.profile} onClose={() => setMatched(null)}
-          onChat={() => {
-            const m = matched; setMatched(null);
-            navigation.navigate('Connections', {
-              screen: 'ChatDetail',
-              params: { connId: m?.connectionId, otherUser: m?.profile },
-            });
-          }} />
+        <MatchModal matchData={matched} onClose={() => setMatched(null)} onChat={openChat} />
       </View>
     );
   }
 
-  function openChat(m) {
-    setMatched(null);
-    navigation.navigate('Connections', {
-      screen: 'ChatDetail',
-      params: { connId: m?.connectionId, otherUser: m?.profile },
-    });
-  }
-
+  // ── Premium — list of likes ──────────────────────────────────────────────────
   return (
     <View style={s.screen}>
       <View style={s.header}>
         <Text style={s.screenTitle}>Likes</Text>
-        {visible.length > 0 && (
-          <View style={s.countBadge}><Text style={s.countTxt}>{visible.length}</Text></View>
-        )}
+        <View style={s.countBadge}><Text style={s.countTxt}>{visible.length}</Text></View>
       </View>
-      <Text style={s.headerSub}>These people liked your profile — connect back to match</Text>
+      <Text style={s.headerSub}>These people liked you — connect back to match</Text>
 
       <FlatList
         data={visible}
@@ -254,6 +277,7 @@ export default function LikesScreen({ navigation }) {
             profile={item}
             onConnect={() => handleConnect(item)}
             onSkip={() => handleSkip(item)}
+            onProfile={() => openProfile(item.id)}
           />
         )}
         contentContainerStyle={{ padding: 16, paddingTop: 8 }}
@@ -261,15 +285,12 @@ export default function LikesScreen({ navigation }) {
         ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       />
 
-      <MatchModal
-        profile={matched?.profile}
-        onClose={() => setMatched(null)}
-        onChat={() => openChat(matched)}
-      />
+      <MatchModal matchData={matched} onClose={() => setMatched(null)} onChat={openChat} />
     </View>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
   screen:       { flex: 1, backgroundColor: C.bg },
   center:       { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
@@ -280,24 +301,32 @@ const s = StyleSheet.create({
   countTxt:     { color: C.bg, fontSize: 12 },
 
   // Card
-  card:         { flexDirection: 'row', backgroundColor: C.sur, borderRadius: 14, padding: 14, borderWidth: 1, borderColor: C.border, alignItems: 'center' },
+  card:         { flexDirection: 'row', backgroundColor: C.sur, borderRadius: 14, padding: 14,
+                  borderWidth: 1, borderColor: C.border, alignItems: 'center' },
+  cardTapArea:  { flex: 1, flexDirection: 'row', alignItems: 'center' },
   cardLeft:     { marginRight: 14 },
   avatarWrap:   { position: 'relative' },
-  verifiedDot:  { position: 'absolute', bottom: 0, right: 0, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: C.sur },
+  verifiedDot:  { position: 'absolute', bottom: 0, right: 0, width: 18, height: 18, borderRadius: 9,
+                  backgroundColor: '#22c55e', justifyContent: 'center', alignItems: 'center',
+                  borderWidth: 2, borderColor: C.sur },
   cardMid:      { flex: 1, gap: 4 },
   name:         { fontSize: 16, color: C.text },
   loc:          { fontSize: 12, color: C.sub },
-  intentBadge:  { backgroundColor: C.sur2, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start', borderWidth: 1, borderColor: C.border2 },
+  intentBadge:  { backgroundColor: C.sur2, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 2,
+                  alignSelf: 'flex-start', borderWidth: 1, borderColor: C.border2 },
   intentTxt:    { fontSize: 11, color: C.sub },
   skills:       { fontSize: 12, color: C.dim },
+  viewProfile:  { fontSize: 11, color: C.gold, marginTop: 2 },
   cardRight:    { alignItems: 'center', gap: 8, marginLeft: 8 },
   scoreBox:     { backgroundColor: C.goldBg, borderRadius: 8, padding: 6, alignItems: 'center', borderWidth: 1, borderColor: C.goldMid },
   scorePct:     { fontSize: 18, color: C.gold },
   scoreLbl:     { fontSize: 9, color: C.sub },
   actions:      { flexDirection: 'row', gap: 8 },
-  skipBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: C.sur2, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border2 },
+  skipBtn:      { width: 38, height: 38, borderRadius: 19, backgroundColor: C.sur2,
+                  justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border2 },
   skipTxt:      { color: C.sub, fontSize: 14 },
-  connectBtn:   { width: 36, height: 36, borderRadius: 18, backgroundColor: C.gold, justifyContent: 'center', alignItems: 'center' },
+  connectBtn:   { width: 38, height: 38, borderRadius: 19, backgroundColor: C.gold,
+                  justifyContent: 'center', alignItems: 'center' },
   connectTxt:   { color: C.bg, fontSize: 16 },
 
   // Empty states
@@ -308,29 +337,30 @@ const s = StyleSheet.create({
   refreshTxt:   { color: C.gold, fontSize: 14 },
 
   // Locked
-  lockedWrap:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  lockedIcon:   { fontSize: 52, color: C.gold, marginBottom: 16 },
-  lockedTitle:  { fontSize: 22, color: C.text, marginBottom: 8, textAlign: 'center' },
-  lockedSub:    { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
-  blurRow:      { flexDirection: 'row', gap: 10, marginBottom: 32 },
-  blurCard:     { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: C.border },
-  blurImg:      { width: 70, height: 90 },
-  upgradeBtn:   { backgroundColor: C.gold, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 14 },
-  upgradeBtnTxt:{ color: C.bg, fontSize: 15 },
+  lockedWrap:    { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  lockedIcon:    { fontSize: 52, color: C.gold, marginBottom: 16 },
+  lockedTitle:   { fontSize: 22, color: C.text, marginBottom: 8, textAlign: 'center' },
+  lockedSub:     { fontSize: 14, color: C.sub, textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+  blurRow:       { flexDirection: 'row', gap: 10, marginBottom: 32 },
+  blurCard:      { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: C.border },
+  blurImg:       { width: 70, height: 90 },
+  upgradeBtn:    { backgroundColor: C.gold, borderRadius: 12, paddingHorizontal: 28, paddingVertical: 14 },
+  upgradeBtnTxt: { color: C.bg, fontSize: 15 },
 });
 
 // ── Match Modal Styles ────────────────────────────────────────────────────────
 const mm = StyleSheet.create({
-  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  card:       { backgroundColor: C.sur, borderRadius: 20, padding: 28, alignItems: 'center', width: '100%', maxWidth: 360, borderWidth: 1, borderColor: C.border },
-  star:       { fontSize: 32, color: C.gold, marginBottom: 8 },
-  label:      { fontSize: 11, color: C.sub, letterSpacing: 3, marginBottom: 20 },
-  name:       { fontSize: 22, color: C.text, marginTop: 14, marginBottom: 4 },
-  score:      { fontSize: 13, color: C.gold, marginBottom: 14 },
-  sub:        { fontSize: 13, color: C.sub, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
-  btnRow:     { flexDirection: 'row', gap: 12, width: '100%' },
-  primary:    { flex: 1, backgroundColor: C.gold, borderRadius: 12, padding: 14, alignItems: 'center' },
-  primaryTxt: { color: C.bg, fontSize: 14 },
-  secondary:  { flex: 1, backgroundColor: C.sur2, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border2 },
+  overlay:     { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  card:        { backgroundColor: C.sur, borderRadius: 20, padding: 28, alignItems: 'center',
+                 width: '100%', maxWidth: 360, borderWidth: 1, borderColor: C.border },
+  star:        { fontSize: 32, color: C.gold, marginBottom: 8 },
+  label:       { fontSize: 11, color: C.sub, letterSpacing: 3, marginBottom: 20 },
+  name:        { fontSize: 22, color: C.text, marginTop: 14, marginBottom: 4 },
+  score:       { fontSize: 13, color: C.gold, marginBottom: 14 },
+  sub:         { fontSize: 13, color: C.sub, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  btnRow:      { flexDirection: 'row', gap: 12, width: '100%' },
+  primary:     { flex: 1, backgroundColor: C.gold, borderRadius: 12, padding: 14, alignItems: 'center' },
+  primaryTxt:  { color: C.bg, fontSize: 14 },
+  secondary:   { flex: 1, backgroundColor: C.sur2, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: C.border2 },
   secondaryTxt:{ color: C.sub, fontSize: 14 },
 });

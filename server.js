@@ -1039,17 +1039,59 @@ app.get('/api/priority-messages', auth, async (req, res) => {
 // ── WHO LIKED YOU ─────────────────────────────────────────────────────────────
 app.get('/api/liked-me', auth, async (req, res) => {
   try {
-    const { data: me } = await supabase.from('users')
-      .select('premium').eq('id', req.user.id).maybeSingle();
-    if (!me || !me.premium) return res.status(403).json({ error: 'Premium only' });
-
+    // 1. Everyone who swiped RIGHT on me
     const { data: likedSwipes } = await supabase.from('swipes')
       .select('from_user').eq('to_user', req.user.id).eq('direction', 'right');
     const likerIds = (likedSwipes || []).map(s => s.from_user);
-    if (!likerIds.length) return res.json([]);
 
-    const { data: likers } = await supabase.from('users').select('*').in('id', likerIds);
-    res.json((likers || []).map(cleanPublic).filter(Boolean));
+    if (!likerIds.length) {
+      return res.json({ count: 0, profiles: [], premium_required: false });
+    }
+
+    // 2. Exclude people I'm already connected with
+    const { data: myConns } = await supabase.from('connections')
+      .select('user1, user2')
+      .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`);
+    const connectedIds = new Set();
+    (myConns || []).forEach(c => { connectedIds.add(c.user1); connectedIds.add(c.user2); });
+
+    // 3. Exclude people I've already swiped on (in any direction)
+    const { data: mySwiped } = await supabase.from('swipes')
+      .select('to_user').eq('from_user', req.user.id);
+    const swipedIds = new Set((mySwiped || []).map(s => s.to_user));
+
+    const filteredIds = likerIds.filter(
+      id => id !== req.user.id && !connectedIds.has(id) && !swipedIds.has(id)
+    );
+
+    const count = filteredIds.length;
+
+    // 4. Check premium status
+    const { data: me } = await supabase.from('users')
+      .select('premium').eq('id', req.user.id).maybeSingle();
+
+    if (!me?.premium) {
+      // Free users: return count + blurred photo previews (no identifying info)
+      const previewData = filteredIds.length > 0
+        ? await supabase.from('users').select('id, photos').in('id', filteredIds.slice(0, 6))
+        : { data: [] };
+      return res.json({
+        premium_required: true,
+        count,
+        previews: (previewData.data || []).map(u => ({ id: u.id, photos: u.photos || [] })),
+      });
+    }
+
+    // 5. Premium users: return full profiles
+    if (!filteredIds.length) {
+      return res.json({ count: 0, profiles: [], premium_required: false });
+    }
+    const { data: likers } = await supabase.from('users').select('*').in('id', filteredIds);
+    res.json({
+      count,
+      profiles: (likers || []).map(cleanPublic).filter(Boolean),
+      premium_required: false,
+    });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -78,11 +78,21 @@ function ProfileStack() {
   );
 }
 
+function LikesStack() {
+  return (
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen name="LikesList"   component={LikesScreen}       options={{ headerShown: false }} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen}  options={{ title: 'Profile' }} />
+      <Stack.Screen name="Upgrade"     component={UpgradeScreen}      options={{ title: 'Go Premium' }} />
+    </Stack.Navigator>
+  );
+}
+
 function ChatStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ChatList"    component={ChatListScreen}   options={{ headerShown: false }} />
-      <Stack.Screen name="ChatDetail"  component={ChatScreen}       options={{ title: 'Chat' }} />
+      <Stack.Screen name="ChatList"    component={ChatListScreen}    options={{ headerShown: false }} />
+      <Stack.Screen name="ChatDetail"  component={ChatScreen}        options={{ title: 'Chat' }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Profile' }} />
     </Stack.Navigator>
   );
@@ -98,7 +108,7 @@ function MainTabs() {
         tabBarStyle:    { backgroundColor: C.sur, borderTopColor: C.border, height: 60, paddingBottom: 8 },
       })}>
       <Tab.Screen name="Discover"    component={DiscoverScreen} />
-      <Tab.Screen name="Likes"       component={LikesScreen} />
+      <Tab.Screen name="Likes"       component={LikesStack} />
       <Tab.Screen name="Connections" component={ChatStack} />
       <Tab.Screen name="Profile"     component={ProfileStack} />
     </Tab.Navigator>
