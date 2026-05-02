@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }    from '@react-navigation/stack';
 
 import { useAuth }           from '../context/AuthContext';
+import BYNLogo               from '../components/BYNLogo';
 import LoginScreen           from '../screens/LoginScreen';
 import SignupScreen          from '../screens/SignupScreen';
 import ProfileCompleteScreen from '../screens/ProfileCompleteScreen';
@@ -16,6 +17,10 @@ import PriorityScreen        from '../screens/PriorityScreen';
 import ProfileScreen         from '../screens/ProfileScreen';
 import UserProfileScreen     from '../screens/UserProfileScreen';
 import UpgradeScreen         from '../screens/UpgradeScreen';
+import SettingsScreen        from '../screens/SettingsScreen';
+import SupportScreen         from '../screens/SupportScreen';
+import TermsScreen           from '../screens/TermsScreen';
+import PrivacyScreen         from '../screens/PrivacyScreen';
 import { C }                 from '../utils/theme';
 
 const Tab   = createBottomTabNavigator();
@@ -55,18 +60,14 @@ function TabLabel({ name, focused }) {
   );
 }
 
-function HeaderTitle({ children }) {
-  return (
-    <Text style={{ color: C.text, fontSize: 17, fontWeight: '600' }} numberOfLines={1}>
-      {children}
-    </Text>
-  );
+function LogoHeader() {
+  return <BYNLogo size={28} />;
 }
 
 const stackScreenOptions = {
-  headerStyle:     { backgroundColor: C.card, elevation: 0, shadowOpacity: 0.06 },
-  headerTintColor: C.primary,
-  headerTitle:     (props) => <HeaderTitle {...props} />,
+  headerStyle:      { backgroundColor: C.card, elevation: 0, shadowOpacity: 0.06 },
+  headerTintColor:  C.primary,
+  headerTitleStyle: { color: C.text, fontSize: 17, fontWeight: '600' },
 };
 
 function DiscoverStack() {
@@ -92,7 +93,15 @@ function LikesStack() {
 function ChatStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ChatList"         component={ChatListScreen}    options={{ headerShown: false }} />
+      <Stack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{
+          headerShown: true,
+          headerLeft:  () => <View style={{ paddingLeft: 16 }}><LogoHeader /></View>,
+          headerTitle: () => null,
+        }}
+      />
       <Stack.Screen name="ChatDetail"       component={ChatScreen}        options={{ title: 'Chat' }} />
       <Stack.Screen name="UserProfile"      component={UserProfileScreen} options={{ title: 'Profile' }} />
       <Stack.Screen name="PriorityMessages" component={PriorityScreen}   options={{ title: 'Priority' }} />
@@ -103,8 +112,12 @@ function ChatStack() {
 function ProfileStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile' }} />
-      <Stack.Screen name="Upgrade"     component={UpgradeScreen} options={{ title: 'Go Premium' }} />
+      <Stack.Screen name="ProfileMain" component={ProfileScreen}  options={{ title: 'My Profile' }} />
+      <Stack.Screen name="Upgrade"     component={UpgradeScreen}  options={{ title: 'Go Premium' }} />
+      <Stack.Screen name="Settings"    component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="Support"     component={SupportScreen}  options={{ title: 'Support' }} />
+      <Stack.Screen name="Terms"       component={TermsScreen}    options={{ title: 'Terms & Conditions' }} />
+      <Stack.Screen name="Privacy"     component={PrivacyScreen}  options={{ title: 'Privacy Policy' }} />
     </Stack.Navigator>
   );
 }
@@ -125,7 +138,7 @@ function MainTabs() {
           shadowColor:     '#000',
           shadowOpacity:   0.06,
           shadowRadius:    8,
-          shadowOffset:    { width:0, height:-2 },
+          shadowOffset:    { width: 0, height: -2 },
           elevation:       8,
         },
       })}>
@@ -162,7 +175,7 @@ export default function AppNavigator() {
 
   if (!ready) {
     return (
-      <View style={{ flex:1, backgroundColor:C.bg, justifyContent:'center', alignItems:'center' }}>
+      <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator color={C.primary} size="large" />
       </View>
     );

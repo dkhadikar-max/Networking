@@ -375,6 +375,10 @@ export default function ProfileScreen({ navigation }) {
           </TouchableOpacity>
         )}
 
+        <TouchableOpacity style={s.settingsBtn} onPress={() => navigation.navigate('Settings')}>
+          <Text style={s.settingsTxt}>⚙ Settings · Support · Legal</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={s.logoutBtn} onPress={logout}>
           <Text style={s.logoutTxt}>Sign Out</Text>
         </TouchableOpacity>
@@ -450,6 +454,9 @@ const s = StyleSheet.create({
   upgradeBtn: { borderWidth: 1.5, borderColor: C.gold, borderRadius: 14, padding: 14,
                 alignItems: 'center', marginBottom: 12 },
   upgradeTxt: { color: C.gold, fontSize: 14 },
+  settingsBtn:  { borderWidth: 1, borderColor: C.border, borderRadius: 14, padding: 13,
+                  alignItems: 'center', marginBottom: 10, backgroundColor: C.card },
+  settingsTxt:  { color: C.sub, fontSize: 13 },
   logoutBtn:  { borderWidth: 1, borderColor: C.border2, borderRadius: 14, padding: 13,
                 alignItems: 'center', marginTop: 4, marginBottom: 20 },
   logoutTxt:  { color: C.dim, fontSize: 14 },
