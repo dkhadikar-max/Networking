@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms & Conditions — Build Your Network</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #FFF4EC;
+      --bg-sec:       #FDE8D7;
+      --card:         #FFFFFF;
+      --primary:      #0F766E;
+      --primary-soft: #14B8A6;
+      --primary-lt:   #CCFBF1;
+      --accent:       #F4A261;
+      --text:         #1F2937;
+      --sub:          #6B7280;
+      --dim:          #9CA3AF;
+      --border:       rgba(0,0,0,0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .header-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .logo-text span { color: var(--primary); }
+    .header-badge {
+      font-size: 11px;
+      color: var(--sub);
+      background: var(--bg-sec);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-weight: 500;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-soft) 100%);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+    .hero p {
+      color: rgba(255,255,255,0.82);
+      font-size: 14px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .hero .effective {
+      display: inline-block;
+      margin-top: 18px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── TOC ──────────────────────────────────────────────────── */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .toc h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--sub);
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .toc ol {
+      padding-left: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+    }
+    .toc li a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .toc li a:hover { text-decoration: underline; }
+    @media (max-width: 500px) { .toc ol { grid-template-columns: 1fr; } }
+
+    /* ── Sections ─────────────────────────────────────────────── */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      scroll-margin-top: 72px;
+    }
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--primary-lt);
+      color: var(--primary);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section p {
+      color: var(--text);
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+    .section p:last-child { margin-bottom: 0; }
+    .section ul, .section ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+    .section li {
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .section strong { color: var(--primary); }
+    .section .note {
+      background: var(--primary-lt);
+      border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--primary);
+      margin: 14px 0;
+    }
+    .section .warn {
+      background: rgba(244,162,97,0.12);
+      border-left: 3px solid #F4A261;
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #92400E;
+      margin: 14px 0;
+    }
+    .sub-heading {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 18px 0 8px;
+    }
+
+    /* ── Contact box ──────────────────────────────────────────── */
+    .contact-box {
+      background: linear-gradient(135deg, var(--primary-lt) 0%, #FFF4EC 100%);
+      border: 1px solid rgba(15,118,110,0.2);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .contact-box h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .contact-box p {
+      font-size: 14px;
+      color: var(--sub);
+      margin-bottom: 16px;
+    }
+    .contact-box a {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 11px 28px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .contact-box a:hover { background: #0a5c55; }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    footer p {
+      font-size: 12px;
+      color: var(--dim);
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="4"  r="2.2" fill="white"/>
+          <circle cx="3"  cy="15" r="2.2" fill="white"/>
+          <circle cx="17" cy="15" r="2.2" fill="white"/>
+          <line x1="10" y1="4"  x2="3"  y2="15" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+          <line x1="10" y1="4"  x2="17" y2="15" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+          <line x1="3"  y1="15" x2="17" y2="15" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <span class="logo-text">Build Your <span>Network</span></span>
+    </a>
+    <span class="header-badge">Legal</span>
+  </div>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>Terms &amp; Conditions</h1>
+  <p>Please read these terms carefully before using the Build Your Network app.</p>
+  <span class="effective">Effective Date: May 1, 2025</span>
+</div>
+
+<!-- ── Main content ───────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">Acceptance of Terms</a></li>
+      <li><a href="#s2">Eligibility</a></li>
+      <li><a href="#s3">Your Account</a></li>
+      <li><a href="#s4">User Conduct</a></li>
+      <li><a href="#s5">Content &amp; Intellectual Property</a></li>
+      <li><a href="#s6">Premium Features</a></li>
+      <li><a href="#s7">Privacy &amp; Data</a></li>
+      <li><a href="#s8">Safety &amp; Reporting</a></li>
+      <li><a href="#s9">Disclaimers</a></li>
+      <li><a href="#s10">Limitation of Liability</a></li>
+      <li><a href="#s11">Termination</a></li>
+      <li><a href="#s12">Changes to Terms</a></li>
+      <li><a href="#s13">Governing Law</a></li>
+      <li><a href="#s14">Contact Us</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="s1">
+    <div class="section-num">1</div>
+    <h2>Acceptance of Terms</h2>
+    <p>By downloading, installing, or using the <strong>Build Your Network</strong> mobile application ("App", "Service"), you agree to be bound by these Terms &amp; Conditions ("Terms"). If you do not agree to these Terms, do not use the App.</p>
+    <p>These Terms constitute a legally binding agreement between you and Build Your Network ("Company", "we", "us", "our"). By accepting these Terms, you also agree to our Privacy Policy, which is incorporated herein by reference.</p>
+    <div class="note">These Terms apply to all visitors, users, and others who access or use the Service.</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="s2">
+    <div class="section-num">2</div>
+    <h2>Eligibility</h2>
+    <p>To use Build Your Network, you must:</p>
+    <ul>
+      <li>Be at least <strong>18 years of age</strong></li>
+      <li>Have the legal capacity to enter into a binding agreement</li>
+      <li>Not be prohibited from using the Service under applicable law</li>
+      <li>Not have been previously removed or banned from our platform</li>
+    </ul>
+    <p>By using the App, you represent and warrant that you meet all of the foregoing eligibility requirements. If you do not meet these requirements, you must not access or use the Service.</p>
+    <div class="warn">Build Your Network is a professional networking platform. Users are expected to engage professionally and respectfully at all times.</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="s3">
+    <div class="section-num">3</div>
+    <h2>Your Account</h2>
+    <p class="sub-heading">Registration</p>
+    <p>You must register for an account to use most features of the App. You agree to provide accurate, current, and complete information during the registration process and keep your account information updated.</p>
+    <p class="sub-heading">Account Security</p>
+    <p>You are responsible for safeguarding your login credentials and for all activities that occur under your account. You agree to notify us immediately at <a href="mailto:support@buildyournetwork.app">support@buildyournetwork.app</a> of any unauthorized use of your account.</p>
+    <p class="sub-heading">One Account Per Person</p>
+    <p>You may only maintain one active account. Creating multiple accounts to evade restrictions or bans is prohibited and will result in permanent suspension of all associated accounts.</p>
+    <p class="sub-heading">Account Verification</p>
+    <p>We may offer optional identity or professional verification. Verified status is displayed on your profile but does not constitute an endorsement of any claims you make.</p>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="s4">
+    <div class="section-num">4</div>
+    <h2>User Conduct</h2>
+    <p>You agree to use Build Your Network only for lawful, professional networking purposes. You must not:</p>
+    <ul>
+      <li>Post false, misleading, or fraudulent information</li>
+      <li>Harass, bully, threaten, or abuse other users</li>
+      <li>Solicit money or financial products from other users</li>
+      <li>Send spam, unsolicited messages, or chain letters</li>
+      <li>Use the App to recruit for multi-level marketing schemes</li>
+      <li>Impersonate any person, company, or entity</li>
+      <li>Scrape, harvest, or collect user data without authorization</li>
+      <li>Use automated scripts, bots, or crawlers on the Service</li>
+      <li>Attempt to reverse-engineer, decompile, or hack the App</li>
+      <li>Post or transmit sexually explicit, violent, or hateful content</li>
+      <li>Violate any applicable local, national, or international law</li>
+    </ul>
+    <div class="note">We take the safety and quality of our community seriously. Violations may result in immediate account suspension.</div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="s5">
+    <div class="section-num">5</div>
+    <h2>Content &amp; Intellectual Property</h2>
+    <p class="sub-heading">Your Content</p>
+    <p>You retain ownership of content you submit, post, or display on Build Your Network ("User Content"). By submitting User Content, you grant us a non-exclusive, worldwide, royalty-free, sublicensable license to use, reproduce, display, and distribute it solely for the purpose of operating and improving the Service.</p>
+    <p class="sub-heading">Content Standards</p>
+    <p>You represent that your User Content does not infringe any third-party intellectual property rights and does not violate any applicable law or these Terms.</p>
+    <p class="sub-heading">Our Intellectual Property</p>
+    <p>The App, including its design, logo, features, and underlying technology, is owned exclusively by Build Your Network and protected by applicable intellectual property laws. You may not copy, modify, distribute, or create derivative works without our express written permission.</p>
+    <p class="sub-heading">Feedback</p>
+    <p>Any feedback, suggestions, or ideas you provide to us regarding the Service may be used by us without obligation or compensation to you.</p>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="s6">
+    <div class="section-num">6</div>
+    <h2>Premium Features &amp; Payments</h2>
+    <p>Build Your Network may offer premium subscription plans or one-time purchases ("Premium Features") that unlock additional functionality.</p>
+    <p class="sub-heading">Billing</p>
+    <p>All purchases are processed through the Google Play Store or Apple App Store. Payment terms are governed by the respective store's terms of service. We do not store your payment card details.</p>
+    <p class="sub-heading">Subscriptions</p>
+    <p>Premium subscriptions automatically renew at the end of each billing cycle unless cancelled before the renewal date. You may manage or cancel your subscription through your device's store settings.</p>
+    <p class="sub-heading">Refunds</p>
+    <p>Refund requests are handled in accordance with the applicable store's refund policy. We do not independently issue refunds except as required by law.</p>
+    <p class="sub-heading">Priority Messages</p>
+    <p>Priority Message credits are consumed upon delivery. Undelivered credits due to account deletion of the recipient may be restored at our discretion.</p>
+    <div class="warn">Prices and feature sets may change. We will provide reasonable notice of any pricing changes before they take effect.</div>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="s7">
+    <div class="section-num">7</div>
+    <h2>Privacy &amp; Data</h2>
+    <p>Your privacy is important to us. Our Privacy Policy explains how we collect, use, and share your personal information when you use the App.</p>
+    <p class="sub-heading">Data You Provide</p>
+    <p>This includes your name, professional information, photos, bio, skills, and any other content you add to your profile or messages.</p>
+    <p class="sub-heading">Data We Collect Automatically</p>
+    <p>This includes usage data, device identifiers, and analytics to improve the Service.</p>
+    <p class="sub-heading">Data Sharing</p>
+    <p>We do not sell your personal data to third parties. We may share data with service providers who help us operate the App, subject to confidentiality obligations.</p>
+    <p class="sub-heading">Your Rights</p>
+    <p>Depending on your jurisdiction, you may have rights to access, correct, or delete your personal data. To exercise these rights, contact us at <strong>privacy@buildyournetwork.app</strong>.</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="s8">
+    <div class="section-num">8</div>
+    <h2>Safety &amp; Reporting</h2>
+    <p>Build Your Network is committed to maintaining a safe and respectful community. We provide in-app reporting tools to flag inappropriate content or behaviour.</p>
+    <p class="sub-heading">How to Report</p>
+    <ul>
+      <li>Tap the three-dot menu (⋯) on any profile or message</li>
+      <li>Select "Report" and choose the appropriate reason</li>
+      <li>Optionally add a note to help our review team</li>
+    </ul>
+    <p class="sub-heading">Our Response</p>
+    <p>Reports are reviewed by our Trust &amp; Safety team. We may take actions including warnings, content removal, or account suspension. We cannot disclose actions taken against third parties.</p>
+    <p class="sub-heading">Blocking</p>
+    <p>You may block any user at any time. Blocked users cannot view your profile or send you messages.</p>
+    <div class="note">In cases involving imminent harm or illegal activity, please also contact your local emergency services.</div>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="s9">
+    <div class="section-num">9</div>
+    <h2>Disclaimers</h2>
+    <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.</p>
+    <p>We do not warrant that:</p>
+    <ul>
+      <li>The Service will be uninterrupted, error-free, or secure</li>
+      <li>Any information provided by users is accurate or reliable</li>
+      <li>Professional connections made through the App will lead to employment or business outcomes</li>
+      <li>The App will be free of viruses or other harmful components</li>
+    </ul>
+    <p>Build Your Network is a platform for connecting professionals. We are not a recruitment agency, staffing firm, or employment service and make no guarantees about outcomes of connections made through the App.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="s10">
+    <div class="section-num">10</div>
+    <h2>Limitation of Liability</h2>
+    <p>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, BUILD YOUR NETWORK AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES ARISING FROM YOUR USE OF, OR INABILITY TO USE, THE SERVICE.</p>
+    <p>Our aggregate liability to you for any claims relating to the Service shall not exceed the greater of (a) the amount you paid to us in the twelve months preceding the claim, or (b) USD $100.</p>
+    <p>Some jurisdictions do not allow the exclusion or limitation of certain warranties or liabilities, so some of the above limitations may not apply to you.</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="s11">
+    <div class="section-num">11</div>
+    <h2>Termination</h2>
+    <p class="sub-heading">Termination by You</p>
+    <p>You may delete your account at any time from the Settings screen within the App. Deletion will remove your profile from the platform within 30 days, subject to legal retention requirements.</p>
+    <p class="sub-heading">Termination by Us</p>
+    <p>We may suspend or terminate your account and access to the Service at our sole discretion, without notice, if you violate these Terms or engage in conduct we determine is harmful to our users or the platform.</p>
+    <p class="sub-heading">Effect of Termination</p>
+    <p>Upon termination, your right to use the Service immediately ceases. Provisions of these Terms that by their nature should survive termination will survive, including ownership provisions, warranty disclaimers, and limitations of liability.</p>
+  </div>
+
+  <!-- 12 -->
+  <div class="section" id="s12">
+    <div class="section-num">12</div>
+    <h2>Changes to These Terms</h2>
+    <p>We reserve the right to modify these Terms at any time. We will provide notice of material changes by:</p>
+    <ul>
+      <li>Sending a push notification through the App</li>
+      <li>Displaying a prominent notice upon next login</li>
+      <li>Updating the "Effective Date" at the top of this page</li>
+    </ul>
+    <p>Your continued use of the Service after the effective date of any changes constitutes your acceptance of the revised Terms. If you disagree with the changes, you must stop using the Service and delete your account.</p>
+  </div>
+
+  <!-- 13 -->
+  <div class="section" id="s13">
+    <div class="section-num">13</div>
+    <h2>Governing Law &amp; Disputes</h2>
+    <p>These Terms shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions.</p>
+    <p class="sub-heading">Dispute Resolution</p>
+    <p>Any dispute arising from these Terms or your use of the Service shall first be attempted to be resolved informally by contacting us at <strong>legal@buildyournetwork.app</strong>. If not resolved within 30 days, disputes shall be submitted to binding arbitration in accordance with applicable arbitration rules.</p>
+    <p class="sub-heading">Class Action Waiver</p>
+    <p>You agree to resolve disputes with us only on an individual basis. You waive any right to bring or participate in a class action, class-wide arbitration, or representative action.</p>
+  </div>
+
+  <!-- 14 -->
+  <div class="section" id="s14">
+    <div class="section-num">14</div>
+    <h2>Contact Us</h2>
+    <p>If you have any questions about these Terms &amp; Conditions, please contact us:</p>
+    <ul>
+      <li><strong>Email:</strong> legal@buildyournetwork.app</li>
+      <li><strong>Support:</strong> support@buildyournetwork.app</li>
+      <li><strong>Privacy:</strong> privacy@buildyournetwork.app</li>
+    </ul>
+  </div>
+
+  <!-- Contact CTA -->
+  <div class="contact-box">
+    <h3>Questions about your rights?</h3>
+    <p>Our team is here to help. Reach out and we'll respond within 2 business days.</p>
+    <a href="mailto:legal@buildyournetwork.app">Contact Legal Team</a>
+  </div>
+
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <p>© 2025 Build Your Network. All rights reserved. &nbsp;·&nbsp; <a href="#">Privacy Policy</a> &nbsp;·&nbsp; <a href="#">Community Guidelines</a></p>
+</footer>
+
+</body>
+</html>

@@ -5,15 +5,16 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0d0d0d"
+      "backgroundColor": "#FFF4EC"
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.buildyournetwork.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We use your location to show you nearby professionals.",
         "NSLocationAlwaysUsageDescription": "We use your location to show you nearby professionals."
@@ -24,7 +25,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0d0d0d"
+        "backgroundColor": "#FFF4EC"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -44,7 +45,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#C6A86B",
+          "color": "#0F766E",
           "sounds": []
         }
       ],
