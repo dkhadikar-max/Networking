@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Build Your Network</title>
+  <meta name="description" content="Privacy Policy for Build Your Network — how we collect, use, and protect your personal information." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #FFF4EC;
+      --bg-sec:       #FDE8D7;
+      --card:         #FFFFFF;
+      --primary:      #0F766E;
+      --primary-soft: #14B8A6;
+      --primary-lt:   #CCFBF1;
+      --accent:       #F4A261;
+      --text:         #1F2937;
+      --sub:          #6B7280;
+      --dim:          #9CA3AF;
+      --border:       rgba(0,0,0,0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    /* ── Header ───────────────────────────────────────────────── */
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .header-inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .logo-text span { color: var(--primary); }
+    .header-badge {
+      font-size: 11px;
+      color: var(--sub);
+      background: var(--bg-sec);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-weight: 500;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-soft) 100%);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin-bottom: 10px;
+    }
+    .hero p {
+      color: rgba(255,255,255,0.82);
+      font-size: 14px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .hero .meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .hero .pill {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      font-weight: 500;
+    }
+    .hero .pill.green {
+      background: rgba(255,255,255,0.95);
+      color: var(--primary);
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── TOC ──────────────────────────────────────────────────── */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .toc h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--sub);
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .toc ol {
+      padding-left: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+    }
+    .toc li a {
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .toc li a:hover { text-decoration: underline; }
+    @media (max-width: 500px) { .toc ol { grid-template-columns: 1fr; } }
+
+    /* ── Sections ─────────────────────────────────────────────── */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      scroll-margin-top: 72px;
+    }
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--primary-lt);
+      color: var(--primary);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .section h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section p { color: var(--text); margin-bottom: 12px; font-size: 14px; }
+    .section p:last-child { margin-bottom: 0; }
+    .section ul, .section ol { padding-left: 20px; margin-bottom: 12px; }
+    .section li { font-size: 14px; color: var(--text); margin-bottom: 6px; }
+    .section strong { color: var(--primary); }
+    .section .note {
+      background: var(--primary-lt);
+      border-left: 3px solid var(--primary);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--primary);
+      margin: 14px 0;
+    }
+    .section .warn {
+      background: rgba(244,162,97,0.12);
+      border-left: 3px solid #F4A261;
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #92400E;
+      margin: 14px 0;
+    }
+    .sub-heading {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 18px 0 8px;
+    }
+
+    /* ── Data table ───────────────────────────────────────────── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 16px 0;
+    }
+    .data-table th {
+      background: var(--primary);
+      color: #fff;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+    }
+    .data-table th:first-child { border-radius: 8px 0 0 0; }
+    .data-table th:last-child  { border-radius: 0 8px 0 0; }
+    .data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:nth-child(even) td { background: var(--bg); }
+
+    /* ── Badge ────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--primary-lt);
+      color: var(--primary);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ── Contact box ──────────────────────────────────────────── */
+    .contact-box {
+      background: linear-gradient(135deg, var(--primary-lt) 0%, #FFF4EC 100%);
+      border: 1px solid rgba(15,118,110,0.2);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      margin-top: 32px;
+    }
+    .contact-box h3 { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .contact-box p  { font-size: 14px; color: var(--sub); margin-bottom: 16px; }
+    .contact-box a {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 12px;
+      padding: 11px 28px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .contact-box a:hover { background: #0a5c55; }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    footer p { font-size: 12px; color: var(--dim); }
+    footer a  { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="https://buildyournetwork.online" class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="3.5"  r="2.2" fill="white"/>
+          <circle cx="2.5" cy="16" r="2.2" fill="white"/>
+          <circle cx="17.5" cy="16" r="2.2" fill="white"/>
+          <line x1="10" y1="3.5" x2="2.5"  y2="16"   stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="10" y1="3.5" x2="17.5" y2="16"   stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="2.5" y1="16" x2="17.5" y2="16"   stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">Build Your <span>Network</span></span>
+    </a>
+    <span class="header-badge">Privacy Policy</span>
+  </div>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>Privacy Policy</h1>
+  <p>We believe privacy is a right, not a feature. Here's exactly what we collect, why, and how it's protected.</p>
+  <div class="meta">
+    <span class="pill">Effective: 2 May 2025</span>
+    <span class="pill">Version 1.0</span>
+    <span class="pill green">🔒 We never sell your data</span>
+  </div>
+</div>
+
+<!-- ── Content ────────────────────────────────────────────────── -->
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">Who We Are</a></li>
+      <li><a href="#s2">What We Collect</a></li>
+      <li><a href="#s3">How We Use Your Data</a></li>
+      <li><a href="#s4">Who We Share Data With</a></li>
+      <li><a href="#s5">Data Storage &amp; Security</a></li>
+      <li><a href="#s6">Data Retention</a></li>
+      <li><a href="#s7">Your Rights</a></li>
+      <li><a href="#s8">Children's Privacy</a></li>
+      <li><a href="#s9">Cookies &amp; Tracking</a></li>
+      <li><a href="#s10">Push Notifications</a></li>
+      <li><a href="#s11">Changes to This Policy</a></li>
+      <li><a href="#s12">Contact Us</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="s1">
+    <div class="section-num">1</div>
+    <h2>Who We Are</h2>
+    <p><strong>Build Your Network</strong> ("BYN", "we", "us", "our") is a professional networking platform operated at <a href="https://buildyournetwork.online" style="color:var(--primary)">buildyournetwork.online</a>. We connect professionals who are serious about growing their careers, finding collaborators, and building meaningful relationships.</p>
+    <p>This Privacy Policy applies to the BYN mobile application (Android and iOS) and the website at buildyournetwork.online. By using any BYN service, you agree to the practices described here.</p>
+    <p>For any privacy questions, contact us at <a href="mailto:support@buildyournetwork.online" style="color:var(--primary)">support@buildyournetwork.online</a>.</p>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="s2">
+    <div class="section-num">2</div>
+    <h2>What We Collect</h2>
+
+    <p class="sub-heading">Information you provide directly</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data Type</th>
+          <th>Examples</th>
+          <th>Required?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Account details</strong></td>
+          <td>Full name, email address, password (hashed)</td>
+          <td>Yes</td>
+        </tr>
+        <tr>
+          <td><strong>Profile information</strong></td>
+          <td>Bio, skills, career intent, interests, profile photo, current role, company</td>
+          <td>Optional</td>
+        </tr>
+        <tr>
+          <td><strong>Location</strong></td>
+          <td>City/region (text), or approximate GPS coordinates if you grant permission</td>
+          <td>Optional</td>
+        </tr>
+        <tr>
+          <td><strong>Communications</strong></td>
+          <td>Messages sent to other users through the app</td>
+          <td>When used</td>
+        </tr>
+        <tr>
+          <td><strong>Support requests</strong></td>
+          <td>Emails sent to our support address</td>
+          <td>When used</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="sub-heading">Information collected automatically</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Data Type</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Usage activity</strong></td>
+          <td>Swipe actions, profile views, feature interactions — used for matching and feed ranking</td>
+        </tr>
+        <tr>
+          <td><strong>Last active timestamp</strong></td>
+          <td>Used to show "active recently" status and boost relevant profiles in the discovery feed</td>
+        </tr>
+        <tr>
+          <td><strong>Device token</strong></td>
+          <td>Expo push token for delivering notifications; never used for advertising</td>
+        </tr>
+        <tr>
+          <td><strong>Trust score</strong></td>
+          <td>Calculated from profile completeness and activity — determines feed visibility</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="note">We do <strong>not</strong> collect payment card details. All in-app purchases are processed directly by Google Play or the Apple App Store.</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="s3">
+    <div class="section-num">3</div>
+    <h2>How We Use Your Data</h2>
+    <ul>
+      <li><strong>Provide the service</strong> — account creation, login, profile display, discovery feed, and messaging.</li>
+      <li><strong>Personalise your feed</strong> — match scores are calculated using your skills, intent, and interests to surface relevant professionals.</li>
+      <li><strong>Safety and trust</strong> — we use activity signals to calculate a trust score and filter out low-quality or inactive accounts from the feed.</li>
+      <li><strong>Notifications</strong> — with your permission, we send push notifications for new connections and messages.</li>
+      <li><strong>Improve the product</strong> — aggregated, anonymised analytics help us understand feature usage and fix bugs.</li>
+      <li><strong>Legal compliance</strong> — we may process data where required by applicable law.</li>
+    </ul>
+    <p>We do <strong>not</strong> use your personal data for advertising, sell it to third parties, or use it to train AI models.</p>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="s4">
+    <div class="section-num">4</div>
+    <h2>Who We Share Data With</h2>
+
+    <p class="sub-heading">Service providers (data processors)</p>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Purpose</th>
+          <th>Data shared</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Supabase</strong></td>
+          <td>Database hosting (PostgreSQL)</td>
+          <td>All user and profile data</td>
+        </tr>
+        <tr>
+          <td><strong>Railway</strong></td>
+          <td>Backend API hosting</td>
+          <td>Server logs (no user data at rest)</td>
+        </tr>
+        <tr>
+          <td><strong>Cloudinary</strong></td>
+          <td>Profile photo storage and CDN delivery</td>
+          <td>Profile photos only</td>
+        </tr>
+        <tr>
+          <td><strong>Expo / Firebase</strong></td>
+          <td>Push notification delivery</td>
+          <td>Device push tokens only</td>
+        </tr>
+        <tr>
+          <td><strong>Google Play / Apple App Store</strong></td>
+          <td>App distribution and in-app purchases</td>
+          <td>Governed by their own privacy policies</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>All providers are bound by data processing agreements. We do not share your data with any other third parties except as required by law.</p>
+
+    <p class="sub-heading">Legal disclosures</p>
+    <p>We may disclose personal data if required by a court order, law enforcement request, or other legal obligation. Where permitted, we will notify affected users before disclosure.</p>
+
+    <div class="warn">We will never sell, rent, or trade your personal data to advertisers or data brokers.</div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="s5">
+    <div class="section-num">5</div>
+    <h2>Data Storage &amp; Security</h2>
+    <p>Your data is stored on <strong>Supabase</strong> infrastructure hosted in the European Union (AWS eu-west-1). All data is encrypted at rest (AES-256) and in transit (TLS 1.2+).</p>
+    <p>Passwords are never stored in plain text — we use bcrypt hashing with a minimum cost factor of 10.</p>
+    <p>Access to production data is restricted to authorised personnel only. We conduct periodic security reviews.</p>
+    <div class="note">While we implement industry-standard security measures, no system is 100% secure. If you discover a vulnerability, please report it to <a href="mailto:support@buildyournetwork.online" style="color:inherit;font-weight:600">support@buildyournetwork.online</a>.</div>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="s6">
+    <div class="section-num">6</div>
+    <h2>Data Retention</h2>
+    <ul>
+      <li><strong>Active accounts</strong> — data is retained for as long as your account is active.</li>
+      <li><strong>Deleted accounts</strong> — profile data is deleted within 30 days of account deletion. Messages may be retained for up to 90 days in backup systems before being purged.</li>
+      <li><strong>Anonymised analytics</strong> — aggregated usage data with no personal identifiers may be retained indefinitely.</li>
+      <li><strong>Legal holds</strong> — if data is subject to a legal obligation, it may be retained beyond these periods until the obligation is resolved.</li>
+    </ul>
+    <p>To request early deletion of your data, email <a href="mailto:support@buildyournetwork.online" style="color:var(--primary)">support@buildyournetwork.online</a> with the subject line "Data Deletion Request".</p>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="s7">
+    <div class="section-num">7</div>
+    <h2>Your Rights</h2>
+    <p>Depending on your jurisdiction (including GDPR for EEA residents and CCPA for California residents), you have the following rights:</p>
+    <ul>
+      <li><strong>Access</strong> — request a copy of the personal data we hold about you.</li>
+      <li><strong>Correction</strong> — update inaccurate or incomplete data directly in the app, or contact us.</li>
+      <li><strong>Deletion</strong> — request that we delete your personal data ("right to be forgotten").</li>
+      <li><strong>Portability</strong> — receive your data in a structured, machine-readable format.</li>
+      <li><strong>Objection</strong> — object to certain types of processing, including profiling.</li>
+      <li><strong>Withdraw consent</strong> — where processing is based on consent, you may withdraw it at any time without affecting the lawfulness of prior processing.</li>
+      <li><strong>Complaint</strong> — lodge a complaint with your local data protection authority (e.g. ICO in the UK, your national DPA in the EU).</li>
+    </ul>
+    <p>To exercise any of these rights, email <a href="mailto:support@buildyournetwork.online" style="color:var(--primary)">support@buildyournetwork.online</a>. We aim to respond within <strong>5 business days</strong>.</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="s8">
+    <div class="section-num">8</div>
+    <h2>Children's Privacy</h2>
+    <p>Build Your Network is intended for users aged <strong>18 and over</strong>. We do not knowingly collect personal data from anyone under the age of 18.</p>
+    <p>If you believe a minor has created an account, please contact us immediately at <a href="mailto:support@buildyournetwork.online" style="color:var(--primary)">support@buildyournetwork.online</a> and we will delete the account and associated data promptly.</p>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="s9">
+    <div class="section-num">9</div>
+    <h2>Cookies &amp; Tracking</h2>
+    <p>The BYN mobile app does not use browser cookies. The app uses <strong>AsyncStorage</strong> (local device storage) to persist your login session and consent record. This data never leaves your device to third parties.</p>
+    <p>The BYN website (buildyournetwork.online) uses minimal, essential cookies only — no advertising or tracking cookies are deployed.</p>
+    <div class="note">We do not use Google Analytics, Facebook Pixel, or any third-party behavioural tracking on this website.</div>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="s10">
+    <div class="section-num">10</div>
+    <h2>Push Notifications</h2>
+    <p>With your permission, we send push notifications for events such as new connection requests and incoming messages. Your device push token is stored securely and used only to deliver notifications from BYN — never shared with advertisers.</p>
+    <p>You can opt out of push notifications at any time in your device's notification settings (Settings → Apps → Build Your Network → Notifications).</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="s11">
+    <div class="section-num">11</div>
+    <h2>Changes to This Policy</h2>
+    <p>We may update this Privacy Policy from time to time. When we make material changes, we will:</p>
+    <ul>
+      <li>Update the "Effective" date at the top of this page.</li>
+      <li>Send a push notification or in-app alert to active users.</li>
+      <li>Where required by law, request fresh consent.</li>
+    </ul>
+    <p>Continued use of BYN after changes are posted constitutes acceptance of the revised policy. If you disagree with any changes, you may delete your account at any time.</p>
+  </div>
+
+  <!-- 12 -->
+  <div class="section" id="s12">
+    <div class="section-num">12</div>
+    <h2>Contact Us</h2>
+    <p>For any privacy questions, data requests, or concerns:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:support@buildyournetwork.online" style="color:var(--primary)">support@buildyournetwork.online</a></li>
+      <li><strong>Website:</strong> <a href="https://buildyournetwork.online" style="color:var(--primary)">buildyournetwork.online</a></li>
+      <li><strong>Response time:</strong> Within 5 business days</li>
+    </ul>
+    <p>For urgent safety or legal matters, please include "URGENT" in your subject line.</p>
+  </div>
+
+  <!-- Contact CTA -->
+  <div class="contact-box">
+    <h3>Questions about your privacy?</h3>
+    <p>We're committed to being transparent. Reach out and we'll respond within 5 business days.</p>
+    <a href="mailto:support@buildyournetwork.online">Email Privacy Team</a>
+  </div>
+
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<footer>
+  <p>
+    &copy; 2025 Build Your Network &nbsp;·&nbsp;
+    <a href="/privacy">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="/terms">Terms &amp; Conditions</a> &nbsp;·&nbsp;
+    <a href="mailto:support@buildyournetwork.online">Contact</a>
+  </p>
+</footer>
+
+</body>
+</html>
