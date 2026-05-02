@@ -1,19 +1,35 @@
 export const C = {
-  bg:      '#080809',
-  sur:     '#0F0F12',
-  sur2:    '#161619',
-  sur3:    '#1C1C22',
-  border:  '#1E1E24',
-  border2: '#28282F',
-  gold:    '#C9A96E',
-  goldBg:  'rgba(201,169,110,0.10)',
-  goldMid: 'rgba(201,169,110,0.25)',
-  text:    '#F0EDE8',
-  sub:     '#8B909A',
-  dim:     '#4A4E58',
-  danger:  '#C0392B',
-  green:   '#27AE60',
-  accent:  '#7C6AF7',
+  // ── Backgrounds ──────────────────────────────────────
+  bg:           '#0F172A',   // deep blue-dark (NOT black)
+  sur:          '#111827',   // card surface
+  sur2:         '#1E293B',   // elevated card
+  sur3:         '#243347',   // deeper element bg
+
+  // ── Borders ───────────────────────────────────────────
+  border:       'rgba(255,255,255,0.08)',
+  border2:      'rgba(255,255,255,0.12)',
+
+  // ── Primary action = blue (interaction, selection, CTA) ─
+  primary:      '#2563EB',
+  primaryHover: '#3B82F6',
+  primaryLight: 'rgba(37,99,235,0.15)',
+
+  // ── Premium / identity = gold (upgrade, trust, ⚡) ─────
+  gold:         '#C9A96E',
+  goldBg:       'rgba(201,169,110,0.10)',
+  goldMid:      'rgba(201,169,110,0.25)',
+
+  // ── Text ──────────────────────────────────────────────
+  text:         '#F9FAFB',
+  sub:          '#9CA3AF',
+  dim:          '#6B7280',
+
+  // ── Status ────────────────────────────────────────────
+  danger:       '#EF4444',
+  green:        '#22C55E',
+
+  // ── Legacy alias (keeps old C.accent refs working) ────
+  accent:       '#2563EB',
 };
 
 export const fonts = {

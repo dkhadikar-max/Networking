@@ -25,12 +25,12 @@ const Auth  = createStackNavigator();
 const navTheme = {
   dark: true,
   colors: {
-    primary:      C.gold,
+    primary:      C.primary,
     background:   C.bg,
     card:         C.sur,
     text:         C.text,
     border:       C.border,
-    notification: C.gold,
+    notification: C.primary,
   },
 };
 
@@ -39,7 +39,7 @@ const navTheme = {
 function TabIcon({ name, focused }) {
   const icons = { Discover: '⬡', Likes: '♡', Connections: '◎', Profile: '◈' };
   return (
-    <Text style={{ fontSize: 20, color: focused ? C.gold : C.dim }}>
+    <Text style={{ fontSize: 20, color: focused ? C.primary : C.dim }}>
       {icons[name] || '•'}
     </Text>
   );
@@ -47,7 +47,7 @@ function TabIcon({ name, focused }) {
 
 function TabLabel({ name, focused }) {
   return (
-    <Text style={{ fontSize: 10, letterSpacing: 0.5, color: focused ? C.gold : C.dim, marginBottom: 2 }}>
+    <Text style={{ fontSize: 10, letterSpacing: 0.5, color: focused ? C.primary : C.dim, marginBottom: 2 }}>
       {name}
     </Text>
   );
@@ -64,7 +64,7 @@ function HeaderTitle({ children }) {
 // Shared stack screenOptions — custom headerTitle prevents HeaderTitle.js crash
 const stackScreenOptions = {
   headerStyle:      { backgroundColor: C.sur },
-  headerTintColor:  C.text,
+  headerTintColor:  C.primary,
   headerTitle:      (props) => <HeaderTitle {...props} />,
 };
 
@@ -107,7 +107,18 @@ function MainTabs() {
         headerShown:    false,
         tabBarIcon:     ({ focused }) => <TabIcon name={route.name} focused={focused} />,
         tabBarLabel:    ({ focused }) => <TabLabel name={route.name} focused={focused} />,
-        tabBarStyle:    { backgroundColor: C.sur, borderTopColor: C.border, height: 60, paddingBottom: 8 },
+        tabBarStyle:    {
+          backgroundColor: C.sur,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(37,99,235,0.35)',
+          height: 60,
+          paddingBottom: 8,
+          shadowColor: C.primary,
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -3 },
+          elevation: 10,
+        },
       })}>
       <Tab.Screen name="Discover"    component={DiscoverScreen} />
       <Tab.Screen name="Likes"       component={LikesStack} />
