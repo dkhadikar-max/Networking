@@ -365,7 +365,13 @@ export default function DiscoverScreen({ navigation }) {
       if (filters.interest) params.interest = filters.interest;
       if (filters.radius)   params.radius   = filters.radius;
 
-      const { data } = await api.get('/api/profiles', { params });
+      const { data } = await api.get('/api/discover', { params });
+      if (data?.limited) {
+        setLoadError('You\'ve reached your daily limit. Come back tomorrow!');
+        setProfiles([]);
+        setIdx(0);
+        return;
+      }
       const raw  = Array.isArray(data) ? data : (data?.profiles || []);
       const list = raw.filter(p => p?.id && !swipedIds.current.has(String(p.id)));
       setProfiles(list);
@@ -670,6 +676,4 @@ const s = StyleSheet.create({
   emptyActions:  { gap: 10, width: '80%' },
   emptyBtn:      { backgroundColor: C.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44, ...SHADOW },
   emptyBtnTxt:   { color: '#fff', fontSize: 15, fontWeight: '600' },
-  emptyBtnOut:   { borderWidth: 1.5, borderColor: C.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44 },
-  emptyBtnOutTxt:{ color: C.primary, fontSize: 15, fontWeight: '600' },
-});
+  emptyBtnOut:   { borderWidth: 1.5, bord
