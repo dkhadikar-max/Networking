@@ -36,32 +36,24 @@ const SKILL_SUGGESTIONS = [
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 function TrustBar({ score }) {
-  const pct      = Math.min(score, 100);
-  const blueW    = Math.min(pct, 65);          // blue fills first 65%
-  const goldW    = pct > 65 ? pct - 65 : 0;   // gold appears beyond 65%
-  const label    = pct >= 80 ? 'Excellent Profile'
-                 : pct >= 60 ? 'Strong Profile'
-                 : pct >= 40 ? 'Good Start'
-                 : pct >= 20 ? 'Discovery Unlocked'
-                 : 'Complete your profile';
-  const labelClr = pct >= 20 ? C.primary : C.dim;
+  const pct   = Math.min(score, 100);
+  const label = pct >= 80 ? 'Excellent Profile'
+              : pct >= 60 ? 'Strong Profile'
+              : pct >= 40 ? 'Good Start'
+              : pct >= 20 ? 'Discovery Unlocked'
+              : 'Complete your profile';
   return (
     <View style={{ width:'100%' }}>
       <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:8 }}>
         <Text style={{ fontSize:11, color:C.sub, textTransform:'uppercase', letterSpacing:0.8 }}>
-          Trust Score
+          Profile Score
         </Text>
-        <Text style={{ fontSize:12, color:labelClr, fontWeight:'600' }}>
+        <Text style={{ fontSize:12, color: pct >= 20 ? C.primary : C.dim, fontWeight:'600' }}>
           {pct}% · {label}
         </Text>
       </View>
-      <View style={{ height:6, backgroundColor:C.sur2, borderRadius:3, overflow:'hidden', flexDirection:'row' }}>
-        {blueW > 0 && (
-          <View style={{ width:`${blueW}%`, backgroundColor:C.primary, borderRadius:3 }} />
-        )}
-        {goldW > 0 && (
-          <View style={{ width:`${goldW}%`, backgroundColor:C.gold }} />
-        )}
+      <View style={{ height:6, backgroundColor:C.primaryLight, borderRadius:3, overflow:'hidden' }}>
+        <View style={{ width:`${pct}%`, height:'100%', backgroundColor:C.primary, borderRadius:3 }} />
       </View>
     </View>
   );
@@ -198,7 +190,7 @@ export default function ProfileScreen({ navigation }) {
     if (!skills.includes(sk) && skills.length < 10) setSkills(prev => [...prev, sk]);
   }
 
-  if (loading) return <View style={s.center}><ActivityIndicator color={C.gold} size="large" /></View>;
+  if (loading) return <View style={s.center}><ActivityIndicator color={C.primary} size="large" /></View>;
 
   const photos = profile?.photos || [];
   const inits  = (profile?.name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -242,7 +234,7 @@ export default function ProfileScreen({ navigation }) {
             ))}
             {photos.length < 6 && (
               <TouchableOpacity style={s.addPhoto} onPress={addPhoto}>
-                <Text style={{ color: C.gold, fontSize: 24 }}>+</Text>
+                <Text style={{ color: C.primary, fontSize: 24 }}>+</Text>
                 <Text style={{ color: C.dim, fontSize: 10, marginTop: 2 }}>Add</Text>
               </TouchableOpacity>
             )}
@@ -271,7 +263,7 @@ export default function ProfileScreen({ navigation }) {
           <View style={s.switchRow}>
             <Text style={s.label}>Open to remote</Text>
             <Switch value={remote} onValueChange={setRemote}
-              trackColor={{ false: C.border2, true: C.gold }} thumbColor={C.text} />
+              trackColor={{ false: C.border2, true: C.primary }} thumbColor={C.text} />
           </View>
         </View>
 
@@ -406,9 +398,9 @@ const s = StyleSheet.create({
   avFallback: { width: 96, height: 96, borderRadius: 48, backgroundColor: C.sur2,
                 borderWidth: 2, borderColor: C.border2,
                 justifyContent: 'center', alignItems: 'center' },
-  avInit:     { fontSize: 36, color: C.gold },
+  avInit:     { fontSize: 36, color: C.primary },
   proBadge:   { position: 'absolute', bottom: 0, right: -4,
-                backgroundColor: C.gold, borderRadius: 10, paddingHorizontal: 7,
+                backgroundColor: C.accent, borderRadius: 10, paddingHorizontal: 7,
                 paddingVertical: 2 },
   proTxt:     { color: C.bg, fontSize: 9, fontWeight: '700' },
   sname:      { fontSize: 22, color: C.text, fontWeight: '700', marginTop: 12, marginBottom: 2 },
