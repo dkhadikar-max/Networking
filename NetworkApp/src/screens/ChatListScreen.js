@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../utils/api';
@@ -6,16 +6,20 @@ import { useAuth } from '../context/AuthContext';
 import { C } from '../utils/theme';
 
 function initials(name) { return (name||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
 function fmtTime(iso) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  const now = new Date();
+  const diffH = (now - d) / 3600000;
+  if (diffH < 24) return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString([], {month:'short',day:'numeric'});
 }
 
 export default function ChatListScreen({ navigation }) {
   const { user } = useAuth();
-  const [list, setList]         = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [list,       setList]       = useState([]);
+  const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(useCallback(() => {
@@ -27,41 +31,54 @@ export default function ChatListScreen({ navigation }) {
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     try {
-      const { data } = await api.get('/api/matches');
+      // Backend returns: [{ connection, user, lastMessage, hoursLeft, active, msgCount }]
+      const { data } = await api.get('/api/connections');
+      console.log('[ChatList] connections:', JSON.stringify(data?.length));
       setList(Array.isArray(data) ? data : []);
-    } catch {}
-    finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.log('[ChatList] error:', e?.response?.data || e.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }
 
   function renderItem({ item }) {
-    const u = item.other_user || {};
-    const photo = (u.photos||[])[0];
-    const unread = item.unread_count || 0;
-    const preview = item.last_message?.text || 'Start the conversation…';
-    const time    = item.last_message?.created_at;
+    // item shape: { connection, user, lastMessage, hoursLeft, active, msgCount }
+    const u          = item.user || {};
+    const connId     = item.connection?.id;
+    const photo      = (u.photos||[])[0];
+    const preview    = item.lastMessage?.text || 'Say hello…';
+    const time       = item.lastMessage?.created_at;
+    const isPersist  = !!item.active;
+    const hoursLeft  = item.hoursLeft;
 
     return (
-      <TouchableOpacity style={s.row} onPress={() => navigation.navigate('ChatDetail', { match: item, user: u })}>
+      <TouchableOpacity
+        style={s.row}
+        onPress={() => navigation.navigate('ChatDetail', {
+          connId,
+          otherUser: u,
+          connection: item.connection,
+        })}>
         <View style={s.avWrap}>
           {photo
             ? <Image source={{uri:photo}} style={s.av} />
             : <View style={s.avFallback}><Text style={s.avInit}>{initials(u.name)}</Text></View>
           }
-          {unread > 0 && <View style={s.dot} />}
         </View>
         <View style={s.info}>
-          <Text style={s.name}>{u.name||'—'}</Text>
-          <Text style={[s.preview, unread>0 && {fontWeight:'700', color:C.text}]} numberOfLines={1}>{preview}</Text>
+          <Text style={s.name} numberOfLines={1}>{u.name||'—'}</Text>
+          <Text style={s.preview} numberOfLines={1}>{preview}</Text>
         </View>
         <View style={s.meta}>
           {time ? <Text style={s.time}>{fmtTime(time)}</Text> : null}
-          {unread > 0 && (
-            <View style={s.badge}><Text style={s.badgeTxt}>{unread > 9 ? '9+' : unread}</Text></View>
-          )}
-          {item.is_persistent
+          {isPersist
             ? <View style={s.timerGold}><Text style={s.timerTxt}>Active</Text></View>
-            : item.hours_left != null
-              ? <View style={item.hours_left < 12 ? s.timerRed : s.timerGold}><Text style={s.timerTxt}>{item.hours_left}h</Text></View>
+            : hoursLeft != null
+              ? <View style={hoursLeft < 12 ? s.timerRed : s.timerGold}>
+                  <Text style={s.timerTxt}>{hoursLeft}h</Text>
+                </View>
               : null
           }
         </View>
@@ -85,9 +102,11 @@ export default function ChatListScreen({ navigation }) {
       ) : (
         <FlatList
           data={list}
-          keyExtractor={i => i.match_id}
+          keyExtractor={item => item.connection?.id || Math.random().toString()}
           renderItem={renderItem}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} tintColor={C.gold} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={C.gold} />
+          }
         />
       )}
     </View>
@@ -95,27 +114,24 @@ export default function ChatListScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  screen:  { flex:1, backgroundColor:C.bg },
-  center:  { flex:1, justifyContent:'center', alignItems:'center', padding:24 },
-  header:  { padding:20, paddingTop:16, borderBottomWidth:1, borderBottomColor:C.border },
-  title:   { fontSize:22, fontWeight:'700', color:C.text },
-  row:     { flexDirection:'row', alignItems:'center', padding:16, borderBottomWidth:1, borderBottomColor:C.border },
-  avWrap:  { position:'relative', marginRight:14 },
-  av:      { width:48, height:48, borderRadius:24 },
-  avFallback:{ width:48, height:48, borderRadius:24, backgroundColor:C.sur2, justifyContent:'center', alignItems:'center' },
-  avInit:  { color:C.gold, fontWeight:'700', fontSize:16 },
-  dot:     { position:'absolute', top:-2, right:-2, width:10, height:10, borderRadius:5, backgroundColor:C.gold, borderWidth:2, borderColor:C.bg },
-  info:    { flex:1, minWidth:0 },
-  name:    { fontSize:15, fontWeight:'600', color:C.text, marginBottom:3 },
-  preview: { fontSize:13, color:C.sub },
-  meta:    { alignItems:'flex-end', gap:4, minWidth:50 },
-  time:    { fontSize:11, color:C.dim },
-  badge:   { backgroundColor:C.gold, borderRadius:10, paddingHorizontal:7, paddingVertical:1 },
-  badgeTxt:{ color:C.bg, fontSize:11, fontWeight:'700' },
-  timerGold:{ backgroundColor:C.goldBg, borderRadius:10, paddingHorizontal:8, paddingVertical:2, borderWidth:1, borderColor:'rgba(198,168,107,0.2)' },
-  timerRed: { backgroundColor:'rgba(192,57,43,0.08)', borderRadius:10, paddingHorizontal:8, paddingVertical:2, borderWidth:1, borderColor:'rgba(192,57,43,0.2)' },
-  timerTxt: { fontSize:11, color:C.gold, fontWeight:'500' },
-  emptyIcon:{ fontSize:40, marginBottom:14, color:C.sub },
-  emptyH:   { fontSize:20, fontWeight:'700', color:C.text, marginBottom:8 },
-  emptySub: { fontSize:14, color:C.sub, textAlign:'center', lineHeight:20 },
+  screen:     { flex:1, backgroundColor:C.bg },
+  center:     { flex:1, justifyContent:'center', alignItems:'center', padding:24 },
+  header:     { padding:20, paddingTop:16, borderBottomWidth:1, borderBottomColor:C.border },
+  title:      { fontSize:22, color:C.text },
+  row:        { flexDirection:'row', alignItems:'center', padding:16, borderBottomWidth:1, borderBottomColor:C.border },
+  avWrap:     { marginRight:14 },
+  av:         { width:48, height:48, borderRadius:24 },
+  avFallback: { width:48, height:48, borderRadius:24, backgroundColor:C.sur2, justifyContent:'center', alignItems:'center' },
+  avInit:     { color:C.gold, fontSize:16 },
+  info:       { flex:1, minWidth:0 },
+  name:       { fontSize:15, color:C.text, marginBottom:3 },
+  preview:    { fontSize:13, color:C.sub },
+  meta:       { alignItems:'flex-end', gap:4, minWidth:50 },
+  time:       { fontSize:11, color:C.dim },
+  timerGold:  { backgroundColor:C.goldBg, borderRadius:10, paddingHorizontal:8, paddingVertical:2, borderWidth:1, borderColor:'rgba(198,168,107,0.2)' },
+  timerRed:   { backgroundColor:'rgba(192,57,43,0.08)', borderRadius:10, paddingHorizontal:8, paddingVertical:2, borderWidth:1, borderColor:'rgba(192,57,43,0.2)' },
+  timerTxt:   { fontSize:11, color:C.gold },
+  emptyIcon:  { fontSize:40, marginBottom:14, color:C.sub },
+  emptyH:     { fontSize:20, color:C.text, marginBottom:8 },
+  emptySub:   { fontSize:14, color:C.sub, textAlign:'center', lineHeight:20 },
 });

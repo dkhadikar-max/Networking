@@ -117,20 +117,49 @@ function FilterModal({ visible, filters, onApply, onClose }) {
 }
 
 function SwipeCard({ profile, onSwipe, isTop }) {
-  const pos = useRef(new Animated.ValueXY()).current;
-  const rotate = pos.x.interpolate({inputRange:[-W/2,0,W/2],outputRange:['-12deg','0deg','12deg']});
+  const pos        = useRef(new Animated.ValueXY()).current;
+  const isTopRef   = useRef(isTop);
+  const onSwipeRef = useRef(onSwipe);
+  const swipedRef  = useRef(false);
+
+  // Keep refs current when props change (fixes stale-closure bug where
+  // PanResponder is created once but isTop / onSwipe change each render)
+  useEffect(() => { isTopRef.current  = isTop;   }, [isTop]);
+  useEffect(() => { onSwipeRef.current = onSwipe; }, [onSwipe]);
+
+  const rotate  = pos.x.interpolate({inputRange:[-W/2,0,W/2],outputRange:['-12deg','0deg','12deg']});
   const rightOp = pos.x.interpolate({inputRange:[0,SWIPE_THRESHOLD],outputRange:[0,1],extrapolate:'clamp'});
   const leftOp  = pos.x.interpolate({inputRange:[-SWIPE_THRESHOLD,0],outputRange:[1,0],extrapolate:'clamp'});
+
   const pan = useRef(PanResponder.create({
-    onStartShouldSetPanResponder:()=>isTop,
-    onMoveShouldSetPanResponder:()=>isTop,
+    onStartShouldSetPanResponder: () => isTopRef.current && !swipedRef.current,
+    onMoveShouldSetPanResponder:  () => isTopRef.current && !swipedRef.current,
     onPanResponderMove: Animated.event([null,{dx:pos.x,dy:pos.y}],{useNativeDriver:false}),
-    onPanResponderRelease:(_,{dx})=>{
-      if(dx>SWIPE_THRESHOLD) Animated.timing(pos,{toValue:{x:W*1.5,y:0},duration:250,useNativeDriver:false}).start(()=>onSwipe('right'));
-      else if(dx<-SWIPE_THRESHOLD) Animated.timing(pos,{toValue:{x:-W*1.5,y:0},duration:250,useNativeDriver:false}).start(()=>onSwipe('left'));
-      else Animated.spring(pos,{toValue:{x:0,y:0},useNativeDriver:false}).start();
+    onPanResponderRelease: (_,{dx}) => {
+      if (swipedRef.current) return;
+      if (dx > SWIPE_THRESHOLD) {
+        swipedRef.current = true;
+        Animated.timing(pos,{toValue:{x:W*1.5,y:0},duration:250,useNativeDriver:false})
+          .start(() => onSwipeRef.current('right'));
+      } else if (dx < -SWIPE_THRESHOLD) {
+        swipedRef.current = true;
+        Animated.timing(pos,{toValue:{x:-W*1.5,y:0},duration:250,useNativeDriver:false})
+          .start(() => onSwipeRef.current('left'));
+      } else {
+        Animated.spring(pos,{toValue:{x:0,y:0},useNativeDriver:false}).start();
+      }
     },
   })).current;
+
+  // Button-press swipe: animate card off-screen THEN call handler (prevents
+  // double-fire and gives the same visual as a physical swipe)
+  function btnSwipe(dir) {
+    if (swipedRef.current || !isTopRef.current) return;
+    swipedRef.current = true;
+    Animated.timing(pos,{toValue:{x: dir==='right' ? W*1.5 : -W*1.5, y:0},duration:220,useNativeDriver:false})
+      .start(() => onSwipeRef.current(dir));
+  }
+
   const photo=(profile.photos||[])[0];
   return (
     <Animated.View
@@ -165,10 +194,10 @@ function SwipeCard({ profile, onSwipe, isTop }) {
         </View>}
         {profile.insight?<View style={s.insight}><Text style={s.insightTxt}>✦ {profile.insight}</Text></View>:null}
         <View style={s.actRow}>
-          <TouchableOpacity style={[s.actBtn,s.actSkip]} onPress={()=>onSwipe('left')}>
+          <TouchableOpacity style={[s.actBtn,s.actSkip]} onPress={()=>btnSwipe('left')}>
             <Text style={{color:C.sub}}>Skip</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.actBtn,s.actConnect]} onPress={()=>onSwipe('right')}>
+          <TouchableOpacity style={[s.actBtn,s.actConnect]} onPress={()=>btnSwipe('right')}>
             <Text style={{color:C.bg}}>Connect</Text>
           </TouchableOpacity>
         </View>
@@ -184,7 +213,7 @@ export default function DiscoverScreen({ navigation }) {
   const [limited,setLimited]=useState(false);
   const [trustBlocked,setTrustBlocked]=useState(false);
   const [trustMsg,setTrustMsg]=useState('');
-  const [matchedProfile,setMatchedProfile]=useState(null);
+  const [matchedProfile,setMatchedProfile]=useState(null); // { profile, connectionId }
   const [showFilters,setShowFilters]=useState(false);
   const [filters,setFilters]=useState(DEFAULT_FILTERS);
 
@@ -214,8 +243,11 @@ export default function DiscoverScreen({ navigation }) {
     setIdx(i=>i+1);
     try {
       const {data}=await api.post('/api/swipe',{targetId:profile.id,direction});
-      if(data.match) setMatchedProfile(profile);
-    } catch {}
+      console.log('[Swipe] result:', JSON.stringify(data));
+      if(data.match) setMatchedProfile({ profile, connectionId: data.connectionId });
+    } catch(e) {
+      console.log('[Swipe] error:', e?.response?.data || e.message);
+    }
   }
 
   function applyFilters(f){setFilters(f);setShowFilters(false);loadProfiles(f);}
@@ -296,8 +328,16 @@ export default function DiscoverScreen({ navigation }) {
             onSwipe={(dir)=>handleSwipe(p,dir)}/>
         ))}
       </View>
-      <MatchModal profile={matchedProfile} onClose={()=>setMatchedProfile(null)}
-        onChat={()=>{setMatchedProfile(null);navigation.navigate('Connections');}}/>
+      <MatchModal
+        profile={matchedProfile?.profile}
+        onClose={()=>setMatchedProfile(null)}
+        onChat={()=>{
+          const m=matchedProfile; setMatchedProfile(null);
+          navigation.navigate('Connections',{
+            screen:'ChatDetail',
+            params:{ connId:m?.connectionId, otherUser:m?.profile },
+          });
+        }}/>
       <FilterModal visible={showFilters} filters={filters} onApply={applyFilters}
         onClose={()=>setShowFilters(false)}/>
     </View>

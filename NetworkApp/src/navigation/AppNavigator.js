@@ -13,6 +13,7 @@ import LikesScreen           from '../screens/LikesScreen';
 import ChatListScreen        from '../screens/ChatListScreen';
 import ChatScreen            from '../screens/ChatScreen';
 import ProfileScreen         from '../screens/ProfileScreen';
+import UserProfileScreen     from '../screens/UserProfileScreen';
 import UpgradeScreen         from '../screens/UpgradeScreen';
 import { C }                 from '../utils/theme';
 
@@ -80,8 +81,9 @@ function ProfileStack() {
 function ChatStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ChatList"    component={ChatListScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="ChatDetail"  component={ChatScreen}     options={{ title: 'Chat' }} />
+      <Stack.Screen name="ChatList"    component={ChatListScreen}   options={{ headerShown: false }} />
+      <Stack.Screen name="ChatDetail"  component={ChatScreen}       options={{ title: 'Chat' }} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Profile' }} />
     </Stack.Navigator>
   );
 }

@@ -134,7 +134,7 @@ function MatchModal({ profile, onClose, onChat }) {
 export default function LikesScreen({ navigation }) {
   const [data,     setData]     = useState(null);
   const [loading,  setLoading]  = useState(true);
-  const [matched,  setMatched]  = useState(null);
+  const [matched,    setMatched]    = useState(null);   // { profile, connectionId }
   const [skipped,  setSkipped]  = useState(new Set());
 
   useFocusEffect(useCallback(() => { load(); }, []));
@@ -155,7 +155,7 @@ export default function LikesScreen({ navigation }) {
     try {
       const { data: res } = await api.post('/api/swipe', { targetId: profile.id, direction: 'right' });
       setSkipped(prev => new Set([...prev, profile.id]));
-      if (res.match) setMatched(profile);
+      if (res.match) setMatched({ profile, connectionId: res.connectionId });
     } catch {}
   }
 
@@ -187,7 +187,15 @@ export default function LikesScreen({ navigation }) {
           <View style={s.countBadge}><Text style={s.countTxt}>{data.count}</Text></View>
         </View>
         <LockedView count={data.count} previews={data.previews} />
-        <MatchModal profile={matched} onClose={() => setMatched(null)} onChat={() => { setMatched(null); navigation.navigate('Connections'); }} />
+        <MatchModal profile={matched?.profile} onClose={() => setMatched(null)}
+          onChat={() => {
+            const m = matched;
+            setMatched(null);
+            navigation.navigate('Connections', {
+              screen: 'ChatDetail',
+              params: { connId: m?.connectionId, otherUser: m?.profile },
+            });
+          }} />
       </View>
     );
   }
@@ -208,9 +216,24 @@ export default function LikesScreen({ navigation }) {
             <Text style={s.refreshTxt}>Refresh</Text>
           </TouchableOpacity>
         </View>
-        <MatchModal profile={matched} onClose={() => setMatched(null)} onChat={() => { setMatched(null); navigation.navigate('Connections'); }} />
+        <MatchModal profile={matched?.profile} onClose={() => setMatched(null)}
+          onChat={() => {
+            const m = matched; setMatched(null);
+            navigation.navigate('Connections', {
+              screen: 'ChatDetail',
+              params: { connId: m?.connectionId, otherUser: m?.profile },
+            });
+          }} />
       </View>
     );
+  }
+
+  function openChat(m) {
+    setMatched(null);
+    navigation.navigate('Connections', {
+      screen: 'ChatDetail',
+      params: { connId: m?.connectionId, otherUser: m?.profile },
+    });
   }
 
   return (
@@ -239,9 +262,9 @@ export default function LikesScreen({ navigation }) {
       />
 
       <MatchModal
-        profile={matched}
+        profile={matched?.profile}
         onClose={() => setMatched(null)}
-        onChat={() => { setMatched(null); navigation.navigate('Connections'); }}
+        onChat={() => openChat(matched)}
       />
     </View>
   );
