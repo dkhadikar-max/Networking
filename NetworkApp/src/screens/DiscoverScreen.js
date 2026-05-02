@@ -332,7 +332,7 @@ export default function DiscoverScreen({ navigation }) {
   const [priorityErr,  setPriorityErr]  = useState('');
 
   // Ref so action buttons can trigger swipe on top card
-  const topCardRef = useRef(null);
+  const swipedIds = useRef(new Set());  // local dedupe — survives reload
 
   const activeFilters = [
     filters.sort && filters.sort !== 'relevance',
@@ -352,7 +352,8 @@ export default function DiscoverScreen({ navigation }) {
       const { data } = await api.get('/api/discover', { params });
       if (data?.trustBlocked) { setTrustBlocked(true); return; }
       if (data?.limitHit)     { setLimitHit(true);     return; }
-      const list = Array.isArray(data) ? data : (data?.profiles || []);
+      const raw  = Array.isArray(data) ? data : (data?.profiles || []);
+      const list = raw.filter(p => p?.id && !swipedIds.current.has(String(p.id)));
       setProfiles(list);
       setIdx(0);
     } catch (e) {
@@ -364,8 +365,9 @@ export default function DiscoverScreen({ navigation }) {
 
   async function handleConnect(profile) {
     if (!profile?.id) return;
+    swipedIds.current.add(String(profile.id));
     try {
-      const { data } = await api.post('/api/swipe', { swipedId: profile.id, direction: 'right' });
+      const { data } = await api.post('/api/swipe', { targetId: profile.id, direction: 'right' });
       if (data?.match) setMatchProfile(profile);
     } catch (e) {
       console.log('[Discover] connect error:', e?.response?.data || e.message);
@@ -376,8 +378,9 @@ export default function DiscoverScreen({ navigation }) {
 
   async function handleSkip(profile) {
     if (!profile?.id) return;
+    swipedIds.current.add(String(profile.id));
     try {
-      await api.post('/api/swipe', { swipedId: profile.id, direction: 'left' });
+      await api.post('/api/swipe', { targetId: profile.id, direction: 'left' });
     } catch (e) {
       console.log('[Discover] skip error:', e?.response?.data || e.message);
     } finally {
