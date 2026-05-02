@@ -41,7 +41,7 @@ export default function ChatListScreen({ navigation }) {
     const time    = item.last_message?.created_at;
 
     return (
-      <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Chat', { match: item, user: u })}>
+      <TouchableOpacity style={s.row} onPress={() => navigation.navigate('ChatDetail', { match: item, user: u })}>
         <View style={s.avWrap}>
           {photo
             ? <Image source={{uri:photo}} style={s.av} />

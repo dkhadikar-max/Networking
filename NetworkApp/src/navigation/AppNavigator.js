@@ -1,15 +1,15 @@
 import React from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }    from '@react-navigation/stack';
-import { Text } from 'react-native';
 
 import { useAuth }           from '../context/AuthContext';
 import LoginScreen           from '../screens/LoginScreen';
 import SignupScreen          from '../screens/SignupScreen';
 import ProfileCompleteScreen from '../screens/ProfileCompleteScreen';
 import DiscoverScreen        from '../screens/DiscoverScreen';
+import LikesScreen           from '../screens/LikesScreen';
 import ChatListScreen        from '../screens/ChatListScreen';
 import ChatScreen            from '../screens/ChatScreen';
 import ProfileScreen         from '../screens/ProfileScreen';
@@ -32,8 +32,10 @@ const navTheme = {
   },
 };
 
-function tabIcon(name, focused) {
-  const icons = { Discover: '⬡', Chat: '◎', Profile: '◈' };
+// ── Custom renderers (bypass React Navigation font-weight resolution) ─────────
+
+function TabIcon({ name, focused }) {
+  const icons = { Discover: '⬡', Likes: '♡', Connections: '◎', Profile: '◈' };
   return (
     <Text style={{ fontSize: 20, color: focused ? C.gold : C.dim }}>
       {icons[name] || '•'}
@@ -41,13 +43,34 @@ function tabIcon(name, focused) {
   );
 }
 
+function TabLabel({ name, focused }) {
+  return (
+    <Text style={{ fontSize: 10, letterSpacing: 0.5, color: focused ? C.gold : C.dim, marginBottom: 2 }}>
+      {name}
+    </Text>
+  );
+}
+
+function HeaderTitle({ children }) {
+  return (
+    <Text style={{ color: C.text, fontSize: 17, fontFamily: 'System' }} numberOfLines={1}>
+      {children}
+    </Text>
+  );
+}
+
+// Shared stack screenOptions — custom headerTitle prevents HeaderTitle.js crash
+const stackScreenOptions = {
+  headerStyle:      { backgroundColor: C.sur },
+  headerTintColor:  C.text,
+  headerTitle:      (props) => <HeaderTitle {...props} />,
+};
+
+// ── Stacks ────────────────────────────────────────────────────────────────────
+
 function ProfileStack() {
   return (
-    <Stack.Navigator screenOptions={{
-      headerStyle: { backgroundColor: C.sur },
-      headerTintColor: C.text,
-      headerTitleStyle: { fontWeight: '700' },
-    }}>
+    <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'My Profile' }} />
       <Stack.Screen name="Upgrade"     component={UpgradeScreen} options={{ title: 'Go Premium' }} />
     </Stack.Navigator>
@@ -56,13 +79,9 @@ function ProfileStack() {
 
 function ChatStack() {
   return (
-    <Stack.Navigator screenOptions={{
-      headerStyle: { backgroundColor: C.sur },
-      headerTintColor: C.text,
-      headerTitleStyle: { fontWeight: '700' },
-    }}>
-      <Stack.Screen name="ChatList" component={ChatListScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Chat"     component={ChatScreen}     options={{ title: 'Chat' }} />
+    <Stack.Navigator screenOptions={stackScreenOptions}>
+      <Stack.Screen name="ChatList"    component={ChatListScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ChatDetail"  component={ChatScreen}     options={{ title: 'Chat' }} />
     </Stack.Navigator>
   );
 }
@@ -71,16 +90,15 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ focused }) => tabIcon(route.name, focused),
-        tabBarStyle: { backgroundColor: C.sur, borderTopColor: C.border, height: 60, paddingBottom: 8 },
-        tabBarActiveTintColor:   C.gold,
-        tabBarInactiveTintColor: C.dim,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.5 },
+        headerShown:    false,
+        tabBarIcon:     ({ focused }) => <TabIcon name={route.name} focused={focused} />,
+        tabBarLabel:    ({ focused }) => <TabLabel name={route.name} focused={focused} />,
+        tabBarStyle:    { backgroundColor: C.sur, borderTopColor: C.border, height: 60, paddingBottom: 8 },
       })}>
-      <Tab.Screen name="Discover" component={DiscoverScreen} />
-      <Tab.Screen name="Chat"     component={ChatStack} />
-      <Tab.Screen name="Profile"  component={ProfileStack} />
+      <Tab.Screen name="Discover"    component={DiscoverScreen} />
+      <Tab.Screen name="Likes"       component={LikesScreen} />
+      <Tab.Screen name="Connections" component={ChatStack} />
+      <Tab.Screen name="Profile"     component={ProfileStack} />
     </Tab.Navigator>
   );
 }
@@ -100,15 +118,16 @@ function ProfileSetupStack() {
       <Stack.Screen name="ProfileComplete" component={ProfileCompleteScreen} />
       <Stack.Screen name="ProfileForSetup" component={ProfileScreen}
         options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: C.sur },
-          headerTintColor: C.text,
+          headerShown:    true,
+          ...stackScreenOptions,
           title: 'Add Photos',
         }}
       />
     </Stack.Navigator>
   );
 }
+
+// ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function AppNavigator() {
   const { token, user, ready } = useAuth();
@@ -129,9 +148,9 @@ export default function AppNavigator() {
     );
   }
 
-  // Check profile completion from user object (set by backend on login/signup/me)
-  const profileComplete = user?.is_profile_complete === true ||
-                          (user?.profile_score != null && user.profile_score >= 70);
+  const profileComplete =
+    user?.is_profile_complete === true ||
+    (user?.profile_score != null && user.profile_score >= 70);
 
   if (!profileComplete) {
     return (

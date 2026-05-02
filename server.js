@@ -368,12 +368,12 @@ async function trustGuard(req, res, next) {
       .select('*').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
     const score = calcTrust(user);
-    if (score < 60) {
+    if (score < 20) {
       return res.status(403).json({
-        error: 'Build your trust score to 60+ to unlock Discovery',
+        error: 'Complete your profile to unlock Discovery (need 20+ trust points)',
         code: 'TRUST_TOO_LOW',
         trust_score: score,
-        required: 60,
+        required: 20,
         trust_steps: trustSteps(user),
       });
     }
@@ -693,7 +693,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     const { data: allUsers } = await supabase.from('users')
       .select('*')
       .or('banned.is.null,banned.eq.false')
-      .gte('trust_score', 40)
+      .gte('trust_score', 10)
       .neq('id', req.user.id);
 
     let candidates = (allUsers || []).filter(u => !excluded.has(u.id));
