@@ -1,18 +1,12 @@
 /**
- * useNetworkStatus — lightweight offline detection without netinfo package.
- * Detects connectivity by catching "Network Error" from axios calls,
- * and exposes an { isOffline, setOffline } interface.
- *
- * Usage:
- *   const { isOffline } = useNetworkStatus();
- *   if (isOffline) return <OfflineBanner />;
+ * useNetworkStatus — lightweight offline detection.
+ * Driven by api.js interceptors via notifyNetworkError / notifyNetworkRestored.
  */
-import { useState, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 let globalOfflineListeners = new Set();
-let globalOfflineState = false;
+let globalOfflineState     = false;
 
-/** Call this from api.js interceptors when a network error is detected */
 export function notifyNetworkError() {
   if (!globalOfflineState) {
     globalOfflineState = true;
@@ -20,7 +14,6 @@ export function notifyNetworkError() {
   }
 }
 
-/** Call this when an API call succeeds (we're back online) */
 export function notifyNetworkRestored() {
   if (globalOfflineState) {
     globalOfflineState = false;
@@ -30,27 +23,14 @@ export function notifyNetworkRestored() {
 
 export default function useNetworkStatus() {
   const [isOffline, setIsOffline] = useState(globalOfflineState);
-  const listenerRef = useRef(null);
 
-  // Register/unregister listener
-  const mountRef = useCallback((node) => {
-    if (node === null) {
-      // unmounting
-      if (listenerRef.current) {
-        globalOfflineListeners.delete(listenerRef.current);
-      }
-    } else {
-      const listener = (offline) => setIsOffline(offline);
-      listenerRef.current = listener;
-      globalOfflineListeners.add(listener);
-    }
+  useEffect(() => {
+    const listener = (offline) => setIsOffline(offline);
+    globalOfflineListeners.add(listener);
+    // Sync with current global state in case it changed before mount
+    setIsOffline(globalOfflineState);
+    return () => { globalOfflineListeners.delete(listener); };
   }, []);
 
-  // Allow manual override from any component
-  const setOffline = useCallback((val) => {
-    if (val) notifyNetworkError();
-    else notifyNetworkRestored();
-  }, []);
-
-  return { isOffline, setOffline, mountRef };
+  return { isOffline };
 }

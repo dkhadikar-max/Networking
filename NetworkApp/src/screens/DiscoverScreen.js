@@ -10,11 +10,8 @@ import { C, SHADOW } from '../utils/theme';
 import BYNLogo from '../components/BYNLogo';
 import useNetworkStatus from '../hooks/useNetworkStatus';
 import {
-  trackSwipe,
-  trackProfileOpen,
-  trackMessageSent,
-  trackFilterApplied,
-  trackMatchMade,
+  trackSwipe, trackProfileOpen, trackMessageSent,
+  trackFilterApplied, trackMatchMade,
 } from '../utils/analytics';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -50,8 +47,8 @@ function initials(name) {
 function OfflineBanner() {
   return (
     <View style={ob.banner}>
-      <Text style={ob.icon}>⚡</Text>
-      <Text style={ob.txt}>No internet connection · Some features unavailable</Text>
+      <Text style={ob.icon}>!</Text>
+      <Text style={ob.txt}>No internet connection</Text>
     </View>
   );
 }
@@ -62,9 +59,29 @@ const ob = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: 'rgba(244,162,97,0.3)',
     paddingHorizontal: 16, paddingVertical: 8,
   },
-  icon: { fontSize: 14, color: '#F4A261' },
+  icon: { fontSize: 13, color: '#F4A261', fontWeight: '700' },
   txt:  { fontSize: 12, color: '#92400E', flex: 1 },
 });
+
+// ── Discover header — defined OUTSIDE DiscoverScreen for stable React identity ──
+function DiscoverHeader({ topPad, filterCount, onFilters }) {
+  return (
+    <View style={[s.header, { paddingTop: topPad }]}>
+      <BYNLogo size={30} />
+      <TouchableOpacity
+        style={[s.filterBtn, filterCount > 0 && s.filterBtnOn]}
+        onPress={onFilters}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Text style={[s.filterTxt, filterCount > 0 && s.filterTxtOn]}>Filters</Text>
+        {filterCount > 0 && (
+          <View style={s.filterCount}>
+            <Text style={s.filterCountTxt}>{filterCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 // ── Swipe card ─────────────────────────────────────────────────────────────
 function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop }) {
@@ -80,11 +97,10 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
   });
   const rotate = position.x.interpolate({
     inputRange: [-W, W],
-    outputRange: [`-${ROTATE_FACTOR}deg`, `${ROTATE_FACTOR}deg`],
+    outputRange: ['-' + ROTATE_FACTOR + 'deg', ROTATE_FACTOR + 'deg'],
     extrapolate: 'clamp',
   });
 
-  // Reset when new card appears (key change triggers remount)
   useEffect(() => {
     swiping.current = false;
     position.setValue({ x: 0, y: 0 });
@@ -99,8 +115,11 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
   }
 
   const panResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => isTop,
-    onMoveShouldSetPanResponder:  (_, g) => isTop && Math.abs(g.dx) > 5,
+    // FIX: return false on start so taps pass through to TouchableOpacity
+    onStartShouldSetPanResponder: () => false,
+    // Only claim gesture when clearly a horizontal drag (dx > dy, dx > 8px)
+    onMoveShouldSetPanResponder: (_, g) =>
+      isTop && Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
     onPanResponderMove: (_, g) => {
       if (swiping.current) return;
       position.setValue({ x: g.dx, y: g.dy * 0.2 });
@@ -122,7 +141,7 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
     },
   })).current;
 
-  // Programmatic swipe (for buttons)
+  // Programmatic swipe — called by Skip/Connect buttons
   SwipeCard.swipeLeft  = () => { if (!swiping.current) { swiping.current = true; fly(-W * 1.5, 0, onSwipeLeft);  } };
   SwipeCard.swipeRight = () => { if (!swiping.current) { swiping.current = true; fly( W * 1.5, 0, onSwipeRight); } };
 
@@ -149,20 +168,16 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
 
       <TouchableOpacity
         style={{ flex: 1 }}
-        activeOpacity={0.97}
+        activeOpacity={0.95}
         onPress={() => onOpenProfile && onOpenProfile(profile)}>
 
         {photo
           ? <Image source={{ uri: photo }} style={s.cardImg} />
-          : (
-            <View style={s.cardNoImg}>
-              <Text style={s.cardInit}>{initials(profile.name)}</Text>
-            </View>
-          )
+          : <View style={s.cardNoImg}><Text style={s.cardInit}>{initials(profile.name)}</Text></View>
         }
 
         {profile.verification?.status === 'verified' && (
-          <View style={s.verifiedBadge}><Text style={s.verifiedTxt}>✓ Verified</Text></View>
+          <View style={s.verifiedBadge}><Text style={s.verifiedTxt}>Verified</Text></View>
         )}
         {profile.is_recently_active && <View style={s.onlineDot} />}
 
@@ -179,7 +194,6 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
               </View>
             ) : null}
           </View>
-
           {tags.length > 0 && (
             <View style={s.pills}>
               {tags.map(t => (
@@ -187,9 +201,8 @@ function SwipeCard({ profile, onSwipeLeft, onSwipeRight, onOpenProfile, isTop })
               ))}
             </View>
           )}
-
           {profile.currently_exploring
-            ? <Text style={s.insight} numberOfLines={2}>🔍 {profile.currently_exploring}</Text>
+            ? <Text style={s.insight} numberOfLines={2}>{profile.currently_exploring}</Text>
             : profile.bio
               ? <Text style={s.insight} numberOfLines={2}>{profile.bio}</Text>
               : null
@@ -208,25 +221,20 @@ function MatchModal({ profile, onClose, onChat }) {
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={ms.overlay}>
         <View style={ms.card}>
-          <Text style={ms.star}>★</Text>
+          <Text style={ms.star}>*</Text>
           <Text style={ms.label}>IT'S A MATCH</Text>
           {photo
             ? <Image source={{ uri: photo }} style={ms.avatar} />
-            : (
-              <View style={ms.avatarFb}>
-                <Text style={ms.avatarInit}>{initials(profile.name)}</Text>
-              </View>
-            )
+            : <View style={ms.avatarFb}><Text style={ms.avatarInit}>{initials(profile.name)}</Text></View>
           }
           <Text style={ms.name}>{profile.name}</Text>
-          <Text style={ms.score}>{profile.matchScore ? `${profile.matchScore} compatibility` : ''}</Text>
-          <Text style={ms.sub}>You can now message each other. Start the conversation!</Text>
+          <Text style={ms.sub}>You can now message each other!</Text>
           <View style={ms.row}>
             <TouchableOpacity style={ms.secondary} onPress={onClose}>
               <Text style={ms.secondaryTxt}>Later</Text>
             </TouchableOpacity>
             <TouchableOpacity style={ms.primary} onPress={onChat}>
-              <Text style={ms.primaryTxt}>Start Chat →</Text>
+              <Text style={ms.primaryTxt}>Start Chat</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -245,9 +253,6 @@ function FilterModal({ visible, filters, onApply, onClose }) {
   function toggle(key, val) {
     setLocal(f => ({ ...f, [key]: f[key] === val ? '' : val }));
   }
-  function countActive() {
-    return Object.values(local).filter(v => v && v !== 'relevance').length;
-  }
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -256,18 +261,11 @@ function FilterModal({ visible, filters, onApply, onClose }) {
           <View style={fm.handle} />
           <View style={fm.topBar}>
             <Text style={fm.heading}>Filters</Text>
-            {countActive() > 0 && (
-              <View style={fm.badge}><Text style={fm.badgeTxt}>{countActive()}</Text></View>
-            )}
           </View>
-
           <ScrollView style={fm.scroll} showsVerticalScrollIndicator={false}>
 
-            {/* Sort */}
             <View style={fm.section}>
-              <View style={fm.sectionHdr}>
-                <Text style={fm.secTitle}>Sort by</Text>
-              </View>
+              <Text style={fm.secTitle}>Sort by</Text>
               <View style={[fm.sectionBody, fm.chips]}>
                 {['relevance', 'recent', 'active'].map(opt => (
                   <TouchableOpacity
@@ -282,7 +280,6 @@ function FilterModal({ visible, filters, onApply, onClose }) {
               </View>
             </View>
 
-            {/* Intent */}
             <View style={fm.section}>
               <Text style={fm.secTitle}>Intent</Text>
               <View style={[fm.sectionBody, fm.chips]}>
@@ -297,12 +294,11 @@ function FilterModal({ visible, filters, onApply, onClose }) {
               </View>
             </View>
 
-            {/* Interests */}
             <View style={fm.section}>
               <View style={fm.sectionHdr}>
                 <Text style={fm.secTitle}>Interest</Text>
                 <TouchableOpacity onPress={() => setShowInterests(v => !v)}>
-                  <Text style={fm.chevron}>{showInterests ? '▲' : '▼'}</Text>
+                  <Text style={fm.chevron}>{showInterests ? 'Hide' : 'Show'}</Text>
                 </TouchableOpacity>
               </View>
               {showInterests && (
@@ -322,13 +318,11 @@ function FilterModal({ visible, filters, onApply, onClose }) {
           </ScrollView>
 
           <View style={fm.stickyBar}>
-            <TouchableOpacity onPress={() => { setLocal(DEFAULT_FILTERS); }}>
+            <TouchableOpacity onPress={() => setLocal(DEFAULT_FILTERS)}>
               <Text style={fm.resetTxt}>Reset all</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={fm.applyBtn}
-              onPress={() => { onApply(local); }}>
-              <Text style={fm.applyTxt}>Apply filters</Text>
+            <TouchableOpacity style={fm.applyBtn} onPress={() => onApply(local)}>
+              <Text style={fm.applyTxt}>Apply</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -337,10 +331,10 @@ function FilterModal({ visible, filters, onApply, onClose }) {
   );
 }
 
-// ── Discover main ──────────────────────────────────────────────────────────
+// ── Discover screen ────────────────────────────────────────────────────────
 export default function DiscoverScreen({ navigation }) {
-  const { user } = useAuth();
-  const insets   = useSafeAreaInsets();
+  const { user }   = useAuth();
+  const insets     = useSafeAreaInsets();
   const { isOffline } = useNetworkStatus();
 
   const [profiles,     setProfiles]     = useState([]);
@@ -353,21 +347,23 @@ export default function DiscoverScreen({ navigation }) {
   const [priorityBusy, setPriorityBusy] = useState(false);
   const [priorityErr,  setPriorityErr]  = useState('');
 
-  // Session deduplication set — prevents swiped profiles reappearing
   const swipedIds = useRef(new Set());
+  const topPad = insets.top || (Platform.OS === 'ios' ? 44 : 24);
 
-  const headerPaddingTop = insets.top || (Platform.OS === 'ios' ? 44 : 24);
+  function getFilterCount() {
+    const { sort, ...rest } = filters;
+    return Object.values(rest).filter(Boolean).length + (sort && sort !== 'relevance' ? 1 : 0);
+  }
 
-  // ── Load profiles ──────────────────────────────────────────────────────
   const loadProfiles = useCallback(async () => {
     setLoading(true);
     setLoadError('');
     try {
       const params = {};
-      if (filters.sort     && filters.sort !== 'relevance') params.sort     = filters.sort;
-      if (filters.intent)  params.intent   = filters.intent;
+      if (filters.sort && filters.sort !== 'relevance') params.sort = filters.sort;
+      if (filters.intent)   params.intent   = filters.intent;
       if (filters.interest) params.interest = filters.interest;
-      if (filters.radius)  params.radius   = filters.radius;
+      if (filters.radius)   params.radius   = filters.radius;
 
       const { data } = await api.get('/api/profiles', { params });
       const raw  = Array.isArray(data) ? data : (data?.profiles || []);
@@ -383,22 +379,16 @@ export default function DiscoverScreen({ navigation }) {
 
   useEffect(() => { loadProfiles(); }, [loadProfiles]);
 
-  // ── Swipe handlers ─────────────────────────────────────────────────────
   async function handleConnect(profile) {
     if (!profile?.id) return;
     const id = String(profile.id);
     swipedIds.current.add(id);
     trackSwipe('right', id);
-
+    setIdx(i => i + 1);
     try {
       const { data } = await api.post('/api/swipe', { targetId: profile.id, direction: 'right' });
-      if (data?.match) {
-        trackMatchMade(id);
-        setMatchProfile(profile);
-      }
-    } catch (_) { /* swipe fails silently — dedup prevents retry */ }
-
-    setIdx(i => i + 1);
+      if (data?.match) { trackMatchMade(id); setMatchProfile(profile); }
+    } catch (_) {}
   }
 
   async function handleSkip(profile) {
@@ -406,15 +396,10 @@ export default function DiscoverScreen({ navigation }) {
     const id = String(profile.id);
     swipedIds.current.add(id);
     trackSwipe('left', id);
-
-    try {
-      await api.post('/api/swipe', { targetId: profile.id, direction: 'left' });
-    } catch (_) { }
-
     setIdx(i => i + 1);
+    try { await api.post('/api/swipe', { targetId: profile.id, direction: 'left' }); } catch (_) {}
   }
 
-  // ── Profile navigation (with userId guard) ────────────────────────────
   function openProfile(profile) {
     const userId = profile?.id;
     if (!userId) {
@@ -425,14 +410,11 @@ export default function DiscoverScreen({ navigation }) {
     navigation.navigate('ProfileDetail', { userId });
   }
 
-  // ── Priority message ───────────────────────────────────────────────────
   async function handlePriorityMessage() {
     const profile = profiles[idx];
     if (!profile?.id || priorityBusy) return;
-
     setPriorityBusy(true);
     setPriorityErr('');
-
     try {
       const { data } = await api.post('/api/priority-message', { toUserId: profile.id });
       if (data?.success === false) throw new Error(data.error || 'Failed');
@@ -447,66 +429,36 @@ export default function DiscoverScreen({ navigation }) {
     }
   }
 
-  // ── Filters ────────────────────────────────────────────────────────────
   function applyFilters(f) {
     setFilters(f);
     setShowFilters(false);
     trackFilterApplied(f);
   }
 
-  function activeFilterCount() {
-    const { sort, ...rest } = filters;
-    const sortActive = sort && sort !== 'relevance' ? 1 : 0;
-    return Object.values(rest).filter(v => !!v).length + sortActive;
-  }
+  const filterCount = getFilterCount();
 
-  // ── Header ─────────────────────────────────────────────────────────────
-  function Header() {
-    const afc = activeFilterCount();
-    return (
-      <View style={[s.header, { paddingTop: headerPaddingTop }]}>
-        <View>
-          <BYNLogo size={30} />
-        </View>
-        <TouchableOpacity
-          style={[s.filterBtn, afc > 0 && s.filterBtnOn]}
-          onPress={() => setShowFilters(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={[s.filterTxt, afc > 0 && s.filterTxtOn]}>Filters</Text>
-          {afc > 0 && (
-            <View style={s.filterCount}>
-              <Text style={s.filterCountTxt}>{afc}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // ── Render states ──────────────────────────────────────────────────────
-
-  // Loading state
+  // ── Loading ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView edges={['left', 'right']} style={s.screen}>
-        <Header />
+        <DiscoverHeader topPad={topPad} filterCount={filterCount} onFilters={() => setShowFilters(true)} />
         {isOffline && <OfflineBanner />}
         <View style={s.center}>
           <ActivityIndicator color={C.primary} size="large" />
-          <Text style={s.loadingTxt}>Finding your matches…</Text>
+          <Text style={s.loadingTxt}>Finding your matches</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  // Error state
+  // ── Error ────────────────────────────────────────────────────────────────
   if (loadError) {
     return (
       <SafeAreaView edges={['left', 'right']} style={s.screen}>
-        <Header />
+        <DiscoverHeader topPad={topPad} filterCount={filterCount} onFilters={() => setShowFilters(true)} />
         {isOffline && <OfflineBanner />}
         <View style={s.center}>
-          <Text style={s.emptyIcon}>⚠</Text>
+          <Text style={s.emptyIcon}>!</Text>
           <Text style={s.emptyH}>Something went wrong</Text>
           <Text style={s.emptySub}>{loadError}</Text>
           <View style={s.emptyActions}>
@@ -519,50 +471,43 @@ export default function DiscoverScreen({ navigation }) {
     );
   }
 
-  // Empty state (all swiped or no profiles)
+  // ── Empty ────────────────────────────────────────────────────────────────
   if (!profiles[idx]) {
     return (
       <SafeAreaView edges={['left', 'right']} style={s.screen}>
-        <Header />
+        <DiscoverHeader topPad={topPad} filterCount={filterCount} onFilters={() => setShowFilters(true)} />
         {isOffline && <OfflineBanner />}
         <View style={s.center}>
-          <Text style={s.emptyIcon}>✦</Text>
+          <Text style={s.emptyIcon}>*</Text>
           <Text style={s.emptyH}>You're all caught up!</Text>
           <Text style={s.emptySub}>
-            {activeFilterCount() > 0
-              ? 'No profiles match your current filters. Try adjusting them.'
-              : 'No new profiles right now. Check back soon or adjust your filters.'}
+            {filterCount > 0
+              ? 'No profiles match your filters. Try adjusting them.'
+              : 'No new profiles right now. Check back soon.'}
           </Text>
           <View style={s.emptyActions}>
             <TouchableOpacity style={s.emptyBtn} onPress={loadProfiles}>
               <Text style={s.emptyBtnTxt}>Refresh</Text>
             </TouchableOpacity>
-            {activeFilterCount() > 0 && (
-              <TouchableOpacity
-                style={s.emptyBtnOut}
-                onPress={() => { setFilters(DEFAULT_FILTERS); }}>
+            {filterCount > 0 && (
+              <TouchableOpacity style={s.emptyBtnOut} onPress={() => setFilters(DEFAULT_FILTERS)}>
                 <Text style={s.emptyBtnOutTxt}>Clear Filters</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
-        <FilterModal
-          visible={showFilters}
-          filters={filters}
-          onApply={applyFilters}
-          onClose={() => setShowFilters(false)}
-        />
+        <FilterModal visible={showFilters} filters={filters} onApply={applyFilters} onClose={() => setShowFilters(false)} />
       </SafeAreaView>
     );
   }
 
-  // ── Success state — card stack ─────────────────────────────────────────
+  // ── Success ──────────────────────────────────────────────────────────────
   const currentProfile = profiles[idx];
   const nextProfile    = profiles[idx + 1];
 
   return (
     <SafeAreaView edges={['left', 'right']} style={s.screen}>
-      <Header />
+      <DiscoverHeader topPad={topPad} filterCount={filterCount} onFilters={() => setShowFilters(true)} />
 
       {isOffline && <OfflineBanner />}
 
@@ -570,10 +515,7 @@ export default function DiscoverScreen({ navigation }) {
         <View style={s.toast}><Text style={s.toastTxt}>{priorityErr}</Text></View>
       )}
 
-      {/* Card stack */}
       <View style={s.stack} pointerEvents="box-none">
-
-        {/* Back card (next profile, static) */}
         {nextProfile && (
           <View style={[s.card, s.cardBack]}>
             {(nextProfile.photos || [])[0]
@@ -586,7 +528,6 @@ export default function DiscoverScreen({ navigation }) {
           </View>
         )}
 
-        {/* Top card (interactive) */}
         <SwipeCard
           key={currentProfile.id || idx}
           profile={currentProfile}
@@ -597,7 +538,6 @@ export default function DiscoverScreen({ navigation }) {
         />
       </View>
 
-      {/* Action buttons */}
       <View style={s.actRow}>
         <TouchableOpacity
           style={[s.actBtn, s.actSkip]}
@@ -615,7 +555,7 @@ export default function DiscoverScreen({ navigation }) {
           hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}>
           {priorityBusy
             ? <ActivityIndicator color={C.accent} size="small" />
-            : <Text style={s.actMsgTxt}>⚡ Message</Text>
+            : <Text style={s.actMsgTxt}>Message</Text>
           }
         </TouchableOpacity>
 
@@ -628,20 +568,11 @@ export default function DiscoverScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <FilterModal
-        visible={showFilters}
-        filters={filters}
-        onApply={applyFilters}
-        onClose={() => setShowFilters(false)}
-      />
-
+      <FilterModal visible={showFilters} filters={filters} onApply={applyFilters} onClose={() => setShowFilters(false)} />
       <MatchModal
         profile={matchProfile}
         onClose={() => setMatchProfile(null)}
-        onChat={() => {
-          setMatchProfile(null);
-          navigation.navigate('Chat');
-        }}
+        onChat={() => { setMatchProfile(null); navigation.navigate('Chat'); }}
       />
     </SafeAreaView>
   );
@@ -657,7 +588,6 @@ const ms = StyleSheet.create({
   avatarFb:    { width: 88, height: 88, borderRadius: 44, backgroundColor: C.primaryLight, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   avatarInit:  { fontSize: 32, color: C.primary, fontWeight: '600' },
   name:        { fontSize: 22, color: C.text, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
-  score:       { fontSize: 13, color: C.sub, marginBottom: 8 },
   sub:         { fontSize: 13, color: C.sub, textAlign: 'center', lineHeight: 20, marginBottom: 20 },
   row:         { flexDirection: 'row', gap: 12, width: '100%' },
   secondary:   { flex: 1, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: C.border2, alignItems: 'center' },
@@ -670,16 +600,14 @@ const fm = StyleSheet.create({
   backdrop:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
   container:   { backgroundColor: C.bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: Platform.OS === 'ios' ? 34 : 20 },
   handle:      { width: 40, height: 4, backgroundColor: C.border2, borderRadius: 2, alignSelf: 'center', marginTop: 12, marginBottom: 8 },
-  topBar:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
+  topBar:      { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   heading:     { fontSize: 18, color: C.text, fontWeight: '700' },
-  badge:       { backgroundColor: C.primary, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  badgeTxt:    { color: '#fff', fontSize: 11, fontWeight: '700' },
   scroll:      { paddingHorizontal: 20 },
   section:     { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border },
   sectionHdr:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  secTitle:    { fontSize: 14, color: C.text, fontWeight: '600' },
-  chevron:     { fontSize: 11, color: C.dim },
-  sectionBody: { marginTop: 12 },
+  secTitle:    { fontSize: 14, color: C.text, fontWeight: '600', marginBottom: 10 },
+  chevron:     { fontSize: 12, color: C.primary },
+  sectionBody: { marginTop: 4 },
   chips:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip:        { height: 36, paddingHorizontal: 14, borderRadius: 20, backgroundColor: C.bgSec, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border },
   chipOn:      { backgroundColor: C.primary, borderColor: C.primary },
@@ -694,15 +622,8 @@ const fm = StyleSheet.create({
 const s = StyleSheet.create({
   screen:        { flex: 1, backgroundColor: C.bg },
   center:        { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  header:        {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingBottom: 12, backgroundColor: C.bg,
-  },
-  filterBtn:     {
-    flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card,
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: C.border, minHeight: 44, ...SHADOW,
-  },
+  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, backgroundColor: C.bg },
+  filterBtn:     { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.card, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: C.border, minHeight: 44, ...SHADOW },
   filterBtnOn:   { borderColor: C.primary, backgroundColor: C.primaryLight },
   filterTxt:     { color: C.sub, fontSize: 13 },
   filterTxtOn:   { color: C.primary, fontWeight: '600' },
@@ -719,7 +640,7 @@ const s = StyleSheet.create({
   cardInit:      { fontSize: 56, color: C.primary },
   overlayLabel:  { position: 'absolute', top: 24, zIndex: 10, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, borderWidth: 2 },
   overlayRight:  { right: 16, borderColor: C.primary },
-  overlayLeft:   { left: 16,  borderColor: C.danger },
+  overlayLeft:   { left: 16, borderColor: C.danger },
   overlayTxt:    { fontSize: 18, fontWeight: '800', letterSpacing: 1 },
   verifiedBadge: { position: 'absolute', top: 14, left: 14, backgroundColor: 'rgba(34,197,94,0.9)', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
   verifiedTxt:   { color: '#fff', fontSize: 11, fontWeight: '600' },
@@ -743,7 +664,7 @@ const s = StyleSheet.create({
   actMsgTxt:     { fontSize: 14, color: C.accent, fontWeight: '600' },
   actConnect:    { flex: 1.2, backgroundColor: C.primary },
   actConnectTxt: { fontSize: 15, color: '#fff', fontWeight: '700' },
-  emptyIcon:     { fontSize: 44, marginBottom: 14, color: C.dim },
+  emptyIcon:     { fontSize: 40, marginBottom: 14, color: C.dim },
   emptyH:        { fontSize: 22, color: C.text, marginBottom: 8, fontWeight: '700', textAlign: 'center' },
   emptySub:      { fontSize: 15, color: C.sub, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   emptyActions:  { gap: 10, width: '80%' },

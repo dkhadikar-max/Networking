@@ -107,14 +107,8 @@ export default function SignupScreen({ navigation }) {
               {consent && <Text style={s.checkmark}>✓</Text>}
             </View>
             <Text style={s.consentTxt}>
-              I agree to the{' '}
-              <Text style={s.consentLink} onPress={() => navigation.navigate('TermsPublic')}>
-                Terms &amp; Conditions
-              </Text>
-              {' '}and{' '}
-              <Text style={s.consentLink} onPress={() => navigation.navigate('PrivacyPublic')}>
-                Privacy Policy
-              </Text>
+              I agree to the Terms &amp; Conditions and Privacy Policy
+              (accessible from Profile after signup)
             </Text>
           </TouchableOpacity>
 
