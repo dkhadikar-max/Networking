@@ -1,4 +1,4 @@
-// ── Design Tokens — Peach + Green System ──────────────────────────────────────
+// ── Design Tokens — Peach + Teal Premium System ───────────────────────────────
 
 export const C = {
   // ── Backgrounds ──────────────────────────────────────
@@ -6,12 +6,12 @@ export const C = {
   bgSec:        '#FDE8D7',   // secondary background
   card:         '#FFFFFF',   // card surface
 
-  // ── Primary (green — interaction, CTA, selection) ────
-  primary:      '#4F8A73',
-  primarySoft:  '#7FB3A1',
-  primaryLight: '#DFF3EC',
+  // ── Primary — teal (ALL actions, selection, CTA) ─────
+  primary:      '#0F766E',
+  primarySoft:  '#14B8A6',
+  primaryLight: '#CCFBF1',
 
-  // ── Accent (orange — highlights, badges) ─────────────
+  // ── Accent — orange (highlights only, max 10%) ────────
   accent:       '#F4A261',
   accentLight:  'rgba(244,162,97,0.12)',
 
@@ -26,9 +26,9 @@ export const C = {
 
   // ── Status ────────────────────────────────────────────
   danger:       '#EF4444',
-  green:        '#22C55E',
+  green:        '#14B8A6',   // teal dot (not green — spec: never mix)
 
-  // ── Legacy aliases (keeps old refs working) ───────────
+  // ── Legacy aliases ────────────────────────────────────
   sur:          '#FFFFFF',
   sur2:         '#FDE8D7',
   sur3:         '#FFF4EC',
@@ -49,7 +49,4 @@ export const SHADOW = {
   elevation:     4,
 };
 
-export const fonts = {
-  serif: 'serif',
-  sans:  'System',
-};
+export const fonts = { serif:'serif', sans:'System' };
