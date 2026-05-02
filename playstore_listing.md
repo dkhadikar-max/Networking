@@ -87,9 +87,9 @@ Create your profile, set your intent, and start discovering professionals who ma
 ---
 
 ## Contact Details (for store listing)
-- **Email:** support@buildyournetwork.app
-- **Website:** https://buildyournetwork.app
-- **Privacy Policy URL:** https://buildyournetwork.app/privacy
+- **Email:** support@buildyournetwork.online
+- **Website:** https://buildyournetwork.online
+- **Privacy Policy URL:** https://buildyournetwork.online/privacy
 
 ---
 

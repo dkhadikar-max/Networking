@@ -20,7 +20,7 @@ const DATA_TABLE = [
 const SECTIONS = [
   {
     title: 'Who we are',
-    body: 'Build Your Network ("we", "us") operates the BYN mobile application. We are committed to protecting your personal information and being transparent about how we use it. For questions, contact us at supportbuildyournetwork@gmail.com.',
+    body: 'Build Your Network ("we", "us") operates the BYN mobile application. We are committed to protecting your personal information and being transparent about how we use it. For questions, contact us at support@buildyournetwork.online.',
   },
   {
     title: 'What we collect',
@@ -41,7 +41,7 @@ const SECTIONS = [
   },
   {
     title: 'Your rights',
-    body: 'Depending on your jurisdiction, you may have the right to: access your personal data; correct inaccurate data; request deletion of your data; withdraw consent at any time; lodge a complaint with a supervisory authority. To exercise any of these rights, email us at supportbuildyournetwork@gmail.com.',
+    body: 'Depending on your jurisdiction, you may have the right to: access your personal data; correct inaccurate data; request deletion of your data; withdraw consent at any time; lodge a complaint with a supervisory authority. To exercise any of these rights, email us at support@buildyournetwork.online.',
   },
   {
     title: 'Data security',
@@ -61,7 +61,7 @@ const SECTIONS = [
   },
   {
     title: 'Contact us',
-    body: 'Privacy questions or requests: supportbuildyournetwork@gmail.com\n\nWe aim to respond to all privacy requests within 5 business days.',
+    body: 'Privacy questions or requests: support@buildyournetwork.online\n\nWe aim to respond to all privacy requests within 5 business days.',
   },
 ];
 

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C, SHADOW } from '../utils/theme';
 import { trackSupportClicked } from '../utils/analytics';
 
-const SUPPORT_EMAIL = 'supportbuildyournetwork@gmail.com';
+const SUPPORT_EMAIL = 'support@buildyournetwork.online';
 const APP_VERSION   = '1.0.0';
 
 const FAQS = [

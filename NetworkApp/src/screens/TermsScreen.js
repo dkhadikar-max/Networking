@@ -19,7 +19,7 @@ const SECTIONS = [
   },
   {
     title: '3. Your Account',
-    body: 'You are responsible for safeguarding your login credentials and all activity under your account. Provide accurate, current information. Notify us immediately at supportbuildyournetwork@gmail.com of any unauthorized use. One account per person — multiple accounts to evade restrictions will result in permanent suspension.',
+    body: 'You are responsible for safeguarding your login credentials and all activity under your account. Provide accurate, current information. Notify us immediately at support@buildyournetwork.online of any unauthorized use. One account per person — multiple accounts to evade restrictions will result in permanent suspension.',
   },
   {
     title: '4. User Conduct',
@@ -59,7 +59,7 @@ const SECTIONS = [
   },
   {
     title: '13. Contact',
-    body: 'Questions about these Terms? Email us at supportbuildyournetwork@gmail.com. We aim to respond within 2 business days.',
+    body: 'Questions about these Terms? Email us at support@buildyournetwork.online. We aim to respond within 2 business days.',
   },
 ];
 
