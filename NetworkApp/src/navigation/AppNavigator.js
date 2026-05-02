@@ -12,6 +12,7 @@ import DiscoverScreen        from '../screens/DiscoverScreen';
 import LikesScreen           from '../screens/LikesScreen';
 import ChatListScreen        from '../screens/ChatListScreen';
 import ChatScreen            from '../screens/ChatScreen';
+import PriorityScreen        from '../screens/PriorityScreen';
 import ProfileScreen         from '../screens/ProfileScreen';
 import UserProfileScreen     from '../screens/UserProfileScreen';
 import UpgradeScreen         from '../screens/UpgradeScreen';
@@ -91,9 +92,10 @@ function LikesStack() {
 function ChatStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="ChatList"    component={ChatListScreen}    options={{ headerShown: false }} />
-      <Stack.Screen name="ChatDetail"  component={ChatScreen}        options={{ title: 'Chat' }} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: 'Profile' }} />
+      <Stack.Screen name="ChatList"        component={ChatListScreen}    options={{ headerShown: false }} />
+      <Stack.Screen name="ChatDetail"      component={ChatScreen}        options={{ title: 'Chat' }} />
+      <Stack.Screen name="UserProfile"     component={UserProfileScreen} options={{ title: 'Profile' }} />
+      <Stack.Screen name="PriorityMessages" component={PriorityScreen}   options={{ title: '⚡ Priority' }} />
     </Stack.Navigator>
   );
 }

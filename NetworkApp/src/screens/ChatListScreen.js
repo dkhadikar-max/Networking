@@ -92,6 +92,11 @@ export default function ChatListScreen({ navigation }) {
     <View style={s.screen}>
       <View style={s.header}>
         <Text style={s.title}>Chat</Text>
+        <TouchableOpacity
+          style={s.flashBtn}
+          onPress={() => navigation.navigate('PriorityMessages')}>
+          <Text style={s.flashTxt}>⚡</Text>
+        </TouchableOpacity>
       </View>
       {!list.length ? (
         <View style={s.center}>
@@ -116,8 +121,12 @@ export default function ChatListScreen({ navigation }) {
 const s = StyleSheet.create({
   screen:     { flex:1, backgroundColor:C.bg },
   center:     { flex:1, justifyContent:'center', alignItems:'center', padding:24 },
-  header:     { padding:20, paddingTop:16, borderBottomWidth:1, borderBottomColor:C.border },
+  header:     { flexDirection:'row', justifyContent:'space-between', alignItems:'center',
+                padding:20, paddingTop:16, borderBottomWidth:1, borderBottomColor:C.border },
   title:      { fontSize:22, color:C.text },
+  flashBtn:   { width:36, height:36, borderRadius:18, backgroundColor:C.sur2, borderWidth:1,
+                borderColor:C.gold, justifyContent:'center', alignItems:'center' },
+  flashTxt:   { fontSize:16 },
   row:        { flexDirection:'row', alignItems:'center', padding:16, borderBottomWidth:1, borderBottomColor:C.border },
   avWrap:     { marginRight:14 },
   av:         { width:48, height:48, borderRadius:24 },
