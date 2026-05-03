@@ -346,6 +346,8 @@ export default function DiscoverScreen({ navigation }) {
   const [filters,      setFilters]      = useState(DEFAULT_FILTERS);
   const [priorityBusy, setPriorityBusy] = useState(false);
   const [priorityErr,  setPriorityErr]  = useState('');
+  const [blockCode,    setBlockCode]    = useState('');
+  const [blockSteps,   setBlockSteps]   = useState([]);
 
   const swipedIds = useRef(new Set());
   const topPad = insets.top || (Platform.OS === 'ios' ? 44 : 24);
@@ -377,7 +379,17 @@ export default function DiscoverScreen({ navigation }) {
       setProfiles(list);
       setIdx(0);
     } catch (e) {
-      setLoadError(e.response?.data?.error || 'Could not load profiles. Tap to retry.');
+      const code  = e.response?.data?.code       || '';
+      const steps = e.response?.data?.trust_steps || [];
+      setBlockCode(code);
+      setBlockSteps(steps);
+      if (code === 'TRUST_TOO_LOW') {
+        setLoadError('Your profile needs a bit more to unlock Discovery.');
+      } else if (code === 'PROFILE_INCOMPLETE') {
+        setLoadError('Complete your profile to start discovering professionals.');
+      } else {
+        setLoadError(e.response?.data?.error || 'Could not load profiles. Tap to retry.');
+      }
     } finally {
       setLoading(false);
     }
@@ -459,20 +471,46 @@ export default function DiscoverScreen({ navigation }) {
 
   // ── Error ────────────────────────────────────────────────────────────────
   if (loadError) {
+    const isProfileBlock = blockCode === 'TRUST_TOO_LOW' || blockCode === 'PROFILE_INCOMPLETE';
     return (
       <SafeAreaView edges={['left', 'right']} style={s.screen}>
         <DiscoverHeader topPad={topPad} filterCount={filterCount} onFilters={() => setShowFilters(true)} />
         {isOffline && <OfflineBanner />}
-        <View style={s.center}>
-          <Text style={s.emptyIcon}>!</Text>
-          <Text style={s.emptyH}>Something went wrong</Text>
+        <ScrollView contentContainerStyle={s.center} showsVerticalScrollIndicator={false}>
+          <Text style={s.emptyIcon}>{isProfileBlock ? '◈' : '!'}</Text>
+          <Text style={s.emptyH}>
+            {isProfileBlock ? 'Unlock Discovery' : 'Something went wrong'}
+          </Text>
           <Text style={s.emptySub}>{loadError}</Text>
+
+          {/* Trust steps checklist — only shown for TRUST_TOO_LOW */}
+          {blockCode === 'TRUST_TOO_LOW' && blockSteps.length > 0 && (
+            <View style={s.stepsList}>
+              {blockSteps.map((step, i) => (
+                <View key={i} style={s.stepRow}>
+                  <Text style={[s.stepDot, step.done && s.stepDotDone]}>
+                    {step.done ? '✓' : '○'}
+                  </Text>
+                  <Text style={[s.stepTxt, step.done && s.stepTxtDone]}>{step.label}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           <View style={s.emptyActions}>
-            <TouchableOpacity style={s.emptyBtn} onPress={loadProfiles}>
-              <Text style={s.emptyBtnTxt}>Retry</Text>
-            </TouchableOpacity>
+            {isProfileBlock ? (
+              <TouchableOpacity
+                style={s.emptyBtn}
+                onPress={() => navigation.navigate('Profile')}>
+                <Text style={s.emptyBtnTxt}>Complete Profile →</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={s.emptyBtn} onPress={loadProfiles}>
+                <Text style={s.emptyBtnTxt}>Retry</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -659,21 +697,4 @@ const s = StyleSheet.create({
   matchPct:      { fontSize: 18, color: C.primary, fontWeight: '700' },
   matchLbl:      { fontSize: 9, color: C.sub },
   pills:         { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  pill:          { backgroundColor: C.bgSec, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.border },
-  pillTxt:       { fontSize: 12, color: C.sub },
-  insight:       { fontSize: 13, color: C.sub, lineHeight: 18 },
-  actRow:        { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, paddingBottom: Platform.OS === 'ios' ? 8 : 12 },
-  actBtn:        { borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
-  actSkip:       { flex: 0.7, borderWidth: 1, borderColor: C.border2, backgroundColor: C.card },
-  actSkipTxt:    { fontSize: 15, color: C.sub },
-  actMsg:        { flex: 0.9, borderWidth: 1.5, borderColor: C.accent, backgroundColor: C.accentLight },
-  actMsgTxt:     { fontSize: 14, color: C.accent, fontWeight: '600' },
-  actConnect:    { flex: 1.2, backgroundColor: C.primary },
-  actConnectTxt: { fontSize: 15, color: '#fff', fontWeight: '700' },
-  emptyIcon:     { fontSize: 40, marginBottom: 14, color: C.dim },
-  emptyH:        { fontSize: 22, color: C.text, marginBottom: 8, fontWeight: '700', textAlign: 'center' },
-  emptySub:      { fontSize: 15, color: C.sub, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
-  emptyActions:  { gap: 10, width: '80%' },
-  emptyBtn:      { backgroundColor: C.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44, ...SHADOW },
-  emptyBtnTxt:   { color: '#fff', fontSize: 15, fontWeight: '600' },
-  emptyBtnOut:   { borderWidth: 1.5, bord
+  pill:     
