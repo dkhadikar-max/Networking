@@ -346,6 +346,7 @@ export default function DiscoverScreen({ navigation }) {
   const [filters,      setFilters]      = useState(DEFAULT_FILTERS);
   const [priorityBusy, setPriorityBusy] = useState(false);
   const [priorityErr,  setPriorityErr]  = useState('');
+  const [priorityOk,   setPriorityOk]   = useState('');
   const [blockCode,    setBlockCode]    = useState('');
   const [blockSteps,   setBlockSteps]   = useState([]);
 
@@ -425,7 +426,7 @@ export default function DiscoverScreen({ navigation }) {
       return;
     }
     trackProfileOpen(String(userId));
-    navigation.navigate('ProfileDetail', { userId });
+    navigation.navigate('UserProfile', { userId });
   }
 
   async function handlePriorityMessage() {
@@ -435,9 +436,12 @@ export default function DiscoverScreen({ navigation }) {
     setPriorityErr('');
     try {
       const { data } = await api.post('/api/priority-message', { toUserId: profile.id });
-      if (data?.success === false) throw new Error(data.error || 'Failed');
+      // Backend returns { ok: true, remaining: N } — no connectionId (priority msgs are one-way)
+      if (!data?.ok) throw new Error(data?.error || 'Failed');
       trackMessageSent(String(profile.id), 'priority');
-      navigation.navigate('ChatScreen', { userId: profile.id, otherUser: profile });
+      // Show a success toast — priority messages are one-way, no chat to open
+      setPriorityOk(`✓ Message sent to ${profile.name || 'them'}!`);
+      setTimeout(() => setPriorityOk(''), 4000);
     } catch (e) {
       const msg = e.response?.data?.error || e.message || 'Could not send. Try again.';
       setPriorityErr(msg);
@@ -558,6 +562,9 @@ export default function DiscoverScreen({ navigation }) {
       {!!priorityErr && (
         <View style={s.toast}><Text style={s.toastTxt}>{priorityErr}</Text></View>
       )}
+      {!!priorityOk && (
+        <View style={s.toastOk}><Text style={s.toastOkTxt}>{priorityOk}</Text></View>
+      )}
 
       <View style={s.stack} pointerEvents="box-none">
         {nextProfile && (
@@ -676,6 +683,8 @@ const s = StyleSheet.create({
   loadingTxt:    { color: C.sub, fontSize: 13, marginTop: 12 },
   toast:         { marginHorizontal: 16, marginBottom: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(239,68,68,0.2)' },
   toastTxt:      { color: C.danger, fontSize: 13, textAlign: 'center' },
+  toastOk:       { marginHorizontal: 16, marginBottom: 6, backgroundColor: C.primaryLight, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: 'rgba(15,118,110,0.25)' },
+  toastOkTxt:    { color: C.primary, fontSize: 13, textAlign: 'center', fontWeight: '500' },
   stack:         { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card:          { position: 'absolute', width: W - 32, height: CARD_HEIGHT, backgroundColor: C.card, borderRadius: 16, overflow: 'hidden', ...SHADOW },
   cardBack:      { transform: [{ scale: 0.95 }, { translateY: 10 }], opacity: 0.85 },
@@ -697,4 +706,32 @@ const s = StyleSheet.create({
   matchPct:      { fontSize: 18, color: C.primary, fontWeight: '700' },
   matchLbl:      { fontSize: 9, color: C.sub },
   pills:         { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  pill:     
+  pill:          { backgroundColor: C.bgSec, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 1, borderColor: C.border },
+  pillTxt:       { fontSize: 12, color: C.sub },
+  insight:       { fontSize: 13, color: C.sub, lineHeight: 18 },
+  actRow:        { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 12, paddingBottom: Platform.OS === 'ios' ? 8 : 12 },
+  actBtn:        { borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  actSkip:       { flex: 0.7, borderWidth: 1, borderColor: C.border2, backgroundColor: C.card },
+  actSkipTxt:    { fontSize: 15, color: C.sub },
+  actMsg:        { flex: 0.9, borderWidth: 1.5, borderColor: C.accent, backgroundColor: C.accentLight },
+  actMsgTxt:     { fontSize: 14, color: C.accent, fontWeight: '600' },
+  actConnect:    { flex: 1.2, backgroundColor: C.primary },
+  actConnectTxt: { fontSize: 15, color: '#fff', fontWeight: '700' },
+  emptyIcon:     { fontSize: 40, marginBottom: 14, color: C.dim },
+  emptyH:        { fontSize: 22, color: C.text, marginBottom: 8, fontWeight: '700', textAlign: 'center' },
+  emptySub:      { fontSize: 15, color: C.sub, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  emptyActions:  { gap: 10, width: '80%' },
+  emptyBtn:      { backgroundColor: C.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44, ...SHADOW },
+  emptyBtnTxt:   { color: '#fff', fontSize: 15, fontWeight: '600' },
+  emptyBtnOut:   { borderWidth: 1.5, borderColor: C.primary, borderRadius: 14, paddingVertical: 14, alignItems: 'center', minHeight: 44 },
+  emptyBtnOutTxt:{ color: C.primary, fontSize: 15, fontWeight: '600' },
+
+  // Trust-steps checklist (TRUST_TOO_LOW error state)
+  stepsList:     { width: '100%', backgroundColor: C.card, borderRadius: 14, padding: 16,
+                   marginBottom: 24, borderWidth: 1, borderColor: C.border, ...SHADOW },
+  stepRow:       { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  stepDot:       { fontSize: 15, color: C.dim, width: 20, textAlign: 'center' },
+  stepDotDone:   { color: C.primary },
+  stepTxt:       { fontSize: 13, color: C.sub, flex: 1 },
+  stepTxtDone:   { color: C.text, textDecorationLine: 'line-through' },
+});

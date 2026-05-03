@@ -190,7 +190,7 @@ export default function LikesScreen({ navigation }) {
   function openChat() {
     const m = matched;
     setMatched(null);
-    navigation.navigate('Connections', {
+    navigation.navigate('Chat', {
       screen: 'ChatDetail',
       params: { connId: m?.connectionId, otherUser: m?.profile },
     });

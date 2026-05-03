@@ -73,9 +73,9 @@ const stackScreenOptions = {
 function DiscoverStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      <Stack.Screen name="DiscoverMain"  component={DiscoverScreen}    options={{ headerShown: false }} />
-      <Stack.Screen name="ProfileDetail" component={UserProfileScreen} options={{ title: 'Profile' }} />
-      <Stack.Screen name="ChatScreen"    component={ChatScreen}        options={{ title: 'Chat' }} />
+      <Stack.Screen name="DiscoverMain" component={DiscoverScreen}    options={{ headerShown: false }} />
+      <Stack.Screen name="UserProfile"  component={UserProfileScreen} options={{ title: 'Profile' }} />
+      <Stack.Screen name="ChatScreen"   component={ChatScreen}        options={{ title: 'Chat' }} />
     </Stack.Navigator>
   );
 }
