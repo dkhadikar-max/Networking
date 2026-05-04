@@ -61,44 +61,12 @@ fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = [
-  'https://buildyournetwork.online',
-  'https://www.buildyournetwork.online',
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:8080',
-  'http://localhost:8081',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-  'https://buildyournetwork.up.railway.app',
-];
-
-if (process.env.ALLOWED_ORIGIN && process.env.ALLOWED_ORIGIN !== '*') {
-  allowedOrigins.push(process.env.ALLOWED_ORIGIN);
-}
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
-    }
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      return callback(null, true);
-    }
-    console.warn('CORS blocked origin: ' + origin);
-    return callback(new Error('Origin ' + origin + ' not allowed by CORS'), false);
-  },
+  origin: true,
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
 }));
-
 app.options('*', cors());
 
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
