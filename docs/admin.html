@@ -295,10 +295,11 @@
   let ADMIN   = null;
   let allUsers = [];
 
-  // API base: localhost in dev, Railway backend on production (GitHub Pages ≠ backend)
+  // API base: same origin in production (Railway serves both frontend + backend at buildyournetwork.online)
+  // Using window.location.origin avoids all CORS issues — no cross-origin requests needed.
   const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000'
-    : 'https://buildyournetwork.up.railway.app';
+    : window.location.origin;
 
   // ── TOAST ──────────────────────────────────────────────────────────────────
   let toastTimer;
