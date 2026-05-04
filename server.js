@@ -391,6 +391,9 @@ function auditLog(adminId, action, targetId) {
 // API ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ── HEALTH CHECK (used by admin panel connectivity probe) ──────────────────────
+app.get('/api/health', (req, res) => res.json({ ok: true, service: 'buildyournetwork' }));
+
 // ── SIGNUP ────────────────────────────────────────────────────────────────────
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
