@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { notifyNetworkError, notifyNetworkRestored } from '../hooks/useNetworkStatus';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://buildyournetwork.up.railway.app';
+const BASE_URL = 'https://buildyournetwork.up.railway.app';
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 8000 });
 
