@@ -68,6 +68,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
 }));
 app.options('*', cors());
+app.set('trust proxy', 1);
 
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
@@ -1357,8 +1358,8 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ── START SERVER ──────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
-  console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
-  console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
+app.listen(8080, '0.0.0.0', () => {
+ console.log(`[${new Date().toISOString()}] Server on port ${8080}`);
+ console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
+ console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
 });
