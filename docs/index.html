@@ -9,6 +9,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- TASK 1: favicon -->
     <link rel="icon" href="/assets/logo.png" type="image/png">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-5NQDBYG4CJ');
+    </script>
     <style>
         :root {
             --bg: #FFF4EC;
@@ -951,6 +959,20 @@
             .install-steps { grid-template-columns: 1fr; }
             .footer-inner { grid-template-columns: 1fr 1fr; }
             .nav-links { display: none; }
+            .nav-links.open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0; right: 0;
+                background: rgba(255, 244, 236, 0.98);
+                backdrop-filter: blur(20px);
+                border-top: 1px solid rgba(253, 232, 215, 0.8);
+                padding: 16px 24px 20px;
+                gap: 18px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                z-index: 999;
+            }
             .mobile-menu-btn { display: block; }
         }
         @media (max-width: 600px) {
@@ -1255,7 +1277,7 @@
                 </span>
                 <span class="badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    ~24 MB
+                    ~65 MB
                 </span>
                 <span class="badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -1665,6 +1687,21 @@
         document.querySelector('nav').style.boxShadow =
             window.scrollY > 50 ? '0 1px 20px rgba(0,0,0,0.05)' : 'none';
     });
+
+    // Mobile menu toggle
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    if (menuBtn && navLinks) {
+        menuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+        });
+        // Close menu when any nav link is clicked
+        navLinks.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', () => navLinks.classList.remove('open'));
+        });
+        // Close menu on scroll
+        window.addEventListener('scroll', () => navLinks.classList.remove('open'), { passive: true });
+    }
 
     // Feedback modal
     function openFeedback() {
