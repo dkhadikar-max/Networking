@@ -1258,6 +1258,24 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (id === req.user.id) return res.status(400).json({ error: 'Cannot delete your own account' });
+    const { data: user } = await supabase.from('users').select('id, role').eq('id', id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role === 'admin') return res.status(403).json({ error: 'Cannot delete another admin' });
+    // Cascade: remove all related records first
+    await supabase.from('connections').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('messages').delete().eq('sender_id', id);
+    await supabase.from('reports').delete().or(`reporter_id.eq.${id},reported_id.eq.${id}`);
+    await supabase.from('blocks').delete().or(`blocker_id.eq.${id},blocked_id.eq.${id}`);
+    await supabase.from('users').delete().eq('id', id);
+    auditLog(req.user.id, 'delete_user', id);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   try {
     const now         = Date.now();
