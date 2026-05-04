@@ -165,11 +165,11 @@ tbody td{padding:11px 14px;vertical-align:middle}
 <div id="toast"></div>
 
 <script>
-// API is same-origin (Railway serves both admin.html and /api/* on buildyournetwork.online).
-// window.location.origin works for localhost dev AND production automatically.
+// API targets Railway backend directly.
+// Once DNS propagates for buildyournetwork.online, update this to that domain.
 const API = (location.hostname==='localhost'||location.hostname==='127.0.0.1')
   ? 'http://localhost:3000'
-  : 'https://buildyournetwork.online';
+  : 'https://a3mtyxvq.up.railway.app';
 
 let TOKEN='', ADMIN=null, allUsers=[];
 
