@@ -49,9 +49,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
 app.use(cors({
   origin: allowedOrigin,
-  methods: ['GET','POST','PUT','DELETE'],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true
 }));
 
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
