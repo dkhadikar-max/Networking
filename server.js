@@ -11,11 +11,14 @@ const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { Expo } = require('expo-server-sdk');
+const { createClient } = require('@supabase/supabase-js');
+
 // ── ENVIRONMENT VALIDATION ─────────────────────────────────────────────────
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
 if (missingEnvVars.length > 0) {
   console.error('CRITICAL: Missing environment variables: ' + missingEnvVars.join(', '));
+  console.error('Server will start but database operations will fail.');
 }
 
 // ── SUPABASE CLIENT ──────────────────────────────────────────────────────────
@@ -31,8 +34,6 @@ try {
   console.error('Failed to initialize Supabase:', e.message);
   supabase = { from: () => ({ select: () => Promise.resolve({ data: null, error: e }) }) };
 }
-  { auth: { persistSession: false } }
-);
 
 // ── CLOUDINARY CONFIG ────────────────────────────────────────────────────────
 cloudinary.config({
@@ -60,23 +61,17 @@ fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigin = process.env.ALLOWED_ORIGIN || '*';
-app.use(cors({
-  origin: allowedOrigin,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-}));
-
-// ── RATE LIMITERS ─────────────────────────────────────────────────────────────
-const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many requests, slow down' } });
-// ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'https://buildyournetwork.online',
   'https://www.buildyournetwork.online',
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:8080',
+  'http://localhost:8081',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   'https://buildyournetwork.up.railway.app',
 ];
 
@@ -105,6 +100,18 @@ app.use(cors({
 }));
 
 app.options('*', cors());
+
+// ── RATE LIMITERS ─────────────────────────────────────────────────────────────
+const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests, slow down' } });
+const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
+const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
+const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
+const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
+
+app.use(globalLimiter);
+
+// ── REQUEST LOGGER ────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -432,10 +439,12 @@ function auditLog(adminId, action, targetId) {
 // API ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ── HEALTH CHECK (used by admin panel connectivity probe) ──────────────────────
 app.get('/api/health', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
 });
+
 // ── SIGNUP ────────────────────────────────────────────────────────────────────
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
