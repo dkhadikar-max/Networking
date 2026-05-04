@@ -162,17 +162,54 @@
       </svg>
       <span>BYN Admin</span>
     </div>
-    <h2>Sign in with your admin account</h2>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="username">
+
+    <!-- Backend status indicator -->
+    <div id="backend-status" style="display:flex;align-items:center;gap:8px;margin-bottom:20px;padding:10px 12px;background:rgba(139,148,158,.1);border-radius:8px;font-size:12px;color:#8b949e;">
+      <span id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#8b949e;flex-shrink:0;"></span>
+      <span id="status-text">Checking backend…</span>
     </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+
+    <!-- Toggle: Sign In / Create Account -->
+    <div style="display:flex;gap:0;margin-bottom:20px;background:#1c2128;border-radius:8px;padding:3px;">
+      <button id="tab-signin" onclick="showTab('signin')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#0f766e;color:#fff;transition:all .2s;">Sign In</button>
+      <button id="tab-create" onclick="showTab('create')" style="flex:1;padding:7px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#8b949e;transition:all .2s;">Create Account</button>
     </div>
-    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="login-err" id="login-err"></div>
+
+    <!-- Sign In panel -->
+    <div id="panel-signin">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@example.com" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- Create Account panel (first-time setup) -->
+    <div id="panel-create" style="display:none;">
+      <p style="font-size:12px;color:#8b949e;margin-bottom:16px;line-height:1.5;">First time? Create your admin account. Admin access is granted only to pre-approved emails.</p>
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" id="signup-name" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="admin@example.com" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="signup-pass" placeholder="Min 6 characters" autocomplete="new-password">
+      </div>
+      <button class="btn-login" id="signup-btn" onclick="doSignup()">Create Account</button>
+    </div>
+
+    <!-- Error message — large and visible -->
+    <div id="login-err" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#ef4444;font-size:13px;line-height:1.5;"></div>
+    <!-- Success message -->
+    <div id="login-ok" style="display:none;margin-top:14px;padding:12px 14px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:8px;color:#22c55e;font-size:13px;line-height:1.5;"></div>
   </div>
 </div>
 
@@ -258,10 +295,10 @@
   let ADMIN   = null;
   let allUsers = [];
 
-  // Auto-detect API base so this works locally (localhost:3000) and on Railway
-  const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  // API base: localhost in dev, Railway backend on production (GitHub Pages ≠ backend)
+  const API = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://localhost:3000'
-    : '';   // same-origin on Railway
+    : 'https://buildyournetwork.up.railway.app';
 
   // ── TOAST ──────────────────────────────────────────────────────────────────
   let toastTimer;
@@ -532,68 +569,4 @@
     btn.disabled = true;
 
     // Step 2: Confirm
-    if (!confirm('Permanently delete this user?\n\nThis removes their account, connections, messages, reports, and blocks. This cannot be undone.')) {
-      btn.disabled = false;
-      return;
-    }
-
-    // Step 3: API call
-    try {
-      await api('DELETE', `/api/admin/users/${userId}`);
-
-      // Step 4 (success): Remove only this row from DOM
-      const row = document.getElementById('row-' + userId);
-      if (row) row.closest('tr').remove();
-
-      // Also remove from allUsers cache
-      allUsers = allUsers.filter(u => u.id !== userId);
-
-      toast('User deleted');
-      loadAudit(); // refresh audit log to show the action
-    } catch(e) {
-      // Step 4 (error): alert + re-enable
-      alert('Delete failed: ' + e.message);
-      console.error('[deleteUser]', e);
-      btn.disabled = false;
-    }
-  }
-
-  // ── AUDIT LOG ──────────────────────────────────────────────────────────────
-  async function loadAudit() {
-    const el = document.getElementById('audit-list');
-    el.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
-    try {
-      const entries = await api('GET', '/api/admin/audit');
-      if (!entries.length) {
-        el.innerHTML = '<div class="empty">No admin actions yet.</div>';
-        return;
-      }
-      el.innerHTML = entries.map(e => `
-        <div class="audit-row">
-          <span class="audit-action act-${e.action}">${formatAction(e.action)}</span>
-          <span class="audit-target">${e.targetId}</span>
-          <span class="audit-time">${timeAgo(e.at)}</span>
-        </div>`).join('');
-    } catch(e) {
-      el.innerHTML = `<div class="empty">Failed to load audit log: ${e.message}</div>`;
-    }
-  }
-
-  function formatAction(a) {
-    return {
-      ban:            '🚫 Ban',
-      unban:          '✅ Unban',
-      verify:         '✔️ Verify',
-      grant_premium:  '⭐ Grant Premium',
-      revoke_premium: '↩️ Revoke Premium',
-      delete_user:    '🗑️ Delete User',
-    }[a] || a;
-  }
-
-  // ── UTILS ──────────────────────────────────────────────────────────────────
-  function esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-</script>
-</body>
-</html>
+    if (!conf
