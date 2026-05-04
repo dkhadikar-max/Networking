@@ -65,9 +65,10 @@ function LogoHeader() {
 }
 
 const stackScreenOptions = {
-  headerStyle:      { backgroundColor: C.card, elevation: 0, shadowOpacity: 0.06 },
-  headerTintColor:  C.primary,
-  headerTitleStyle: { color: C.text, fontSize: 17, fontWeight: '600' },
+  headerStyle:        { backgroundColor: C.card, elevation: 0, shadowOpacity: 0.06 },
+  headerTintColor:    C.primary,
+  headerTitleStyle:   { color: C.text, fontSize: 17, fontWeight: '600' },
+  animationEnabled:   false,   // disables Reanimated card worklets — isolates crash cause
 };
 
 function DiscoverStack() {
