@@ -56,7 +56,7 @@ app.use(cors({
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
-const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many login attempts' } });
+const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
 const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
 const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
