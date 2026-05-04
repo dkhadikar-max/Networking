@@ -11,12 +11,26 @@ const { v4: uuidv4 } = require('uuid');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { Expo } = require('expo-server-sdk');
-const { createClient } = require('@supabase/supabase-js');
+// ── ENVIRONMENT VALIDATION ─────────────────────────────────────────────────
+const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+if (missingEnvVars.length > 0) {
+  console.error('CRITICAL: Missing environment variables: ' + missingEnvVars.join(', '));
+}
 
 // ── SUPABASE CLIENT ──────────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+let supabase;
+try {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { persistSession: false } }
+  );
+  console.log('Supabase client initialized');
+} catch (e) {
+  console.error('Failed to initialize Supabase:', e.message);
+  supabase = { from: () => ({ select: () => Promise.resolve({ data: null, error: e }) }) };
+}
   { auth: { persistSession: false } }
 );
 
@@ -56,14 +70,41 @@ app.use(cors({
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
-const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
-const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
-const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
-const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  'https://buildyournetwork.online',
+  'https://www.buildyournetwork.online',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://buildyournetwork.up.railway.app',
+];
 
-app.use(globalLimiter);
+if (process.env.ALLOWED_ORIGIN && process.env.ALLOWED_ORIGIN !== '*') {
+  allowedOrigins.push(process.env.ALLOWED_ORIGIN);
+}
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
 
-// ── REQUEST LOGGER ────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    console.warn('CORS blocked origin: ' + origin);
+    return callback(new Error('Origin ' + origin + ' not allowed by CORS'), false);
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+}));
+
+app.options('*', cors());
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -391,9 +432,10 @@ function auditLog(adminId, action, targetId) {
 // API ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// ── HEALTH CHECK (used by admin panel connectivity probe) ──────────────────────
-app.get('/api/health', (req, res) => res.json({ ok: true, service: 'buildyournetwork' }));
-
+app.get('/api/health', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
+});
 // ── SIGNUP ────────────────────────────────────────────────────────────────────
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
