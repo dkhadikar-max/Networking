@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildYourNetwork — Connect With Intent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- TASK 1: favicon -->
+    <link rel="icon" href="/assets/logo.png" type="image/png">
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-5NQDBYG4CJ');
+    </script>
+    <style>
+        :root {
+            --bg: #FFF4EC;
+            --bg-secondary: #FDE8D7;
+            --card: #FFFFFF;
+            --primary: #0F766E;
+            --teal: #14B8A6;
+            --highlight: #CCFBF1;
+            --accent: #F4A261;
+            --text: #1F2937;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --shadow-soft: 0 4px 24px rgba(31, 41, 55, 0.06);
+            --shadow-hover: 0 12px 40px rgba(31, 41, 55, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* TASK 4: animation duration 0.6s — within 0.5–0.7s spec */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate {
+            opacity: 0;
+            animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+
+        /* TASK 1: logo image pulse — Intent Constellation style (CSV row 3) */
+        @keyframes logoPulse {
+            0%   { box-shadow: 0 0 0 0 rgba(15,118,110,0.3); }
+            70%  { box-shadow: 0 0 0 7px rgba(15,118,110,0); }
+            100% { box-shadow: 0 0 0 0 rgba(15,118,110,0); }
+        }
+        .logo-img {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            flex-shrink: 0;
+            animation: logoPulse 2.4s ease-in-out infinite;
+        }
+        .logo-img-footer {
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            background: rgba(255, 244, 236, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(253, 232, 215, 0.6);
+        }
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--primary);
+            letter-spacing: -0.5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-cta {
+            background: var(--primary);
+            color: white !important;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .nav-cta:hover {
+            background: #0d5f58;
+            transform: translateY(-1px);
+        }
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-bg {
+            position: absolute;
+            top: -20%; right: -10%;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, var(--highlight) 0%, transparent 70%);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .hero-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+        .hero-content h1 {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -1.5px;
+            margin-bottom: 24px;
+            color: var(--text);
+        }
+        .hero-content h1 span {
+            color: var(--primary);
+        }
+        .hero-content .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+        .hero-badges {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--card);
+            border: 1px solid var(--bg-secondary);
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .badge svg { width: 14px; height: 14px; }
+        .cta-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(15, 118, 110, 0.25);
+        }
+        .btn-primary:hover {
+            background: #0d5f58;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(15, 118, 110, 0.35);
+        }
+        .btn-primary svg { width: 20px; height: 20px; }
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 28px;
+            background: transparent;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 15px;
+            border: 2px solid var(--primary);
+            transition: all 0.25s;
+        }
+        .btn-secondary:hover {
+            background: var(--highlight);
+            transform: translateY(-2px);
+        }
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+        .phone-mockup {
+            width: 280px;
+            height: 560px;
+            background: var(--card);
+            border-radius: 36px;
+            box-shadow: var(--shadow-hover), 0 0 0 12px var(--bg-secondary);
+            overflow: hidden;
+            position: relative;
+            transform: rotate(-3deg);
+            transition: transform 0.4s;
+        }
+        .phone-mockup:hover { transform: rotate(0deg) scale(1.02); }
+        .phone-notch {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 120px; height: 28px;
+            background: var(--text);
+            border-radius: 0 0 16px 16px;
+            z-index: 10;
+        }
+        .phone-screen {
+            padding: 48px 20px 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .screen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .screen-title {
+            font-weight: 700;
+            font-size: 20px;
+        }
+        .filter-pill {
+            padding: 6px 14px;
+            background: var(--highlight);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .profile-card {
+            background: var(--bg);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .profile-avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--teal), var(--primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .profile-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .profile-info p {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        .intent-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: var(--highlight);
+            color: var(--primary);
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        .trust-score {
+            margin-left: auto;
+            text-align: center;
+        }
+        .trust-score .score {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .trust-score .label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Sections */
+        section {
+            padding: 100px 24px;
+            position: relative;
+        }
+        .section-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .section-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: clamp(28px, 3.5vw, 40px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        .section-desc {
+            font-size: 17px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            line-height: 1.7;
+        }
+
+        /* Trust Block */
+        .trust-section { background: var(--bg-secondary); }
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 48px;
+        }
+        .trust-card {
+            background: var(--card);
+            padding: 32px 24px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s;
+            border: 1px solid rgba(253, 232, 215, 0.5);
+        }
+        .trust-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        .trust-icon {
+            width: 48px; height: 48px;
+            background: var(--highlight);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .trust-icon svg {
+            width: 24px; height: 24px;
+            color: var(--primary);
+        }
+        .trust-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .trust-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* What It Does */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-top: 56px;
+        }
+        .feature-card {
+            background: var(--card);
+            padding: 40px 32px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s;
+            border: 1px solid rgba(253, 232, 215, 0.4);
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+        }
+        .feature-num {
+            width: 40px; height: 40px;
+            background: var(--primary);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .feature-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* How It Works */
+        .steps-section { background: var(--bg-secondary); }
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 56px;
+            position: relative;
+        }
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 16.66%;
+            right: 16.66%;
+            height: 2px;
+            background: linear-gradient(to right, var(--primary), var(--teal));
+            opacity: 0.2;
+        }
+        .step-card {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .step-num {
+            width: 80px; height: 80px;
+            background: var(--card);
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0 auto 24px;
+            box-shadow: var(--shadow-soft);
+        }
+        .step-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .step-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* App Preview */
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-top: 56px;
+        }
+        .preview-card {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s;
+            border: 1px solid rgba(253, 232, 215, 0.4);
+        }
+        .preview-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+        }
+        .preview-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .mini-phone {
+            width: 100%;
+            max-width: 240px;
+            margin: 0 auto;
+            background: var(--text);
+            border-radius: 24px;
+            padding: 12px 12px 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .mini-screen {
+            background: var(--bg);
+            border-radius: 16px;
+            padding: 16px;
+            min-height: 320px;
+        }
+        .mini-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .mini-header h4 {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .mini-header .dots {
+            display: flex;
+            gap: 4px;
+        }
+        .mini-header .dots span {
+            width: 6px; height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+        }
+        .mini-profile {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .mini-avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--teal), var(--primary));
+            flex-shrink: 0;
+        }
+        .mini-info h5 {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .mini-info p {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        .mini-chat {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-bubble {
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 12px;
+            max-width: 80%;
+        }
+        .chat-bubble.sent {
+            background: var(--primary);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-bubble.received {
+            background: var(--card);
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .profile-detail {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .profile-detail .big-avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--teal), var(--primary));
+            margin: 0 auto 12px;
+        }
+        .profile-detail h4 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .profile-detail p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .stat-box {
+            background: var(--card);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-box .num {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+        .stat-box .lbl {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Differentiation */
+        .diff-section { background: var(--bg-secondary); }
+        .diff-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            margin-top: 56px;
+        }
+        .diff-card {
+            background: var(--card);
+            padding: 40px 32px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+            transition: all 0.3s;
+            border: 1px solid rgba(253, 232, 215, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .diff-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(to right, var(--primary), var(--teal));
+        }
+        .diff-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+        }
+        .diff-icon {
+            width: 52px; height: 52px;
+            background: var(--highlight);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .diff-icon svg {
+            width: 26px; height: 26px;
+            color: var(--primary);
+        }
+        .diff-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .diff-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Coming Soon */
+        .coming-soon-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px dashed var(--text-muted);
+            border-radius: 20px;
+            padding: 48px 32px;
+            text-align: center;
+            margin-top: 48px;
+            cursor: default;
+            position: relative;
+            opacity: 0.85;
+        }
+        .coming-soon-card .cs-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--text-muted);
+            color: white;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+        }
+        .coming-soon-card h3 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .coming-soon-card p {
+            font-size: 15px;
+            color: var(--text-muted);
+        }
+        .coming-soon-card:hover .cs-tooltip {
+            opacity: 1;
+            transform: translate(-50%, -100%);
+        }
+        .cs-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translate(-50%, -90%);
+            background: var(--text);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            margin-bottom: 8px;
+        }
+        .cs-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--text);
+        }
+
+        /* APK Download */
+        .download-section {
+            background: linear-gradient(135deg, var(--primary), #0d5f58);
+            color: white;
+            text-align: center;
+        }
+        .download-section .section-label { color: var(--highlight); }
+        .download-section .section-title { color: white; }
+        .download-section .section-desc { color: rgba(255,255,255,0.8); }
+        .download-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 48px;
+            margin-top: 48px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 40px;
+            background: white;
+            color: var(--primary);
+            text-decoration: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 17px;
+            transition: all 0.25s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+        }
+        .download-meta {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+        .download-meta span {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .download-meta svg { width: 16px; height: 16px; }
+        .install-steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+            text-align: left;
+        }
+        .install-step {
+            background: rgba(255,255,255,0.08);
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .install-step .num {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+        .install-step h4 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .install-step p {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.6;
+        }
+
+        /* Final CTA */
+        .final-cta {
+            text-align: center;
+            padding: 120px 24px;
+        }
+        .final-cta h2 {
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+        }
+        .final-cta p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--text);
+            color: white;
+            padding: 60px 24px 40px;
+        }
+        .footer-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px;
+        }
+        .footer-brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--highlight);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .footer-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+        .footer-col h4 {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+        .footer-col a {
+            display: block;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: color 0.2s;
+        }
+        .footer-col a:hover { color: white; }
+        .footer-bottom {
+            max-width: 1100px;
+            margin: 40px auto 0;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+            .hero-visual { order: -1; }
+            .phone-mockup { width: 240px; height: 480px; }
+            .trust-grid { grid-template-columns: repeat(2, 1fr); }
+            .features-grid { grid-template-columns: 1fr; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .steps-grid::before { display: none; }
+            .preview-grid { grid-template-columns: 1fr; }
+            .diff-grid { grid-template-columns: 1fr; }
+            .install-steps { grid-template-columns: 1fr; }
+            .footer-inner { grid-template-columns: 1fr 1fr; }
+            .nav-links { display: none; }
+            .nav-links.open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0; right: 0;
+                background: rgba(255, 244, 236, 0.98);
+                backdrop-filter: blur(20px);
+                border-top: 1px solid rgba(253, 232, 215, 0.8);
+                padding: 16px 24px 20px;
+                gap: 18px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+                z-index: 999;
+            }
+            .mobile-menu-btn { display: block; }
+        }
+        @media (max-width: 600px) {
+            .trust-grid { grid-template-columns: 1fr; }
+            .footer-inner { grid-template-columns: 1fr; }
+            .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+            .cta-group { flex-direction: column; width: 100%; }
+            .cta-group a { width: 100%; justify-content: center; }
+            .download-box { padding: 32px 24px; }
+        }
+
+/* Feedback Tab */
+.feedback-tab {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(2px);
+    background: var(--primary);
+    color: white;
+    padding: 14px 10px 14px 14px;
+    border-radius: 12px 0 0 12px;
+    cursor: pointer;
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: -4px 4px 20px rgba(15, 118, 110, 0.3);
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    line-height: 1;
+}
+.feedback-tab svg {
+    transform: rotate(-90deg);
+    flex-shrink: 0;
+}
+.feedback-tab:hover {
+    transform: translateY(-50%) translateX(0);
+    background: #0d5f58;
+    box-shadow: -6px 6px 28px rgba(15, 118, 110, 0.4);
+}
+.feedback-tab span {
+    transform: rotate(180deg);
+}
+
+/* Feedback Modal */
+.feedback-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(31, 41, 55, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+.feedback-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+.feedback-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    width: 100%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(31, 41, 55, 0.2);
+    z-index: 201;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+}
+.feedback-modal.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, -50%) scale(1);
+}
+.feedback-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px 0;
+}
+.feedback-header h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+}
+.feedback-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.feedback-close:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+.feedback-body {
+    padding: 20px 28px 28px;
+}
+.feedback-intro {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+.feedback-field {
+    margin-bottom: 18px;
+}
+.feedback-field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+.feedback-field input,
+.feedback-field select,
+.feedback-field textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--bg-secondary);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    transition: all 0.2s;
+    outline: none;
+    resize: vertical;
+}
+.feedback-field input:focus,
+.feedback-field select:focus,
+.feedback-field textarea:focus {
+    border-color: var(--primary);
+    background: var(--card);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.08);
+}
+.feedback-field input::placeholder,
+.feedback-field textarea::placeholder {
+    color: var(--text-muted);
+}
+.feedback-field select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+.field-hint {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+.feedback-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.25s;
+    margin-top: 8px;
+}
+.feedback-submit:hover {
+    background: #0d5f58;
+    transform: translateY(-1px);
+}
+.feedback-submit:active {
+    transform: translateY(0);
+}
+.feedback-success {
+    display: none;
+    text-align: center;
+    padding: 20px 0;
+}
+.feedback-success.active {
+    display: block;
+}
+.success-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--highlight);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--primary);
+}
+.feedback-success h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+.feedback-success p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+.feedback-done {
+    padding: 12px 32px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1.5px solid var(--bg-secondary);
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.feedback-done:hover {
+    background: var(--bg-secondary);
+}
+#feedbackForm.hidden { display: none; }
+
+@media (max-width: 600px) {
+    .feedback-tab {
+        right: auto;
+        left: 50%;
+        top: auto;
+        bottom: 0;
+        transform: translateX(-50%) translateY(2px);
+        border-radius: 12px 12px 0 0;
+        padding: 10px 20px;
+        flex-direction: row;
+        writing-mode: horizontal-tb;
+        text-orientation: mixed;
+        box-shadow: 0 -4px 20px rgba(15, 118, 110, 0.3);
+    }
+    .feedback-tab svg { transform: none; }
+    .feedback-tab span { transform: none; }
+    .feedback-tab:hover { transform: translateX(-50%) translateY(0); }
+    .feedback-modal { max-width: calc(100% - 32px); border-radius: 16px; }
+}
+    </style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+    <div class="nav-inner">
+        <!-- TASK 1: logo PNG added, text kept, size/placement unchanged -->
+        <a href="#" class="logo">
+            <img src="/assets/logo.png" class="logo-img" alt="BuildYourNetwork">
+            BuildYourNetwork
+        </a>
+        <div class="nav-links">
+            <a href="#trust">Trust</a>
+            <a href="#features">Features</a>
+            <a href="#how">How It Works</a>
+            <a href="#download" class="nav-cta">Download APK</a>
+        </div>
+        <button class="mobile-menu-btn" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+        </button>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-inner">
+        <div class="hero-content">
+            <div class="hero-badges animate">
+                <span class="badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    Android only
+                </span>
+                <span class="badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    ~65 MB
+                </span>
+                <span class="badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Early Access
+                </span>
+            </div>
+            <h1 class="animate delay-1">Access the <span>right people</span>. Not more people.</h1>
+            <p class="subtitle animate delay-2">An intent-based networking platform built for meaningful connections.</p>
+            <div class="cta-group animate delay-3">
+                <a href="#download" class="btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download APK
+                </a>
+                <a href="#how" class="btn-secondary">
+                    See how it works
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </a>
+            </div>
+        </div>
+        <div class="hero-visual animate delay-2">
+            <div class="phone-mockup">
+                <div class="phone-notch"></div>
+                <div class="phone-screen">
+                    <div class="screen-header">
+                        <span class="screen-title">Discover</span>
+                        <span class="filter-pill">Intent: Founder</span>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-avatar">SK</div>
+                        <div class="profile-info">
+                            <h4>Sarah Kim</h4>
+                            <p>Building a climate tech startup</p>
+                            <span class="intent-tag">Looking for: Co-founder</span>
+                        </div>
+                        <div class="trust-score">
+                            <div class="score">94</div>
+                            <div class="label">Trust</div>
+                        </div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-avatar">JM</div>
+                        <div class="profile-info">
+                            <h4>James Miller</h4>
+                            <p>Product lead at Series B fintech</p>
+                            <span class="intent-tag">Looking for: Advisors</span>
+                        </div>
+                        <div class="trust-score">
+                            <div class="score">88</div>
+                            <div class="label">Trust</div>
+                        </div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-avatar">AL</div>
+                        <div class="profile-info">
+                            <h4>Aisha Lopez</h4>
+                            <p>Ex-Google PM, now indie hacker</p>
+                            <span class="intent-tag">Looking for: Beta testers</span>
+                        </div>
+                        <div class="trust-score">
+                            <div class="score">91</div>
+                            <div class="label">Trust</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Trust Block -->
+<section class="trust-section" id="trust">
+    <div class="section-inner">
+        <p class="section-label animate">Trust & Transparency</p>
+        <h2 class="section-title animate delay-1">Safe to install. Built for serious users.</h2>
+        <p class="section-desc animate delay-2">We believe trust is earned, not claimed. Here's exactly what you get — and what you don't.</p>
+        <div class="trust-grid">
+            <div class="trust-card animate">
+                <div class="trust-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                </div>
+                <h3>No Spam</h3>
+                <p>No bulk messages. No random outreach. Only intentional, relevant connection requests.</p>
+            </div>
+            <div class="trust-card animate delay-1">
+                <div class="trust-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+                </div>
+                <h3>No Ads</h3>
+                <p>Zero advertising. Your attention is not our product. We don't sell impressions.</p>
+            </div>
+            <div class="trust-card animate delay-2">
+                <div class="trust-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+                </div>
+                <h3>No Data Selling</h3>
+                <p>Your profile data stays yours. We never share, sell, or monetize your personal information.</p>
+            </div>
+            <div class="trust-card animate delay-3">
+                <div class="trust-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                </div>
+                <h3>Early Access</h3>
+                <p>This is a live, working product in active development. Your feedback shapes what comes next.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- What It Does -->
+<section id="features">
+    <div class="section-inner">
+        <p class="section-label animate">What It Does</p>
+        <h2 class="section-title animate delay-1">Connect with intent. Find relevant people.</h2>
+        <p class="section-desc animate delay-2">BuildYourNetwork replaces random networking with purposeful discovery. Every connection starts with a clear reason.</p>
+        <div class="features-grid">
+            <div class="feature-card animate">
+                <div class="feature-num">1</div>
+                <h3>Discover by Intent</h3>
+                <p>See people who are actively looking for the same things you are — co-founders, mentors, collaborators, or peers.</p>
+            </div>
+            <div class="feature-card animate delay-1">
+                <div class="feature-num">2</div>
+                <h3>Filter by Goals</h3>
+                <p>Narrow your search by industry, role, stage, or specific intent. No noise, only relevance.</p>
+            </div>
+            <div class="feature-card animate delay-2">
+                <div class="feature-num">3</div>
+                <h3>Build Meaningful Connections</h3>
+                <p>Every interaction is grounded in shared purpose. Start conversations that actually matter.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="steps-section" id="how">
+    <div class="section-inner">
+        <p class="section-label animate">How It Works</p>
+        <h2 class="section-title animate delay-1">Three steps to the right connection.</h2>
+        <p class="section-desc animate delay-2">No complex onboarding. No endless scrolling. Just clarity, relevance, and action.</p>
+        <div class="steps-grid">
+            <div class="step-card animate">
+                <div class="step-num">1</div>
+                <h3>Define Your Intent</h3>
+                <p>Tell the platform what you're looking for — a co-founder, advisor, collaborator, or peer. Be specific. The clearer your intent, the better your matches.</p>
+            </div>
+            <div class="step-card animate delay-1">
+                <div class="step-num">2</div>
+                <h3>Discover Relevant People</h3>
+                <p>Browse profiles filtered by your goals. See trust scores, background context, and exactly what each person is looking for.</p>
+            </div>
+            <div class="step-card animate delay-2">
+                <div class="step-num">3</div>
+                <h3>Start a Connection</h3>
+                <p>Send a purposeful connection request. When accepted, start a focused conversation built on mutual intent.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- App Preview -->
+<section id="preview">
+    <div class="section-inner">
+        <p class="section-label animate">App Preview</p>
+        <h2 class="section-title animate delay-1">Built for clarity. Designed for trust.</h2>
+        <p class="section-desc animate delay-2">Every screen is designed to reduce friction and build confidence — from discovery to your first message.</p>
+        <div class="preview-grid">
+            <div class="preview-card animate">
+                <p class="preview-label">Discover Screen</p>
+                <div class="mini-phone">
+                    <div class="mini-screen">
+                        <div class="mini-header">
+                            <h4>Discover</h4>
+                            <div class="dots"><span></span><span></span><span></span></div>
+                        </div>
+                        <div class="mini-profile">
+                            <div class="mini-avatar"></div>
+                            <div class="mini-info"><h5>Marcus Chen</h5><p>AI researcher · Looking for: PM</p></div>
+                        </div>
+                        <div class="mini-profile">
+                            <div class="mini-avatar"></div>
+                            <div class="mini-info"><h5>Elena Rossi</h5><p>Designer · Looking for: Dev</p></div>
+                        </div>
+                        <div class="mini-profile">
+                            <div class="mini-avatar"></div>
+                            <div class="mini-info"><h5>David Park</h5><p>Founder · Looking for: Advisor</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-card animate delay-1">
+                <p class="preview-label">Profile Screen</p>
+                <div class="mini-phone">
+                    <div class="mini-screen">
+                        <div class="mini-header">
+                            <h4>Profile</h4>
+                            <div class="dots"><span></span><span></span><span></span></div>
+                        </div>
+                        <div class="profile-detail">
+                            <div class="big-avatar"></div>
+                            <h4>Alex Morgan</h4>
+                            <p>Building in fintech · Series A</p>
+                        </div>
+                        <div class="profile-stats">
+                            <div class="stat-box"><div class="num">96</div><div class="lbl">Trust</div></div>
+                            <div class="stat-box"><div class="num">12</div><div class="lbl">Connections</div></div>
+                            <div class="stat-box"><div class="num">3</div><div class="lbl">Intents</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-card animate delay-2">
+                <p class="preview-label">Chat Screen</p>
+                <div class="mini-phone">
+                    <div class="mini-screen">
+                        <div class="mini-header">
+                            <h4>Alex Morgan</h4>
+                            <div class="dots"><span></span><span></span><span></span></div>
+                        </div>
+                        <div class="mini-chat">
+                            <div class="chat-bubble received">Hi! I saw you're looking for a technical co-founder. I'm building something similar in the climate space.</div>
+                            <div class="chat-bubble sent">Hey Alex — yes, exactly. Would love to hear more about your background.</div>
+                            <div class="chat-bubble received">Sure. Ex-Stripe engineer, 6 years in infra. Looking for someone with GTM experience.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Differentiation -->
+<section class="diff-section" id="differentiation">
+    <div class="section-inner">
+        <p class="section-label animate">Why This Is Different</p>
+        <h2 class="section-title animate delay-1">A new category of networking.</h2>
+        <p class="section-desc animate delay-2">We didn't improve existing networking. We rebuilt it from first principles — starting with intent, not identity.</p>
+        <div class="diff-grid">
+            <div class="diff-card animate">
+                <div class="diff-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <h3>Intent-Based Discovery</h3>
+                <p>Traditional networks show you who people are. We show you what they want. You discover based on shared purpose, not shared connections.</p>
+            </div>
+            <div class="diff-card animate delay-1">
+                <div class="diff-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <h3>Trust Score</h3>
+                <p>Every profile carries a transparent trust score based on verification depth, connection quality, and community feedback. No guesswork.</p>
+            </div>
+            <div class="diff-card animate delay-2">
+                <div class="diff-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3>Relevance Over Volume</h3>
+                <p>We optimize for quality of connection, not quantity. A single relevant conversation is worth more than a hundred random contacts.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Coming Soon -->
+<section id="coming-soon">
+    <div class="section-inner">
+        <p class="section-label animate">On The Horizon</p>
+        <h2 class="section-title animate delay-1">What's Next</h2>
+        <!-- TASK 5: onclick = alert("Launching soon") -->
+        <div class="coming-soon-card animate delay-2" onclick="alert('Launching soon')">
+            <span class="cs-badge">Coming Soon</span>
+            <h3>Intent Circles</h3>
+            <p>Join focused circles based on intent — launching soon.</p>
+            <div class="cs-tooltip">Communities are launching soon. Stay tuned.</div>
+        </div>
+    </div>
+</section>
+
+<!-- APK Download -->
+<section class="download-section" id="download">
+    <div class="section-inner">
+        <p class="section-label animate">Get Started</p>
+        <h2 class="section-title animate delay-1">Download BuildYourNetwork</h2>
+        <p class="section-desc animate delay-2">Available as an Android APK. Install in under 60 seconds.</p>
+        <div class="download-box animate delay-3">
+            <!-- TASK 2: href = /apk/BuildYourNetwork.apk + JS fallback onclick -->
+            <a href="/apk/BuildYourNetwork.apk"
+               class="download-btn"
+               download
+               onclick="window.location.href='/apk/BuildYourNetwork.apk'">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download BuildYourNetwork.apk
+            </a>
+            <div class="download-meta">
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    Android only
+                </span>
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Version 1.0.2
+                </span>
+                <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Last updated: May 2026
+                </span>
+            </div>
+            <div class="install-steps">
+                <div class="install-step">
+                    <div class="num">1</div>
+                    <h4>Download the file</h4>
+                    <p>Tap the button above to download the APK file directly to your Android device.</p>
+                </div>
+                <div class="install-step">
+                    <div class="num">2</div>
+                    <h4>Allow unknown sources</h4>
+                    <p>When prompted, enable "Install from unknown sources" in your security settings. This is standard for APK installs.</p>
+                </div>
+                <div class="install-step">
+                    <div class="num">3</div>
+                    <h4>Install and open</h4>
+                    <p>Tap the downloaded file to install. Open the app, set your intent, and start discovering relevant people.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Final CTA -->
+<section class="final-cta">
+    <div class="section-inner">
+        <h2 class="animate">Your network defines your trajectory.</h2>
+        <p class="animate delay-1">Stop collecting contacts. Start building connections that matter.</p>
+        <div class="animate delay-2">
+            <a href="#download" class="btn-primary" style="font-size: 17px; padding: 18px 40px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download APK
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="footer-inner">
+        <div>
+            <!-- TASK 1: footer logo PNG added -->
+            <div class="footer-brand">
+                <img src="/assets/logo.png" class="logo-img-footer" alt="BuildYourNetwork">
+                BuildYourNetwork
+            </div>
+            <p class="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Legal</h4>
+            <!-- TASK 6: /privacy and /terms validated -->
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Service</a>
+        </div>
+        <div class="footer-col">
+            <h4>Product</h4>
+            <a href="#features">Features</a>
+            <a href="#how">How It Works</a>
+            <a href="#download">Download</a>
+        </div>
+        <div class="footer-col">
+            <h4>Support</h4>
+            <a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a>
+            <a href="#download">Installation Help</a>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>&copy; 2026 BuildYourNetwork. All rights reserved.</span>
+        <span>Early Access Product</span>
+    </div>
+</footer>
+
+<script>
+    // TASK 4: scroll animation — 0.6s fade + upward movement (spec: 0.5–0.7s)
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { root: null, rootMargin: '0px', threshold: 0.1 });
+
+    document.querySelectorAll('.animate').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(24px)';
+        el.style.transition = 'opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
+        observer.observe(el);
+    });
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Nav shadow on scroll
+    window.addEventListener('scroll', () => {
+        document.querySelector('nav').style.boxShadow =
+            window.scrollY > 50 ? '0 1px 20px rgba(0,0,0,0.05)' : 'none';
+    });
+
+    // Mobile menu toggle
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    const navLinks = document.querySelector('.nav-links');
+    if (menuBtn && navLinks) {
+        menuBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+        });
+        // Close menu when any nav link is clicked
+        navLinks.querySelectorAll('a').forEach(a => {
+            a.addEventListener('click', () => navLinks.classList.remove('open'));
+        });
+        // Close menu on scroll
+        window.addEventListener('scroll', () => navLinks.classList.remove('open'), { passive: true });
+    }
+
+    // Feedback modal
+    function openFeedback() {
+        document.getElementById('feedbackOverlay').classList.add('active');
+        document.getElementById('feedbackModal').classList.add('active');
+    }
+    function closeFeedback(e) {
+        if (e && e.target && e.target.id !== 'feedbackOverlay') return;
+        document.getElementById('feedbackOverlay').classList.remove('active');
+        document.getElementById('feedbackModal').classList.remove('active');
+    }
+    function submitFeedback(e) {
+        e.preventDefault();
+        document.getElementById('feedbackForm').classList.add('hidden');
+        document.getElementById('feedbackSuccess').classList.add('active');
+    }
+    function closeFeedbackModal() {
+        document.getElementById('feedbackOverlay').classList.remove('active');
+        document.getElementById('feedbackModal').classList.remove('active');
+    }
+</script>
+
+<!-- Feedback Tab -->
+<div class="feedback-tab" id="feedbackTab" onclick="openFeedback()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    <span>Feedback</span>
+</div>
+
+<!-- Feedback Modal -->
+<div class="feedback-overlay" id="feedbackOverlay" onclick="closeFeedback(event)"></div>
+<div class="feedback-modal" id="feedbackModal">
+    <div class="feedback-header">
+        <h3>Share Your Thoughts</h3>
+        <button class="feedback-close" onclick="closeFeedbackModal()" aria-label="Close feedback">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+    </div>
+    <div class="feedback-body">
+        <p class="feedback-intro">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
+        <form id="feedbackForm" onsubmit="submitFeedback(event)">
+            <div class="feedback-field">
+                <label for="fbType">What is this about?</label>
+                <select id="fbType" required>
+                    <option value="" disabled selected>Select a topic</option>
+                    <option value="bug">Bug or issue</option>
+                    <option value="feature">Feature request</option>
+                    <option value="ux">User experience</option>
+                    <option value="install">Installation problem</option>
+                    <option value="other">Something else</option>
+                </select>
+            </div>
+            <div class="feedback-field">
+                <label for="fbMessage">Your feedback</label>
+                <textarea id="fbMessage" rows="5" placeholder="Describe what you experienced, what you expected, and what happened instead..." required></textarea>
+            </div>
+            <div class="feedback-field">
+                <label for="fbEmail">Email (optional)</label>
+                <input type="email" id="fbEmail" placeholder="you@example.com">
+                <span class="field-hint">Only if you'd like us to follow up</span>
+            </div>
+            <button type="submit" class="feedback-submit">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Send Feedback
+            </button>
+        </form>
+        <div class="feedback-success" id="feedbackSuccess">
+            <div class="success-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h4>Thank You</h4>
+            <p>Your feedback has been received. We review every submission personally.</p>
+            <button class="feedback-done" onclick="closeFeedbackModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

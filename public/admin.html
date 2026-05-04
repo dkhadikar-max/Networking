@@ -165,11 +165,11 @@ tbody td{padding:11px 14px;vertical-align:middle}
 <div id="toast"></div>
 
 <script>
-// buildyournetwork.online = GitHub Pages (static, no API).
-// API always goes to Railway backend.
+// API is same-origin (Railway serves both admin.html and /api/* on buildyournetwork.online).
+// window.location.origin works for localhost dev AND production automatically.
 const API = (location.hostname==='localhost'||location.hostname==='127.0.0.1')
   ? 'http://localhost:3000'
-  : 'https://buildyournetwork.up.railway.app';
+  : 'https://buildyournetwork.online';
 
 let TOKEN='', ADMIN=null, allUsers=[];
 
