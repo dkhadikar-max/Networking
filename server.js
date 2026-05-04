@@ -412,7 +412,6 @@ app.get('/api/health', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
 });
-
 // ── SIGNUP ────────────────────────────────────────────────────────────────────
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
