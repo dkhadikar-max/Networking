@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }    from '@react-navigation/stack';
 
@@ -28,8 +28,10 @@ const Stack = createStackNavigator();
 const Auth  = createStackNavigator();
 
 const navTheme = {
+  ...DefaultTheme,                      // preserves fonts.regular/medium/bold/heavy
   dark: false,
   colors: {
+    ...DefaultTheme.colors,
     primary:      C.primary,
     background:   C.bg,
     card:         C.card,
@@ -68,7 +70,7 @@ const stackScreenOptions = {
   headerStyle:        { backgroundColor: C.card, elevation: 0, shadowOpacity: 0.06 },
   headerTintColor:    C.primary,
   headerTitleStyle:   { color: C.text, fontSize: 17, fontWeight: '600' },
-  animationEnabled:   false,   // disables Reanimated card worklets — isolates crash cause
+  animationEnabled:   true,
 };
 
 function DiscoverStack() {
