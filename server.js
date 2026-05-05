@@ -1,99 +1,85 @@
-import path from "path";
+// ===============================
+// IMPORTS
+// ===============================
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import path from "path";
 import rateLimit from "express-rate-limit";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
 const app = express();
-
-/* =========================
-   ENV
-========================= */
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || "networkapp_secret";
 
-/* =========================
-   SECURITY + CORS
-========================= */
-app.use(helmet({ contentSecurityPolicy: false }));
-
-const corsOptions = {
-  origin: [
-    "https://buildyournetwork.online",
-    "https://www.buildyournetwork.online",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-};
-
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
-/* =========================
-   BODY PARSER (EARLY)
-========================= */
-app.use(express.json());
-
-/* =========================
-   RATE LIMIT
-========================= */
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100
-});
-
-app.use(limiter);
-
-/* =========================
-   LOGGER
-========================= */
-app.use((req, res, next) => {
-  res.on("finish", () => {
-    console.log(
-      `${req.method} ${req.originalUrl} ${res.statusCode}`
-    );
-  });
-  next();
-});
-
-/* =========================
-   IN-MEMORY STORE (TEMP)
-   Replace with DB later
-========================= */
-
-
-/* =========================
-   HEALTH CHECK
-========================= */
-app.get("/api/health", (req, res) => {
-  res.json({ ok: true });
-});
-
-/* =========================
-   SIGNUP
-========================= */
 // ===============================
-// AUTH: SIGNUP + LOGIN (FINAL)
+// SUPABASE INIT
 // ===============================
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error("❌ Missing Supabase ENV variables");
+  process.exit(1);
+}
 
-// In-memory store (temporary)
-const users = [];
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
 
-
-
-// Admin whitelist (from env)
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "dkhadikar@gmail.com")
+// ===============================
+// ADMIN EMAILS
+// ===============================
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
 
-  
+// ===============================
+// MIDDLEWARE
+// ===============================
+app.use(helmet({ contentSecurityPolicy: false }));
+
+app.use(
+  cors({
+    origin: [
+      "https://buildyournetwork.online",
+      "https://www.buildyournetwork.online",
+      "http://localhost:3000"
+    ],
+    credentials: true
+  })
+);
+
+app.use(express.json());
+
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100
+});
+app.use(limiter);
+
+// ===============================
+// LOGGER
+// ===============================
+app.use((req, res, next) => {
+  res.on("finish", () => {
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode}`);
+  });
+  next();
+});
+
+// ===============================
+// STATIC (FRONTEND)
+// ===============================
+app.use(express.static(path.join(process.cwd(), "public")));
+
+// ===============================
+// HEALTH
+// ===============================
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
+});
 
 // ===============================
 // SIGNUP
@@ -102,66 +88,45 @@ app.post("/api/signup", async (req, res) => {
   try {
     let { email, password, name } = req.body;
 
-    // Validate input
     if (!email || !password || !name) {
       return res.status(400).json({ error: "All fields required" });
     }
 
     email = email.toLowerCase().trim();
 
-    // Check existing user
-    const existing = users.find(
-      u => u.email.toLowerCase() === email
-    );
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
+    });
 
-    if (existing) {
-      return res.status(400).json({ error: "User already exists" });
+    if (error) {
+      return res.status(400).json({ error: error.message });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = data.user;
 
-    // Admin check
     const isAdmin = ADMIN_EMAILS.includes(email);
 
-    // Create user
-    const user = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password: hashedPassword,
-      role: isAdmin ? "admin" : "user"
-    };
-
-    users.push(user);
-
-    // Generate token
-    const token = jwt.sign(
-      {
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert({
         id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET || "networkapp_secret_2024",
-      { expiresIn: "7d" }
-    );
+        email,
+        name,
+        role: isAdmin ? "admin" : "user"
+      });
 
-    return res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
+    if (profileError) {
+      return res.status(500).json({ error: profileError.message });
+    }
+
+    return res.json({ success: true });
 
   } catch (err) {
     console.error("Signup error:", err);
-    return res.status(500).json({ error: "Signup failed" });
+    res.status(500).json({ error: "Signup failed" });
   }
 });
-
 
 // ===============================
 // LOGIN
@@ -171,82 +136,62 @@ app.post("/api/login", async (req, res) => {
     let { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" });
+      return res.status(400).json({ error: "Missing credentials" });
     }
 
     email = email.toLowerCase().trim();
 
-    // Find user
-    const user = users.find(
-      u => u.email.toLowerCase() === email
-    );
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    if (error) {
+      return res.status(401).json({ error: error.message });
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const user = data.user;
 
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return res.status(500).json({ error: "Profile not found" });
     }
-
-    // Generate token
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET || "networkapp_secret_2024",
-      { expiresIn: "7d" }
-    );
 
     return res.json({
-      token,
+      token: data.session.access_token,
       user: {
         id: user.id,
-        name: user.name,
         email: user.email,
-        role: user.role
+        name: profile.name,
+        role: profile.role
       }
     });
 
   } catch (err) {
     console.error("Login error:", err);
-    return res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ error: "Login failed" });
   }
 });
-/* =========================
-   AUTH MIDDLEWARE
-========================= */
-function auth(req, res, next) {
-  const header = req.headers.authorization;
 
-  if (!header) return res.status(401).json({ error: "No token" });
+// ===============================
+// ADMIN ROUTES
+// ===============================
 
-  const token = header.split(" ")[1];
-
+// Analytics
+app.get("/api/admin/analytics", async (req, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ error: "Invalid token" });
-  }
-}
-app.use(express.static(path.join(process.cwd(), "public")));
+    const { count } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
 
-/* =========================
-   ADMIN ROUTE
-========================= */
-// ================= ADMIN ANALYTICS =================
-app.get("/api/admin/analytics", (req, res) => {
-  try {
     res.json({
-      totalUsers: users.length,
-      activeUsers: users.length,
+      totalUsers: count || 0,
+      activeUsers: count || 0,
       premiumUsers: 0,
       verifiedUsers: 0,
       profileCompletion: 100,
@@ -255,32 +200,37 @@ app.get("/api/admin/analytics", (req, res) => {
       reports: 0,
       blocks: 0
     });
+
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch analytics" });
+    res.status(500).json({ error: "Analytics failed" });
   }
 });
-app.get("/api/admin", auth, (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ error: "Forbidden" });
+
+// Users
+app.get("/api/admin/users", async (req, res) => {
+  try {
+    const { data } = await supabase.from("profiles").select("*");
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Users fetch failed" });
   }
-
-  res.json({ message: "Admin access granted" });
 });
 
-/* =========================
-   404 HANDLER
-========================= */
-app.use((req, res) => {
-  res.status(404).json({ error: "Not found" });
-
+// Logs
+app.get("/api/admin/logs", (req, res) => {
+  res.json([]);
 });
 
+// ===============================
+// FRONTEND ROUTE (SPA)
+// ===============================
 app.get("*", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "index.html"));
 });
-/* =========================
-   START SERVER (RAILWAY SAFE)
-========================= */
+
+// ===============================
+// START SERVER
+// ===============================
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
