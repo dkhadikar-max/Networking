@@ -26,7 +26,6 @@ const corsOptions = {
   origin: [
     "https://buildyournetwork.online",
     "https://www.buildyournetwork.online",
-    "https://jxtxvg.up.railway.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -82,9 +81,6 @@ app.get("/api/health", (req, res) => {
 // ===============================
 // AUTH: SIGNUP + LOGIN (FINAL)
 // ===============================
-
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 
 // In-memory store (temporary)
 const users = [];
