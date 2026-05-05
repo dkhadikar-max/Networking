@@ -58,8 +58,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "9bdf2bbd-bd6a-4b4a-b994-2fbdfb71e5f9"
+        "projectId": "f01fcb05-0fe1-4d67-84f3-6e82bfd47200"
       }
-    }
+    },
+    "owner": "buildyournetwork"
   }
 }
