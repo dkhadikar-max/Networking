@@ -1,3 +1,4 @@
+import path from "path";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -164,6 +165,7 @@ function auth(req, res, next) {
     return res.status(401).json({ error: "Invalid token" });
   }
 }
+app.use(express.static(path.join(process.cwd(), "public")));
 
 /* =========================
    ADMIN ROUTE
@@ -177,19 +179,16 @@ app.get("/api/admin", auth, (req, res) => {
 });
 
 /* =========================
-   ROOT ROUTE (NO STATIC OVERRIDE)
-========================= */
-app.get("/", (req, res) => {
-  res.send("API is running");
-});
-
-/* =========================
    404 HANDLER
 ========================= */
 app.use((req, res) => {
   res.status(404).json({ error: "Not found" });
+
 });
 
+app.get("*", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "index.html"));
+});
 /* =========================
    START SERVER (RAILWAY SAFE)
 ========================= */
