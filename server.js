@@ -67,7 +67,7 @@ app.use((req, res, next) => {
    IN-MEMORY STORE (TEMP)
    Replace with DB later
 ========================= */
-const users = [];
+
 
 /* =========================
    HEALTH CHECK
@@ -79,74 +79,145 @@ app.get("/api/health", (req, res) => {
 /* =========================
    SIGNUP
 ========================= */
+// ===============================
+// AUTH: SIGNUP + LOGIN (FINAL)
+// ===============================
+
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+// In-memory store (temporary)
+const users = [];
+
+// Admin whitelist (from env)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "dkhadikar@gmail.com")
+  .split(",")
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+// ===============================
+// SIGNUP
+// ===============================
 app.post("/api/signup", async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    let { email, password, name } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Missing fields" });
+    // Validate input
+    if (!email || !password || !name) {
+      return res.status(400).json({ error: "All fields required" });
     }
 
-    const existing = users.find(u => u.email === email);
+    email = email.toLowerCase().trim();
+
+    // Check existing user
+    const existing = users.find(
+      u => u.email.toLowerCase() === email
+    );
+
     if (existing) {
-      return res.status(400).json({ error: "User exists" });
+      return res.status(400).json({ error: "User already exists" });
     }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Admin check
+    const isAdmin = ADMIN_EMAILS.includes(email);
+
+    // Create user
     const user = {
       id: Date.now().toString(),
-      email,
       name,
-      password: hashed,
-      role: "user"
+      email,
+      password: hashedPassword,
+      role: isAdmin ? "admin" : "user"
     };
 
     users.push(user);
 
+    // Generate token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET || "networkapp_secret_2024",
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user: { id: user.id, email, name } });
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({ error: "Signup failed" });
+    return res.status(500).json({ error: "Signup failed" });
   }
 });
 
-/* =========================
-   LOGIN
-========================= */
+
+// ===============================
+// LOGIN
+// ===============================
 app.post("/api/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    const user = users.find(u => u.email === email);
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    email = email.toLowerCase().trim();
+
+    // Find user
+    const user = users.find(
+      u => u.email.toLowerCase() === email
+    );
+
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
+    // Compare password
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Generate token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
+      {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      process.env.JWT_SECRET || "networkapp_secret_2024",
       { expiresIn: "7d" }
     );
 
-    res.json({ token, user: { id: user.id, email } });
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ error: "Login failed" });
+    return res.status(500).json({ error: "Login failed" });
   }
 });
-
 /* =========================
    AUTH MIDDLEWARE
 ========================= */
