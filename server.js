@@ -15,20 +15,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ===============================
-// SUPABASE INIT
+// SUPABASE
 // ===============================
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
   console.error("❌ Missing Supabase ENV variables");
   process.exit(1);
 }
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // ===============================
-// ADMIN EMAILS
+// CONFIG
 // ===============================
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
@@ -53,11 +53,10 @@ app.use(
 
 app.use(express.json());
 
-const limiter = rateLimit({
+app.use(rateLimit({
   windowMs: 60 * 1000,
-  max: 100
-});
-app.use(limiter);
+  max: 120
+}));
 
 // ===============================
 // LOGGER
@@ -70,7 +69,7 @@ app.use((req, res, next) => {
 });
 
 // ===============================
-// STATIC (FRONTEND)
+// STATIC (WEB)
 // ===============================
 app.use(express.static(path.join(process.cwd(), "public")));
 
@@ -94,9 +93,11 @@ app.post("/api/signup", async (req, res) => {
 
     email = email.toLowerCase().trim();
 
-    const { data, error } = await supabase.auth.signUp({
+    // CREATE AUTH USER
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
-      password
+      password,
+      email_confirm: true
     });
 
     if (error) {
@@ -107,23 +108,25 @@ app.post("/api/signup", async (req, res) => {
 
     const isAdmin = ADMIN_EMAILS.includes(email);
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert({
-        id: user.id,
-        email,
-        name,
-        role: isAdmin ? "admin" : "user"
-      });
+    // CREATE PROFILE
+    const { error: profileError } = await supabase.from("users").insert({
+      id: user.id,
+      email,
+      name,
+      role: isAdmin ? "admin" : "user"
+    });
 
     if (profileError) {
       return res.status(500).json({ error: profileError.message });
     }
 
-    return res.json({ success: true });
+    res.json({
+      success: true,
+      role: isAdmin ? "admin" : "user"
+    });
 
   } catch (err) {
-    console.error("Signup error:", err);
+    console.error(err);
     res.status(500).json({ error: "Signup failed" });
   }
 });
@@ -153,7 +156,7 @@ app.post("/api/login", async (req, res) => {
     const user = data.user;
 
     const { data: profile, error: profileError } = await supabase
-      .from("profiles")
+      .from("users")
       .select("*")
       .eq("id", user.id)
       .single();
@@ -162,7 +165,7 @@ app.post("/api/login", async (req, res) => {
       return res.status(500).json({ error: "Profile not found" });
     }
 
-    return res.json({
+    res.json({
       token: data.session.access_token,
       user: {
         id: user.id,
@@ -173,63 +176,89 @@ app.post("/api/login", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Login error:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
+
+// ===============================
+// AUTH MIDDLEWARE
+// ===============================
+async function requireUser(req, res, next) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    const { data, error } = await supabase.auth.getUser(token);
+
+    if (error || !data.user) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    req.user = data.user;
+    next();
+
+  } catch {
+    res.status(401).json({ error: "Auth failed" });
+  }
+}
+
+async function requireAdmin(req, res, next) {
+  try {
+    await requireUser(req, res, async () => {
+      const { data: profile } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", req.user.id)
+        .single();
+
+      if (profile.role !== "admin") {
+        return res.status(403).json({ error: "Not admin" });
+      }
+
+      next();
+    });
+  } catch {
+    res.status(401).json({ error: "Auth failed" });
+  }
+}
 
 // ===============================
 // ADMIN ROUTES
 // ===============================
 
 // Analytics
-app.get("/api/admin/analytics", async (req, res) => {
-  try {
-    const { count } = await supabase
-      .from("profiles")
-      .select("*", { count: "exact", head: true });
+app.get("/api/admin/analytics", requireAdmin, async (req, res) => {
+  const { count } = await supabase
+    .from("users")
+    .select("*", { count: "exact", head: true });
 
-    res.json({
-      totalUsers: count || 0,
-      activeUsers: count || 0,
-      premiumUsers: 0,
-      verifiedUsers: 0,
-      profileCompletion: 100,
-      connections: 0,
-      messages: 0,
-      reports: 0,
-      blocks: 0
-    });
-
-  } catch (err) {
-    res.status(500).json({ error: "Analytics failed" });
-  }
+  res.json({
+    totalUsers: count || 0,
+    activeUsers: count || 0
+  });
 });
 
 // Users
-app.get("/api/admin/users", async (req, res) => {
-  try {
-    const { data } = await supabase.from("profiles").select("*");
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Users fetch failed" });
-  }
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  const { data } = await supabase.from("users").select("*");
+  res.json(data);
 });
 
 // Logs
-app.get("/api/admin/logs", (req, res) => {
+app.get("/api/admin/logs", requireAdmin, (req, res) => {
   res.json([]);
 });
 
 // ===============================
-// FRONTEND ROUTE (SPA)
+// SPA FALLBACK
 // ===============================
 app.get("*", (req, res) => {
   res.sendFile(path.join(process.cwd(), "public", "index.html"));
 });
 
 // ===============================
-// START SERVER
+// START
 // ===============================
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
