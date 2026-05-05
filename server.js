@@ -85,11 +85,15 @@ app.get("/api/health", (req, res) => {
 // In-memory store (temporary)
 const users = [];
 
+
+
 // Admin whitelist (from env)
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "dkhadikar@gmail.com")
   .split(",")
   .map(e => e.trim().toLowerCase())
   .filter(Boolean);
+
+  
 
 // ===============================
 // SIGNUP
@@ -237,6 +241,24 @@ app.use(express.static(path.join(process.cwd(), "public")));
 /* =========================
    ADMIN ROUTE
 ========================= */
+// ================= ADMIN ANALYTICS =================
+app.get("/api/admin/analytics", (req, res) => {
+  try {
+    res.json({
+      totalUsers: users.length,
+      activeUsers: users.length,
+      premiumUsers: 0,
+      verifiedUsers: 0,
+      profileCompletion: 100,
+      connections: 0,
+      messages: 0,
+      reports: 0,
+      blocks: 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch analytics" });
+  }
+});
 app.get("/api/admin", auth, (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ error: "Forbidden" });
