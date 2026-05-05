@@ -8,11 +8,15 @@ const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// ── FIXED: Only catch MODULE_NOT_FOUND; re-throw real errors (syntax, etc.) ──
 function optionalRequire(name, fallback) {
   try { return require(name); }
   catch (error) {
-    console.warn(`Optional dependency "${name}" is not installed; related features will be disabled.`);
-    return fallback;
+    if (error.code === 'MODULE_NOT_FOUND') {
+      console.warn(`Optional dependency "${name}" is not installed; related features will be disabled.`);
+      return fallback;
+    }
+    throw error;
   }
 }
 
@@ -35,24 +39,20 @@ const { Expo } = expoPkg;
 const { createClient } = require('@supabase/supabase-js');
 const uuidv4 = () => crypto.randomUUID();
 
-const multer = multerPkg || Object.assign(
-  function disabledMulter() {
-    return { single: () => (req, res) => res.status(503).json({ error: 'File uploads are temporarily unavailable on this server.' }) };
-  },
-  { diskStorage: () => ({}) }
-);
+// ── FIXED: multer fallback returns correct object shape with .single(), .array(), etc. ──
+const multer = multerPkg || (() => {
+  const handler = (req, res, next) => res.status(503).json({ error: 'File uploads are temporarily unavailable on this server.' });
+  return {
+    single: () => handler,
+    array: () => handler,
+    fields: () => handler,
+    none: () => handler,
+    diskStorage: () => ({}),
+    memoryStorage: () => ({}),
+  };
+})();
 
-function normalizeSupabaseUrl(rawUrl) {
-  if (!rawUrl) return rawUrl;
-  return rawUrl
-    .trim()
-    .replace(/\/+$/, '')
-    .replace(/\/(rest|auth)\/v1$/i, '');
-}
-
-const SUPABASE_URL = normalizeSupabaseUrl(process.env.SUPABASE_URL);
-
-// Ã¢â€â‚¬Ã¢â€â‚¬ ENVIRONMENT VALIDATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── ENVIRONMENT VALIDATION ──
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
 const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
 if (missingEnvVars.length > 0) {
@@ -60,11 +60,23 @@ if (missingEnvVars.length > 0) {
   console.error('Server will start but database operations will fail.');
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SUPABASE CLIENT Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: JWT_SECRET and ADMIN_SECRET are required — no insecure fallbacks ──
+const JWT_SECRET = process.env.JWT_SECRET;
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
+if (!JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET environment variable is required for secure token signing.');
+  process.exit(1);
+}
+if (!ADMIN_SECRET) {
+  console.error('CRITICAL: ADMIN_SECRET environment variable is required for admin bootstrap security.');
+  process.exit(1);
+}
+
+// ── SUPABASE CLIENT ──
 let supabase;
 try {
   supabase = createClient(
-    SUPABASE_URL,
+    process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { auth: { persistSession: false } }
   );
@@ -74,7 +86,7 @@ try {
   supabase = { from: () => ({ select: () => Promise.resolve({ data: null, error: e }) }) };
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ CLOUDINARY CONFIG Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── CLOUDINARY CONFIG ──
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
   api_key:    process.env.CLOUDINARY_API_KEY    || '',
@@ -82,24 +94,23 @@ cloudinary.config({
 });
 const USE_CLOUDINARY = !!(process.env.CLOUDINARY_CLOUD_NAME && multerPkg && CloudinaryStorage);
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ EXPO PUSH Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── EXPO PUSH ──
 const expo = new Expo();
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ APP SETUP Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── APP SETUP ──
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET   = process.env.JWT_SECRET   || 'networkapp_secret_2024';
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'adminpass2024';
-// Comma-separated emails that are always admin regardless of DB state
+
+// FIXED: Comma-separated emails that are always admin regardless of DB state
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'dkhadikar@gmail.com')
   .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 
 fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SECURITY HEADERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── SECURITY HEADERS ──
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ CORS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── CORS ──
 app.use(cors({
   origin: true,
   credentials: true,
@@ -108,7 +119,7 @@ app.use(cors({
 }));
 app.options('*', cors());
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ RATE LIMITERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── RATE LIMITERS ──
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
 const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
@@ -118,7 +129,7 @@ const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 
 
 app.use(globalLimiter);
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ REQUEST LOGGER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── REQUEST LOGGER ──
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -131,7 +142,7 @@ app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ MULTER / STORAGE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── MULTER / STORAGE ──
 const ALLOWED_MIMETYPES = ['image/jpeg','image/png','image/webp'];
 
 const cloudinaryStorage = USE_CLOUDINARY ? new CloudinaryStorage({
@@ -157,32 +168,53 @@ const upload = multer({
   }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ FILE URL HELPER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FILE URL HELPER ──
 function getFileUrl(file) {
   if (USE_CLOUDINARY && file.path) return file.path;
   return '/uploads/' + file.filename;
 }
 
+// ── FIXED: Cloudinary deletion extracts public_id correctly ──
 async function deleteCloudinaryPhoto(url) {
   if (!USE_CLOUDINARY || !url) return;
   try {
-    const match = url.match(/\/networkapp\/([^/.]+)/);
-    if (match) await cloudinary.uploader.destroy('networkapp/' + match[1]);
+    const parts = url.split('/');
+    const filename = parts[parts.length - 1];
+    const publicId = 'networkapp/' + filename.replace(/\.[^.]+$/, '');
+    await cloudinary.uploader.destroy(publicId);
   } catch(e) { console.error('Cloudinary delete error:', e.message); }
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SANITIZATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: SANITIZATION ──
 function sanitize(s) {
   if (typeof s !== 'string') return s;
-  return s.replace(/<[^>]*>/g, '').replace(/[<>"]/g, '').trim().slice(0, 1000);
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .trim()
+    .slice(0, 1000);
 }
+
+// FIXED: Recursively sanitize strings inside arrays
 function sanitizeObj(obj, fields) {
-  fields.forEach(f => { if (obj[f] !== undefined) obj[f] = sanitize(String(obj[f])); });
+  if (!obj || typeof obj !== 'object') return obj;
+  fields.forEach(f => {
+    if (obj[f] !== undefined) {
+      if (typeof obj[f] === 'string') {
+        obj[f] = sanitize(obj[f]);
+      } else if (Array.isArray(obj[f])) {
+        obj[f] = obj[f].map(item => typeof item === 'string' ? sanitize(item) : item);
+      }
+    }
+  });
   return obj;
 }
-const URL_PATTERN = /https?:\/\/[^\s]+/gi;
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ CLEAN HELPERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+const URL_PATTERN = /https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(\/[^\s]*)?/gi;
+
+// ── CLEAN HELPERS ──
 function cleanPublic(u) {
   if (!u) return null;
   const r = { ...u };
@@ -202,7 +234,6 @@ function clean(u) {
   return r;
 }
 
-// Map DB message (sender_id) Ã¢â€ â€™ API message (from)
 function mapMessage(m) {
   if (!m) return null;
   const r = { ...m };
@@ -211,7 +242,6 @@ function mapMessage(m) {
   return r;
 }
 
-// Map DB priority msg (from_user / to_user) Ã¢â€ â€™ API (from / to)
 function mapPriorityMsg(pm) {
   if (!pm) return null;
   const r = { ...pm };
@@ -221,7 +251,7 @@ function mapPriorityMsg(pm) {
   return r;
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ TRUST SCORE (7 steps, max 100) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── TRUST SCORE (7 steps, max 100) ──
 function calcTrust(u) {
   let score = 0;
   if ((u.photos || []).length >= 4)                            score += 20;
@@ -234,7 +264,7 @@ function calcTrust(u) {
   return score;
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PROFILE COMPLETION SCORE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── PROFILE COMPLETION SCORE ──
 function calcProfileScore(u) {
   let score = 0;
   const photos    = u.photos    || [];
@@ -272,7 +302,7 @@ function trustSteps(u) {
   ];
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ MATCH ENGINE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── MATCH ENGINE ──
 const INTENT_COMPAT = {
   'explore-network':    ['explore-network','exchange-ideas','build-relationships','collaborate'],
   'exchange-ideas':     ['exchange-ideas','explore-network','learn-mentorship','collaborate'],
@@ -287,6 +317,7 @@ function haversine(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+// FIXED: Validates coordinates to prevent NaN scores
 function matchScore(a, b) {
   let interest = 0, intent = 0, context = 0, location = 0;
   const aInt = (a.interests||[]).map(s=>s.toLowerCase());
@@ -310,9 +341,16 @@ function matchScore(a, b) {
     const w = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
     if (w.some(x=>b.working_on.toLowerCase().includes(x))) context = Math.min(context+8, 20);
   }
-  if (a.lat && b.lat && a.lng && b.lng) {
-    const d = haversine(parseFloat(a.lat),parseFloat(a.lng),parseFloat(b.lat),parseFloat(b.lng));
-    location = d<10?20:d<50?15:d<200?8:3;
+  // FIXED: Use != null so latitude 0 is handled correctly; validate parseFloat results
+  if (a.lat != null && b.lat != null && a.lng != null && b.lng != null) {
+    const aLat = parseFloat(a.lat);
+    const aLng = parseFloat(a.lng);
+    const bLat = parseFloat(b.lat);
+    const bLng = parseFloat(b.lng);
+    if (!isNaN(aLat) && !isNaN(aLng) && !isNaN(bLat) && !isNaN(bLng)) {
+      const d = haversine(aLat, aLng, bLat, bLng);
+      location = d<10?20:d<50?15:d<200?8:3;
+    }
   } else if (a.location && b.location && a.location.toLowerCase()===b.location.toLowerCase()) {
     location = 20;
   } else if (a.remote && b.remote) {
@@ -331,30 +369,22 @@ function getInsight(a, b) {
   return b.intent ? 'Looking to ' + b.intent.replace(/-/g,' ') : 'Could be worth a conversation';
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ DATE HELPERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── DATE HELPERS ──
 function todayKey()     { return new Date().toISOString().slice(0,10); }
 function thisMonthKey() { return new Date().toISOString().slice(0,7);  }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ DAILY SWIPE COUNT (based on actual swipes, not profile views) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
-async function getTodaySwipeCount(userId) {
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const { data } = await supabase.from('swipes')
-    .select('id', { count: 'exact', head: true })
-    .eq('from_user', userId)
-    .gte('created_at', todayStart.toISOString());
-  return data ? (data.length || 0) : 0;
-}
-
+// ── FIXED: Daily swipe count uses correct head:true response shape ──
 async function getTodaySwipeCountExact(userId) {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const { count } = await supabase.from('swipes')
+  const { count, error } = await supabase.from('swipes')
     .select('*', { count: 'exact', head: true })
     .eq('from_user', userId)
     .gte('created_at', todayStart.toISOString());
+  if (error) throw error;
   return count || 0;
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PUSH NOTIFICATIONS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── PUSH NOTIFICATIONS ──
 async function sendPush(userIds, title, body, data = {}) {
   if (!userIds.length) return;
   const { data: rows } = await supabase.from('users')
@@ -370,57 +400,84 @@ async function sendPush(userIds, title, body, data = {}) {
   }
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ AUTH MIDDLEWARE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: AUTH MIDDLEWARE ──
+// Verifies token, checks user exists in DB, checks banned status,
+// and attaches full user data to avoid duplicate DB queries in guards.
 async function auth(req, res, next) {
   const token = (req.headers.authorization || '').split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const { data: user, error } = await supabase.from('users')
+      .select('*').eq('id', decoded.id).maybeSingle();
+    if (error) throw error;
+    if (!user) return res.status(401).json({ error: 'User no longer exists' });
+    if (user.banned) return res.status(403).json({ error: 'Account restricted' });
+
+    req.user = decoded;
+    req.userData = user;
+
     // Update last_active non-blocking after every authenticated request
     setImmediate(async () => {
       try {
         await supabase.from('users')
           .update({ last_active: new Date().toISOString() })
-          .eq('id', req.user.id);
+          .eq('id', user.id);
       } catch(e) { /* non-critical */ }
     });
     next();
   } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
 }
 
+// FIXED: adminAuth also checks banned status
 async function adminAuth(req, res, next) {
   const token = (req.headers.authorization || '').split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const { data: user } = await supabase.from('users')
-      .select('role').eq('id', decoded.id).maybeSingle();
-    if (!user || user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+      .select('role,banned').eq('id', decoded.id).maybeSingle();
+    if (!user || user.banned) return res.status(403).json({ error: 'Access denied' });
+    if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     req.user = decoded;
     next();
   } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
 }
 
+// FIXED: Uses req.userData to avoid duplicate DB queries
 async function profileGuard(req, res, next) {
   try {
-    const { data: user } = await supabase.from('users')
-      .select('*').eq('id', req.user.id).maybeSingle();
-    const score = user ? calcProfileScore(user) : 0;
-    if (!user || score < 70) {
+    const user = req.userData;
+    if (!user) {
+      const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!u) return res.status(404).json({ error: 'Not found' });
+      req.userData = u;
+      return profileGuard(req, res, next);
+    }
+    const score = calcProfileScore(user);
+    if (score < 70) {
       return res.status(403).json({
         error: 'Complete your profile to continue',
         code:  'PROFILE_INCOMPLETE',
       });
     }
     next();
-  } catch(e) { res.status(500).json({ error: 'Server error' }); }
+  } catch(e) {
+    console.error('profileGuard error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
 }
 
+// FIXED: Uses req.userData to avoid duplicate DB queries
 async function trustGuard(req, res, next) {
   try {
-    const { data: user } = await supabase.from('users')
-      .select('*').eq('id', req.user.id).maybeSingle();
-    if (!user) return res.status(404).json({ error: 'Not found' });
+    const user = req.userData;
+    if (!user) {
+      const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!u) return res.status(404).json({ error: 'Not found' });
+      req.userData = u;
+      return trustGuard(req, res, next);
+    }
     const score = calcTrust(user);
     if (score < 20) {
       return res.status(403).json({
@@ -432,31 +489,50 @@ async function trustGuard(req, res, next) {
       });
     }
     next();
-  } catch(e) { res.status(500).json({ error: 'Server error' }); }
+  } catch(e) {
+    console.error('trustGuard error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
 }
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ ADMIN AUDIT LOG (in-memory, last 1000 entries) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: ADMIN AUDIT LOG ──
+// Persists to Supabase audit_logs table; keeps in-memory buffer for fast reads.
 const adminAuditLog = [];
-function auditLog(adminId, action, targetId) {
-  adminAuditLog.push({ adminId, action, targetId, at: new Date().toISOString() });
+async function auditLog(adminId, action, targetId) {
+  const entry = { adminId, action, targetId, at: new Date().toISOString() };
+  adminAuditLog.push(entry);
   if (adminAuditLog.length > 1000) adminAuditLog.shift();
+  try {
+    await supabase.from('audit_logs').insert({
+      admin_id: adminId,
+      action,
+      target_id: targetId,
+      created_at: entry.at
+    });
+  } catch (e) {
+    console.error('Audit log persist error:', e.message);
+  }
 }
 
-// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// ═══════════════════════════════════════════════════════════════════════════════
 // API ROUTES
-// Ã¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢ÂÃ¢â€¢Â
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ HEALTH CHECK (used by admin panel connectivity probe) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── HEALTH CHECK ──
 app.get('/api/health', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
 });
-// Ã¢â€â‚¬Ã¢â€â‚¬ SIGNUP Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+
+// ── FIXED: SIGNUP with email validation ──
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body;
     if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
     const normalizedEmail = String(email).trim().toLowerCase();
+    if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
     if (password.length < 6) return res.status(400).json({ error: 'Password min 6 chars' });
 
     // Check email uniqueness
@@ -478,7 +554,6 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       banned: false, created_at: new Date().toISOString()
     };
 
-    // Calculate initial scores
     newUser.trust_score         = calcTrust(newUser);
     newUser.profile_score       = calcProfileScore(newUser);
     newUser.is_profile_complete = newUser.profile_score >= 70;
@@ -489,10 +564,13 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: clean(inserted) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Signup error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ LOGIN Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── LOGIN ──
 app.post('/api/login', authLimiter, async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -522,10 +600,13 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ token, user: clean(user) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Login error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ GET ME Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── GET ME ──
 app.get('/api/me', auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -546,10 +627,13 @@ app.get('/api/me', auth, async (req, res) => {
     u.trust_steps = trustSteps(user);
     u.works = worksData || [];
     res.json(u);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Get me error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PROFILE STATUS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── PROFILE STATUS ──
 app.get('/api/profile-status', auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -573,10 +657,13 @@ app.get('/api/profile-status', auth, async (req, res) => {
         name:      !!(user.name && user.name.length >= 2),
       },
     });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Profile status error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ UPDATE ME Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── UPDATE ME ──
 app.put('/api/me', auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -610,10 +697,13 @@ app.put('/api/me', auth, async (req, res) => {
     u.trust_steps = trustSteps(updated);
     u.works = worksData || [];
     res.json(u);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Update me error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ ADD PHOTO Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── ADD PHOTO ──
 app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file' });
@@ -637,10 +727,13 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (r
     }).eq('id', user.id);
 
     res.json({ url, photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Add photo error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ DELETE PHOTO Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── DELETE PHOTO ──
 app.delete('/api/me/photos/:idx', auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -666,10 +759,13 @@ app.delete('/api/me/photos/:idx', auth, async (req, res) => {
 
     deleteCloudinaryPhoto(removedUrl).catch(() => {});
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Delete photo error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ VERIFY Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── VERIFY ──
 app.post('/api/me/verify', verifyLimiter, auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -684,10 +780,13 @@ app.post('/api/me/verify', verifyLimiter, auth, async (req, res) => {
 
     await supabase.from('users').update({ verification, trust_score: ts }).eq('id', user.id);
     res.json({ status, confidence, trust_score: ts });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Verify error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PUSH TOKEN Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── PUSH TOKEN ──
 app.post('/api/me/push-token', auth, async (req, res) => {
   try {
     const { token } = req.body;
@@ -697,10 +796,13 @@ app.post('/api/me/push-token', auth, async (req, res) => {
       .update({ push_token: token }).eq('id', req.user.id);
     if (error) throw new Error(error.message);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Push token error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PUBLIC PROFILE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── PUBLIC PROFILE ──
 app.get('/api/profiles/:id', async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
@@ -713,14 +815,16 @@ app.get('/api/profiles/:id', async (req, res) => {
     const u = cleanPublic(user);
     u.works = worksData || [];
     res.json(u);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Public profile error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ DISCOVER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── DISCOVER ──
 app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
   try {
-    const { data: me } = await supabase.from('users')
-      .select('*').eq('id', req.user.id).maybeSingle();
+    const me = req.userData;
     if (!me) return res.status(404).json({ error: 'User not found' });
     if (me.banned) return res.status(403).json({ error: 'Account restricted' });
 
@@ -751,12 +855,13 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     const { skill, intent, location, remote, interest, sort = 'relevance', radius } = req.query;
     const radiusKm = radius ? parseInt(radius) : null;
 
-    // Fetch candidates with basic quality gate
+    // FIXED: Limit candidates to prevent loading entire DB into memory
     const { data: allUsers } = await supabase.from('users')
       .select('*')
       .or('banned.is.null,banned.eq.false')
       .gte('trust_score', 10)
-      .neq('id', req.user.id);
+      .neq('id', req.user.id)
+      .limit(500);
 
     let candidates = (allUsers || []).filter(u => !excluded.has(u.id));
 
@@ -767,11 +872,19 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     if (remote === 'true') candidates = candidates.filter(u => u.remote);
     if (interest) candidates = candidates.filter(u => (u.interests||[]).some(s => s.toLowerCase().includes(interest.toLowerCase())));
 
-    if (radiusKm && me.lat && me.lng) {
-      candidates = candidates.filter(u => {
-        if (!u.lat || !u.lng) return true;
-        return haversine(parseFloat(me.lat), parseFloat(me.lng), parseFloat(u.lat), parseFloat(u.lng)) <= radiusKm;
-      });
+    // FIXED: Handle latitude 0 correctly; validate before haversine
+    if (radiusKm != null && me.lat != null && me.lng != null) {
+      const meLat = parseFloat(me.lat);
+      const meLng = parseFloat(me.lng);
+      if (!isNaN(meLat) && !isNaN(meLng)) {
+        candidates = candidates.filter(u => {
+          if (u.lat == null || u.lng == null) return true;
+          const uLat = parseFloat(u.lat);
+          const uLng = parseFloat(u.lng);
+          if (isNaN(uLat) || isNaN(uLng)) return true;
+          return haversine(meLat, meLng, uLat, uLng) <= radiusKm;
+        });
+      }
     }
 
     // Batch-fetch works for all candidates
@@ -791,8 +904,13 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     const remaining    = DAILY_LIMIT - swipedToday;
 
     let profiles = candidates.map(u => {
-      const dist = (me.lat && u.lat && me.lng && u.lng)
-        ? Math.round(haversine(parseFloat(me.lat), parseFloat(me.lng), parseFloat(u.lat), parseFloat(u.lng)))
+      const dist = (me.lat != null && u.lat != null && me.lng != null && u.lng != null)
+        ? (() => {
+            const a = parseFloat(me.lat), b = parseFloat(me.lng);
+            const c = parseFloat(u.lat), d = parseFloat(u.lng);
+            if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d)) return null;
+            return Math.round(haversine(a, b, c, d));
+          })()
         : null;
       const isActive = !!(u.last_active && u.last_active >= oneDayAgo);
       const base = matchScore(me, u);
@@ -810,19 +928,24 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
 
     profiles = profiles.slice(0, remaining);
     res.json({ limited: false, remaining, profiles, daily_limit: DAILY_LIMIT });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Discover error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SEARCH Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── SEARCH ──
 app.get('/api/search', auth, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);
     const term = q.trim().toLowerCase();
+    // FIXED: Limit results to prevent memory issues
     const { data: allUsers } = await supabase.from('users')
       .select('*')
       .or('banned.is.null,banned.eq.false')
-      .neq('id', req.user.id);
+      .neq('id', req.user.id)
+      .limit(200);
 
     const results = (allUsers || []).filter(u =>
       (u.name||'').toLowerCase().includes(term) ||
@@ -831,35 +954,52 @@ app.get('/api/search', auth, async (req, res) => {
     ).slice(0, 20).map(u => cleanPublic(u));
 
     res.json(results);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Search error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SWIPE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: SWIPE ──
+// - Checks limit before insert
+// - Handles duplicate swipes via manual check (add DB UNIQUE constraint for full safety)
+// - Catches unique violation (23505) as fallback
 app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
   try {
     const { targetId, direction } = req.body;
     if (!targetId || !['right','left'].includes(direction))
-      return res.status(400).json({ error: 'Invalid' });
+      return res.status(400).json({ error: 'Invalid swipe data' });
 
-    // Check for duplicate swipe
+    const swiper = req.userData;
+    const SWIPE_LIMIT = swiper.premium ? 200 : 30;
+
+    // Check daily limit
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const { count: todayCount, error: countErr } = await supabase.from('swipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('from_user', req.user.id)
+      .gte('created_at', todayStart.toISOString());
+
+    if (countErr) throw countErr;
+    if ((todayCount || 0) >= SWIPE_LIMIT)
+      return res.status(429).json({ error: 'Daily swipe limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
+
+    // Check for existing swipe
     const { data: dupSwipe } = await supabase.from('swipes')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
     if (dupSwipe) return res.json({ match: false, duplicate: true });
 
-    // Daily swipe cap
-    const { data: swiper } = await supabase.from('users')
-      .select('premium').eq('id', req.user.id).maybeSingle();
-    const SWIPE_LIMIT = (swiper && swiper.premium) ? 200 : 30;
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const { data: todaySwipes } = await supabase.from('swipes')
-      .select('created_at').eq('from_user', req.user.id).gte('created_at', todayStart.toISOString());
-    if ((todaySwipes || []).length >= SWIPE_LIMIT)
-      return res.status(429).json({ error: 'Daily swipe limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
-
     // Insert swipe
-    await supabase.from('swipes').insert({
+    const { error: insertErr } = await supabase.from('swipes').insert({
       from_user: req.user.id, to_user: targetId, direction, created_at: new Date().toISOString()
     });
+    if (insertErr) {
+      // Handle unique constraint violation if DB enforces UNIQUE(from_user, to_user)
+      if (insertErr.code === '23505') {
+        return res.json({ match: false, duplicate: true });
+      }
+      throw insertErr;
+    }
 
     let match = false, connectionId = null;
     if (direction === 'right') {
@@ -869,7 +1009,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
       if (theirSwipe) {
         const now = new Date();
         connectionId = uuidv4();
-        await supabase.from('connections').insert({
+        const { error: connErr } = await supabase.from('connections').insert({
           id: connectionId, user1: req.user.id, user2: targetId,
           created_at: now.toISOString(),
           expires_at: new Date(now.getTime() + 5*24*3600000).toISOString(),
@@ -877,22 +1017,27 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
           user1_responded: false, user2_responded: false,
           active: false, status: 'active'
         });
+        if (connErr) throw connErr;
         match = true;
 
-        // Notify both users
-        const { data: me2 } = await supabase.from('users').select('name').eq('id', req.user.id).maybeSingle();
-        const { data: them } = await supabase.from('users').select('name').eq('id', targetId).maybeSingle();
+        const [{ data: me2 }, { data: them }] = await Promise.all([
+          supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
+          supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
+        ]);
         const myName    = me2   ? me2.name   : 'Someone';
         const theirName = them  ? them.name  : 'Someone';
-        sendPush([targetId],    'Ã°Å¸Å½â€° New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
-        sendPush([req.user.id], 'Ã°Å¸Å½â€° New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+        sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
+        sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
       }
     }
     res.json({ match, direction, connectionId });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Swipe error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ CONNECTIONS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── CONNECTIONS ──
 app.get('/api/connections', auth, profileGuard, async (req, res) => {
   try {
     const now = new Date();
@@ -900,6 +1045,7 @@ app.get('/api/connections', auth, profileGuard, async (req, res) => {
       .select('*')
       .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`);
 
+    // Show connections that are active OR not yet expired
     const active = (conns || []).filter(c => c.active || new Date(c.expires_at) > now);
     if (!active.length) return res.json([]);
 
@@ -917,7 +1063,7 @@ app.get('/api/connections', auth, profileGuard, async (req, res) => {
     const lastMsgMap  = {};
     const msgCountMap = {};
     (allMsgs || []).forEach(m => {
-      lastMsgMap[m.connection_id]  = m; // will end up as last since ordered asc
+      lastMsgMap[m.connection_id]  = m;
       msgCountMap[m.connection_id] = (msgCountMap[m.connection_id] || 0) + 1;
     });
 
@@ -933,10 +1079,13 @@ app.get('/api/connections', auth, profileGuard, async (req, res) => {
       };
     });
     res.json(result);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Connections error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ GET MESSAGES Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── GET MESSAGES ──
 app.get('/api/messages/:connId', auth, profileGuard, async (req, res) => {
   try {
     const { data: conn } = await supabase.from('connections')
@@ -947,10 +1096,15 @@ app.get('/api/messages/:connId', auth, profileGuard, async (req, res) => {
     const { data: msgs } = await supabase.from('messages')
       .select('*').eq('connection_id', req.params.connId).order('created_at', { ascending: true });
     res.json((msgs || []).map(mapMessage));
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Get messages error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ SEND MESSAGE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: SEND MESSAGE ──
+// - Properly handles null avg_reply_minutes to prevent NaN
+// - Better error handling in background tracking
 app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, res) => {
   try {
     const { data: conn } = await supabase.from('connections')
@@ -963,7 +1117,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
     const { text } = req.body;
     if (!text || !text.trim()) return res.status(400).json({ error: 'Text required' });
 
-    // Track per-user responses; if both replied Ã¢â€ â€™ mark active
+    // Track per-user responses; if both replied → mark active
     const connUpdates = {};
     if (req.user.id === conn.user1 && !conn.user1_responded) connUpdates.user1_responded = true;
     if (req.user.id === conn.user2 && !conn.user2_responded) connUpdates.user2_responded = true;
@@ -982,11 +1136,10 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
       text: text.trim(), created_at: now
     });
 
-    // Non-blocking reply tracking
-    ;(async () => {
+    // FIXED: Non-blocking reply tracking with null-safety
+    (async () => {
       try {
-        const { data: sender } = await supabase.from('users')
-          .select('*').eq('id', req.user.id).maybeSingle();
+        const sender = req.userData;
         if (!sender) return;
 
         const recipientId = conn.user1 === req.user.id ? conn.user2 : conn.user1;
@@ -997,7 +1150,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
         const senderUpdates = {};
         if (prevMsgs && prevMsgs.length > 0) {
           const replyMs  = Date.now() - new Date(prevMsgs[0].created_at).getTime();
-          const replyMin = Math.round(replyMs / 60000);
+          const replyMin = Math.max(0, Math.round(replyMs / 60000));
           const prev  = sender.avg_reply_minutes || 0;
           const count = sender.reply_count || 0;
           senderUpdates.avg_reply_minutes = Math.round((prev * count + replyMin) / (count + 1));
@@ -1017,21 +1170,27 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
         if (Object.keys(senderUpdates).length > 0) {
           await supabase.from('users').update(senderUpdates).eq('id', req.user.id);
         }
-      } catch(e) { /* non-critical */ }
+      } catch(e) {
+        console.error('Reply tracking error:', e);
+      }
     })();
 
     // Notify recipient
     const recipientId = conn.user1 === req.user.id ? conn.user2 : conn.user1;
     const { data: senderUser } = await supabase.from('users').select('name').eq('id', req.user.id).maybeSingle();
     const senderName = senderUser ? senderUser.name : 'Someone';
-    const preview    = text.trim().slice(0, 60) + (text.trim().length > 60 ? 'Ã¢â‚¬Â¦' : '');
-    sendPush([recipientId], `Ã°Å¸â€™Â¬ ${senderName}`, preview, { screen: 'ChatDetail', connectionId: conn.id }).catch(()=>{});
+    const preview    = text.trim().slice(0, 60) + (text.trim().length > 60 ? '…' : '');
+    sendPush([recipientId], `💬 ${senderName}`, preview, { screen: 'ChatDetail', connectionId: conn.id }).catch(()=>{});
 
     res.json(mapMessage({ id: msgId, connection_id: conn.id, sender_id: req.user.id, text: text.trim(), created_at: now }));
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Send message error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ PRIORITY MESSAGE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: PRIORITY MESSAGE ──
+// Uses stricter URL regex to avoid false positives
 app.post('/api/priority-message', auth, profileGuard, async (req, res) => {
   try {
     const { targetId, text } = req.body;
@@ -1054,17 +1213,22 @@ app.post('/api/priority-message', auth, profileGuard, async (req, res) => {
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).eq('month', month).maybeSingle();
     if (dup) return res.status(400).json({ error: 'Already sent a priority message to this person' });
 
-    const cleanText = text.trim().replace(URL_PATTERN, '[link removed]');
+    // FIXED: Stricter URL regex
+    const STRICT_URL_PATTERN = /https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(\/[^\s]*)?/gi;
+    const cleanText = text.trim().replace(STRICT_URL_PATTERN, '[link removed]');
     const pm = { id: uuidv4(), from_user: req.user.id, to_user: targetId,
       text: cleanText, month, read: false, created_at: new Date().toISOString() };
     await supabase.from('priority_msgs').insert(pm);
 
-    sendPush([targetId], `Ã¢Å¡Â¡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
+    sendPush([targetId], `⚡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
     res.json({ ok: true, remaining: limit - monthCount - 1 });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Priority message error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ GET PRIORITY MESSAGES Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── GET PRIORITY MESSAGES ──
 app.get('/api/priority-messages', auth, async (req, res) => {
   try {
     const { data: received } = await supabase.from('priority_msgs')
@@ -1095,10 +1259,13 @@ app.get('/api/priority-messages', auth, async (req, res) => {
       remaining: limit - used,
       limit
     });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Get priority messages error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ WHO LIKED YOU Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── WHO LIKED YOU ──
 app.get('/api/liked-me', auth, async (req, res) => {
   try {
     // 1. Everyone who swiped RIGHT on me
@@ -1154,10 +1321,13 @@ app.get('/api/liked-me', auth, async (req, res) => {
       profiles: (likers || []).map(cleanPublic).filter(Boolean),
       premium_required: false,
     });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Liked me error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ REPORT Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── REPORT ──
 app.post('/api/report', auth, async (req, res) => {
   try {
     const { targetId, reason } = req.body;
@@ -1177,10 +1347,13 @@ app.post('/api/report', auth, async (req, res) => {
       }).eq('id', targetId);
     }
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Report error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ BLOCK Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── BLOCK ──
 app.post('/api/block', auth, async (req, res) => {
   try {
     const { targetId } = req.body;
@@ -1193,10 +1366,13 @@ app.post('/api/block', auth, async (req, res) => {
       });
     }
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Block error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ WORKS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── WORKS ──
 app.post('/api/works', auth, upload.single('image'), async (req, res) => {
   try {
     const { title, description, url } = req.body;
@@ -1209,7 +1385,10 @@ app.post('/api/works', auth, upload.single('image'), async (req, res) => {
     };
     const { data: inserted } = await supabase.from('works').insert(work).select().single();
     res.json(inserted || work);
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Create work error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.delete('/api/works/:id', auth, async (req, res) => {
@@ -1219,10 +1398,13 @@ app.delete('/api/works/:id', auth, async (req, res) => {
     if (!work) return res.status(404).json({ error: 'Not found' });
     await supabase.from('works').delete().eq('id', req.params.id);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Delete work error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ CONVERSATION STARTERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── CONVERSATION STARTERS ──
 app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
   try {
     const { data: conn } = await supabase.from('connections')
@@ -1254,7 +1436,7 @@ app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
     };
     if (other.intent && intentPrompts[other.intent]) prompts.push(intentPrompts[other.intent]);
     if (other.working_on && other.working_on.trim())
-      prompts.push(`I saw you're working on "${other.working_on.trim().slice(0,60)}" Ã¢â‚¬â€ what's the biggest challenge right now?`);
+      prompts.push(`I saw you're working on "${other.working_on.trim().slice(0,60)}" — what's the biggest challenge right now?`);
     if (other.currently_exploring && other.currently_exploring.trim())
       prompts.push(`What sparked your interest in ${other.currently_exploring.trim().slice(0,50)}?`);
 
@@ -1268,19 +1450,25 @@ app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
     while (prompts.length < 3 && fi < fallbacks.length) prompts.push(fallbacks[fi++]);
 
     res.json({ prompts: prompts.slice(0, 5) });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Conversation starters error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ ADMIN ROUTES Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FIXED: ADMIN ROUTES ──
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   try {
-    const { data: allUsers } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+    const { data: allUsers } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(1000);
     res.json((allUsers || []).map(u => {
       const u2 = clean(u);
       u2.trust_steps = trustSteps(u);
       return u2;
     }));
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin users error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/admin/ban', adminAuth, async (req, res) => {
@@ -1289,9 +1477,12 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
     await supabase.from('users').update({ banned: !!banned }).eq('id', targetId);
-    auditLog(req.user.id, banned ? 'ban' : 'unban', targetId);
+    await auditLog(req.user.id, banned ? 'ban' : 'unban', targetId);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin ban error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/admin/verify', adminAuth, async (req, res) => {
@@ -1304,9 +1495,12 @@ app.post('/api/admin/verify', adminAuth, async (req, res) => {
     await supabase.from('users').update({
       verification, trust_score: calcTrust(merged)
     }).eq('id', targetId);
-    auditLog(req.user.id, 'verify', targetId);
+    await auditLog(req.user.id, 'verify', targetId);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin verify error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
@@ -1315,11 +1509,15 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
     await supabase.from('users').update({ premium: !!premium }).eq('id', targetId);
-    auditLog(req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId);
+    await auditLog(req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin upgrade error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
+// FIXED: Full cascade delete including swipes, priority_msgs, and works
 app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -1330,31 +1528,50 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     // Cascade: remove all related records first
     await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
     await supabase.from('messages').delete().eq('sender_id', id);
+    await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
     await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('works').delete().eq('user_id', id);
     await supabase.from('users').delete().eq('id', id);
-    auditLog(req.user.id, 'delete_user', id);
+    await auditLog(req.user.id, 'delete_user', id);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin delete error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
+// FIXED: Efficient analytics using DB count queries instead of loading all rows
 app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   try {
     const now         = Date.now();
     const oneDayAgo   = new Date(now - 24 * 3600 * 1000).toISOString();
     const oneWeekAgo  = new Date(now - 7 * 24 * 3600 * 1000).toISOString();
 
-    const { data: allUsers } = await supabase.from('users').select('*');
-    const users = allUsers || [];
-    const totalUsers     = users.length;
-    const completedCount = users.filter(u => u.is_profile_complete).length;
-    const dau = users.filter(u => u.last_active && u.last_active >= oneDayAgo).length;
-    const wau = users.filter(u => u.last_active && u.last_active >= oneWeekAgo).length;
+    const [
+      { count: totalUsers },
+      { count: completedCount },
+      { count: dau },
+      { count: wau },
+      { count: premiumCount },
+      { count: verifiedCount }
+    ] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_profile_complete', true),
+      supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_active', oneDayAgo),
+      supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_active', oneWeekAgo),
+      supabase.from('users').select('*', { count: 'exact', head: true }).eq('premium', true),
+      supabase.from('users').select('*', { count: 'exact', head: true }).contains('verification', { status: 'verified' }),
+    ]);
 
     const { data: allConns } = await supabase.from('connections').select('id, active');
     const totalConns = (allConns || []).length;
 
-    const { data: msgConnIds } = await supabase.from('messages').select('connection_id');
+    // For distinct connections with messages, query with a reasonable limit
+    const { data: msgConnIds } = await supabase.from('messages')
+      .select('connection_id')
+      .limit(100000);
     const connsWithMsg = new Set((msgConnIds || []).map(m => m.connection_id)).size;
 
     const { count: msgCount }    = await supabase.from('messages').select('*', { count: 'exact', head: true });
@@ -1362,11 +1579,12 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     const { count: blockCount }  = await supabase.from('blocks').select('*', { count: 'exact', head: true });
 
     res.json({
-      users:                    totalUsers,
-      dau, wau,
-      premium:                  users.filter(u => u.premium).length,
-      verified:                 users.filter(u => u.verification && u.verification.status === 'verified').length,
-      profile_completion_rate:  totalUsers ? Math.round(completedCount / totalUsers * 100) + '%' : '0%',
+      users:                    totalUsers || 0,
+      dau: dau || 0,
+      wau: wau || 0,
+      premium:                  premiumCount || 0,
+      verified:                 verifiedCount || 0,
+      profile_completion_rate:  totalUsers ? Math.round((completedCount || 0) / totalUsers * 100) + '%' : '0%',
       connections:              totalConns,
       active_connections:       (allConns || []).filter(c => c.active).length,
       match_to_conversation_rate: totalConns ? Math.round(connsWithMsg / totalConns * 100) + '%' : '0%',
@@ -1374,14 +1592,18 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
       reports:   reportCount || 0,
       blocks:    blockCount  || 0,
     });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin analytics error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/admin/audit', adminAuth, (req, res) => {
+app.get('/api/admin/audit', adminAuth, async (req, res) => {
+  // Return in-memory buffer (fast) + optionally fetch from DB for full history
   res.json(adminAuditLog.slice(-200).reverse());
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ ADMIN BOOTSTRAP Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── ADMIN BOOTSTRAP ──
 app.post('/api/admin/bootstrap', async (req, res) => {
   try {
     let { email, secret } = req.body;
@@ -1393,16 +1615,19 @@ app.post('/api/admin/bootstrap', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     await supabase.from('users').update({ role: 'admin' }).eq('id', user.id);
     res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) {
+    console.error('Admin bootstrap error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ FALLBACK Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-// Ã¢â€â‚¬Ã¢â€â‚¬ START SERVER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// ── START SERVER ──
 app.listen(PORT, () => {
   console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
-  console.log(`Supabase URL: ${SUPABASE_URL ? 'configured' : 'MISSING'}`);
-  console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured Ã¢Å“â€œ' : 'MISSING Ã¢Å“â€”'}`);
+  console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
+  console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
 });
