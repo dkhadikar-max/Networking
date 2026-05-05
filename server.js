@@ -1,9 +1,9 @@
 const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
 const express   = require('express');
+const cors = require('cors');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
-const cors      = require('cors');
 const multer    = require('multer');
 const path      = require('path');
 const fs        = require('fs');
@@ -61,24 +61,25 @@ fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
-}));
-app.options('*', cors());
-app.set('trust proxy', 1);
+const corsOptions = {
+  origin: "https://buildyournetwork.online",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+};
 
+// APPLY SAME CONFIG EVERYWHERE
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(express.json());
 // ── RATE LIMITERS ─────────────────────────────────────────────────────────────
+app.use(globalLimiter);
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
 const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
 const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
 const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
-
-app.use(globalLimiter);
 
 // ── REQUEST LOGGER ────────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -89,7 +90,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '1mb' }));
+
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
