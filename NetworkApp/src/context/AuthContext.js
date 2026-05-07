@@ -135,6 +135,7 @@ export function AuthProvider({ children }) {
       token,
       user,
       ready,
+      emailVerified: user?.email_verified === true,
       profileComplete: user?.is_profile_complete === true ||
                        (user?.profile_score != null && user.profile_score >= 70),
       login,

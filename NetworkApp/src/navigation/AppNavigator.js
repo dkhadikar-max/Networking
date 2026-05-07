@@ -6,6 +6,7 @@ import { createStackNavigator }    from '@react-navigation/stack';
 
 import { useAuth }           from '../context/AuthContext';
 import BYNLogo               from '../components/BYNLogo';
+import VerifyEmailScreen     from '../screens/VerifyEmailScreen';
 import LoginScreen           from '../screens/LoginScreen';
 import SignupScreen          from '../screens/SignupScreen';
 import ProfileCompleteScreen from '../screens/ProfileCompleteScreen';
@@ -173,8 +174,16 @@ function ProfileSetupStack() {
   );
 }
 
+function VerifyStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export default function AppNavigator() {
-  const { token, user, ready } = useAuth();
+  const { token, user, ready, emailVerified } = useAuth();
 
   if (!ready) {
     return (
@@ -192,10 +201,30 @@ export default function AppNavigator() {
     );
   }
 
+  // Gate 1: email must be verified before anything else
+  if (!emailVerified) {
+    return (
+      <NavigationContainer theme={navTheme}>
+        <VerifyStack />
+      </NavigationContainer>
+    );
+  }
+
+  // Gate 2: must have at least 1 photo before discovering
+  const hasPhoto = (user?.photos?.length ?? 0) >= 1;
+  if (!hasPhoto) {
+    return (
+      <NavigationContainer theme={navTheme}>
+        <ProfileSetupStack />
+      </NavigationContainer>
+    );
+  }
+
   const profileComplete =
     user?.is_profile_complete === true ||
     (user?.profile_score != null && user.profile_score >= 70);
 
+  // Gate 3: profile must be complete
   if (!profileComplete) {
     return (
       <NavigationContainer theme={navTheme}>

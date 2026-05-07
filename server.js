@@ -36,6 +36,8 @@ const cloudinaryStoragePkg = optionalRequire('multer-storage-cloudinary', {});
 const CloudinaryStorage = cloudinaryStoragePkg.CloudinaryStorage;
 const expoPkg = optionalRequire('expo-server-sdk', { Expo: class { static isExpoPushToken() { return false; } chunkPushNotifications() { return []; } async sendPushNotificationsAsync() { return []; } } });
 const { Expo } = expoPkg;
+const resendPkg = optionalRequire('resend', null);
+const ResendClient = resendPkg ? new resendPkg.Resend(process.env.RESEND_API_KEY || '') : null;
 const { createClient } = require('@supabase/supabase-js');
 const uuidv4 = () => crypto.randomUUID();
 
@@ -262,6 +264,25 @@ function calcTrust(u) {
   if (u.linkedin || u.website || u.instagram)                 score += 10;
   if (u.verification && u.verification.status === 'verified') score += 30;
   return score;
+}
+
+// ── REVIEW TAGS ──
+const REVIEW_TAGS = [
+  'Responsive','Professional','Knowledgeable','Collaborative',
+  'Trustworthy','Inspiring','Well-connected','Good listener',
+  'Helpful','Creative','Reliable','Authentic',
+];
+
+// ── REVIEW SUMMARY HELPER ──
+function buildReviewSummary(reviews) {
+  if (!reviews.length) return { count: 0, avg_rating: 0, top_tags: [] };
+  const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+  const tagCounts = {};
+  reviews.forEach(r => (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+  const top_tags = Object.entries(tagCounts)
+    .sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([tag, count]) => ({ tag, count }));
+  return { count: reviews.length, avg_rating: Math.round(avg * 10) / 10, top_tags };
 }
 
 // ── PROFILE COMPLETION SCORE ──
@@ -527,6 +548,45 @@ app.get('/api/health', (req, res) => {
 // ── FIXED: SIGNUP with email validation ──
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// ── OTP HELPER ──
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+async function sendOtpEmail(toEmail, otp, name) {
+  if (!ResendClient) {
+    console.warn('[OTP] Resend not configured — RESEND_API_KEY missing');
+    return false;
+  }
+  try {
+    const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
+    await ResendClient.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: `${otp} is your Build Your Network verification code`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
+          <h2 style="color:#0F766E;margin-bottom:4px">Build Your Network</h2>
+          <p style="color:#6B7280;font-size:13px;margin-top:0">connect · grow · thrive</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:16px;color:#111827">Hi ${name || 'there'},</p>
+          <p style="font-size:15px;color:#374151">Your verification code is:</p>
+          <div style="background:#F0FDF4;border:2px solid #0F766E;border-radius:12px;padding:24px;text-align:center;margin:20px 0">
+            <span style="font-size:40px;font-weight:700;letter-spacing:10px;color:#0F766E">${otp}</span>
+          </div>
+          <p style="font-size:13px;color:#6B7280">This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
+        </div>
+      `,
+    });
+    return true;
+  } catch(e) {
+    console.error('[OTP] Email send failed:', e.message);
+    return false;
+  }
+}
+
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -558,12 +618,21 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     newUser.profile_score       = calcProfileScore(newUser);
     newUser.is_profile_complete = newUser.profile_score >= 70;
 
+    const otp = generateOtp();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    newUser.otp_code       = otp;
+    newUser.otp_expires_at = otpExpiry;
+    newUser.email_verified = false;
+
     const { data: inserted, error: insertErr } = await supabase.from('users')
       .insert(newUser).select().single();
     if (insertErr) throw new Error(insertErr.message);
 
+    // Send OTP email (non-blocking — don't fail signup if email fails)
+    sendOtpEmail(normalizedEmail, otp, newUser.name).catch(() => {});
+
     const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: clean(inserted) });
+    res.json({ token, user: clean(inserted), email_verified: false });
   } catch(e) {
     console.error('Signup error:', e);
     res.status(500).json({ error: e.message });
@@ -599,9 +668,64 @@ app.post('/api/login', authLimiter, async (req, res) => {
     Object.assign(user, updates);
 
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
-    res.json({ token, user: clean(user) });
+    // If not verified, resend a fresh OTP silently
+    if (!user.email_verified) {
+      const otp = generateOtp();
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      supabase.from('users').update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', user.id).then(() => {
+        sendOtpEmail(user.email, otp, user.name).catch(() => {});
+      });
+    }
+    res.json({ token, user: clean(user), email_verified: !!user.email_verified });
   } catch(e) {
     console.error('Login error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── SEND / RESEND OTP ──
+app.post('/api/auth/send-otp', authLimiter, auth, async (req, res) => {
+  try {
+    const { data: user } = await supabase.from('users')
+      .select('email, name, email_verified').eq('id', req.user.id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.email_verified) return res.json({ ok: true, already_verified: true });
+
+    const otp = generateOtp();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await supabase.from('users')
+      .update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', req.user.id);
+
+    const sent = await sendOtpEmail(user.email, otp, user.name);
+    res.json({ ok: true, sent });
+  } catch(e) {
+    console.error('Send OTP error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── VERIFY OTP ──
+app.post('/api/auth/verify-otp', auth, async (req, res) => {
+  try {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Code required' });
+
+    const { data: user } = await supabase.from('users')
+      .select('otp_code, otp_expires_at, email_verified').eq('id', req.user.id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.email_verified) return res.json({ ok: true, already_verified: true });
+    if (!user.otp_code) return res.status(400).json({ error: 'No verification code found — request a new one' });
+    if (new Date() > new Date(user.otp_expires_at))
+      return res.status(400).json({ error: 'Code expired — request a new one' });
+    if (String(code).trim() !== String(user.otp_code))
+      return res.status(400).json({ error: 'Incorrect code' });
+
+    await supabase.from('users')
+      .update({ email_verified: true, otp_code: null, otp_expires_at: null }).eq('id', req.user.id);
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Verify OTP error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -809,14 +933,114 @@ app.get('/api/profiles/:id', async (req, res) => {
       .select('*').eq('id', req.params.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
 
-    const { data: worksData } = await supabase.from('works')
-      .select('*').eq('user_id', user.id);
+    const [{ data: worksData }, { data: userConns }, { data: reviews }] = await Promise.all([
+      supabase.from('works').select('*').eq('user_id', user.id),
+      supabase.from('connections').select('user1,user2').or(`user1.eq.${user.id},user2.eq.${user.id}`),
+      supabase.from('user_reviews').select('rating,tags').eq('reviewed_id', user.id),
+    ]);
 
     const u = cleanPublic(user);
-    u.works = worksData || [];
+    u.works            = worksData || [];
+    u.connections_count = (userConns || []).length;
+    u.review_summary   = buildReviewSummary(reviews || []);
+
+    // Optional auth — mutual connections + is_connected + my_review
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
+        if (decoded?.id && decoded.id !== user.id) {
+          const viewerId = decoded.id;
+          const targetConnSet = new Set(
+            (userConns || []).map(c => c.user1 === user.id ? c.user2 : c.user1)
+          );
+          const { data: viewerConns } = await supabase.from('connections')
+            .select('user1,user2').or(`user1.eq.${viewerId},user2.eq.${viewerId}`);
+          const viewerConnSet = new Set(
+            (viewerConns || []).map(c => c.user1 === viewerId ? c.user2 : c.user1)
+          );
+          u.is_connected = viewerConnSet.has(user.id);
+          let mutual = 0;
+          viewerConnSet.forEach(id => { if (targetConnSet.has(id)) mutual++; });
+          u.mutual_count = mutual;
+          if (u.is_connected) {
+            const { data: myReview } = await supabase.from('user_reviews')
+              .select('*').eq('reviewer_id', viewerId).eq('reviewed_id', user.id).maybeSingle();
+            u.my_review = myReview || null;
+          }
+        }
+      } catch {} // invalid token — skip enrichment
+    }
+
     res.json(u);
   } catch(e) {
     console.error('Public profile error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── SUBMIT / UPDATE REVIEW ──
+app.post('/api/users/:id/review', auth, async (req, res) => {
+  try {
+    const reviewedId = req.params.id;
+    if (reviewedId === req.user.id)
+      return res.status(400).json({ error: 'Cannot review yourself' });
+
+    const { rating, tags } = req.body;
+    const r = parseInt(rating);
+    if (!r || r < 1 || r > 5)
+      return res.status(400).json({ error: 'Rating must be 1–5' });
+
+    const validTags = (Array.isArray(tags) ? tags : [])
+      .filter(t => REVIEW_TAGS.includes(t)).slice(0, 5);
+
+    // Must be connected
+    const { data: conn } = await supabase.from('connections')
+      .select('id')
+      .or(`and(user1.eq.${req.user.id},user2.eq.${reviewedId}),and(user1.eq.${reviewedId},user2.eq.${req.user.id})`)
+      .maybeSingle();
+    if (!conn) return res.status(403).json({ error: 'You must be connected to review this person' });
+
+    const { data, error: upsertErr } = await supabase.from('user_reviews').upsert({
+      reviewer_id: req.user.id,
+      reviewed_id: reviewedId,
+      rating: r,
+      tags: validTags,
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'reviewer_id,reviewed_id' }).select().single();
+    if (upsertErr) throw new Error(upsertErr.message);
+
+    // Update trust score of reviewed user to reflect new peer feedback
+    const { data: allReviews } = await supabase.from('user_reviews')
+      .select('rating').eq('reviewed_id', reviewedId);
+    const avgRating = allReviews?.length
+      ? allReviews.reduce((s, rv) => s + rv.rating, 0) / allReviews.length : 0;
+    const peerBonus = (allReviews?.length >= 3 && avgRating >= 4) ? 20 : 0;
+    const { data: reviewedUser } = await supabase.from('users')
+      .select('*').eq('id', reviewedId).maybeSingle();
+    if (reviewedUser) {
+      const baseTrust = calcTrust(reviewedUser);
+      await supabase.from('users')
+        .update({ trust_score: Math.min(baseTrust + peerBonus, 120) })
+        .eq('id', reviewedId);
+    }
+
+    res.json(data);
+  } catch(e) {
+    console.error('Review error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET REVIEW SUMMARY ──
+app.get('/api/users/:id/reviews', async (req, res) => {
+  try {
+    const { data: reviews } = await supabase.from('user_reviews')
+      .select('rating,tags,created_at')
+      .eq('reviewed_id', req.params.id)
+      .order('created_at', { ascending: false });
+    res.json(buildReviewSummary(reviews || []));
+  } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
@@ -827,6 +1051,8 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     const me = req.userData;
     if (!me) return res.status(404).json({ error: 'User not found' });
     if (me.banned) return res.status(403).json({ error: 'Account restricted' });
+    if (!me.photos || me.photos.length < 1)
+      return res.status(403).json({ error: 'Add at least one photo to start discovering people', code: 'NO_PHOTO' });
 
     const DAILY_LIMIT = me.premium ? 200 : 30;
     const swipedToday = await getTodaySwipeCountExact(req.user.id);
