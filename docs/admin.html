@@ -165,11 +165,9 @@ tbody td{padding:11px 14px;vertical-align:middle}
 <div id="toast"></div>
 
 <script>
-// API targets Railway backend directly.
-// Once DNS propagates for buildyournetwork.online, update this to that domain.
 const API = (location.hostname==='localhost'||location.hostname==='127.0.0.1')
   ? 'http://localhost:3000'
-  : 'https://a3mtyxvq.up.railway.app';
+  : 'https://buildyournetwork.online';
 
 let TOKEN='', ADMIN=null, allUsers=[];
 
