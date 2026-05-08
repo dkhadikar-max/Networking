@@ -744,14 +744,9 @@ app.post('/api/login', authLimiter, async (req, res) => {
     Object.assign(user, updates);
 
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
-    // If not verified, resend a fresh OTP silently
-    if (!user.email_verified) {
-      const otp = generateOtp();
-      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-      supabase.from('users').update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', user.id).then(() => {
-        sendOtpEmail(user.email, otp, user.name).catch(() => {});
-      });
-    }
+    // NOTE: OTP is NOT auto-sent on login. The client calls /api/auth/send-otp
+    // explicitly when it detects email_verified === false, so the user sees a
+    // proper "Sending code…" state rather than a silent background fire-and-forget.
     res.json({ token, user: clean(user), email_verified: !!user.email_verified });
   } catch(e) {
     console.error('Login error:', e);
@@ -774,7 +769,14 @@ app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
       .update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', req.user.id);
 
     const sent = await sendOtpEmail(user.email, otp, user.name);
-    res.json({ ok: true, sent });
+    if (!sent) {
+      // Email delivery failed — surface a real error so the client shows it to the user
+      console.error(`[OTP] Delivery failed for ${user.email} — check RESEND_API_KEY and RESEND_FROM env vars`);
+      return res.status(503).json({
+        error: 'Could not send verification email. Please check your email address or try again shortly.',
+      });
+    }
+    res.json({ ok: true });
   } catch(e) {
     console.error('Send OTP error:', e);
     res.status(500).json({ error: e.message });
