@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }    from '@react-navigation/stack';
+import { useSafeAreaInsets }       from 'react-native-safe-area-context';
 
 import { useAuth }           from '../context/AuthContext';
 import BYNLogo               from '../components/BYNLogo';
@@ -127,6 +128,12 @@ function ProfileStack() {
 }
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  // On iPhone X+ the home indicator sits below the tab bar.
+  // We add the bottom safe-area inset so nothing is clipped.
+  const tabBarHeight   = 52 + insets.bottom;
+  const tabBarPadding  = Math.max(6, insets.bottom);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -137,8 +144,9 @@ function MainTabs() {
           backgroundColor: '#FFFFFF',
           borderTopWidth:  1,
           borderTopColor:  'rgba(0,0,0,0.06)',
-          height:          60,
-          paddingBottom:   8,
+          height:          tabBarHeight,
+          paddingBottom:   tabBarPadding,
+          paddingTop:      6,
           shadowColor:     '#000',
           shadowOpacity:   0.06,
           shadowRadius:    8,

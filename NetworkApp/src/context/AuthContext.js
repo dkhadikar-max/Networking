@@ -1,8 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import api from '../utils/api';
+
+// Resolve EAS project ID — required by expo-notifications on real devices (iOS + Android)
+const EAS_PROJECT_ID =
+  Constants?.expoConfig?.extra?.eas?.projectId ??
+  Constants?.easConfig?.projectId ??
+  'f01fcb05-0fe1-4d67-84f3-6e82bfd47200';
 
 const AuthContext = createContext(null);
 
@@ -35,7 +42,7 @@ async function registerPushToken() {
       });
     }
 
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId: EAS_PROJECT_ID });
     return tokenData.data; // e.g. ExponentPushToken[xxxx]
   } catch (e) {
     console.log('[Push] Token error:', e.message);

@@ -1,88 +1,137 @@
 /**
- * BYNLogo — symbol-only mark (no text), light + dark variants.
- * Pure React Native (no react-native-svg dependency).
+ * BYNLogo — matches the actual app icon exactly.
+ *
+ * Logo geometry (from 100×100 viewBox in upgrade.html SVG):
+ *   Top-left node  at (37, 35): teal, small   — r_outer=13, r_inner=8
+ *   Bottom-left    at (37, 64): orange, medium — r_outer=11, r_inner=6.5
+ *   Right          at (65, 52): teal, large    — r_outer=17, r_inner=11
+ *   Lines: thick white strokes connecting all three nodes
+ *
+ * All coordinates and radii scale linearly with `size`.
+ *
  * Usage:
- *   <BYNLogo size={32} />           // default light-bg variant
- *   <BYNLogo size={32} dark />      // dark-surface variant (white mark)
- *   <BYNLogo size={96} splash />    // splash variant (larger node dots)
+ *   <BYNLogo size={32} />        // symbol on light bg (lines in teal)
+ *   <BYNLogo size={32} dark />   // symbol on dark bg (lines in white)
+ *   <BYNLogo size={32} onTeal /> // symbol on teal bg (lines + nodes white)
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 
-const PRIMARY   = '#0F766E';
-const PRIMARY_S = '#14B8A6';
-const WHITE     = '#FFFFFF';
+const TEAL   = '#0F766E';
+const ORANGE = '#F97316';
+const WHITE  = '#FFFFFF';
 
-export default function BYNLogo({ size = 32, dark = false, splash = false }) {
-  const S = size;
+// Geometry constants in 100-unit space — mirrors the SVG in upgrade.html exactly
+const GEO = {
+  topL:  { x: 37, y: 35, rO: 13,  rI: 8,   fill: TEAL   },
+  botL:  { x: 37, y: 64, rO: 11,  rI: 6.5, fill: ORANGE },
+  right: { x: 65, y: 52, rO: 17,  rI: 11,  fill: TEAL   },
+  lineW: 6.5,
+};
 
-  // Triangle geometry — equilateral, pointing up
-  // Top node: center-top
-  // Bottom-left: lower-left
-  // Bottom-right: lower-right
-  const nodeR   = splash ? S * 0.13 : S * 0.115;
-  const lineW   = Math.max(1, S * 0.04);
-  const dotColor = dark ? WHITE      : PRIMARY;
-  const lineColor = dark ? 'rgba(255,255,255,0.55)' : PRIMARY_S;
+function sc(val, size) { return (val / 100) * size; }
 
-  // Node centers (relative to container S×S)
-  const top  = { x: S * 0.5,  y: S * 0.10 };
-  const botL = { x: S * 0.10, y: S * 0.88 };
-  const botR = { x: S * 0.90, y: S * 0.88 };
+function ScaledLine({ from, to, lineW, color, size }) {
+  const x1 = sc(from.x, size);
+  const y1 = sc(from.y, size);
+  const x2 = sc(to.x,   size);
+  const y2 = sc(to.y,   size);
 
-  return (
-    <View style={{ width: S, height: S }} accessibilityLabel="Build Your Network logo" accessibilityRole="image">
-      {/* ── Lines ── */}
-      <Line from={top} to={botL} color={lineColor} lineW={lineW} containerSize={S} />
-      <Line from={top} to={botR} color={lineColor} lineW={lineW} containerSize={S} />
-      <Line from={botL} to={botR} color={lineColor} lineW={lineW} containerSize={S} />
-
-      {/* ── Nodes ── */}
-      <Node cx={top.x}  cy={top.y}  r={nodeR} color={dotColor} />
-      <Node cx={botL.x} cy={botL.y} r={nodeR} color={dotColor} />
-      <Node cx={botR.x} cy={botR.y} r={nodeR} color={dotColor} />
-    </View>
-  );
-}
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function Node({ cx, cy, r, color }) {
-  return (
-    <View
-      style={{
-        position:        'absolute',
-        width:           r * 2,
-        height:          r * 2,
-        borderRadius:    r,
-        backgroundColor: color,
-        left:            cx - r,
-        top:             cy - r,
-      }}
-    />
-  );
-}
-
-function Line({ from, to, color, lineW, containerSize: _S }) {
-  const dx   = to.x - from.x;
-  const dy   = to.y - from.y;
-  const len  = Math.sqrt(dx * dx + dy * dy);
+  const dx    = x2 - x1;
+  const dy    = y2 - y1;
+  const len   = Math.sqrt(dx * dx + dy * dy);
   const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-  const midX = (from.x + to.x) / 2;
-  const midY = (from.y + to.y) / 2;
+  const midX  = (x1 + x2) / 2;
+  const midY  = (y1 + y2) / 2;
+  const lw    = sc(lineW, size);
 
   return (
     <View
       style={{
         position:        'absolute',
         width:           len,
-        height:          lineW,
+        height:          lw,
         backgroundColor: color,
-        borderRadius:    lineW / 2,
+        borderRadius:    lw / 2,
         left:            midX - len / 2,
-        top:             midY - lineW / 2,
+        top:             midY - lw / 2,
         transform:       [{ rotate: `${angle}deg` }],
       }}
     />
+  );
+}
+
+function ScaledNode({ node, size, onTeal }) {
+  const cx     = sc(node.x,  size);
+  const cy     = sc(node.y,  size);
+  const rOuter = sc(node.rO, size);
+  const rInner = sc(node.rI, size);
+  // On teal backgrounds every node renders as white
+  const dotColor = onTeal ? WHITE : node.fill;
+
+  return (
+    <>
+      {/* White halo ring */}
+      <View
+        style={{
+          position:        'absolute',
+          width:           rOuter * 2,
+          height:          rOuter * 2,
+          borderRadius:    rOuter,
+          backgroundColor: WHITE,
+          left:            cx - rOuter,
+          top:             cy - rOuter,
+        }}
+      />
+      {/* Colored fill dot */}
+      <View
+        style={{
+          position:        'absolute',
+          width:           rInner * 2,
+          height:          rInner * 2,
+          borderRadius:    rInner,
+          backgroundColor: dotColor,
+          left:            cx - rInner,
+          top:             cy - rInner,
+        }}
+      />
+    </>
+  );
+}
+
+export default function BYNLogo({ size = 32, dark = false, onTeal = false }) {
+  // Lines: white on teal/dark backgrounds, teal-medium on light backgrounds
+  const lineColor = (dark || onTeal) ? WHITE : '#14B8A6';
+
+  const nodes = [GEO.topL, GEO.botL, GEO.right];
+  const edges = [
+    { from: GEO.topL, to: GEO.right },
+    { from: GEO.topL, to: GEO.botL  },
+    { from: GEO.botL, to: GEO.right },
+  ];
+
+  return (
+    <View
+      style={{ width: size, height: size }}
+      accessibilityLabel="Build Your Network"
+      accessibilityRole="image"
+    >
+      {/* Lines rendered behind nodes */}
+      {edges.map((e, i) => (
+        <ScaledLine
+          key={i}
+          from={e.from}
+          to={e.to}
+          lineW={GEO.lineW}
+          color={lineColor}
+          size={size}
+        />
+      ))}
+
+      {/* Nodes rendered on top of lines */}
+      {nodes.map((n, i) => (
+        <ScaledNode key={i} node={n} size={size} onTeal={onTeal} />
+      ))}
+    </View>
   );
 }
