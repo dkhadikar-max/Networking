@@ -165,6 +165,10 @@ app.use(express.json({
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Named HTML routes (express.static only serves /upgrade.html, not /upgrade)
+app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
+app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+
 // ── MULTER / STORAGE ──
 const ALLOWED_MIMETYPES = ['image/jpeg','image/png','image/webp'];
 
