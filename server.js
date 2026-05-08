@@ -139,12 +139,20 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 // ── RATE LIMITERS ──
-const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
+const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
-const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
-const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
-const verifyLimiter = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' } });
-const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
+const authLimiter       = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
+const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
+const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' } });
+const msgLimiter        = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
+// BUG FIX 2: Bootstrap brute-force — strict limiter, independent of auth limiter
+const bootstrapLimiter  = rateLimit({ windowMs: 60*60*1000, max: 10, message: { error: 'Too many bootstrap attempts' } });
+// BUG FIX 4: OTP send — own strict limiter so it can't share quota with login
+const otpSendLimiter    = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many OTP requests — wait 15 minutes' } });
+// BUG FIX 3: Works creation — prevent spam
+const worksLimiter      = rateLimit({ windowMs: 60*1000, max: 5, message: { error: 'Works creation rate limit reached' } });
+// BUG FIX 9: Public profile scraping — per-IP cap
+const profileViewLimiter = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Too many profile requests' } });
 
 app.use(globalLimiter);
 
@@ -494,19 +502,30 @@ async function auth(req, res, next) {
   }
 }
 
-// FIXED: adminAuth also checks banned status
+// BUG FIX 7: adminAuth now splits JWT errors (401) from DB errors (503), matching auth()
 async function adminAuth(req, res, next) {
   const token = (req.headers.authorization || '').split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
+
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const { data: user } = await supabase.from('users')
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  try {
+    const { data: user, error } = await supabase.from('users')
       .select('role,banned').eq('id', decoded.id).maybeSingle();
+    if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
     if (!user || user.banned) return res.status(403).json({ error: 'Access denied' });
     if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
     req.user = decoded;
     next();
-  } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
+  } catch (e) {
+    console.error('adminAuth DB error:', e.message);
+    res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+  }
 }
 
 // FIXED: Uses req.userData to avoid duplicate DB queries
@@ -729,7 +748,8 @@ app.post('/api/login', authLimiter, async (req, res) => {
 });
 
 // ── SEND / RESEND OTP ──
-app.post('/api/auth/send-otp', authLimiter, auth, async (req, res) => {
+// BUG FIX 4: Use dedicated otpSendLimiter (5/15min) not authLimiter (50/15min shared with login)
+app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
       .select('email, name, email_verified').eq('id', req.user.id).maybeSingle();
@@ -975,7 +995,8 @@ app.post('/api/me/push-token', auth, async (req, res) => {
 });
 
 // ── PUBLIC PROFILE ──
-app.get('/api/profiles/:id', async (req, res) => {
+// BUG FIX 9: Added per-IP rate limit to prevent scraping all user profiles
+app.get('/api/profiles/:id', profileViewLimiter, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
       .select('*').eq('id', req.params.id).maybeSingle();
@@ -1209,7 +1230,8 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
 });
 
 // ── SEARCH ──
-app.get('/api/search', auth, async (req, res) => {
+// BUG FIX 8: Added profileGuard + trustGuard — search was bypassing discovery restrictions
+app.get('/api/search', auth, profileGuard, trustGuard, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);
@@ -1403,7 +1425,9 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
       return res.status(400).json({ error: 'Connection expired' });
 
     const { text } = req.body;
+    // BUG FIX 5: Enforce max message length to prevent storage bloat and client crashes
     if (!text || !text.trim()) return res.status(400).json({ error: 'Text required' });
+    if (text.trim().length > 2000) return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
 
     // Track per-user responses; if both replied → mark active
     const connUpdates = {};
@@ -1483,6 +1507,8 @@ app.post('/api/priority-message', auth, profileGuard, async (req, res) => {
   try {
     const { targetId, text } = req.body;
     if (!targetId || !text) return res.status(400).json({ error: 'targetId and text required' });
+    // BUG FIX 6: Enforce max priority message length
+    if (text.trim().length > 500) return res.status(400).json({ error: 'Priority message too long (max 500 characters)' });
 
     const { data: sender } = await supabase.from('users')
       .select('*').eq('id', req.user.id).maybeSingle();
@@ -1691,13 +1717,33 @@ app.post('/api/block', auth, async (req, res) => {
 });
 
 // ── WORKS ──
-app.post('/api/works', auth, upload.single('image'), async (req, res) => {
+// BUG FIX 3: Added worksLimiter + per-user cap (20) + sanitize all fields + URL validation
+const SAFE_URL_REGEX = /^https?:\/\/[^\s<>"']+$/i;
+app.post('/api/works', worksLimiter, auth, upload.single('image'), async (req, res) => {
   try {
-    const { title, description, url } = req.body;
+    let { title, description, url } = req.body;
     if (!title) return res.status(400).json({ error: 'Title required' });
+
+    // Sanitize and cap all text fields
+    title       = sanitize(String(title)).slice(0, 120);
+    description = sanitize(String(description || '')).slice(0, 500);
+
+    // URL must be http/https — reject javascript: and data: schemes
+    if (url && url.trim()) {
+      url = url.trim();
+      if (!SAFE_URL_REGEX.test(url)) return res.status(400).json({ error: 'Invalid URL — must start with http:// or https://' });
+      url = url.slice(0, 300);
+    } else {
+      url = '';
+    }
+
+    // Per-user cap: max 20 works
+    const { count: workCount } = await supabase.from('works')
+      .select('*', { count: 'exact', head: true }).eq('user_id', req.user.id);
+    if ((workCount || 0) >= 20) return res.status(400).json({ error: 'Maximum 20 works allowed' });
+
     const work = {
-      id: uuidv4(), user_id: req.user.id, title,
-      description: description || '', url: url || '',
+      id: uuidv4(), user_id: req.user.id, title, description, url,
       image: req.file ? getFileUrl(req.file) : '',
       created_at: new Date().toISOString()
     };
@@ -1922,7 +1968,8 @@ app.get('/api/admin/audit', adminAuth, async (req, res) => {
 });
 
 // ── ADMIN BOOTSTRAP ──
-app.post('/api/admin/bootstrap', async (req, res) => {
+// BUG FIX 2: bootstrapLimiter (10/hr) prevents brute-forcing ADMIN_SECRET
+app.post('/api/admin/bootstrap', bootstrapLimiter, async (req, res) => {
   try {
     let { email, secret } = req.body;
     if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Invalid secret' });
@@ -2050,6 +2097,16 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     if (expected !== razorpay_signature)
       return res.status(400).json({ error: 'Invalid payment signature — possible tampering' });
 
+    // BUG FIX 1: Replay-attack guard — reject any payment_id already consumed
+    // Without this, anyone holding a valid {order_id, payment_id, signature} tuple can
+    // replay it on a different account and get free premium.
+    const { data: existingPayment } = await supabase.from('payments')
+      .select('id, user_id')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .maybeSingle();
+    if (existingPayment)
+      return res.status(409).json({ error: 'Payment already redeemed — replay attack detected' });
+
     // Look up plan to calculate expiry
     const planDef = PLANS[plan] || PLANS.monthly;
     const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
@@ -2106,10 +2163,17 @@ app.post('/api/payments/verify', auth, async (req, res) => {
 // Events to subscribe: payment.captured
 app.post('/api/payments/webhook', async (req, res) => {
   try {
+    // BUG FIX 10: Webhook secret must be its own env var — never fall back to key_secret
+    // (they are different values; Razorpay signs webhooks with a separate secret)
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('RAZORPAY_WEBHOOK_SECRET not configured — rejecting webhook');
+      return res.status(503).json({ error: 'Webhook not configured' });
+    }
+
     const sig  = req.headers['x-razorpay-signature'];
     const body = req.rawBody; // raw Buffer captured by express.json verify callback
-    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET || '')
-      .update(body).digest('hex');
+    const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
 
     if (sig !== expected) return res.status(400).json({ error: 'Invalid webhook signature' });
 
