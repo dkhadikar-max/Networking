@@ -37,7 +37,11 @@ const CloudinaryStorage = cloudinaryStoragePkg.CloudinaryStorage;
 const expoPkg = optionalRequire('expo-server-sdk', { Expo: class { static isExpoPushToken() { return false; } chunkPushNotifications() { return []; } async sendPushNotificationsAsync() { return []; } } });
 const { Expo } = expoPkg;
 const resendPkg = optionalRequire('resend', null);
-const ResendClient = resendPkg ? new resendPkg.Resend(process.env.RESEND_API_KEY || '') : null;
+// Only create the Resend client if both the package is available AND an API key is set.
+// Creating with an empty string produces a client that silently fails on every send.
+const ResendClient = (resendPkg && process.env.RESEND_API_KEY)
+  ? new resendPkg.Resend(process.env.RESEND_API_KEY)
+  : null;
 const razorpayPkg = optionalRequire('razorpay', null);
 const razorpay = (razorpayPkg && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
   ? new razorpayPkg({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
@@ -631,11 +635,15 @@ function generateOtp() {
 
 async function sendOtpEmail(toEmail, otp, name) {
   if (!ResendClient) {
-    console.warn('[OTP] Resend not configured — RESEND_API_KEY missing');
+    console.error('[OTP] Resend client not created — RESEND_API_KEY env var is missing or empty in Railway');
     return false;
   }
+  // onboarding@resend.dev is a Resend sandbox sender that ONLY delivers to the
+  // Resend account owner's email. For production, set RESEND_FROM to an address
+  // on a verified domain (e.g. noreply@buildyournetwork.online).
+  const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
+  console.log(`[OTP] Sending from="${FROM}" to="${toEmail}"`);
   try {
-    const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
     await ResendClient.emails.send({
       from: FROM,
       to: toEmail,
@@ -658,7 +666,8 @@ async function sendOtpEmail(toEmail, otp, name) {
     });
     return true;
   } catch(e) {
-    console.error('[OTP] Email send failed:', e.message);
+    // Log full error so Railway shows exactly what Resend rejected (e.g. 403 domain not verified)
+    console.error('[OTP] Email send failed:', e.message, e.statusCode ?? '', JSON.stringify(e.response ?? {}));
     return false;
   }
 }
