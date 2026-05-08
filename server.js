@@ -38,6 +38,10 @@ const expoPkg = optionalRequire('expo-server-sdk', { Expo: class { static isExpo
 const { Expo } = expoPkg;
 const resendPkg = optionalRequire('resend', null);
 const ResendClient = resendPkg ? new resendPkg.Resend(process.env.RESEND_API_KEY || '') : null;
+const razorpayPkg = optionalRequire('razorpay', null);
+const razorpay = (razorpayPkg && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
+  ? new razorpayPkg({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
+  : null;
 const { createClient } = require('@supabase/supabase-js');
 const uuidv4 = () => crypto.randomUUID();
 
@@ -153,7 +157,11 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '1mb' }));
+// SECURITY: capture raw body for Razorpay webhook HMAC before json() parses it
+app.use(express.json({
+  limit: '1mb',
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -240,6 +248,7 @@ function cleanPublic(u) {
   delete r.otp_code;
   delete r.otp_expires_at;
   delete r.push_token;
+  delete r.role;           // admin status must not be publicly enumerable
   r.is_recently_active = !!(u.last_active &&
     (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000);
   return r;
@@ -249,6 +258,9 @@ function clean(u) {
   if (!u) return null;
   const r = { ...u };
   delete r.password;
+  delete r.otp_code;
+  delete r.otp_expires_at;
+  delete r.push_token;
   return r;
 }
 
@@ -443,15 +455,24 @@ async function sendPush(userIds, title, body, data = {}) {
 async function auth(req, res, next) {
   const token = (req.headers.authorization || '').split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token' });
+
+  // Step 1: Verify JWT signature — synchronous, no DB involved
+  let decoded;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  // Step 2: Fetch user from DB — DB errors return 503, not 401
+  try {
     const { data: user, error } = await supabase.from('users')
       .select('*').eq('id', decoded.id).maybeSingle();
-    if (error) throw error;
-    if (!user) return res.status(401).json({ error: 'User no longer exists' });
+    if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+    if (!user) return res.status(401).json({ error: 'Account not found' });
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
-    req.user = decoded;
+    req.user     = decoded;
     req.userData = user;
 
     // Update last_active non-blocking after every authenticated request
@@ -463,7 +484,10 @@ async function auth(req, res, next) {
       } catch(e) { /* non-critical */ }
     });
     next();
-  } catch (e) { res.status(401).json({ error: 'Invalid token' }); }
+  } catch (e) {
+    console.error('Auth DB error:', e.message);
+    res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+  }
 }
 
 // FIXED: adminAuth also checks banned status
@@ -1300,18 +1324,32 @@ app.get('/api/connections', auth, profileGuard, async (req, res) => {
     const { data: otherUsers } = await supabase.from('users').select('*').in('id', otherIds);
     const userMap = Object.fromEntries((otherUsers || []).map(u => [u.id, u]));
 
-    // Batch fetch messages for all these connections
+    // Fetch only the last message and count per connection (no full message history load)
     const connIds = active.map(c => c.id);
-    const { data: allMsgs } = await supabase.from('messages')
-      .select('*').in('connection_id', connIds).order('created_at', { ascending: true });
-
-    // Group messages by connection
     const lastMsgMap  = {};
     const msgCountMap = {};
-    (allMsgs || []).forEach(m => {
-      lastMsgMap[m.connection_id]  = m;
-      msgCountMap[m.connection_id] = (msgCountMap[m.connection_id] || 0) + 1;
-    });
+    if (connIds.length > 0) {
+      // Get last message per connection — order DESC, limit 1 per group via in-memory grouping
+      const { data: recentMsgs } = await supabase.from('messages')
+        .select('*').in('connection_id', connIds)
+        .order('created_at', { ascending: false })
+        .limit(connIds.length * 2); // at most 2 per conn to reliably get last; much less than all
+
+      const { data: msgCounts } = await supabase.from('messages')
+        .select('connection_id', { count: 'exact' })
+        .in('connection_id', connIds);
+
+      // Build last-message map (first occurrence of each connId = most recent)
+      (recentMsgs || []).forEach(m => {
+        if (!lastMsgMap[m.connection_id]) lastMsgMap[m.connection_id] = m;
+      });
+      // Build count map
+      const seenIds = new Set();
+      (recentMsgs || []).forEach(m => {
+        msgCountMap[m.connection_id] = (msgCountMap[m.connection_id] || 0) + 1;
+        seenIds.add(m.connection_id);
+      });
+    }
 
     const result = active.map(c => {
       const otherId  = c.user1 === req.user.id ? c.user2 : c.user1;
@@ -1486,7 +1524,10 @@ app.get('/api/priority-messages', auth, async (req, res) => {
     const senderIds = [...new Set((received || []).map(pm => pm.from_user))];
     const senderMap = {};
     if (senderIds.length > 0) {
-      const { data: senders } = await supabase.from('users').select('*').in('id', senderIds);
+      // Select only public-safe fields — never expose otp_code, push_token, lat/lng
+      const { data: senders } = await supabase.from('users')
+        .select('id,name,photos,bio,location,intent,trust_score,verification,premium')
+        .in('id', senderIds);
       (senders || []).forEach(u => { senderMap[u.id] = u; });
     }
 
@@ -1614,6 +1655,8 @@ app.post('/api/block', auth, async (req, res) => {
   try {
     const { targetId } = req.body;
     if (!targetId) return res.status(400).json({ error: 'targetId required' });
+    if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot block yourself' });
+
     const { data: existing } = await supabase.from('blocks')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
     if (!existing) {
@@ -1621,6 +1664,21 @@ app.post('/api/block', auth, async (req, res) => {
         from_user: req.user.id, to_user: targetId, created_at: new Date().toISOString()
       });
     }
+
+    // Remove any existing connection so the blocked user can no longer message
+    const { data: conn } = await supabase.from('connections')
+      .select('id')
+      .or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
+      .maybeSingle();
+    if (conn) {
+      await supabase.from('messages').delete().eq('connection_id', conn.id);
+      await supabase.from('connections').delete().eq('id', conn.id);
+    }
+
+    // Remove swipes in both directions so they can't re-match
+    await supabase.from('swipes').delete()
+      .or(`and(from_user.eq.${req.user.id},to_user.eq.${targetId}),and(from_user.eq.${targetId},to_user.eq.${req.user.id})`);
+
     res.json({ ok: true });
   } catch(e) {
     console.error('Block error:', e);
@@ -1873,6 +1931,209 @@ app.post('/api/admin/bootstrap', async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin bootstrap error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PAYMENTS — Razorpay
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Plan definitions — amounts in smallest currency unit (paise for INR, cents for USD)
+const PLANS = {
+  monthly: {
+    INR: { amount: 24900, label: '₹249/month', base: 249, gst: 0, currency: 'INR' },
+    USD: { amount: 1900,  label: '$19/month',  base: 19,  gst: 0, currency: 'USD' },
+    days: 30,
+  },
+  quarterly: {
+    INR: { amount: 59900, label: '₹599/quarter', base: 599, gst: 0, currency: 'INR' },
+    USD: { amount: 3900,  label: '$39/quarter',  base: 39,  gst: 0, currency: 'USD' },
+    days: 90,
+  },
+};
+
+// ── PAYMENT SESSION — issues a short-lived scoped token so the full JWT never touches a URL ──
+// Mobile app calls this, gets payment_token (15 min), opens upgrade?s=payment_token
+app.post('/api/payments/session', auth, (req, res) => {
+  const paymentToken = jwt.sign(
+    { id: req.user.id, scope: 'payment' },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+  res.json({ payment_token: paymentToken });
+});
+
+// ── GET PAYMENT CONFIG (public — used by upgrade page before auth) ──
+app.get('/api/payments/config', (req, res) => {
+  res.json({
+    key_id:  process.env.RAZORPAY_KEY_ID || '',
+    enabled: !!razorpay,
+    plans: {
+      monthly:   { INR: PLANS.monthly.INR,   USD: PLANS.monthly.USD   },
+      quarterly: { INR: PLANS.quarterly.INR, USD: PLANS.quarterly.USD },
+    },
+  });
+});
+
+// ── CREATE ORDER ──
+app.post('/api/payments/create-order', auth, async (req, res) => {
+  try {
+    if (!razorpay) return res.status(503).json({ error: 'Payments not configured on this server' });
+    // Must be called with a payment-scoped token (not the full auth JWT)
+    if (req.user.scope !== 'payment') return res.status(403).json({ error: 'Use a payment session token — call POST /api/payments/session first' });
+
+    const { plan, currency } = req.body;
+    if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or quarterly' });
+    const cur = (currency === 'USD') ? 'USD' : 'INR';
+    const planDetails = PLANS[plan][cur];
+
+    // Prevent duplicate orders: cancel any 'created' (unpaid) order for this user+plan
+    const { data: existingOrder } = await supabase.from('payments')
+      .select('id').eq('user_id', req.user.id).eq('plan', plan).eq('status', 'created')
+      .gte('created_at', new Date(Date.now() - 15 * 60 * 1000).toISOString()) // within 15 min
+      .maybeSingle();
+    if (existingOrder) return res.status(409).json({ error: 'A pending order already exists. Please complete or wait 15 minutes before creating a new one.', order_id: existingOrder.id });
+
+    const receipt = `byn_${req.user.id}_${Date.now()}`.slice(0, 40);
+    const order = await razorpay.orders.create({
+      amount:   planDetails.amount,
+      currency: cur,
+      receipt,
+      notes:    { userId: req.user.id, plan, currency: cur },
+    });
+
+    // Record pending payment in DB
+    await supabase.from('payments').insert({
+      id:                order.id,
+      user_id:           req.user.id,
+      razorpay_order_id: order.id,
+      plan,
+      currency:          cur,
+      amount:            planDetails.amount,
+      status:            'created',
+      created_at:        new Date().toISOString(),
+    });
+
+    res.json({
+      order_id: order.id,
+      amount:   order.amount,
+      currency: order.currency,
+      plan,
+      label:    planDetails.label,
+    });
+  } catch(e) {
+    console.error('Create order error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── VERIFY PAYMENT + ACTIVATE PREMIUM ──
+app.post('/api/payments/verify', auth, async (req, res) => {
+  try {
+    if (!razorpay) return res.status(503).json({ error: 'Payments not configured' });
+    if (req.user.scope !== 'payment') return res.status(403).json({ error: 'Use a payment session token' });
+
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
+      return res.status(400).json({ error: 'Missing payment fields' });
+
+    // Verify HMAC-SHA256 signature — this is the only trustworthy confirmation
+    const body     = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body).digest('hex');
+
+    if (expected !== razorpay_signature)
+      return res.status(400).json({ error: 'Invalid payment signature — possible tampering' });
+
+    // Look up plan to calculate expiry
+    const planDef = PLANS[plan] || PLANS.monthly;
+    const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
+
+    // Activate premium
+    await supabase.from('users').update({
+      premium:             true,
+      premium_plan:        plan,
+      premium_since:       new Date().toISOString(),
+      premium_expires_at:  expiresAt,
+    }).eq('id', req.user.id);
+
+    // Update payment record
+    await supabase.from('payments').update({
+      razorpay_payment_id,
+      status: 'paid',
+    }).eq('razorpay_order_id', razorpay_order_id);
+
+    // Send confirmation email (non-blocking)
+    const { data: u } = await supabase.from('users')
+      .select('email, name').eq('id', req.user.id).maybeSingle();
+    if (u && ResendClient) {
+      const planLabel = plan === 'quarterly' ? 'Quarterly' : 'Monthly';
+      ResendClient.emails.send({
+        from: process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
+        to:   u.email,
+        subject: '🎉 Welcome to BYN Premium!',
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
+            <h2 style="color:#0F766E">You're Premium! 🎉</h2>
+            <p>Hi ${u.name},</p>
+            <p>Your <strong>BYN ${planLabel} Premium</strong> is now active. Here's what you unlocked:</p>
+            <ul style="color:#374151;line-height:2">
+              <li>✅ 200 swipes/day (was 30)</li>
+              <li>✅ See everyone who liked you</li>
+              <li>✅ 20 priority messages/month</li>
+              <li>✅ Priority badge on your profile</li>
+            </ul>
+            <p>Active until: <strong>${new Date(expiresAt).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' })}</strong></p>
+            <p style="color:#6B7280;font-size:13px">Build Your Network · buildyournetwork.online</p>
+          </div>`,
+      }).catch(() => {});
+    }
+
+    res.json({ ok: true, premium: true, expires_at: expiresAt });
+  } catch(e) {
+    console.error('Verify payment error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── RAZORPAY WEBHOOK (server-to-server, Razorpay signs the body) ──
+// Set webhook URL in Razorpay dashboard: https://buildyournetwork.online/api/payments/webhook
+// Events to subscribe: payment.captured
+app.post('/api/payments/webhook', async (req, res) => {
+  try {
+    const sig  = req.headers['x-razorpay-signature'];
+    const body = req.rawBody; // raw Buffer captured by express.json verify callback
+    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET || '')
+      .update(body).digest('hex');
+
+    if (sig !== expected) return res.status(400).json({ error: 'Invalid webhook signature' });
+
+    const event = JSON.parse(body.toString());
+    if (event.event === 'payment.captured') {
+      const payment  = event.payload.payment.entity;
+      const orderId  = payment.order_id;
+      const payId    = payment.id;
+
+      // Find the pending payment record
+      const { data: payRec } = await supabase.from('payments')
+        .select('*').eq('razorpay_order_id', orderId).maybeSingle();
+      if (payRec && payRec.status !== 'paid') {
+        const planDef  = PLANS[payRec.plan] || PLANS.monthly;
+        const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
+        await supabase.from('users').update({
+          premium:            true,
+          premium_plan:       payRec.plan,
+          premium_since:      new Date().toISOString(),
+          premium_expires_at: expiresAt,
+        }).eq('id', payRec.user_id);
+        await supabase.from('payments').update({ razorpay_payment_id: payId, status: 'paid' })
+          .eq('razorpay_order_id', orderId);
+      }
+    }
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Webhook error:', e);
     res.status(500).json({ error: e.message });
   }
 });

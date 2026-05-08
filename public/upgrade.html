@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Go Premium — Build Your Network</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:    #0F766E;
+      --primary-dk: #0D6259;
+      --primary-lt: #CCFBF1;
+      --gold:       #D97706;
+      --gold-lt:    #FEF3C7;
+      --text:       #111827;
+      --sub:        #6B7280;
+      --bg:         #F9FAFB;
+      --card:       #FFFFFF;
+      --border:     #E5E7EB;
+      --red:        #EF4444;
+      --green:      #10B981;
+      --radius:     16px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--primary);
+      padding: 20px 24px 28px;
+      text-align: center;
+      position: relative;
+    }
+    .header-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+    .header-logo svg { width: 36px; height: 36px; }
+    .header-logo span { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+    .header h1 { color: #fff; font-size: 26px; font-weight: 800; line-height: 1.2; }
+    .header p  { color: rgba(255,255,255,0.82); font-size: 14px; margin-top: 6px; }
+
+    /* ── CURRENCY TOGGLE ── */
+    .currency-wrap { display: flex; justify-content: center; margin: 20px 0 0; }
+    .currency-toggle {
+      background: rgba(255,255,255,0.18);
+      border-radius: 50px;
+      display: flex;
+      padding: 3px;
+      gap: 2px;
+    }
+    .currency-btn {
+      border: none; cursor: pointer; border-radius: 50px;
+      padding: 7px 20px; font-size: 13px; font-weight: 600;
+      transition: all 0.2s; background: transparent; color: rgba(255,255,255,0.75);
+    }
+    .currency-btn.active { background: #fff; color: var(--primary); }
+
+    /* ── CONTENT ── */
+    .content { max-width: 480px; margin: 0 auto; padding: 24px 16px; }
+
+    /* ── BENEFITS ── */
+    .benefits { background: var(--card); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+    .benefits h3 { font-size: 14px; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; }
+    .benefit-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .benefit-item:last-child { margin-bottom: 0; }
+    .benefit-icon { font-size: 20px; width: 32px; text-align: center; flex-shrink: 0; }
+    .benefit-text strong { display: block; font-size: 14px; font-weight: 600; color: var(--text); }
+    .benefit-text span { font-size: 12px; color: var(--sub); }
+
+    /* ── PLAN CARDS ── */
+    .plans { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
+
+    .plan-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .plan-card:hover  { border-color: var(--primary); box-shadow: 0 4px 16px rgba(15,118,110,0.12); }
+    .plan-card.active { border-color: var(--primary); background: #F0FDFA; box-shadow: 0 4px 20px rgba(15,118,110,0.15); }
+
+    .plan-badge {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--gold); color: #fff;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+      padding: 3px 8px; border-radius: 50px;
+      text-transform: uppercase;
+    }
+
+    .plan-top { display: flex; align-items: flex-start; justify-content: space-between; }
+    .plan-name { font-size: 17px; font-weight: 700; color: var(--text); }
+    .plan-price-wrap { text-align: right; }
+    .plan-price { font-size: 28px; font-weight: 800; color: var(--primary); line-height: 1; }
+    .plan-price span { font-size: 14px; font-weight: 500; color: var(--sub); }
+    .plan-gst  { font-size: 11px; color: var(--sub); margin-top: 3px; }
+    .plan-save { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 6px; }
+
+    /* radio circle */
+    .plan-radio {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid var(--border);
+      margin-top: 2px; flex-shrink: 0;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .plan-card.active .plan-radio { border-color: var(--primary); background: var(--primary); }
+    .plan-card.active .plan-radio::after {
+      content: ''; width: 8px; height: 8px;
+      border-radius: 50%; background: #fff;
+    }
+    .plan-top-left { display: flex; align-items: flex-start; gap: 10px; }
+
+    /* ── GST NOTICE ── */
+    .gst-notice {
+      background: #FFF9EC; border: 1px solid #FDE68A;
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 12px; color: #92400E;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .gst-notice.show { display: block; }
+
+    /* ── PAY BUTTON ── */
+    .pay-btn {
+      width: 100%; background: var(--primary);
+      color: #fff; border: none; border-radius: 14px;
+      padding: 18px; font-size: 17px; font-weight: 700;
+      cursor: pointer; transition: background 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .pay-btn:hover:not(:disabled) { background: var(--primary-dk); }
+    .pay-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
+
+    .secure-note { text-align: center; font-size: 12px; color: var(--sub); }
+    .secure-note a { color: var(--primary); text-decoration: none; }
+
+    /* ── LOADING STATE ── */
+    #loading-state {
+      text-align: center; padding: 60px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--primary-lt);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SUCCESS STATE ── */
+    #success-state {
+      display: none; text-align: center; padding: 40px 24px;
+    }
+    .success-icon {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--primary-lt); margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 38px;
+    }
+    #success-state h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    #success-state p  { color: var(--sub); font-size: 15px; line-height: 1.6; margin-bottom: 24px; }
+    .return-btn {
+      display: inline-block; background: var(--primary); color: #fff;
+      padding: 14px 32px; border-radius: 12px; font-weight: 700;
+      text-decoration: none; font-size: 15px;
+    }
+
+    /* ── ERROR STATE ── */
+    #error-state {
+      display: none; text-align: center; padding: 40px 24px;
+    }
+    #error-state h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--red); }
+    #error-state p  { color: var(--sub); font-size: 14px; margin-bottom: 20px; }
+    .retry-btn {
+      background: var(--primary); color: #fff; border: none;
+      padding: 14px 32px; border-radius: 12px; font-weight: 700;
+      cursor: pointer; font-size: 15px;
+    }
+
+    /* ── MAIN CONTENT ── */
+    #main-content { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="16" r="7" fill="white" opacity="0.95"/>
+      <circle cx="10" cy="36" r="5" fill="white" opacity="0.75"/>
+      <circle cx="38" cy="36" r="5" fill="white" opacity="0.75"/>
+      <line x1="24" y1="23" x2="10" y2="31" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+      <line x1="24" y1="23" x2="38" y2="31" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+    </svg>
+    <span>Build Your Network</span>
+  </div>
+  <h1>Unlock Premium ✨</h1>
+  <p>Connect faster, grow further</p>
+  <div class="currency-wrap">
+    <div class="currency-toggle">
+      <button class="currency-btn active" id="btn-inr" onclick="setCurrency('INR')">🇮🇳 INR</button>
+      <button class="currency-btn" id="btn-usd" onclick="setCurrency('USD')">🌍 USD</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="content">
+  <div id="loading-state">
+    <div class="spinner"></div>
+    <p style="color:var(--sub)">Loading…</p>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main-content">
+
+    <!-- BENEFITS -->
+    <div class="benefits">
+      <h3>What you get</h3>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔄</div>
+        <div class="benefit-text">
+          <strong>200 swipes per day</strong>
+          <span>Up from 30 — discover 6× more people</span>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">❤️</div>
+        <div class="benefit-text">
+          <strong>See who liked you</strong>
+          <span>Full profiles of everyone interested in you</span>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">⚡</div>
+        <div class="benefit-text">
+          <strong>20 priority messages/month</strong>
+          <span>Reach anyone directly, even before matching</span>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🏅</div>
+        <div class="benefit-text">
+          <strong>Premium badge on your profile</strong>
+          <span>Stand out and attract better connections</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAN CARDS -->
+    <div class="plans">
+      <div class="plan-card active" id="card-monthly" onclick="selectPlan('monthly')">
+        <div class="plan-top">
+          <div class="plan-top-left">
+            <div class="plan-radio"></div>
+            <div>
+              <div class="plan-name">Monthly</div>
+            </div>
+          </div>
+          <div class="plan-price-wrap">
+            <div class="plan-price" id="price-monthly">₹249<span>/mo</span></div>
+            <div class="plan-gst" id="gst-monthly">incl. 18% GST</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plan-card" id="card-quarterly" onclick="selectPlan('quarterly')">
+        <div class="plan-badge">Best Value</div>
+        <div class="plan-top">
+          <div class="plan-top-left">
+            <div class="plan-radio"></div>
+            <div>
+              <div class="plan-name">Quarterly</div>
+              <div class="plan-save" id="save-quarterly">Save ₹148 vs monthly</div>
+            </div>
+          </div>
+          <div class="plan-price-wrap">
+            <div class="plan-price" id="price-quarterly">₹599<span>/qtr</span></div>
+            <div class="plan-gst" id="gst-quarterly">incl. 18% GST</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GST NOTICE FOR INDIA -->
+    <div class="gst-notice" id="gst-notice">
+      🧾 <strong>GST included.</strong> A GST invoice will be sent to your registered email address after payment.
+    </div>
+
+    <!-- PAY BUTTON -->
+    <button class="pay-btn" id="pay-btn" onclick="startPayment()">
+      <span>🔒</span>
+      <span id="pay-btn-label">Pay ₹249 — Activate Premium</span>
+    </button>
+
+    <div class="secure-note">
+      Secured by <a href="https://razorpay.com" target="_blank">Razorpay</a> ·
+      Cancel anytime · <a href="/privacy.html">Privacy Policy</a>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div id="success-state">
+    <div class="success-icon">🎉</div>
+    <h2>You're Premium!</h2>
+    <p>Your account has been upgraded.<br>Enjoy unlimited connections, see who liked you, and more.</p>
+    <a href="#" class="return-btn" onclick="returnToApp()">Return to App</a>
+  </div>
+
+  <!-- ERROR -->
+  <div id="error-state">
+    <h2>Payment Failed</h2>
+    <p id="error-msg">Something went wrong. Please try again.</p>
+    <button class="retry-btn" onclick="resetToMain()">Try Again</button>
+  </div>
+</div>
+
+<script>
+  // ── CONFIG ──
+  const API = '';   // same origin
+  let token      = null;
+  let userData   = null;
+  let razorKey   = '';
+  let currency   = 'INR';
+  let selectedPlan = 'monthly';
+
+  const PRICES = {
+    monthly:   { INR: { display: '₹249', amount: 24900, gst: 'incl. 18% GST', save: null },
+                 USD: { display: '$19',   amount: 1900,  gst: '',              save: null } },
+    quarterly: { INR: { display: '₹599', amount: 59900, gst: 'incl. 18% GST', save: 'Save ₹148 vs monthly' },
+                 USD: { display: '$39',   amount: 3900,  gst: '',              save: 'Save $18 vs monthly' } },
+  };
+
+  // ── INIT ──
+  window.addEventListener('DOMContentLoaded', async () => {
+    // Auto-detect currency from timezone
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz === 'Asia/Calcutta' || tz === 'Asia/Kolkata') {
+        currency = 'INR';
+      } else {
+        currency = 'USD';
+        setCurrency('USD');
+      }
+    } catch(e) {}
+
+    // Read short-lived payment token from URL (?s= not ?token=)
+    // Full auth JWT is never passed in URLs — only a 15-min payment-scoped token
+    const params = new URLSearchParams(window.location.search);
+    token = params.get('s') || params.get('token'); // fallback for backward compat
+
+    try {
+      // Fetch server config
+      const cfgRes = await fetch(`${API}/api/payments/config`);
+      const cfg    = await cfgRes.json();
+      razorKey     = cfg.key_id;
+
+      if (!cfg.enabled || !razorKey) {
+        showError('Payments are not configured yet. Please contact support.');
+        return;
+      }
+
+      // If token provided, fetch user info
+      if (token) {
+        const meRes = await fetch(`${API}/api/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (meRes.ok) {
+          userData = await meRes.json();
+          if (userData.premium) {
+            // Already premium
+            showSuccess(null, true);
+            return;
+          }
+        }
+      }
+
+      showMain();
+    } catch(e) {
+      showError('Could not connect to server. Check your internet connection.');
+    }
+  });
+
+  // ── CURRENCY TOGGLE ──
+  function setCurrency(cur) {
+    currency = cur;
+    document.getElementById('btn-inr').classList.toggle('active', cur === 'INR');
+    document.getElementById('btn-usd').classList.toggle('active', cur === 'USD');
+    renderPrices();
+  }
+
+  function renderPrices() {
+    const m = PRICES.monthly[currency];
+    const q = PRICES.quarterly[currency];
+
+    document.getElementById('price-monthly').innerHTML   = `${m.display}<span>/mo</span>`;
+    document.getElementById('gst-monthly').textContent   = m.gst;
+    document.getElementById('price-quarterly').innerHTML = `${q.display}<span>/qtr</span>`;
+    document.getElementById('gst-quarterly').textContent = q.gst;
+    document.getElementById('save-quarterly').textContent = q.save || '';
+    document.getElementById('gst-notice').classList.toggle('show', currency === 'INR');
+
+    updatePayBtn();
+  }
+
+  // ── PLAN SELECTION ──
+  function selectPlan(plan) {
+    selectedPlan = plan;
+    document.getElementById('card-monthly').classList.toggle('active',   plan === 'monthly');
+    document.getElementById('card-quarterly').classList.toggle('active', plan === 'quarterly');
+    updatePayBtn();
+  }
+
+  function updatePayBtn() {
+    const p = PRICES[selectedPlan][currency];
+    document.getElementById('pay-btn-label').textContent = `Pay ${p.display} — Activate Premium`;
+  }
+
+  // ── START PAYMENT ──
+  async function startPayment() {
+    if (!token) {
+      alert('Please open this page from the BYN app.');
+      return;
+    }
+
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = true;
+    btn.querySelector('span:last-child').textContent = 'Creating order…';
+
+    try {
+      const res = await fetch(`${API}/api/payments/create-order`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ plan: selectedPlan, currency }),
+      });
+      const order = await res.json();
+      if (!res.ok) throw new Error(order.error || 'Order creation failed');
+
+      openRazorpay(order);
+    } catch(e) {
+      btn.disabled = false;
+      updatePayBtn();
+      alert('Could not create payment order: ' + e.message);
+    }
+  }
+
+  // ── RAZORPAY CHECKOUT ──
+  function openRazorpay(order) {
+    const options = {
+      key:         razorKey,
+      amount:      order.amount,
+      currency:    order.currency,
+      name:        'Build Your Network',
+      description: `BYN Premium — ${order.plan === 'quarterly' ? 'Quarterly' : 'Monthly'}`,
+      order_id:    order.order_id,
+      image:       '/assets/logo.png',
+      prefill: {
+        name:  userData?.name  || '',
+        email: userData?.email || '',
+      },
+      notes: { plan: order.plan },
+      theme: { color: '#0F766E' },
+      modal: {
+        ondismiss: () => {
+          const btn = document.getElementById('pay-btn');
+          btn.disabled = false;
+          updatePayBtn();
+        },
+      },
+      handler: async (response) => {
+        await verifyPayment(response, order.plan);
+      },
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', (resp) => {
+      showError(resp.error?.description || 'Payment failed. Please try again.');
+    });
+    rzp.open();
+  }
+
+  // ── VERIFY PAYMENT ──
+  async function verifyPayment(response, plan) {
+    document.getElementById('main-content').style.display = 'none';
+    document.getElementById('loading-state').style.display = 'flex';
+
+    try {
+      const res = await fetch(`${API}/api/payments/verify`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({
+          razorpay_order_id:   response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature:  response.razorpay_signature,
+          plan,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Verification failed');
+      showSuccess(result);
+    } catch(e) {
+      document.getElementById('loading-state').style.display = 'none';
+      showError('Payment received but verification failed: ' + e.message + '. Please contact support — you will not be double-charged.');
+    }
+  }
+
+  // ── STATE TRANSITIONS ──
+  function showMain() {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-content').style.display  = 'block';
+    renderPrices();
+  }
+
+  function showSuccess(result, alreadyPremium) {
+    document.getElementById('loading-state').style.display  = 'none';
+    document.getElementById('main-content').style.display   = 'none';
+    document.getElementById('success-state').style.display  = 'block';
+    if (alreadyPremium) {
+      document.querySelector('#success-state h2').textContent = 'Already Premium! 🎉';
+      document.querySelector('#success-state p').textContent  = 'Your account already has Premium access. Enjoy all the features!';
+    }
+  }
+
+  function showError(msg) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('main-content').style.display  = 'none';
+    document.getElementById('error-state').style.display   = 'block';
+    document.getElementById('error-msg').textContent       = msg;
+  }
+
+  function resetToMain() {
+    document.getElementById('error-state').style.display  = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    const btn = document.getElementById('pay-btn');
+    btn.disabled = false;
+    updatePayBtn();
+  }
+
+  function returnToApp() {
+    // Try deep link first, fall back to closing window
+    window.location.href = 'byn://premium-success';
+    setTimeout(() => {
+      try { window.close(); } catch(e) {}
+      // If window.close() blocked, show instruction
+      document.querySelector('#success-state p').textContent =
+        'You can close this tab and return to the BYN app. Your Premium is now active!';
+    }, 800);
+  }
+</script>
+</body>
+</html>
