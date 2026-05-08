@@ -113,20 +113,33 @@ fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 app.use(helmet({ contentSecurityPolicy: false }));
 
 // ── CORS ──
-app.use(cors({
-  origin: true,
+const ALLOWED_ORIGINS = [
+  'https://buildyournetwork.online',
+  'https://www.buildyournetwork.online',
+  // Expo / Metro dev origins
+  'http://localhost:8081',
+  'http://localhost:19000',
+  'http://localhost:19006',
+];
+const corsOptions = {
+  origin: (origin, cb) => {
+    // Allow server-to-server (no origin) and listed origins
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
-}));
-app.options('*', cors());
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // ── RATE LIMITERS ──
 const globalLimiter = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
 const authLimiter   = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const uploadLimiter = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
-const verifyLimiter = rateLimit({ windowMs: 24*60*60*1000, max: 3, message: { error: 'Max 3 verification attempts per day' } });
+const verifyLimiter = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' } });
 const msgLimiter    = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
 
 app.use(globalLimiter);
@@ -224,6 +237,9 @@ function cleanPublic(u) {
   delete r.email;
   delete r.lat; delete r.lng;
   delete r.banned;
+  delete r.otp_code;
+  delete r.otp_expires_at;
+  delete r.push_token;
   r.is_recently_active = !!(u.last_active &&
     (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000);
   return r;
@@ -550,7 +566,8 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ── OTP HELPER ──
 function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  // crypto is imported at the top — randomInt is cryptographically secure
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 async function sendOtpEmail(toEmail, otp, name) {
@@ -705,7 +722,7 @@ app.post('/api/auth/send-otp', authLimiter, auth, async (req, res) => {
 });
 
 // ── VERIFY OTP ──
-app.post('/api/auth/verify-otp', auth, async (req, res) => {
+app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: 'Code required' });
@@ -858,19 +875,24 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (r
 });
 
 // ── DELETE PHOTO ──
-app.delete('/api/me/photos/:idx', auth, async (req, res) => {
+// SECURITY: URL-based deletion eliminates the TOCTOU race condition
+// that existed with index-based deletion (two concurrent requests on the
+// same index could delete the wrong photo or corrupt the array).
+app.delete('/api/me/photos', auth, async (req, res) => {
   try {
+    const { url: photoUrl } = req.body;
+    if (!photoUrl || typeof photoUrl !== 'string')
+      return res.status(400).json({ error: 'photo url required in request body' });
+
     const { data: user } = await supabase.from('users')
       .select('*').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
 
-    const idx = parseInt(req.params.idx);
     const photos = user.photos || [];
-    if (isNaN(idx) || idx < 0 || idx >= photos.length)
-      return res.status(400).json({ error: 'Invalid index' });
+    if (!photos.includes(photoUrl))
+      return res.status(404).json({ error: 'Photo not found' });
 
-    const removedUrl = photos[idx];
-    const newPhotos  = photos.filter((_, i) => i !== idx);
+    const newPhotos = photos.filter(p => p !== photoUrl);
 
     const merged  = { ...user, photos: newPhotos };
     const ts      = calcTrust(merged);
@@ -881,7 +903,7 @@ app.delete('/api/me/photos/:idx', auth, async (req, res) => {
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
     }).eq('id', user.id);
 
-    deleteCloudinaryPhoto(removedUrl).catch(() => {});
+    deleteCloudinaryPhoto(photoUrl).catch(() => {});
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
     console.error('Delete photo error:', e);
@@ -890,22 +912,20 @@ app.delete('/api/me/photos/:idx', auth, async (req, res) => {
 });
 
 // ── VERIFY ──
-app.post('/api/me/verify', verifyLimiter, auth, async (req, res) => {
+// SECURITY: confidence value is NEVER accepted from the client.
+// Identity verification is admin-controlled via POST /api/admin/verify only.
+// This endpoint exists for clients to CHECK their current verification status.
+app.get('/api/me/verify', auth, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
-      .select('*').eq('id', req.user.id).maybeSingle();
+      .select('verification, trust_score').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
-
-    const { confidence } = req.body;
-    const status = confidence >= 70 ? 'verified' : 'failed';
-    const verification = { status, confidence: confidence || 0, verified_at: new Date().toISOString() };
-    const merged = { ...user, verification };
-    const ts = calcTrust(merged);
-
-    await supabase.from('users').update({ verification, trust_score: ts }).eq('id', user.id);
-    res.json({ status, confidence, trust_score: ts });
+    res.json({
+      status:      user.verification?.status || 'none',
+      trust_score: user.trust_score,
+    });
   } catch(e) {
-    console.error('Verify error:', e);
+    console.error('Verify status error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -1526,14 +1546,17 @@ app.get('/api/liked-me', auth, async (req, res) => {
       .select('premium').eq('id', req.user.id).maybeSingle();
 
     if (!me?.premium) {
-      // Free users: return count + blurred photo previews (no identifying info)
+      // Free users: return count + first photo only — NO id or identifying info.
+      // Returning the id would let free users call GET /api/profiles/:id to bypass premium.
       const previewData = filteredIds.length > 0
-        ? await supabase.from('users').select('id, photos').in('id', filteredIds.slice(0, 6))
+        ? await supabase.from('users').select('photos').in('id', filteredIds.slice(0, 6))
         : { data: [] };
       return res.json({
         premium_required: true,
         count,
-        previews: (previewData.data || []).map(u => ({ id: u.id, photos: u.photos || [] })),
+        previews: (previewData.data || []).map(u => ({
+          photo: (u.photos || [])[0] || null,   // single photo, no id
+        })),
       });
     }
 
@@ -1558,13 +1581,20 @@ app.post('/api/report', auth, async (req, res) => {
   try {
     const { targetId, reason } = req.body;
     if (!targetId || !reason) return res.status(400).json({ error: 'Required fields missing' });
+    if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot report yourself' });
+
+    // Dedup: one report per (reporter, target) pair
+    const { data: dup } = await supabase.from('reports')
+      .select('id').eq('from_user', req.user.id).eq('target_id', targetId).maybeSingle();
+    if (dup) return res.status(400).json({ error: 'You have already reported this user' });
 
     await supabase.from('reports').insert({
-      id: uuidv4(), from_user: req.user.id, target_id: targetId, reason,
+      id: uuidv4(), from_user: req.user.id, target_id: targetId,
+      reason: String(reason).slice(0, 500),   // cap length
       created_at: new Date().toISOString()
     });
 
-    // Penalize trust score (non-critical)
+    // Penalize trust score once (idempotent because of dedup above)
     const { data: target } = await supabase.from('users')
       .select('trust_score').eq('id', targetId).maybeSingle();
     if (target) {

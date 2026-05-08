@@ -159,11 +159,14 @@ export default function ProfileScreen({ navigation }) {
     } catch (e) { Alert.alert('Upload error', e.response?.data?.error || e.message); }
   }
 
-  async function removePhoto(idx) {
+  async function removePhoto(url) {
     Alert.alert('Remove photo?', '', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: async () => {
-        try { await api.delete(`/api/me/photos/${idx}`); load(); }
+        try {
+          await api.delete('/api/me/photos', { data: { url } });
+          load();
+        }
         catch (e) { Alert.alert('Error', e.message); }
       }},
     ]);
@@ -227,7 +230,7 @@ export default function ProfileScreen({ navigation }) {
             {photos.map((url, i) => (
               <View key={i} style={s.photoWrap}>
                 <Image source={{ uri: url }} style={s.photoThumb} />
-                <TouchableOpacity style={s.photoRm} onPress={() => removePhoto(i)}>
+                <TouchableOpacity style={s.photoRm} onPress={() => removePhoto(url)}>
                   <Text style={{ color: '#fff', fontSize: 10 }}>×</Text>
                 </TouchableOpacity>
               </View>
