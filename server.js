@@ -181,17 +181,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// APK download — serves file if built and placed in public/apk/, otherwise 404 with message
-app.get('/apk/:filename', (req, res) => {
-  const filename = path.basename(req.params.filename); // prevent path traversal
-  const apkPath  = path.join(__dirname, 'public', 'apk', filename);
-  if (!fs.existsSync(apkPath)) {
-    return res.status(404).json({ error: 'APK not yet available — check back soon' });
+// APK download — redirects to the URL stored in APK_DOWNLOAD_URL env var (set in Railway).
+// APK files are 50-150 MB and cannot be committed to git (GitHub's 100 MB file limit).
+// Workflow: after each EAS build, copy the expo.dev artifact URL into APK_DOWNLOAD_URL
+// in Railway Variables — no redeployment required, the redirect updates instantly.
+app.get('/download/android', (req, res) => {
+  const apkUrl = process.env.APK_DOWNLOAD_URL;
+  if (!apkUrl) {
+    return res.status(404).send(`
+      <!DOCTYPE html><html><head><title>Coming Soon</title>
+      <style>body{font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9f9f9}
+      h2{color:#0F766E}p{color:#555}</style></head><body>
+      <h2>Android APK — Coming Soon</h2>
+      <p>The app is being prepared for download. Check back shortly.</p>
+      <a href="/" style="color:#0F766E">← Back to home</a>
+      </body></html>
+    `);
   }
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.sendFile(apkPath);
+  // 302 so the redirect updates instantly when APK_DOWNLOAD_URL changes in Railway
+  res.redirect(302, apkUrl);
 });
+// Legacy path kept for backwards compatibility
+app.get('/apk/:filename', (req, res) => res.redirect(302, '/download/android'));
 
 // ── MULTER / STORAGE ──
 const ALLOWED_MIMETYPES = ['image/jpeg','image/png','image/webp'];
