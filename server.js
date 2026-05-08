@@ -177,6 +177,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
+// APK download — serves file if built and placed in public/apk/, otherwise 404 with message
+app.get('/apk/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename); // prevent path traversal
+  const apkPath  = path.join(__dirname, 'public', 'apk', filename);
+  if (!fs.existsSync(apkPath)) {
+    return res.status(404).json({ error: 'APK not yet available — check back soon' });
+  }
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+  res.sendFile(apkPath);
+});
+
 // ── MULTER / STORAGE ──
 const ALLOWED_MIMETYPES = ['image/jpeg','image/png','image/webp'];
 
