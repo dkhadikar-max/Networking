@@ -186,27 +186,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 
-// APK download — redirects to the URL stored in APK_DOWNLOAD_URL env var (set in Railway).
-// APK files are 50-150 MB and cannot be committed to git (GitHub's 100 MB file limit).
-// Workflow: after each EAS build, copy the expo.dev artifact URL into APK_DOWNLOAD_URL
-// in Railway Variables — no redeployment required, the redirect updates instantly.
+// APK download — serves BuildYourNetwork.apk directly from public/apk/.
+// If APK_DOWNLOAD_URL env var is set it takes priority (for future EAS-hosted builds).
+const APK_FILE = path.join(__dirname, 'public', 'apk', 'BuildYourNetwork.apk');
 app.get('/download/android', (req, res) => {
-  const apkUrl = process.env.APK_DOWNLOAD_URL;
-  if (!apkUrl) {
-    return res.status(404).send(`
-      <!DOCTYPE html><html><head><title>Coming Soon</title>
-      <style>body{font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9f9f9}
-      h2{color:#0F766E}p{color:#555}</style></head><body>
-      <h2>Android APK — Coming Soon</h2>
-      <p>The app is being prepared for download. Check back shortly.</p>
-      <a href="/" style="color:#0F766E">← Back to home</a>
-      </body></html>
-    `);
+  if (process.env.APK_DOWNLOAD_URL) {
+    return res.redirect(302, process.env.APK_DOWNLOAD_URL);
   }
-  // 302 so the redirect updates instantly when APK_DOWNLOAD_URL changes in Railway
-  res.redirect(302, apkUrl);
+  if (fs.existsSync(APK_FILE)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="BuildYourNetwork.apk"');
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    return res.sendFile(APK_FILE);
+  }
+  res.status(404).send(`
+    <!DOCTYPE html><html><head><title>Coming Soon</title>
+    <style>body{font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9f9f9}
+    h2{color:#0F766E}p{color:#555}</style></head><body>
+    <h2>Android APK — Coming Soon</h2>
+    <p>The app is being prepared for download. Check back shortly.</p>
+    <a href="/" style="color:#0F766E">Back to home</a>
+    </body></html>
+  `);
 });
-// Legacy path kept for backwards compatibility
 app.get('/apk/:filename', (req, res) => res.redirect(302, '/download/android'));
 
 // ── MULTER / STORAGE ──
