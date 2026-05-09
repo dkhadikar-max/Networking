@@ -4,6 +4,7 @@ import {
   PanResponder, Animated, Dimensions, Modal, ScrollView, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Location from 'expo-location';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { C, SHADOW } from '../utils/theme';
@@ -19,7 +20,9 @@ const CARD_HEIGHT     = H * 0.68;
 const SWIPE_THRESHOLD = W * 0.28;
 const ROTATE_FACTOR   = 12;
 
-const DEFAULT_FILTERS = { sort: 'relevance', radius: '', intent: '', interest: '' };
+// locMode: 'nearby' (default 200km GPS), 'remote' (remote workers globally), 'worldwide' (no filter)
+// radius: only sent for 'nearby' mode by premium users (10 / 25 / 50 km)
+const DEFAULT_FILTERS = { sort: 'relevance', locMode: 'nearby', radius: '', intent: '', interest: '' };
 
 const INTENT_LABELS = {
   'explore-network':     'Exploring network',
@@ -294,6 +297,53 @@ function FilterModal({ visible, filters, onApply, onClose }) {
               </View>
             </View>
 
+            {/* ── Location filter ─────────────────────────────────────────── */}
+            <View style={fm.section}>
+              <Text style={fm.secTitle}>Location</Text>
+              <View style={[fm.sectionBody, fm.chips]}>
+                {[
+                  { key: 'nearby',    label: '📍 Nearby (200km)' },
+                  { key: 'remote',    label: '🌐 Remote only' },
+                  { key: 'worldwide', label: '🌍 Worldwide' },
+                ].map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[fm.chip, local.locMode === opt.key && fm.chipOn]}
+                    onPress={() => setLocal(f => ({ ...f, locMode: opt.key, radius: '' }))}>
+                    <Text style={[fm.chipTxt, local.locMode === opt.key && fm.chipTxtOn]}>
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {/* Exact radius — premium only, nearby mode only */}
+              {local.locMode === 'nearby' && user?.premium && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={[fm.secTitle, { marginBottom: 6, fontSize: 12, color: C.sub }]}>
+                    Exact radius ⭐ Premium
+                  </Text>
+                  <View style={fm.chips}>
+                    {['10', '25', '50'].map(r => (
+                      <TouchableOpacity
+                        key={r}
+                        style={[fm.chip, local.radius === r && fm.chipOn]}
+                        onPress={() => setLocal(f => ({ ...f, radius: f.radius === r ? '' : r }))}>
+                        <Text style={[fm.chipTxt, local.radius === r && fm.chipTxtOn]}>
+                          {r} km
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+              {/* If non-premium tries nearby with radius, gentle nudge */}
+              {local.locMode === 'nearby' && !user?.premium && (
+                <Text style={{ fontSize: 11, color: C.sub, marginTop: 6 }}>
+                  Exact radius (10/25/50 km) available with Premium
+                </Text>
+              )}
+            </View>
+
             <View style={fm.section}>
               <View style={fm.sectionHdr}>
                 <Text style={fm.secTitle}>Interest</Text>
@@ -353,9 +403,35 @@ export default function DiscoverScreen({ navigation }) {
   const swipedIds = useRef(new Set());
   const topPad = insets.top || (Platform.OS === 'ios' ? 44 : 24);
 
+  // ── GPS sync on mount ──────────────────────────────────────────────────────
+  // Request location permission once, send coords to server so the 200km default
+  // radius filter (and premium exact-radius) can work accurately.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        await api.put('/api/me', {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      } catch (_) {
+        // GPS unavailable or permission denied — discover still works, just no radius filter
+      }
+    })();
+  }, []);
+
   function getFilterCount() {
-    const { sort, ...rest } = filters;
-    return Object.values(rest).filter(Boolean).length + (sort && sort !== 'relevance' ? 1 : 0);
+    let count = 0;
+    if (filters.sort && filters.sort !== 'relevance') count++;
+    if (filters.locMode && filters.locMode !== 'nearby') count++;
+    if (filters.radius) count++;
+    if (filters.intent) count++;
+    if (filters.interest) count++;
+    return count;
   }
 
   const loadProfiles = useCallback(async () => {
@@ -366,7 +442,17 @@ export default function DiscoverScreen({ navigation }) {
       if (filters.sort && filters.sort !== 'relevance') params.sort = filters.sort;
       if (filters.intent)   params.intent   = filters.intent;
       if (filters.interest) params.interest = filters.interest;
-      if (filters.radius)   params.radius   = filters.radius;
+
+      // Location mode params
+      if (filters.locMode === 'worldwide') {
+        params.worldwide = 'true';
+      } else if (filters.locMode === 'remote') {
+        params.remote = 'true';
+      } else if (filters.locMode === 'nearby' && filters.radius) {
+        // Exact radius — premium only; server enforces 403 if not premium
+        params.radius = filters.radius;
+      }
+      // Default nearby (locMode='nearby', no radius): server applies 200km automatically
 
       const { data } = await api.get('/api/discover', { params });
       if (data?.limited) {
@@ -388,6 +474,8 @@ export default function DiscoverScreen({ navigation }) {
         setLoadError('Your profile needs a bit more to unlock Discovery.');
       } else if (code === 'PROFILE_INCOMPLETE') {
         setLoadError('Complete your profile to start discovering professionals.');
+      } else if (code === 'PREMIUM_REQUIRED') {
+        setLoadError('Exact location filter (under 200 km) requires Premium.');
       } else {
         setLoadError(e.response?.data?.error || 'Could not load profiles. Tap to retry.');
       }

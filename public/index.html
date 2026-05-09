@@ -7,8 +7,100 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- TASK 1: favicon -->
+    <!-- Favicon & canonical -->
     <link rel="icon" href="/assets/logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="/assets/logo.png">
+    <link rel="canonical" href="https://buildyournetwork.in/">
+
+    <!-- Primary SEO meta tags -->
+    <meta name="description" content="Build Your Network — the professional networking app designed for meaningful connections. Discover co-founders, mentors, collaborators and investors based on skills and intent, not just job titles.">
+    <meta name="keywords" content="professional networking, find co-founder, startup networking, mentorship, build connections, networking app India">
+    <meta name="author" content="Build Your Network">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://buildyournetwork.in/">
+    <meta property="og:title" content="Build Your Network — Connect With Intent">
+    <meta property="og:description" content="Swipe right on meaningful connections. Find co-founders, mentors, and collaborators who share your vision — not just your industry.">
+    <meta property="og:image" content="https://buildyournetwork.in/assets/logo.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Build Your Network">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://buildyournetwork.in/">
+    <meta name="twitter:title" content="Build Your Network — Connect With Intent">
+    <meta name="twitter:description" content="Swipe right on meaningful connections. Find co-founders, mentors, and collaborators who share your vision.">
+    <meta name="twitter:image" content="https://buildyournetwork.in/assets/logo.png">
+
+    <!-- JSON-LD Structured Data: WebApplication + Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "Build Your Network",
+          "url": "https://buildyournetwork.in",
+          "description": "Professional networking app for founders, mentors, and collaborators",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Android, iOS, Web",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+          }
+        },
+        {
+          "@type": "Organization",
+          "name": "Build Your Network",
+          "url": "https://buildyournetwork.in",
+          "logo": "https://buildyournetwork.in/assets/logo.png",
+          "sameAs": []
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Build Your Network?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Build Your Network (BYN) is a professional networking app that helps founders, professionals, and creators discover meaningful connections based on shared skills, goals, and intent — not just job titles."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How is BYN different from LinkedIn?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BYN focuses on intent-based matching. You see people who are actively looking for co-founders, mentors, or collaborators — and so can they. No feed noise, no recruiters spamming you."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is Build Your Network free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, BYN is free to use with 30 daily connections. Premium plans unlock unlimited connections, priority messaging, exact location filters, and more."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does the location filter work?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "BYN uses GPS to show you professionals within 200 km by default. Premium users can tighten the filter to 10, 25, or 50 km. You can also browse Remote-only or Worldwide."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
     <script>
@@ -1038,6 +1130,38 @@
     opacity: 1;
     visibility: visible;
 }
+
+/* ── FAQ section ── */
+.faq-item {
+    border-bottom: 1px solid var(--bg-secondary);
+    padding: 0;
+    margin-bottom: 0;
+}
+.faq-item summary {
+    cursor: pointer;
+    padding: 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    user-select: none;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+    content: '+';
+    font-size: 22px;
+    color: var(--primary);
+    flex-shrink: 0;
+    transition: transform .25s;
+}
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item div { padding: 0 0 20px; }
+.faq-item div p { color: var(--text-secondary); line-height: 1.7; font-size: 15px; }
+
 .feedback-modal {
     position: fixed;
     top: 50%;
@@ -1604,188 +1728,41 @@
     </div>
 </section>
 
-<!-- Final CTA -->
-<section class="final-cta">
-    <div class="section-inner">
-        <h2 class="animate">Your network defines your trajectory.</h2>
-        <p class="animate delay-1">Stop collecting contacts. Start building connections that matter.</p>
-        <div class="animate delay-2">
-            <a href="#download" class="btn-primary" style="font-size: 17px; padding: 18px 40px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download APK
-            </a>
+<!-- FAQ Section — improves SEO long-tail and pairs with JSON-LD FAQPage schema -->
+<section id="faq" style="background:var(--card);padding:80px 0">
+  <div class="section-inner">
+    <h2 class="animate" style="text-align:center;margin-bottom:8px">Frequently Asked Questions</h2>
+    <p class="animate delay-1" style="text-align:center;color:var(--text-secondary);margin-bottom:48px">Everything you need to know about Build Your Network</p>
+    <div style="max-width:720px;margin:0 auto" itemscope itemtype="https://schema.org/FAQPage">
+
+      <details class="faq-item animate delay-1" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">What is Build Your Network?</summary>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">Build Your Network (BYN) is a professional networking app that helps founders, professionals, and creators discover meaningful connections based on shared skills, goals, and intent — not just job titles.</p>
         </div>
-    </div>
-</section>
+      </details>
 
-<!-- Footer -->
-<footer>
-    <div class="footer-inner">
-        <div>
-            <!-- TASK 1: footer logo PNG added -->
-            <div class="footer-brand">
-                <img src="/assets/logo.png" class="logo-img-footer" alt="BuildYourNetwork">
-                BuildYourNetwork
-            </div>
-            <p class="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
+      <details class="faq-item animate delay-2" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">How is BYN different from LinkedIn?</summary>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">BYN focuses on intent-based matching. You see people who are actively looking for co-founders, mentors, or collaborators — and they can find you. No feed noise, no recruiter spam, no vanity metrics.</p>
         </div>
-        <div class="footer-col">
-            <h4>Legal</h4>
-            <!-- TASK 6: /privacy and /terms validated -->
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/terms">Terms of Service</a>
+      </details>
+
+      <details class="faq-item animate delay-3" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">Is Build Your Network free?</summary>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">Yes — BYN is free with 30 daily connection requests. Premium plans unlock unlimited connections, priority messaging, exact location filters (10/25/50 km), and profile boosting.</p>
         </div>
-        <div class="footer-col">
-            <h4>Product</h4>
-            <a href="#features">Features</a>
-            <a href="#how">How It Works</a>
-            <a href="#download">Download</a>
+      </details>
+
+      <details class="faq-item animate delay-4" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">How does the location filter work?</summary>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">BYN uses GPS to show you professionals within 200 km by default. Premium users can tighten that to 10, 25, or 50 km for hyper-local discovery. You can also browse Remote-only or Worldwide.</p>
         </div>
-        <div class="footer-col">
-            <h4>Support</h4>
-            <a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a>
-            <a href="#download">Installation Help</a>
-        </div>
-    </div>
-    <div class="footer-bottom">
-        <span>&copy; 2026 BuildYourNetwork. All rights reserved.</span>
-        <span>Early Access Product</span>
-    </div>
-</footer>
+      </details>
 
-<script>
-    // TASK 4: scroll animation — 0.6s fade + upward movement (spec: 0.5–0.7s)
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, { root: null, rootMargin: '0px', threshold: 0.1 });
-
-    document.querySelectorAll('.animate').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(24px)';
-        el.style.transition = 'opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1)';
-        observer.observe(el);
-    });
-
-    // Smooth scroll
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-    });
-
-    // Nav shadow on scroll
-    window.addEventListener('scroll', () => {
-        document.querySelector('nav').style.boxShadow =
-            window.scrollY > 50 ? '0 1px 20px rgba(0,0,0,0.05)' : 'none';
-    });
-
-    // Mobile menu toggle
-    const menuBtn = document.querySelector('.mobile-menu-btn');
-    const navLinks = document.querySelector('.nav-links');
-    if (menuBtn && navLinks) {
-        menuBtn.addEventListener('click', () => {
-            navLinks.classList.toggle('open');
-        });
-        // Close menu when any nav link is clicked
-        navLinks.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', () => navLinks.classList.remove('open'));
-        });
-        // Close menu on scroll
-        window.addEventListener('scroll', () => navLinks.classList.remove('open'), { passive: true });
-    }
-
-    // Feedback modal
-    function openFeedback() {
-        document.getElementById('feedbackOverlay').classList.add('active');
-        document.getElementById('feedbackModal').classList.add('active');
-    }
-    function closeFeedback(e) {
-        if (e && e.target && e.target.id !== 'feedbackOverlay') return;
-        document.getElementById('feedbackOverlay').classList.remove('active');
-        document.getElementById('feedbackModal').classList.remove('active');
-    }
-    function submitFeedback(e) {
-        e.preventDefault();
-        document.getElementById('feedbackForm').classList.add('hidden');
-        document.getElementById('feedbackSuccess').classList.add('active');
-    }
-    function closeFeedbackModal() {
-        document.getElementById('feedbackOverlay').classList.remove('active');
-        document.getElementById('feedbackModal').classList.remove('active');
-    }
-</script>
-
-<!-- Feedback Tab -->
-<div class="feedback-tab" id="feedbackTab" onclick="openFeedback()">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-    <span>Feedback</span>
-</div>
-
-<!-- Feedback Modal -->
-<div class="feedback-overlay" id="feedbackOverlay" onclick="closeFeedback(event)"></div>
-<div class="feedback-modal" id="feedbackModal">
-    <div class="feedback-header">
-        <h3>Share Your Thoughts</h3>
-        <button class="feedback-close" onclick="closeFeedbackModal()" aria-label="Close feedback">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-        </button>
-    </div>
-    <div class="feedback-body">
-        <p class="feedback-intro">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
-        <form id="feedbackForm" onsubmit="submitFeedback(event)">
-            <div class="feedback-field">
-                <label for="fbType">What is this about?</label>
-                <select id="fbType" required>
-                    <option value="" disabled selected>Select a topic</option>
-                    <option value="bug">Bug or issue</option>
-                    <option value="feature">Feature request</option>
-                    <option value="ux">User experience</option>
-                    <option value="install">Installation problem</option>
-                    <option value="other">Something else</option>
-                </select>
-            </div>
-            <div class="feedback-field">
-                <label for="fbMessage">Your feedback</label>
-                <textarea id="fbMessage" rows="5" placeholder="Describe what you experienced, what you expected, and what happened instead..." required></textarea>
-            </div>
-            <div class="feedback-field">
-                <label for="fbEmail">Email (optional)</label>
-                <input type="email" id="fbEmail" placeholder="you@example.com">
-                <span class="field-hint">Only if you'd like us to follow up</span>
-            </div>
-            <button type="submit" class="feedback-submit">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="22" y1="2" x2="11" y2="13"/>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                </svg>
-                Send Feedback
-            </button>
-        </form>
-        <div class="feedback-success" id="feedbackSuccess">
-            <div class="success-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-            </div>
-            <h4>Thank You</h4>
-            <p>Your feedback has been received. We review every submission personally.</p>
-            <button class="feedback-done" onclick="closeFeedbackModal()">Close</button>
-        </div>
-    </div>
-</div>
-
-</body>
-</html>
+      <details class="faq-item animate delay-1" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">Is my data safe?</summary>
+        <div itemprop="acceptedAnswer" itemscope itemty
