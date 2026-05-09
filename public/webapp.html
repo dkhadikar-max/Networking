@@ -714,9 +714,10 @@ async function loadLikes() {
   document.getElementById('likes-content').innerHTML = '<div class="centered"><div class="spinner"></div></div>';
   try {
     const data = await api('GET', '/api/liked-me');
-    const users = data.likers || data;
+    // Server returns { count, profiles, premium_required } — not "likers"
+    const users = data.profiles || data.likers || [];
     if (!ME?.premium) {
-      const count = parseInt(data.count) || users.length;
+      const count = data.count ?? users.length;
       const container = document.getElementById('likes-content');
       // Static HTML for the premium overlay — count is a number, safe to interpolate
       container.innerHTML = `
