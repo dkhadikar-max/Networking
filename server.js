@@ -187,50 +187,30 @@ app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'u
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
-// ── SEO routes ───────────────────────────────────────────────────────────────
-
-// Dynamic sitemap — always returns today's date so crawlers know content is fresh
+// SEO routes
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
   const urls = [
-    { loc: `${BASE}/`,        priority: '1.0', freq: 'weekly'  },
-    { loc: `${BASE}/terms`,   priority: '0.4', freq: 'monthly' },
-    { loc: `${BASE}/privacy`, priority: '0.4', freq: 'monthly' },
-    { loc: `${BASE}/support`, priority: '0.5', freq: 'monthly' },
+    { loc: BASE + '/',        priority: '1.0', freq: 'weekly'  },
+    { loc: BASE + '/terms',   priority: '0.4', freq: 'monthly' },
+    { loc: BASE + '/privacy', priority: '0.4', freq: 'monthly' },
+    { loc: BASE + '/support', priority: '0.5', freq: 'monthly' },
   ];
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map(u => `  <url>
-    <loc>${u.loc}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${u.freq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`).join('\n')}
-</urlset>`;
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + today + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
+    '\n</urlset>';
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(xml);
 });
-
-// robots.txt served dynamically so BASE_URL env var keeps it in sync
 app.get('/robots.txt', (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
-  res.send(`User-agent: *
-Allow: /
-Allow: /terms
-Allow: /privacy
-Allow: /support
-Allow: /sitemap.xml
-Disallow: /api/
-Disallow: /app
-Disallow: /admin
-Disallow: /upgrade
-Sitemap: ${BASE}/sitemap.xml
-`);
+  res.send('User-agent: *\nAllow: /\nAllow: /terms\nAllow: /privacy\nAllow: /support\nAllow: /sitemap.xml\nDisallow: /api/\nDisallow: /app\nDisallow: /admin\nDisallow: /upgrade\nSitemap: ' + BASE + '/sitemap.xml\n');
 });
+
 
 // APK download — serves BuildYourNetwork.apk directly from public/apk/.
 // If APK_DOWNLOAD_URL env var is set it takes priority (for future EAS-hosted builds).
@@ -1242,11 +1222,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
 
     const { skill, intent, location, remote, interest, sort = 'relevance', radius, worldwide } = req.query;
 
-    // ── Location mode resolution ─────────────────────────────────────────────
-    // Three mutually exclusive modes:
-    //   'nearby'    (default) – GPS-based radius; 200km free, tighter requires premium
-    //   'remote'    – show only users marked remote; no radius constraint
-    //   'worldwide' – no location filter at all
+    // Location mode resolution: nearby(default)/remote/worldwide
     let radiusKm = null;
     if (worldwide !== 'true' && remote !== 'true' && me.lat != null && me.lng != null) {
       const _meLat = parseFloat(me.lat);
@@ -1262,7 +1238,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
           }
           radiusKm = !isNaN(requested) ? requested : 200;
         } else {
-          radiusKm = 200; // default when user has GPS coords
+          radiusKm = 200;
         }
       }
     }
@@ -1283,23 +1259,21 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     if (location) candidates = candidates.filter(u => (u.location||'').toLowerCase().includes(location.toLowerCase()));
     if (interest) candidates = candidates.filter(u => (u.interests||[]).some(s => s.toLowerCase().includes(interest.toLowerCase())));
 
-    // ── GPS / location filter ────────────────────────────────────────────────
+    // GPS / location filter (3-mode)
     if (remote === 'true') {
-      // Remote mode: show only users who marked themselves as remote (global, no radius)
       candidates = candidates.filter(u => u.remote);
     } else if (radiusKm != null) {
-      // Nearby mode: GPS radius filter (free = 200km default; premium = exact 10/25/50km)
       const meLat = parseFloat(me.lat);
       const meLng = parseFloat(me.lng);
       candidates = candidates.filter(u => {
-        if (u.lat == null || u.lng == null) return true; // users without GPS always shown
+        if (u.lat == null || u.lng == null) return true;
         const uLat = parseFloat(u.lat);
         const uLng = parseFloat(u.lng);
         if (isNaN(uLat) || isNaN(uLng)) return true;
         return haversine(meLat, meLng, uLat, uLng) <= radiusKm;
       });
     }
-    // worldwide mode (worldwide=true): no location filter applied
+    // worldwide: no location filter
 
     // Batch-fetch works for all candidates
     const candidateIds = candidates.map(u => u.id);
@@ -2304,4 +2278,44 @@ app.post('/api/payments/webhook', async (req, res) => {
     const body = req.rawBody; // raw Buffer captured by express.json verify callback
     const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
 
-    if (sig !== expected) return res.status(400).json({ error: 'I
+    if (sig !== expected) return res.status(400).json({ error: 'Invalid webhook signature' });
+
+    const event = JSON.parse(body.toString());
+    if (event.event === 'payment.captured') {
+      const payment  = event.payload.payment.entity;
+      const orderId  = payment.order_id;
+      const payId    = payment.id;
+
+      // Find the pending payment record
+      const { data: payRec } = await supabase.from('payments')
+        .select('*').eq('razorpay_order_id', orderId).maybeSingle();
+      if (payRec && payRec.status !== 'paid') {
+        const planDef  = PLANS[payRec.plan] || PLANS.monthly;
+        const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
+        await supabase.from('users').update({
+          premium:            true,
+          premium_plan:       payRec.plan,
+          premium_since:      new Date().toISOString(),
+          premium_expires_at: expiresAt,
+        }).eq('id', payRec.user_id);
+        await supabase.from('payments').update({ razorpay_payment_id: payId, status: 'paid' })
+          .eq('razorpay_order_id', orderId);
+      }
+    }
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Webhook error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── FALLBACK ──
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+
+// ── START SERVER ──
+app.listen(PORT, () => {
+  console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
+  console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
+  console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
+});
