@@ -111,6 +111,11 @@ const expo = new Expo();
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Railway (and most cloud platforms) sit behind a reverse proxy that sets
+// X-Forwarded-For. Without this, express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR
+// on every request and cannot identify clients correctly.
+app.set('trust proxy', 1);
+
 // FIXED: Comma-separated emails that are always admin regardless of DB state
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'dkhadikar@gmail.com')
   .split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
