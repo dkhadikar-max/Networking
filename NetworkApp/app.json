@@ -23,7 +23,8 @@
         "NSPhotoLibraryUsageDescription": "Allow Build Your Network to access your photo library to set your profile picture.",
         "NSPhotoLibraryAddUsageDescription": "Allow Build Your Network to save photos.",
         "NSCameraUsageDescription": "Allow Build Your Network to use your camera to take a profile photo.",
-        "NSMicrophoneUsageDescription": "Microphone access is not used by this app."
+        "NSMicrophoneUsageDescription": "Microphone access is not used by this app.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -35,14 +36,15 @@
       },
       "edgeToEdgeEnabled": false,
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -71,6 +73,15 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/f01fcb05-0fe1-4d67-84f3-6e82bfd47200",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "f01fcb05-0fe1-4d67-84f3-6e82bfd47200"
