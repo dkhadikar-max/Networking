@@ -2136,15 +2136,25 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     if (expected !== razorpay_signature)
       return res.status(400).json({ error: 'Invalid payment signature — possible tampering' });
 
-    // BUG FIX 1: Replay-attack guard — reject any payment_id already consumed
+    // BUG FIX 1: Replay-attack guard — reject any payment_id already consumed by a DIFFERENT user.
     // Without this, anyone holding a valid {order_id, payment_id, signature} tuple can
     // replay it on a different account and get free premium.
+    // IMPORTANT: If the SAME user's payment was already recorded (e.g. webhook fired before
+    // the client verify call), treat it as success — don't punish the legitimate buyer.
     const { data: existingPayment } = await supabase.from('payments')
       .select('id, user_id')
       .eq('razorpay_payment_id', razorpay_payment_id)
       .maybeSingle();
-    if (existingPayment)
+    if (existingPayment) {
+      if (existingPayment.user_id === req.user.id) {
+        // Same user — already activated (webhook was faster). Return success so the
+        // client transitions to the premium success screen correctly.
+        const { data: me } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+        return res.json({ ok: true, user: me ? clean(me) : null, alreadyActivated: true });
+      }
+      // Different user attempting to redeem someone else's payment — block it.
       return res.status(409).json({ error: 'Payment already redeemed — replay attack detected' });
+    }
 
     // Look up plan to calculate expiry
     const planDef = PLANS[plan] || PLANS.monthly;
