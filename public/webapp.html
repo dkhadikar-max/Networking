@@ -837,7 +837,7 @@ let _otpTimer = null;
 let _otpSecs  = 0;
 async function startOtpRequest() {
   try {
-    await api('POST', '/api/send-otp', {});
+    await api('POST', '/api/auth/send-otp', {});
     showToast('OTP sent to your email', 'info');
     _otpSecs = 60;
     updateOtpCountdown();
@@ -915,7 +915,7 @@ async function doRegister(e) {
   const password = document.getElementById('reg-password').value;
   setLoading('register-btn', true, 'Create Account');
   try {
-    const data = await api('POST', '/api/register', { name, email, password });
+    const data = await api('POST', '/api/signup', { name, email, password });
     TOKEN = data.token;
     ME    = data.user;
     localStorage.setItem('byn_tok', TOKEN);
@@ -935,7 +935,7 @@ async function doVerifyOtp(e) {
   const trust = document.getElementById('otp-trust').checked;
   setLoading('otp-btn', true, 'Verify');
   try {
-    await api('POST', '/api/verify-otp', { code });
+    await api('POST', '/api/auth/verify-otp', { code });
     ME = await api('GET', '/api/me');
     localStorage.setItem('byn_me', JSON.stringify(ME));
     if (trust) setDeviceUntil(Date.now() + 30 * 24 * 3600 * 1000);
@@ -1096,3 +1096,601 @@ function buildDiscoverParams() {
   if (locMode === 'worldwide') params.set('worldwide', 'true');
   else if (locMode === 'remote') params.set('remote', 'true');
   else if (locMode === 'nearby' && locRadius && ME?.premium) params.set('radius', locRadius);
+  return params.toString();
+}
+
+async function loadDiscover(reset = false) {
+  const grid   = document.getElementById('discover-grid');
+  const empty  = document.getElementById('discover-empty');
+  const lmWrap = document.getElementById('load-more-wrap');
+
+  // Show skeleton immediately while GPS permission dialog is pending
+  if (!_gpsSynced && !_gpsSyncing) {
+    if (reset) {
+      grid.innerHTML = skeletonGrid(6);
+      empty.classList.add('hidden');
+      lmWrap?.classList.add('hidden');
+    }
+    syncGps(); // syncGps calls loadDiscover(true) once resolved
+    return;
+  }
+
+  updateLocRadiusVisibility();
+  if (reset) { _discoverPage = 0; _discoverDone = false; }
+
+  if (reset) {
+    grid.innerHTML = skeletonGrid(6);
+    empty.classList.add('hidden');
+    lmWrap?.classList.add('hidden');
+  }
+
+  try {
+    const qs   = buildDiscoverParams();
+    const data = await api('GET', '/api/discover?' + qs);
+    const users = data.profiles || (Array.isArray(data) ? data : []);
+
+    if (reset) grid.innerHTML = '';
+
+    if (!users.length && reset) {
+      empty.classList.remove('hidden');
+      document.getElementById('discover-empty-msg').textContent =
+        data.limited ? "You've reached your daily limit. Come back tomorrow!" : "No profiles match your filters.";
+      return;
+    }
+
+    users.forEach(u => {
+      userStore.set(String(u.id), u);
+      grid.appendChild(discoverCard(u));
+    });
+
+    _discoverPage++;
+    // Server returns at most `remaining` profiles; if we got a full page show load-more
+    if (!data.limited && users.length >= 6 && lmWrap) lmWrap.classList.remove('hidden');
+    else lmWrap?.classList.add('hidden');
+
+  } catch (e) {
+    if (reset) grid.innerHTML = '';
+    if (e.code === 'PREMIUM_REQUIRED') {
+      empty.classList.remove('hidden');
+      document.getElementById('discover-empty-msg').textContent = 'Exact location filter requires Premium.';
+    } else {
+      showToast(e.message || 'Failed to load profiles', 'error');
+    }
+  }
+}
+
+function skeletonGrid(n) {
+  return Array.from({length: n}, () =>
+    `<div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+      <div class="flex items-start gap-4 mb-4">
+        <div class="skeleton w-16 h-16 rounded-xl"></div>
+        <div class="flex-1 space-y-2"><div class="skeleton h-4 w-3/4"></div><div class="skeleton h-3 w-1/2"></div></div>
+      </div>
+      <div class="skeleton h-3 w-1/3 mb-4"></div>
+      <div class="flex gap-2"><div class="skeleton flex-1 h-9 rounded-lg"></div><div class="skeleton flex-1 h-9 rounded-lg"></div></div>
+    </div>`
+  ).join('');
+}
+
+function loadMoreDiscover() {
+  loadDiscover(false);
+}
+
+function resetDiscover() {
+  _intentFilter = '';
+  setIntentFilter('');
+}
+
+function discoverCard(u) {
+  const card = document.createElement('div');
+  card.className = 'bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 group relative overflow-hidden';
+  const photo = u.photos?.length
+    ? `<img src="${esc(u.photos[0])}" class="w-16 h-16 rounded-xl object-cover shadow-sm" alt="${esc(u.name)}">`
+    : `<div class="w-16 h-16 rounded-xl bg-brand-100 flex items-center justify-center text-2xl font-bold text-brand-600">${esc((u.name||'?')[0])}</div>`;
+  const dist = u.distance != null ? `<span class="text-xs text-slate-400 ml-2">· ${u.distance}km</span>` : '';
+
+  card.innerHTML = `
+    <div class="flex items-start gap-4">
+      <button onclick="openProfileModal('${esc(String(u.id))}')" class="flex-shrink-0">${photo}</button>
+      <div class="flex-1 min-w-0">
+        <button onclick="openProfileModal('${esc(String(u.id))}')" class="font-bold text-slate-900 hover:text-brand-700 text-left leading-tight">${esc(u.name || 'Unknown')}</button>
+        <p class="text-sm text-brand-600 font-medium truncate">${esc(u.currently_exploring || '')}</p>
+        <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-0.5 flex-wrap">
+          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+          ${esc(u.location || '')}${dist}
+        </p>
+      </div>
+      ${u.matchScore ? `<div class="flex flex-col items-center bg-brand-50 rounded-xl px-2 py-1.5 border border-brand-100"><span class="text-lg font-bold text-brand-700 leading-none">${esc(String(u.matchScore))}</span><span class="text-[9px] text-slate-400 font-medium">match</span></div>` : ''}
+    </div>
+    <div class="mt-3">
+      <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-medium border border-slate-200">${esc(u.intent || '')}</span>
+    </div>
+    <div class="mt-4 flex gap-2">
+      <button onclick="swipeOnUser('${esc(String(u.id))}','like',this)"
+        class="flex-1 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-rose-50 hover:border-rose-300 hover:text-rose-500 transition-colors flex items-center justify-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+        Like
+      </button>
+      <button onclick="swipeOnUser('${esc(String(u.id))}','connect',this)"
+        class="flex-1 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm shadow-brand-500/20">
+        Connect
+      </button>
+    </div>`;
+  return card;
+}
+
+async function swipeOnUser(userId, action, btn) {
+  const parent = btn.closest('div.flex.gap-2');
+  if (parent) parent.querySelectorAll('button').forEach(b => b.disabled = true);
+  try {
+    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
+    const u = userStore.get(String(userId));
+    if (data?.match) {
+      showToast(`🎉 You matched with ${u?.name || 'them'}! Go chat →`, 'success');
+      document.getElementById('nav-chat')?.classList.add('ring-2','ring-brand-400');
+      setTimeout(() => document.getElementById('nav-chat')?.classList.remove('ring-2','ring-brand-400'), 3000);
+    } else {
+      showToast(action === 'like' ? `You liked ${u?.name || 'them'}` : `Connection request sent to ${u?.name || 'them'}`, 'success');
+    }
+    // Remove card with animation
+    const card = btn.closest('.bg-white.rounded-2xl');
+    if (card) { card.style.opacity='0'; card.style.transform='scale(0.95)'; card.style.transition='.2s'; setTimeout(() => card.remove(), 200); }
+  } catch (e) {
+    showToast(e.message || 'Failed', 'error');
+    if (parent) parent.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
+}
+
+// ── Profile modal ──
+function openProfileModal(userId) {
+  const u = userStore.get(String(userId));
+  if (!u) return;
+  _modalUserId = userId;
+  const photoWrap = document.getElementById('modal-photos-wrap');
+  if (u.photos?.length) {
+    photoWrap.innerHTML = `<img src="${esc(u.photos[0])}" class="w-full h-full object-cover">`;
+  } else {
+    // Re-inject the placeholder div (photoWrap.innerHTML = '' destroys the old one)
+    photoWrap.innerHTML = `<div class="text-6xl text-brand-400 font-bold">${esc((u.name||'?')[0].toUpperCase())}</div>`;
+  }
+  document.getElementById('modal-name').textContent      = u.name || '';
+  document.getElementById('modal-role').textContent      = u.currently_exploring || '';
+  document.getElementById('modal-location').textContent  = u.location || '';
+  document.getElementById('modal-bio').textContent       = u.bio || u.currently_exploring || '';
+  document.getElementById('modal-intent-badge').textContent = u.intent || '';
+  const connectBtn = document.getElementById('modal-connect-btn');
+  connectBtn.textContent = 'Connect';
+  connectBtn.onclick = () => { connectBtn.textContent = '…'; swipeFromModal(userId); };
+  document.getElementById('profile-modal').classList.remove('hidden');
+  document.getElementById('profile-modal').classList.add('flex');
+}
+
+async function swipeFromModal(userId) {
+  try {
+    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
+    const u = userStore.get(String(userId));
+    closeProfileModal();
+    if (data?.match) showToast(`🎉 Matched with ${u?.name||'them'}! Go chat →`, 'success');
+    else showToast(`Connection request sent to ${u?.name||'them'}`, 'success');
+    const card = document.querySelector(`[onclick*="${userId}"]`)?.closest('.bg-white.rounded-2xl');
+    if (card) { card.style.opacity='0'; setTimeout(() => card.remove(), 200); }
+  } catch (e) {
+    showToast(e.message, 'error');
+    document.getElementById('modal-connect-btn').textContent = 'Connect';
+  }
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').classList.add('hidden');
+  document.getElementById('profile-modal').classList.remove('flex');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// LIKES
+// ═══════════════════════════════════════════════════════════════════════
+async function loadLikes() {
+  const grid      = document.getElementById('likes-grid');
+  const empty     = document.getElementById('likes-empty');
+  const premWall  = document.getElementById('likes-premium-wall');
+  grid.innerHTML  = skeletonGrid(4).replace(/grid-cols.*gap-6/,'grid-cols-1 gap-4');
+  empty.classList.add('hidden');
+  premWall.classList.add('hidden');
+
+  try {
+    const data  = await api('GET', '/api/liked-me');
+    const likers = data.profiles || data.likers || (Array.isArray(data) ? data : []);
+    const count  = data.count ?? likers.length;
+
+    grid.innerHTML = '';
+
+    if (!ME?.premium && count > 0 && !likers.length) {
+      // Server hides likers for free users
+      premWall.classList.remove('hidden');
+      return;
+    }
+
+    // Update likes badge
+    if (count > 0) {
+      const badge = document.getElementById('likes-badge');
+      badge.textContent = count;
+      badge.classList.remove('hidden');
+    }
+
+    if (!likers.length) { empty.classList.remove('hidden'); return; }
+
+    likers.forEach(u => {
+      userStore.set(String(u.id), u);
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow';
+      card.innerHTML = `
+        <div class="cursor-pointer flex-shrink-0" onclick="openProfileModal('${esc(String(u.id))}')">${avatarHTML(u, 48)}</div>
+        <div class="flex-1 min-w-0">
+          <h4 class="font-bold text-slate-900 text-sm truncate">${esc(u.name||'')}</h4>
+          <p class="text-xs text-slate-500 truncate">${esc([u.currently_exploring, u.location].filter(Boolean).join(' · '))}</p>
+        </div>
+        <button onclick="swipeLiker('${esc(String(u.id))}',this)"
+          class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors flex-shrink-0">
+          Connect
+        </button>`;
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    grid.innerHTML = '';
+    showToast(e.message || 'Failed to load likes', 'error');
+  }
+}
+
+async function swipeLiker(userId, btn) {
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
+    const u = userStore.get(String(userId));
+    if (data?.match) showToast(`🎉 Matched with ${u?.name||'them'}!`, 'success');
+    else showToast(`Connected with ${u?.name||'them'}`, 'success');
+    btn.closest('div.bg-white')?.remove();
+  } catch (e) {
+    showToast(e.message, 'error');
+    btn.disabled = false; btn.textContent = 'Connect';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════════════════════
+async function loadChatList() {
+  const list = document.getElementById('chat-list');
+  list.innerHTML = `<div class="p-6 flex justify-center">${spinnerHTML(6)}</div>`;
+  try {
+    const conns = await api('GET', '/api/connections');
+    list.innerHTML = '';
+    if (!Array.isArray(conns) || !conns.length) {
+      list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">
+        <div class="text-3xl mb-2">💬</div>No conversations yet. Connect with someone to start chatting!</div>`;
+      updateBadge('chat-badge', 0);
+      return;
+    }
+
+    conns.forEach(entry => {
+      const conn = entry.connection || entry;
+      const other = entry.user || entry;
+      const connId = conn.id || entry.id;
+      const lastMsg = entry.lastMessage;
+
+      // Derive name/photos from other user
+      const name    = other.name  || '';
+      const photos  = other.photos || [];
+      const lastTxt = lastMsg?.text || '';
+      const lastTs  = lastMsg?.created_at || conn.created_at || '';
+
+      const item = document.createElement('div');
+      item.dataset.connId = connId;
+      const isActive = String(connId) === String(_activeChatId);
+      item.className = `p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-50 ${isActive ? 'bg-brand-50 border-l-4 border-l-brand-500' : ''}`;
+      item.onclick = () => openChat(connId, other);
+      item.innerHTML = `
+        <div class="relative flex-shrink-0">${avatarHTML(other, 48)}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-baseline">
+            <h4 class="font-semibold text-sm text-slate-900 truncate">${esc(name)}</h4>
+            <span class="text-xs text-slate-400 flex-shrink-0 ml-1">${timeAgo(lastTs)}</span>
+          </div>
+          <p class="text-xs text-slate-500 truncate">${esc(lastTxt || 'Say hi!')}</p>
+        </div>`;
+      list.appendChild(item);
+    });
+  } catch (e) {
+    list.innerHTML = '';
+    showToast(e.message || 'Failed to load chats', 'error');
+  }
+}
+
+async function openChat(connId, user) {
+  _activeChatId   = connId;
+  _activeChatUser = user;
+
+  // Desktop: show right panel
+  document.getElementById('chat-empty-state').classList.add('hidden');
+  document.getElementById('chat-active-header').classList.remove('hidden');
+  document.getElementById('chat-input-area').classList.remove('hidden');
+  const headerAvatar = document.getElementById('chat-header-avatar');
+  headerAvatar.innerHTML = avatarHTML(user, 40);
+  document.getElementById('chat-header-name').textContent = user?.name || '';
+
+  // Highlight active chat
+  document.querySelectorAll('#chat-list > div').forEach(el => {
+    const active = String(el.dataset.connId) === String(connId);
+    el.classList.toggle('bg-brand-50',           active);
+    el.classList.toggle('border-l-4',            active);
+    el.classList.toggle('border-l-brand-500',    active);
+  });
+
+  await fetchMessages();
+}
+
+async function fetchMessages() {
+  if (!_activeChatId) return;
+  const container = document.getElementById('chat-messages');
+  try {
+    const msgs = await api('GET', '/api/messages/' + _activeChatId);
+    const list = Array.isArray(msgs) ? msgs : (msgs.messages || []);
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+
+    container.innerHTML = '';
+    list.forEach(m => {
+      const isMe = m.from === ME?.id;
+      const bubble = document.createElement('div');
+      bubble.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
+      bubble.innerHTML = `
+        <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+          ${isMe ? 'bg-brand-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'}">
+          ${esc(m.content || m.text || '')}
+          <div class="text-[10px] mt-0.5 ${isMe ? 'text-brand-200' : 'text-slate-400'} text-right">${timeAgo(m.created_at)}</div>
+        </div>`;
+      container.appendChild(bubble);
+    });
+    if (wasAtBottom || list.length <= 1) container.scrollTop = container.scrollHeight;
+  } catch (_) {}
+}
+
+async function sendMessage(e) {
+  e.preventDefault();
+  if (!_activeChatId) return;
+  const input   = document.getElementById('message-input');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+
+  // Optimistic render
+  const container = document.getElementById('chat-messages');
+  const bubble = document.createElement('div');
+  bubble.className = 'flex w-full justify-end';
+  bubble.innerHTML = `<div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm bg-brand-600 text-white rounded-tr-none leading-relaxed">${esc(content)}</div>`;
+  container.appendChild(bubble);
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    await api('POST', '/api/messages/' + _activeChatId, { text: content });
+  } catch (err) {
+    showToast(err.message || 'Failed to send', 'error');
+    bubble.remove();
+    input.value = content;
+  }
+}
+
+function startChatPoll() {
+  stopChatPoll();
+  _chatPollTimer = setInterval(async () => {
+    await loadChatList();
+    if (_activeChatId) await fetchMessages();
+  }, 3000);
+}
+
+function stopChatPoll() {
+  if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
+  _activeChatId = null;
+  _activeChatUser = null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════════════════════════════
+async function loadProfile() {
+  try {
+    ME = await api('GET', '/api/me');
+    localStorage.setItem('byn_me', JSON.stringify(ME));
+  } catch (_) {}
+  if (!ME) return;
+
+  // Hero
+  document.getElementById('profile-name').textContent = ME.name || '';
+  document.getElementById('profile-role').textContent = ME.currently_exploring || ME.intent || '';
+  const premBadge = document.getElementById('profile-premium-badge');
+  if (ME.premium) premBadge.classList.remove('hidden'); else premBadge.classList.add('hidden');
+
+  // Trust bar
+  const trust = ME.trust_score ?? 0;
+  const pct   = Math.min(Math.round(trust), 100);
+  document.getElementById('trust-pct').textContent = pct + '%';
+  document.getElementById('trust-bar').style.width  = pct + '%';
+
+  // Avatar
+  const avatarEl = document.getElementById('profile-avatar');
+  avatarEl.innerHTML = avatarHTML(ME, 96);
+
+  // Photos grid
+  renderProfilePhotos();
+
+  // Form — all fields map directly to server-supported fields
+  document.getElementById('edit-name').value          = ME.name || '';
+  document.getElementById('edit-location').value      = ME.location || '';
+  document.getElementById('edit-bio').value           = ME.bio || '';
+  document.getElementById('edit-exploring').value     = ME.currently_exploring || '';
+  document.getElementById('edit-working-on').value    = ME.working_on || '';
+  document.getElementById('edit-interested-in').value = ME.interested_in || '';
+  document.getElementById('edit-skills').value        = (ME.skills || []).join(', ');
+  document.getElementById('edit-interests').value     = (ME.interests || []).join(', ');
+  document.getElementById('edit-linkedin').value      = ME.linkedin || '';
+  document.getElementById('edit-instagram').value     = ME.instagram || '';
+  document.getElementById('edit-website').value       = ME.website || '';
+  document.getElementById('edit-remote').checked      = !!ME.remote;
+  const intentSel = document.getElementById('edit-intent');
+  if (intentSel && ME.intent) {
+    const opt = [...intentSel.options].find(o => o.value === ME.intent);
+    if (opt) intentSel.value = ME.intent;
+  }
+
+  renderSidebarUser();
+}
+
+function renderProfilePhotos() {
+  const grid  = document.getElementById('photos-grid');
+  const addLbl = grid.querySelector('label');
+  // Remove old photo thumbs
+  grid.querySelectorAll('.photo-thumb').forEach(el => el.remove());
+  (ME?.photos || []).forEach((url, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'photo-thumb aspect-square rounded-xl overflow-hidden relative group';
+    wrap.innerHTML = `
+      <img src="${esc(url)}" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Photo ${i+1}">
+      <button onclick="deletePhoto('${esc(url)}')" class="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>`;
+    grid.insertBefore(wrap, addLbl);
+  });
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const btn = document.getElementById('save-profile-btn');
+  btn.disabled = true;
+  btn.innerHTML = `${spinnerHTML(4)} Saving…`;
+  try {
+    // Parse comma-separated strings into arrays for skills/interests
+    const toArr = val => val.split(',').map(s => s.trim()).filter(Boolean);
+    const payload = {
+      name:                document.getElementById('edit-name').value.trim(),
+      location:            document.getElementById('edit-location').value.trim(),
+      bio:                 document.getElementById('edit-bio').value.trim(),
+      currently_exploring: document.getElementById('edit-exploring').value.trim(),
+      working_on:          document.getElementById('edit-working-on').value.trim(),
+      interested_in:       document.getElementById('edit-interested-in').value.trim(),
+      skills:              toArr(document.getElementById('edit-skills').value),
+      interests:           toArr(document.getElementById('edit-interests').value),
+      linkedin:            document.getElementById('edit-linkedin').value.trim(),
+      instagram:           document.getElementById('edit-instagram').value.trim(),
+      website:             document.getElementById('edit-website').value.trim(),
+      intent:              document.getElementById('edit-intent').value,
+      remote:              document.getElementById('edit-remote').checked,
+    };
+    ME = await api('PUT', '/api/me', payload);
+    localStorage.setItem('byn_me', JSON.stringify(ME));
+    renderSidebarUser();
+    loadProfile();
+    showToast('Profile updated ✓', 'success');
+  } catch (err) {
+    showToast(err.message || 'Save failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save Changes';
+  }
+}
+
+async function uploadAvatar(input) {
+  if (!input.files?.[0]) return;
+  showToast('Uploading…', 'info');
+  const fd = new FormData();
+  fd.append('photo', input.files[0]);
+  try {
+    const data = await api('POST', '/api/me/photos', fd, true);
+    ME = await api('GET', '/api/me');
+    localStorage.setItem('byn_me', JSON.stringify(ME));
+    document.getElementById('profile-avatar').innerHTML = avatarHTML(ME, 96);
+    renderProfilePhotos();
+    renderSidebarUser();
+    showToast('Photo updated ✓', 'success');
+  } catch (err) {
+    showToast(err.message || 'Upload failed', 'error');
+  }
+}
+
+async function uploadPhoto(input) {
+  if (!input.files?.[0]) return;
+  showToast('Uploading…', 'info');
+  const fd = new FormData();
+  fd.append('photo', input.files[0]);
+  try {
+    await api('POST', '/api/me/photos', fd, true);
+    ME = await api('GET', '/api/me');
+    localStorage.setItem('byn_me', JSON.stringify(ME));
+    renderProfilePhotos();
+    input.value = '';
+    showToast('Photo added ✓', 'success');
+  } catch (err) {
+    showToast(err.message || 'Upload failed', 'error');
+  }
+}
+
+async function deletePhoto(url) {
+  if (!confirm('Remove this photo?')) return;
+  try {
+    await api('DELETE', '/api/me/photos', { url });
+    ME = await api('GET', '/api/me');
+    localStorage.setItem('byn_me', JSON.stringify(ME));
+    renderProfilePhotos();
+    showToast('Photo removed', 'success');
+  } catch (err) {
+    showToast(err.message || 'Failed', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// PREMIUM
+// ═══════════════════════════════════════════════════════════════════════
+function renderPremium() {
+  // Nothing dynamic needed — static HTML shows correct plans
+  // If user is already premium, disable upgrade buttons
+  if (ME?.premium) {
+    document.querySelectorAll('#view-premium button[onclick^="startUpgrade"]').forEach(b => {
+      b.textContent = '✓ Active';
+      b.disabled    = true;
+      b.className   = b.className.replace('bg-brand-500','bg-slate-400');
+    });
+  }
+}
+
+function startUpgrade(plan) {
+  const allowed = ['monthly', 'quarterly'];
+  if (!allowed.includes(plan)) return;
+  window.open('/upgrade?plan=' + plan, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BADGE UTILITY
+// ═══════════════════════════════════════════════════════════════════════
+function updateBadge(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
+  else           { el.classList.add('hidden'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeProfileModal();
+});
+
+// Close profile modal on backdrop click
+document.getElementById('profile-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('profile-modal')) closeProfileModal();
+});
+
+// ═══════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════
+bootstrap();
+</script>
+</body>
+</html>
