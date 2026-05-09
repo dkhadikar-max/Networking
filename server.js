@@ -185,6 +185,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Named HTML routes (express.static only serves /upgrade.html, not /upgrade)
 app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
 // APK download — serves BuildYourNetwork.apk directly from public/apk/.
 // If APK_DOWNLOAD_URL env var is set it takes priority (for future EAS-hosted builds).
