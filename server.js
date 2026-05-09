@@ -788,7 +788,10 @@ app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
     const { data: user } = await supabase.from('users')
       .select('email, name, email_verified').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.email_verified) return res.json({ ok: true, already_verified: true });
+    // NOTE: do NOT short-circuit for email_verified === true.
+    // OTP is also used as per-device trust verification — a user who verified on the
+    // Android app still needs to verify on the web browser (new device).
+    // Bypassing here means ANY 6-digit code would be accepted on verify-otp too.
 
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -819,13 +822,17 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
     const { data: user } = await supabase.from('users')
       .select('otp_code, otp_expires_at, email_verified').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.email_verified) return res.json({ ok: true, already_verified: true });
+    // NOTE: do NOT short-circuit for email_verified === true.
+    // Always validate the actual OTP code — even for already-verified accounts.
+    // Bypassing here lets any 6-digit number pass on web, since send-otp also skipped sending
+    // a real code when email_verified was true. Both gates must be enforced together.
     if (!user.otp_code) return res.status(400).json({ error: 'No verification code found — request a new one' });
     if (new Date() > new Date(user.otp_expires_at))
       return res.status(400).json({ error: 'Code expired — request a new one' });
     if (String(code).trim() !== String(user.otp_code))
       return res.status(400).json({ error: 'Incorrect code' });
 
+    // Mark email_verified = true (idempotent — safe to re-apply even if already true)
     await supabase.from('users')
       .update({ email_verified: true, otp_code: null, otp_expires_at: null }).eq('id', req.user.id);
 
