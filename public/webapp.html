@@ -1,1696 +1,2286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Build Your Network — App</title>
-  <link rel="icon" type="image/png" href="/assets/logo.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            brand: {
-              50:  '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4',
-              400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488',
-              700: '#0f766e', 900: '#134e4a'
-            },
-            accent: { orange: '#f97316' },
-            bg:    { main: '#fff7ed' }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Build Your Network</title>
+<style>
+:root {
+  --bg:      #FFF4EC;
+  --primary: #0F766E;
+  --soft:    #14B8A6;
+  --light:   #CCFBF1;
+  --gold:    #F4A261;
+  --goldlt:  #FDE8D7;
+  --card:    #FFFFFF;
+  --sur:     #FFFBF8;
+  --sur2:    #FFF0E5;
+  --text:    #1F2937;
+  --sub:     #6B7280;
+  --dim:     #9CA3AF;
+  --border:  rgba(0,0,0,0.05);
+  --border2: rgba(0,0,0,0.10);
+  --danger:  #EF4444;
+  --green:   #22C55E;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--text); overflow:hidden; }
+button { border:none; cursor:pointer; font-family:inherit; }
+input,textarea { font-family:inherit; outline:none; }
 
-    .fade-in { animation: fadeIn .3s ease-in-out; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.hidden { display:none !important; }
+#root { width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 
-    .slide-in-right { animation: slideInRight .3s ease-out; }
-    @keyframes slideInRight { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+/* ── AUTH ───────────────────────────────────────────── */
+#auth-wrap {
+  flex:1; overflow-y:auto; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:24px; background:var(--bg);
+}
+.auth-brand { text-align:center; margin-bottom:28px; }
+.auth-icon  { font-size:40px; color:var(--primary); display:block; margin-bottom:10px; }
+.auth-title { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.4px; }
+.auth-tag   { font-size:13px; color:var(--sub); margin-top:4px; }
+.auth-card  {
+  width:100%; max-width:420px;
+  background:var(--card); border-radius:20px; padding:28px;
+  border:1px solid var(--border2);
+  box-shadow:0 6px 24px rgba(0,0,0,0.07);
+  margin-bottom:20px;
+}
+.auth-card h2 { font-size:20px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.auth-card .sub { font-size:13px; color:var(--sub); margin-bottom:24px; }
+.field-label { font-size:12px; color:var(--sub); margin-bottom:6px; letter-spacing:0.5px; font-weight:500; }
+.field-input {
+  width:100%; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:14px; color:var(--text); font-size:15px;
+  margin-bottom:16px; transition:border-color .2s;
+}
+.field-input:focus { border-color:var(--primary); }
+.field-input::placeholder { color:var(--dim); }
+.consent-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; margin-top:4px; cursor:pointer; }
+.checkbox {
+  width:22px; height:22px; border-radius:6px; border:2px solid var(--border2);
+  background:var(--bg); display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; margin-top:1px; transition:background .15s, border-color .15s;
+}
+.checkbox.on { background:var(--primary); border-color:var(--primary); }
+.checkbox-check { color:#fff; font-size:13px; font-weight:700; display:none; }
+.checkbox.on .checkbox-check { display:block; }
+.consent-txt { font-size:13px; color:var(--sub); line-height:20px; flex:1; }
+.err-box {
+  background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2);
+  border-radius:10px; padding:12px; margin-bottom:16px;
+  font-size:13px; color:var(--danger); line-height:18px;
+}
+.btn-primary {
+  width:100%; background:var(--primary); color:#fff;
+  border-radius:12px; padding:16px; font-size:15px; font-weight:700;
+  min-height:52px; display:flex; align-items:center; justify-content:center;
+  transition:opacity .15s;
+}
+.btn-primary:disabled { background:var(--dim); opacity:0.5; cursor:not-allowed; }
+.btn-gold {
+  width:100%; background:var(--gold); color:#fff;
+  border-radius:12px; padding:16px; font-size:15px; font-weight:700;
+  min-height:52px; display:flex; align-items:center; justify-content:center;
+  transition:opacity .15s;
+}
+.btn-gold:disabled { opacity:0.5; cursor:not-allowed; }
+.switch-row { text-align:center; font-size:14px; }
+.switch-row span { color:var(--sub); }
+.switch-row a { color:var(--primary); font-weight:600; cursor:pointer; }
+.otp-inputs { display:flex; gap:10px; justify-content:center; margin:20px 0; }
+.otp-digit {
+  width:48px; height:56px; border-radius:12px; border:1.5px solid var(--border2);
+  background:var(--sur2); font-size:24px; font-weight:700; text-align:center;
+  color:var(--text); transition:border-color .2s;
+}
+.otp-digit:focus { border-color:var(--primary); }
 
-    .spin { animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+/* ── APP SHELL ──────────────────────────────────────── */
+#app-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#app-views { flex:1; position:relative; overflow:hidden; }
+.app-view {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; background:var(--bg);
+  overflow:hidden;
+}
+#bottom-nav {
+  display:flex; background:var(--card);
+  border-top:1px solid var(--border2);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.nav-item {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  padding:10px 4px 8px; cursor:pointer; gap:3px;
+  color:var(--dim); font-size:10px; font-weight:500;
+  transition:color .15s; background:none; border:none;
+}
+.nav-item.active { color:var(--primary); }
+.nav-icon { font-size:22px; line-height:1; }
+.nav-badge-wrap { position:relative; display:inline-block; }
+.nav-dot {
+  position:absolute; top:-2px; right:-6px;
+  width:8px; height:8px; border-radius:50%;
+  background:var(--gold); border:1.5px solid var(--card);
+}
+.screen-header {
+  display:flex; align-items:center; padding:14px 16px;
+  border-bottom:1px solid var(--border); background:var(--sur);
+  gap:10px; flex-shrink:0;
+}
+.screen-header h1 { font-size:22px; font-weight:700; color:var(--text); flex:1; }
 
-    .glass {
-      background: rgba(255,255,255,.7);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,.3);
-    }
-    .nav-item.active {
-      background-color: #ccfbf1;
-      color: #0f766e;
-      font-weight: 600;
-    }
-    /* Skeleton loader */
-    .skeleton {
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 8px;
-    }
-    @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+/* ── DISCOVER ────────────────────────────────────────── */
+.disc-header {
+  display:flex; align-items:center; padding:14px 16px;
+  background:var(--sur); border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.disc-logo { font-size:18px; font-weight:700; color:var(--primary); flex:1; }
+.disc-logo em { color:var(--gold); font-style:normal; margin-right:4px; }
+.filter-btn {
+  display:flex; align-items:center; gap:6px; padding:8px 14px;
+  border:1.5px solid var(--border2); border-radius:20px;
+  background:var(--card); color:var(--text); font-size:13px; font-weight:500; cursor:pointer;
+}
+.filter-count {
+  background:var(--gold); color:#fff; border-radius:10px;
+  font-size:11px; font-weight:700; padding:1px 6px;
+}
+.card-stack-area {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:16px; position:relative; overflow:hidden;
+}
+.swipe-card {
+  position:absolute; width:calc(100% - 32px); max-width:400px;
+  border-radius:20px; overflow:hidden; background:var(--card);
+  box-shadow:0 8px 32px rgba(0,0,0,0.15); user-select:none; touch-action:none;
+}
+.card-photo {
+  width:100%; height:56vw; max-height:370px; min-height:220px;
+  background:linear-gradient(135deg,var(--goldlt),var(--light));
+  position:relative; overflow:hidden;
+}
+.card-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+.card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:64px; }
+.card-gradient {
+  position:absolute; bottom:0; left:0; right:0; height:50%;
+  background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 100%);
+}
+.swipe-label {
+  position:absolute; top:20px; padding:7px 16px; border-radius:8px;
+  font-size:20px; font-weight:800; border:3px solid; opacity:0; transition:opacity .08s;
+}
+.label-connect { left:16px; color:#22C55E; border-color:#22C55E; transform:rotate(-15deg); }
+.label-skip    { right:16px; color:var(--danger); border-color:var(--danger); transform:rotate(15deg); }
+.card-verified {
+  position:absolute; top:14px; left:14px;
+  background:rgba(34,197,94,0.9); color:#fff;
+  border-radius:20px; padding:4px 10px; font-size:11px; font-weight:600;
+  display:flex; align-items:center; gap:4px;
+}
+.card-online-dot {
+  position:absolute; top:18px; right:18px;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--soft); border:2px solid #fff;
+}
+.card-body { padding:14px 16px; }
+.card-name { font-size:20px; font-weight:700; color:var(--text); }
+.card-role { font-size:14px; color:var(--sub); margin-top:2px; margin-bottom:10px; }
+.chips-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.chip      { padding:5px 12px; border-radius:20px; font-size:12px; font-weight:500; background:var(--light); color:var(--primary); }
+.chip-gold { background:var(--goldlt); color:var(--gold); }
+.card-bio  { font-size:13px; color:var(--sub); line-height:19px; margin-bottom:10px; }
+.match-score-box {
+  display:inline-flex; align-items:center; background:var(--light);
+  border-radius:10px; padding:5px 12px; margin-bottom:12px;
+  font-size:13px; color:var(--primary); font-weight:600;
+}
+.card-actions { display:flex; gap:10px; padding:0 16px 16px; }
+.action-btn {
+  flex:1; padding:13px; border-radius:12px; font-size:14px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:5px; cursor:pointer;
+}
+.action-skip    { background:var(--card); border:1.5px solid var(--border2); color:var(--sub); }
+.action-message { background:var(--goldlt); border:1.5px solid var(--gold); color:var(--gold); }
+.action-connect { background:var(--primary); color:#fff; border:none; }
+.disc-empty {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; padding:32px; text-align:center;
+}
+.disc-empty .icon { font-size:48px; }
+.disc-empty h3   { font-size:18px; font-weight:700; color:var(--text); }
+.disc-empty p    { font-size:14px; color:var(--sub); line-height:20px; }
+.retry-btn { margin-top:6px; padding:12px 28px; background:var(--primary); color:#fff; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; }
 
-    /* Chat view: full height minus the app header (80px).
-       On mobile subtract the extra 64px fixed mobile header too. */
-    #view-chat { height: calc(100vh - 80px); }
-    @media (max-width: 767px) { #view-chat { height: calc(100vh - 144px); } }
+/* ── FILTER MODAL ────────────────────────────────────── */
+#filter-modal {
+  position:fixed; inset:0; z-index:100;
+  display:flex; flex-direction:column; justify-content:flex-end;
+}
+.filter-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.4); }
+.filter-sheet {
+  position:relative; background:var(--card); border-radius:24px 24px 0 0;
+  padding:24px; max-height:85vh; overflow-y:auto;
+}
+.filter-handle { width:40px; height:4px; background:var(--border2); border-radius:2px; margin:0 auto 20px; }
+.filter-section-title { font-size:12px; font-weight:600; color:var(--sub); letter-spacing:0.6px; margin-bottom:10px; text-transform:uppercase; }
+.chips-wrap { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+.filter-chip {
+  padding:8px 16px; border-radius:20px; font-size:13px; font-weight:500;
+  background:var(--sur2); color:var(--sub); border:1.5px solid var(--border2); cursor:pointer;
+}
+.filter-chip.active { background:var(--light); color:var(--primary); border-color:var(--soft); }
+.filter-apply {
+  width:100%; padding:15px; background:var(--primary); color:#fff;
+  border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px;
+}
 
-    /* Mobile sidebar slide-in/out */
-    #sidebar { transition: transform .3s ease; }
-  </style>
+/* ── MATCH MODAL ─────────────────────────────────────── */
+#match-modal {
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.6); padding:24px;
+}
+.match-card {
+  background:var(--card); border-radius:24px; padding:32px 24px;
+  width:100%; max-width:360px; text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.match-star  { font-size:40px; color:var(--gold); margin-bottom:12px; }
+.match-label { font-size:26px; font-weight:800; color:var(--primary); margin-bottom:4px; }
+.match-sub   { font-size:14px; color:var(--sub); margin-bottom:20px; }
+.match-avatar {
+  width:88px; height:88px; border-radius:50%; margin:0 auto 20px;
+  background:var(--goldlt); display:flex; align-items:center; justify-content:center;
+  font-size:30px; font-weight:700; color:var(--gold);
+  border:3px solid var(--gold); overflow:hidden;
+}
+.match-avatar img { width:100%; height:100%; object-fit:cover; }
+.match-name  { font-size:20px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.match-score-lbl { font-size:13px; color:var(--sub); margin-bottom:6px; }
+.match-hint  { font-size:12px; color:var(--dim); margin-bottom:20px; }
+.match-btns  { display:flex; flex-direction:column; gap:10px; }
+.btn-match-chat  { padding:15px; background:var(--gold); color:#fff; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; }
+.btn-match-later { padding:12px; background:transparent; color:var(--sub); border-radius:12px; font-size:14px; cursor:pointer; }
+
+/* ── LIKES ────────────────────────────────────────────── */
+.likes-locked {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:32px; text-align:center; gap:16px;
+}
+.likes-locked .heart { font-size:52px; color:var(--gold); }
+.likes-locked h3 { font-size:20px; font-weight:700; color:var(--text); }
+.likes-locked p  { font-size:14px; color:var(--sub); line-height:20px; }
+.blur-row { display:flex; gap:10px; margin:8px 0; }
+.blur-card { width:100px; height:120px; border-radius:14px; background:var(--goldlt); filter:blur(8px); display:flex; align-items:center; justify-content:center; font-size:36px; }
+.btn-unlock { padding:14px 32px; background:var(--gold); color:#fff; border-radius:12px; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.likes-list { padding:16px; display:flex; flex-direction:column; gap:12px; }
+.like-card {
+  background:var(--card); border-radius:16px; padding:14px;
+  border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  display:flex; gap:12px; align-items:flex-start;
+}
+.like-avatar {
+  width:60px; height:60px; border-radius:14px; flex-shrink:0;
+  background:var(--goldlt); display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:700; color:var(--gold); overflow:hidden;
+}
+.like-avatar img { width:100%; height:100%; object-fit:cover; }
+.like-info { flex:1; min-width:0; }
+.like-name { font-size:15px; font-weight:700; color:var(--text); }
+.like-loc  { font-size:12px; color:var(--sub); margin-top:2px; }
+.like-intent { display:inline-block; margin-top:6px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:500; background:var(--light); color:var(--primary); }
+.like-skills { font-size:12px; color:var(--dim); margin-top:5px; }
+.like-view   { font-size:12px; color:var(--gold); font-weight:600; margin-top:6px; cursor:pointer; }
+.like-right  { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+.like-score-box { background:var(--goldlt); border-radius:10px; padding:6px 10px; font-size:13px; font-weight:700; color:var(--gold); }
+.like-actions { display:flex; gap:8px; }
+.like-skip-btn, .like-connect-btn {
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer;
+}
+.like-skip-btn    { background:var(--card); border:1.5px solid var(--border2); color:var(--sub); }
+.like-connect-btn { background:var(--goldlt); border:1.5px solid var(--gold); color:var(--gold); }
+
+/* ── CHATS ────────────────────────────────────────────── */
+.chat-row {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px; border-bottom:1px solid var(--border);
+  cursor:pointer; background:var(--card);
+}
+.chat-row:active { background:var(--sur2); }
+.chat-av-wrap { position:relative; flex-shrink:0; }
+.chat-av {
+  width:50px; height:50px; border-radius:50%;
+  background:var(--goldlt); display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:700; color:var(--gold); overflow:hidden;
+}
+.chat-av img { width:100%; height:100%; object-fit:cover; }
+.chat-online {
+  position:absolute; bottom:1px; right:1px;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--soft); border:2px solid var(--card);
+}
+.chat-body  { flex:1; min-width:0; }
+.chat-name-row { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+.chat-name  { font-size:15px; font-weight:600; color:var(--text); }
+.chat-name.unread { font-weight:700; }
+.chat-badge { font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; }
+.badge-active  { background:var(--light); color:var(--primary); }
+.badge-expiry  { background:var(--sur2); color:var(--sub); }
+.badge-expiry.soon { background:rgba(239,68,68,0.1); color:var(--danger); }
+.badge-priority { color:var(--gold); }
+.chat-preview { font-size:13px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chat-preview.unread { color:var(--text); font-weight:500; }
+.chat-time  { font-size:11px; color:var(--dim); flex-shrink:0; }
+.chat-empty {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:12px; padding:48px 24px; text-align:center;
+}
+.chat-empty .icon { font-size:48px; }
+.chat-empty h3 { font-size:18px; font-weight:700; color:var(--text); }
+.chat-empty p  { font-size:14px; color:var(--sub); line-height:20px; }
+
+/* ── CHAT DETAIL ─────────────────────────────────────── */
+#view-chat { overflow:hidden; }
+.chat-detail-wrap { display:flex; flex-direction:column; height:100%; }
+.chat-detail-header {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+  background:var(--sur); flex-shrink:0;
+}
+.chat-back { font-size:24px; color:var(--primary); cursor:pointer; line-height:1; padding-right:2px; }
+.chat-detail-av {
+  width:40px; height:40px; border-radius:50%;
+  background:var(--goldlt); display:flex; align-items:center; justify-content:center;
+  font-size:15px; font-weight:700; color:var(--gold); overflow:hidden; flex-shrink:0;
+}
+.chat-detail-av img { width:100%; height:100%; object-fit:cover; }
+.chat-detail-name { font-size:15px; font-weight:600; color:var(--text); }
+.chat-detail-loc  { font-size:11px; color:var(--sub); }
+.msgs-area { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:6px; }
+.msg-wrap       { display:flex; margin-bottom:2px; }
+.msg-wrap.mine  { justify-content:flex-end; }
+.msg-wrap.theirs{ justify-content:flex-start; }
+.bubble { max-width:75%; border-radius:14px; padding:11px 14px; word-break:break-word; }
+.bubble.mine   { background:var(--gold); border-bottom-right-radius:4px; }
+.bubble.theirs { background:var(--sur2); border:1px solid var(--border); border-bottom-left-radius:4px; }
+.bubble-txt.mine   { font-size:14px; color:var(--bg); line-height:20px; }
+.bubble-txt.theirs { font-size:14px; color:var(--text); line-height:20px; }
+.bubble-time { font-size:10px; opacity:0.6; margin-top:4px; text-align:right; }
+.bubble-time.mine   { color:var(--bg); }
+.bubble-time.theirs { color:var(--dim); }
+.starters-wrap { padding:16px 16px 8px; }
+.starters-label { font-size:12px; color:var(--gold); margin-bottom:10px; letter-spacing:0.5px; }
+.starters-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+.starters-row::-webkit-scrollbar { display:none; }
+.starter-chip {
+  background:var(--sur); border:1px solid var(--border2);
+  border-radius:20px; padding:10px 16px;
+  font-size:13px; color:var(--sub); cursor:pointer; flex-shrink:0; max-width:240px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.chat-input-row {
+  display:flex; gap:10px; padding:12px; border-top:1px solid var(--border);
+  background:var(--sur); flex-shrink:0;
+}
+.chat-input-field {
+  flex:1; background:var(--sur2); border:1px solid var(--border);
+  border-radius:10px; padding:12px; color:var(--text); font-size:14px;
+  resize:none; max-height:120px; min-height:44px;
+}
+.chat-input-field::placeholder { color:var(--dim); }
+.chat-send-btn {
+  background:var(--gold); color:var(--bg); border-radius:10px;
+  padding:0 18px; font-size:14px; font-weight:600; cursor:pointer;
+  display:flex; align-items:center; transition:opacity .15s; flex-shrink:0;
+}
+.chat-send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* ── PROFILE ──────────────────────────────────────────── */
+.profile-scroll { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; padding-bottom:100px; }
+.profile-hero {
+  background:var(--card); border-radius:20px; padding:24px;
+  border:1px solid var(--border); text-align:center;
+  box-shadow:0 2px 12px rgba(0,0,0,0.04);
+}
+.hero-av-wrap { position:relative; width:96px; margin:0 auto 14px; }
+.hero-av {
+  width:96px; height:96px; border-radius:50%; border:3px solid var(--gold);
+  background:var(--goldlt); display:flex; align-items:center; justify-content:center;
+  font-size:32px; font-weight:700; color:var(--gold); overflow:hidden;
+}
+.hero-av img { width:100%; height:100%; object-fit:cover; }
+.hero-pro-badge {
+  position:absolute; bottom:0; right:0;
+  background:var(--gold); color:#fff; border-radius:8px; border:2px solid var(--card);
+  font-size:10px; font-weight:700; padding:2px 6px;
+}
+.hero-name   { font-size:20px; font-weight:700; color:var(--text); }
+.hero-intent { font-size:13px; color:var(--sub); margin-top:4px; }
+.score-section { margin-top:16px; }
+.score-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.score-label { font-size:13px; color:var(--sub); }
+.score-pct   { font-size:13px; font-weight:700; color:var(--primary); }
+.score-bar   { height:6px; background:var(--border2); border-radius:3px; overflow:hidden; }
+.score-fill  { height:100%; background:var(--primary); border-radius:3px; }
+.score-tag   { font-size:12px; color:var(--primary); font-weight:600; margin-top:6px; }
+.trust-steps { display:flex; flex-direction:column; gap:6px; margin-top:14px; }
+.trust-step  { display:flex; align-items:center; gap:8px; font-size:13px; }
+.trust-dot   { width:18px; height:18px; border-radius:50%; border:2px solid var(--border2); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--dim); flex-shrink:0; }
+.trust-dot.done { border-color:var(--primary); background:var(--primary); color:#fff; }
+.profile-panel {
+  background:var(--card); border-radius:16px; padding:18px;
+  border:1px solid var(--border); box-shadow:0 2px 8px rgba(0,0,0,0.03);
+}
+.panel-title  { font-size:14px; font-weight:700; color:var(--text); margin-bottom:14px; }
+.panel-field  { margin-bottom:14px; }
+.panel-field:last-child { margin-bottom:0; }
+.panel-label  { font-size:12px; color:var(--sub); margin-bottom:5px; font-weight:500; }
+.panel-input  {
+  width:100%; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:12px 14px; color:var(--text); font-size:14px;
+}
+.panel-input:focus { border-color:var(--primary); outline:none; }
+.panel-input::placeholder { color:var(--dim); }
+textarea.panel-input { resize:vertical; min-height:80px; }
+.intent-chips, .interest-chips { display:flex; flex-wrap:wrap; gap:8px; }
+.intent-chip, .interest-chip {
+  padding:8px 16px; border-radius:20px; font-size:13px; font-weight:500;
+  background:var(--sur2); color:var(--sub); border:1.5px solid var(--border2); cursor:pointer;
+}
+.intent-chip.active, .interest-chip.active { background:var(--light); color:var(--primary); border-color:var(--soft); }
+.photos-grid { display:flex; flex-wrap:wrap; gap:8px; }
+.photo-thumb { width:76px; height:76px; border-radius:12px; overflow:hidden; background:var(--sur2); }
+.photo-thumb img { width:100%; height:100%; object-fit:cover; }
+.photo-add {
+  width:76px; height:76px; border-radius:12px;
+  border:2px dashed var(--border2); display:flex; align-items:center;
+  justify-content:center; font-size:28px; color:var(--dim); cursor:pointer; background:var(--sur);
+}
+.photos-warn { font-size:12px; color:var(--gold); margin-top:8px; }
+.skills-input-row { display:flex; gap:8px; margin-bottom:10px; }
+.skills-input {
+  flex:1; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:11px 14px; color:var(--text); font-size:14px;
+}
+.skills-input:focus { border-color:var(--primary); outline:none; }
+.skills-input::placeholder { color:var(--dim); }
+.skills-add { padding:11px 16px; background:var(--primary); color:#fff; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; }
+.skill-tags { display:flex; flex-wrap:wrap; gap:8px; }
+.skill-tag {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 12px; background:var(--light); border-radius:20px; font-size:13px; color:var(--primary);
+}
+.skill-tag-del { opacity:0.6; cursor:pointer; font-size:15px; }
+.remote-row { display:flex; align-items:center; justify-content:space-between; }
+.remote-lbl { font-size:14px; color:var(--text); }
+.toggle {
+  width:44px; height:26px; border-radius:13px; background:var(--border2);
+  position:relative; cursor:pointer; transition:background .2s; flex-shrink:0;
+}
+.toggle.on { background:var(--primary); }
+.toggle-knob {
+  width:20px; height:20px; border-radius:50%; background:#fff;
+  position:absolute; top:3px; left:3px; transition:left .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.toggle.on .toggle-knob { left:21px; }
+.btn-save {
+  width:100%; padding:16px; background:var(--primary); color:#fff;
+  border-radius:14px; font-size:16px; font-weight:700; cursor:pointer;
+  box-shadow:0 4px 16px rgba(15,118,110,0.3);
+}
+.btn-save:disabled { opacity:0.6; }
+.btn-upgrade {
+  width:100%; padding:14px; background:transparent; color:var(--gold);
+  border:2px solid var(--gold); border-radius:14px; font-size:15px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.btn-settings {
+  width:100%; padding:13px; background:var(--card); color:var(--sub);
+  border:1.5px solid var(--border2); border-radius:14px; font-size:14px; cursor:pointer;
+}
+.btn-signout {
+  width:100%; padding:13px; background:transparent; color:var(--danger);
+  border:1.5px solid rgba(239,68,68,0.3); border-radius:14px; font-size:14px; cursor:pointer;
+}
+
+/* ── UTILS ───────────────────────────────────────────── */
+.spinner {
+  display:inline-block; width:20px; height:20px;
+  border:2px solid rgba(255,255,255,0.4); border-top-color:#fff;
+  border-radius:50%; animation:spin .7s linear infinite;
+}
+.spinner-dark { border-color:rgba(15,118,110,0.25); border-top-color:var(--primary); }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+.loading-overlay {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; z-index:999;
+}
+.loading-overlay .logo { font-size:32px; color:var(--primary); font-weight:800; }
+
+#toast {
+  position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:rgba(31,41,55,0.92); color:#fff; padding:10px 20px; border-radius:20px;
+  font-size:13px; opacity:0; transition:all .3s; z-index:999; white-space:nowrap;
+  pointer-events:none;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── ONBOARDING ─────────────────────────────────────── */
+#onboarding-wrap {
+  flex:1; overflow-y:auto; display:flex; flex-direction:column;
+  align-items:center; background:var(--bg); padding:24px 16px 48px;
+}
+.ob-dots { display:flex; gap:6px; justify-content:center; margin:28px 0 20px; }
+.ob-dot  { width:8px; height:8px; border-radius:50%; background:var(--border2); transition:all .2s; }
+.ob-dot.active { background:var(--primary); width:20px; border-radius:4px; }
+.ob-card { width:100%; max-width:480px; background:var(--card); border-radius:20px; padding:28px;
+  border:1px solid var(--border2); box-shadow:0 6px 24px rgba(0,0,0,0.07); margin-bottom:16px; }
+.ob-title { font-size:22px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.ob-sub   { font-size:14px; color:var(--sub); margin-bottom:24px; line-height:20px; }
+.ob-label { font-size:12px; color:var(--sub); font-weight:500; letter-spacing:0.5px; margin-bottom:6px; }
+.ob-select {
+  width:100%; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:14px; color:var(--text); font-size:15px;
+  margin-bottom:16px; -webkit-appearance:none; appearance:none; cursor:pointer;
+}
+.ob-select:focus { border-color:var(--primary); outline:none; }
+.ob-input {
+  width:100%; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:14px; color:var(--text); font-size:15px; margin-bottom:0;
+}
+.ob-input:focus { border-color:var(--primary); outline:none; }
+.ob-input::placeholder { color:var(--dim); }
+.ob-textarea {
+  width:100%; background:var(--sur2); border:1px solid var(--border2);
+  border-radius:10px; padding:14px; color:var(--text); font-size:15px;
+  resize:none; min-height:80px;
+}
+.ob-textarea:focus { border-color:var(--primary); outline:none; }
+.ob-textarea::placeholder { color:var(--dim); }
+.ob-field     { margin-bottom:14px; }
+.ob-field-err { font-size:12px; color:var(--danger); margin-top:4px; }
+.ob-char-count { font-size:11px; color:var(--dim); text-align:right; margin-top:3px; }
+/* Intent card grid */
+.ob-intent-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:4px; }
+.ob-intent-card {
+  padding:14px 10px; border-radius:14px; border:1.5px solid var(--border2);
+  background:var(--sur2); font-size:13px; font-weight:500; color:var(--sub);
+  cursor:pointer; text-align:center; line-height:18px; user-select:none;
+  transition:background .15s, border-color .15s, color .15s;
+}
+.ob-intent-card.selected { background:var(--light); color:var(--primary); border-color:var(--soft); }
+/* Interest chips */
+.ob-interest-wrap { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+.ob-interest-chip {
+  padding:7px 14px; border-radius:20px; font-size:13px; font-weight:500;
+  background:var(--sur2); color:var(--sub); border:1.5px solid var(--border2);
+  cursor:pointer; user-select:none; transition:background .15s, border-color .15s, color .15s;
+}
+.ob-interest-chip.selected { background:var(--light); color:var(--primary); border-color:var(--soft); }
+.ob-tag-row   { display:flex; gap:8px; margin-bottom:10px; }
+.ob-tag-input { flex:1; background:var(--sur2); border:1px solid var(--border2); border-radius:10px; padding:11px 14px; color:var(--text); font-size:14px; }
+.ob-tag-input:focus { border-color:var(--primary); outline:none; }
+.ob-tag-input::placeholder { color:var(--dim); }
+.ob-add-btn   { padding:11px 16px; background:var(--primary); color:#fff; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer; border:none; flex-shrink:0; }
+.ob-tags      { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; min-height:0; }
+.ob-tag       { display:flex; align-items:center; gap:5px; padding:6px 12px; background:var(--light); border-radius:20px; font-size:13px; color:var(--primary); }
+.ob-tag-del   { opacity:0.6; cursor:pointer; font-size:15px; background:none; border:none; color:var(--primary); padding:0; line-height:1; }
+/* Expandable sections */
+.ob-expand-section  { border:1px solid var(--border2); border-radius:12px; overflow:hidden; margin-bottom:10px; }
+.ob-expand-header   { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; font-size:14px; font-weight:600; color:var(--text); background:var(--sur); user-select:none; }
+.ob-expand-icon     { font-size:14px; color:var(--sub); transition:transform .2s; display:inline-block; }
+.ob-expand-icon.open{ transform:rotate(180deg); }
+.ob-expand-body     { background:var(--card); max-height:0; overflow:hidden; transition:max-height .28s ease; }
+.ob-expand-body.open{ max-height:1000px; }
+.ob-expand-inner    { padding:16px; display:flex; flex-direction:column; gap:10px; }
+.ob-entry-sep       { width:100%; height:1px; background:var(--border); margin:4px 0; }
+.ob-add-entry       { font-size:13px; color:var(--primary); font-weight:600; cursor:pointer; background:none; border:none; padding:4px 0; }
+/* Photo */
+.ob-photo-btn {
+  width:96px; height:96px; border-radius:50%; background:var(--goldlt);
+  border:3px dashed var(--gold); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; cursor:pointer;
+  margin:0 auto 16px; font-size:28px; color:var(--gold);
+}
+.ob-photo-hint { font-size:10px; color:var(--gold); margin-top:3px; }
+</style>
 </head>
-<body class="bg-bg-main text-slate-800 h-screen overflow-hidden flex selection:bg-brand-100 selection:text-brand-900 font-sans">
+<body>
+<div id="root">
 
-<!-- ═══════════════════════════════════════════════════════════════════════
-     AUTH SCREEN  (login · register · OTP)
-═══════════════════════════════════════════════════════════════════════ -->
-<div id="auth-screen" class="fixed inset-0 z-50 bg-bg-main flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
-    <!-- Logo -->
-    <div class="flex flex-col items-center mb-8">
-      <div class="w-16 h-16 rounded-2xl bg-brand-600 flex items-center justify-center shadow-xl shadow-brand-500/30 mb-4">
-        <svg width="36" height="36" viewBox="0 0 100 100" fill="none">
-          <circle cx="35" cy="35" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="35" r="8"  fill="#2dd4bf"/>
-          <circle cx="75" cy="50" r="18" fill="white" fill-opacity=".9"/>
-          <circle cx="75" cy="50" r="10" fill="#2dd4bf"/>
-          <circle cx="35" cy="75" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="75" r="8"  fill="#fb923c"/>
-          <path d="M45 40 L65 45" stroke="white" stroke-width="6" stroke-linecap="round"/>
-          <path d="M45 70 L65 55" stroke="white" stroke-width="6" stroke-linecap="round"/>
-          <path d="M35 50 V 60"   stroke="white" stroke-width="6" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <h1 class="text-2xl font-bold text-slate-900">Build Your Network</h1>
-      <p class="text-slate-500 text-sm mt-1">Connect with intent</p>
-    </div>
-
-    <!-- Auth card -->
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-
-      <!-- Tab toggle (login / register) -->
-      <div id="auth-tabs" class="flex border-b border-slate-100">
-        <button onclick="switchAuthTab('login')" id="tab-login"
-          class="flex-1 py-4 text-sm font-semibold text-brand-700 border-b-2 border-brand-600 transition-all">Sign In</button>
-        <button onclick="switchAuthTab('register')" id="tab-register"
-          class="flex-1 py-4 text-sm font-medium text-slate-500 border-b-2 border-transparent hover:text-slate-700 transition-all">Create Account</button>
-      </div>
-
-      <!-- LOGIN -->
-      <div id="form-login" class="p-8 fade-in">
-        <form onsubmit="doLogin(event)">
-          <div class="space-y-4">
-            <div>
-              <label class="text-xs font-semibold text-slate-500 block mb-1.5">Email</label>
-              <input id="login-email" type="email" required placeholder="you@example.com"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-500 block mb-1.5">Password</label>
-              <input id="login-password" type="password" required placeholder="••••••••"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <button type="submit" id="login-btn"
-              class="w-full py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 mt-2">
-              Sign In
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- REGISTER -->
-      <div id="form-register" class="p-8 hidden fade-in">
-        <form onsubmit="doRegister(event)">
-          <div class="space-y-4">
-            <div>
-              <label class="text-xs font-semibold text-slate-500 block mb-1.5">Full Name</label>
-              <input id="reg-name" type="text" required placeholder="Jane Doe"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-500 block mb-1.5">Email</label>
-              <input id="reg-email" type="email" required placeholder="you@example.com"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div>
-              <label class="text-xs font-semibold text-slate-500 block mb-1.5">Password</label>
-              <input id="reg-password" type="password" required placeholder="min 8 chars"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <button type="submit" id="register-btn"
-              class="w-full py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2 mt-2">
-              Create Account
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- OTP VERIFICATION -->
-      <div id="form-otp" class="p-8 hidden fade-in text-center">
-        <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-          </svg>
-        </div>
-        <h3 class="font-bold text-lg text-slate-900 mb-1">Verify your email</h3>
-        <p class="text-sm text-slate-500 mb-6">We sent a 6-digit code to your email</p>
-        <form onsubmit="doVerifyOtp(event)">
-          <input id="otp-code" type="text" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required
-            placeholder="000000"
-            class="w-full px-4 py-4 rounded-xl border-2 border-brand-500 text-center text-3xl font-bold tracking-[1rem] outline-none mb-4 bg-slate-50">
-          <div class="flex items-center justify-between mb-4 bg-slate-50 rounded-lg p-3">
-            <span class="text-sm text-slate-600">Trust this device (30 days)</span>
-            <input type="checkbox" id="otp-trust" class="w-4 h-4 accent-teal-600">
-          </div>
-          <button type="submit" id="otp-btn"
-            class="w-full py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/30 flex items-center justify-center gap-2">
-            Verify
-          </button>
-        </form>
-        <button onclick="doResendOtp()" class="text-sm text-brand-600 mt-4 hover:underline">Resend code</button>
-        <p id="otp-countdown" class="text-xs text-slate-400 mt-1"></p>
-      </div>
-
-    </div>
+  <div class="loading-overlay" id="loading-screen">
+    <div class="logo">✦ BYN</div>
+    <div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div>
   </div>
-</div>
 
-<!-- ═══════════════════════════════════════════════════════════════════════
-     MAIN APP
-═══════════════════════════════════════════════════════════════════════ -->
-<div id="main-app" class="hidden w-full h-full flex">
+  <!-- ══ AUTH ══════════════════════════════════════════ -->
+  <div id="auth-wrap" class="hidden">
 
-  <!-- Sidebar backdrop (mobile only) -->
-  <div id="sidebar-backdrop" class="fixed inset-0 z-30 bg-black/40 hidden md:hidden" onclick="closeSidebar()"></div>
-
-  <!-- Sidebar -->
-  <aside id="sidebar" class="fixed md:relative inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col h-full shadow-sm -translate-x-full md:translate-x-0">
-    <div class="p-6 flex items-center gap-3 border-b border-slate-100">
-      <div class="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/30">
-        <svg width="24" height="24" viewBox="0 0 100 100" fill="none">
-          <circle cx="35" cy="35" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="35" r="8"  fill="#2dd4bf"/>
-          <circle cx="75" cy="50" r="18" fill="white" fill-opacity=".9"/>
-          <circle cx="75" cy="50" r="10" fill="#2dd4bf"/>
-          <circle cx="35" cy="75" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="75" r="8"  fill="#fb923c"/>
-          <path d="M45 40 L65 45" stroke="white" stroke-width="6" stroke-linecap="round"/>
-          <path d="M45 70 L65 55" stroke="white" stroke-width="6" stroke-linecap="round"/>
-          <path d="M35 50 V 60"   stroke="white" stroke-width="6" stroke-linecap="round"/>
-        </svg>
+    <!-- LOGIN -->
+    <div id="screen-login">
+      <div class="auth-brand">
+        <span class="auth-icon">✦</span>
+        <div class="auth-title">Build Your Network</div>
+        <div class="auth-tag">Professional connections that matter</div>
       </div>
-      <div>
-        <h1 class="font-bold text-lg tracking-tight text-slate-900 leading-none">Build Your Network</h1>
-        <p class="text-xs text-slate-500 font-medium mt-1">connect • grow • thrive</p>
+      <div class="auth-card">
+        <h2>Welcome back</h2>
+        <p class="sub">Sign in to continue</p>
+        <div class="field-label">EMAIL</div>
+        <input class="field-input" type="email" id="login-email" placeholder="you@example.com" autocomplete="email">
+        <div class="field-label">PASSWORD</div>
+        <input class="field-input" type="password" id="login-pw" placeholder="Your password" autocomplete="current-password">
+        <div class="err-box hidden" id="login-err"></div>
+        <button class="btn-gold" id="login-btn" onclick="doLogin()">Sign In</button>
+      </div>
+      <div class="switch-row">
+        <span>Don't have an account? </span>
+        <a onclick="showScreen('signup')">Create one →</a>
       </div>
     </div>
 
-    <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
-      <button onclick="navigate('discover')" id="nav-discover"
-        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-slate-50 transition-all duration-200 group">
-        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-        <span>Discover</span>
-      </button>
+    <!-- SIGNUP -->
+    <div id="screen-signup" class="hidden">
+      <div class="auth-brand">
+        <span class="auth-icon">✦</span>
+        <div class="auth-title">Build Your Network</div>
+        <div class="auth-tag">Connect with high-intent professionals</div>
+      </div>
+      <div class="auth-card">
+        <h2>Create your account</h2>
+        <p class="sub">Join a curated professional network</p>
+        <div class="field-label">FULL NAME</div>
+        <input class="field-input" type="text" id="signup-name" placeholder="Alex Johnson" autocomplete="name">
+        <div class="field-label">EMAIL</div>
+        <input class="field-input" type="email" id="signup-email" placeholder="you@example.com" autocomplete="email">
+        <div class="field-label">PASSWORD</div>
+        <input class="field-input" type="password" id="signup-pw" placeholder="Min. 6 characters" autocomplete="new-password">
+        <div class="consent-row" onclick="toggleConsent()">
+          <div class="checkbox" id="consent-box"><span class="checkbox-check">✓</span></div>
+          <span class="consent-txt">I agree to the Terms &amp; Conditions and Privacy Policy (accessible from Profile after signup)</span>
+        </div>
+        <div class="err-box hidden" id="signup-err"></div>
+        <button class="btn-primary" id="signup-btn" onclick="doSignup()" disabled>Create Account</button>
+      </div>
+      <div class="switch-row">
+        <span>Already a member? </span>
+        <a onclick="showScreen('login')">Sign in →</a>
+      </div>
+    </div>
 
-      <button onclick="navigate('likes')" id="nav-likes"
-        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-slate-50 transition-all duration-200 group">
-        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-        </svg>
+    <!-- OTP -->
+    <div id="screen-otp" class="hidden">
+      <div class="auth-brand">
+        <span class="auth-icon">✦</span>
+        <div class="auth-title">Verify your email</div>
+        <div class="auth-tag" id="otp-hint">Enter the 6-digit code we sent you</div>
+      </div>
+      <div class="auth-card">
+        <h2>Enter 6-digit code</h2>
+        <p class="sub">Check your inbox for the verification code</p>
+        <div class="otp-inputs" id="otp-inputs">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+          <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        </div>
+        <div class="err-box hidden" id="otp-err"></div>
+        <button class="btn-primary" id="otp-btn" onclick="doVerifyOtp()">Verify Email</button>
+        <div style="text-align:center;margin-top:14px;">
+          <a style="font-size:13px;color:var(--primary);cursor:pointer;font-weight:600;" onclick="doResendOtp()">Resend code</a>
+        </div>
+      </div>
+      <div class="switch-row">
+        <a onclick="showScreen('login')">← Back to sign in</a>
+      </div>
+    </div>
+
+  </div><!-- /auth-wrap -->
+
+  <!-- ══ ONBOARDING ════════════════════════════════════ -->
+  <div id="onboarding-wrap" class="hidden">
+    <div class="ob-dots">
+      <div class="ob-dot" id="ob-dot-1"></div>
+      <div class="ob-dot" id="ob-dot-2"></div>
+      <div class="ob-dot" id="ob-dot-3"></div>
+    </div>
+
+    <!-- SCREEN 1: Acquisition -->
+    <div id="ob-screen-acquisition" class="ob-card hidden">
+      <div class="ob-title">How did you hear about us?</div>
+      <div class="ob-sub">Help us understand where our community is growing.</div>
+      <div class="ob-label">SOURCE</div>
+      <select class="ob-select" id="ob-source" onchange="obSourceChange()">
+        <option value="">Select a source…</option>
+        <option>LinkedIn</option>
+        <option>Instagram</option>
+        <option>Twitter/X</option>
+        <option>WhatsApp</option>
+        <option>Friend/Referral</option>
+        <option>Google Search</option>
+        <option>Community/Event</option>
+        <option>YouTube</option>
+        <option>Other</option>
+      </select>
+      <div id="ob-referral-wrap" class="ob-field hidden">
+        <div class="ob-label">WHO REFERRED YOU?</div>
+        <input class="ob-input" id="ob-referral" type="text" placeholder="Name or username (optional)" maxlength="50">
+      </div>
+      <div class="ob-field-err hidden" id="ob-acq-err"></div>
+      <button class="btn-primary" id="ob-acq-btn" onclick="obSubmitAcquisition()">Continue →</button>
+    </div>
+
+    <!-- SCREEN 2: Intent -->
+    <div id="ob-screen-intent" class="ob-card hidden">
+      <div class="ob-title">What are you here for?</div>
+      <div class="ob-sub">Select all that apply — we'll match you with the right people.</div>
+      <div class="ob-intent-grid" id="ob-intent-grid"></div>
+      <div class="ob-field-err hidden" id="ob-intent-err"></div>
+      <button class="btn-primary" style="margin-top:16px;" id="ob-intent-btn" onclick="obSubmitIntent()">Continue →</button>
+    </div>
+
+    <!-- SCREEN 3: Profile -->
+    <div id="ob-screen-profile" class="ob-card hidden">
+      <div class="ob-title">Set up your profile</div>
+      <div class="ob-sub">Stand out to the right people.</div>
+
+      <!-- Photo -->
+      <div class="ob-photo-btn" id="ob-photo-btn" onclick="obPickPhoto()">
+        📷<div class="ob-photo-hint">Add Photo</div>
+      </div>
+      <input type="file" id="ob-photo-input" accept="image/*" class="hidden" onchange="obUploadPhoto(this)">
+
+      <!-- Headline -->
+      <div class="ob-field">
+        <div class="ob-label">HEADLINE</div>
+        <input class="ob-input" id="ob-headline" type="text" maxlength="80"
+          placeholder="e.g. Building fintech at Stripe · Ex-Google" oninput="obHeadlineCount()">
+        <div class="ob-char-count"><span id="ob-headline-count">0</span>/80</div>
+      </div>
+
+      <!-- Bio -->
+      <div class="ob-field">
+        <div class="ob-label">BIO <span style="color:var(--dim);font-weight:400;">(optional, 30+ chars recommended)</span></div>
+        <textarea class="ob-textarea" id="ob-bio" rows="3" maxlength="300"
+          placeholder="Tell people what you're working on, what excites you, or what you're looking for…"
+          oninput="obBioValidate()"></textarea>
+        <div class="ob-char-count"><span id="ob-bio-count">0</span>/300</div>
+      </div>
+
+      <!-- Profession / Industry / Experience -->
+      <div class="ob-field">
+        <div class="ob-label">PROFESSION</div>
+        <input class="ob-input" id="ob-profession" type="text" placeholder="e.g. Software Engineer, Designer, Founder">
+      </div>
+      <div class="ob-field">
+        <div class="ob-label">INDUSTRY</div>
+        <input class="ob-input" id="ob-industry" type="text" placeholder="e.g. Fintech, Healthcare, SaaS">
+      </div>
+      <div class="ob-field">
+        <div class="ob-label">EXPERIENCE LEVEL</div>
+        <select class="ob-select" id="ob-exp-level">
+          <option value="">Select…</option>
+          <option>Beginner</option>
+          <option>Intermediate</option>
+          <option>Advanced</option>
+          <option>Expert</option>
+        </select>
+      </div>
+
+      <!-- Interests -->
+      <div class="ob-field">
+        <div class="ob-label">INTERESTS</div>
+        <div class="ob-interest-wrap" id="ob-interest-chips"></div>
+        <div class="ob-tag-row">
+          <input class="ob-tag-input" id="ob-interest-input" placeholder="Add custom interest…" maxlength="40"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();obAddInterest();}">
+          <button class="ob-add-btn" onclick="obAddInterest()">Add</button>
+        </div>
+        <div class="ob-tags" id="ob-interest-tags"></div>
+      </div>
+
+      <!-- Expandable: Education -->
+      <div class="ob-expand-section">
+        <div class="ob-expand-header" onclick="obToggle('ob-edu')">
+          🎓 Education
+          <span class="ob-expand-icon" id="ob-edu-icon">▼</span>
+        </div>
+        <div class="ob-expand-body" id="ob-edu-body">
+          <div class="ob-expand-inner" id="ob-edu-entries"></div>
+          <div style="padding:0 16px 16px;">
+            <button class="ob-add-entry" onclick="obAddEduEntry()">+ Add Education</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expandable: Work -->
+      <div class="ob-expand-section">
+        <div class="ob-expand-header" onclick="obToggle('ob-work')">
+          💼 Work Experience
+          <span class="ob-expand-icon" id="ob-work-icon">▼</span>
+        </div>
+        <div class="ob-expand-body" id="ob-work-body">
+          <div class="ob-expand-inner" id="ob-work-entries"></div>
+          <div style="padding:0 16px 16px;">
+            <button class="ob-add-entry" onclick="obAddWorkEntry()">+ Add Work</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expandable: Location -->
+      <div class="ob-expand-section">
+        <div class="ob-expand-header" onclick="obToggle('ob-loc')">
+          📍 Location
+          <span class="ob-expand-icon" id="ob-loc-icon">▼</span>
+        </div>
+        <div class="ob-expand-body" id="ob-loc-body">
+          <div class="ob-expand-inner">
+            <div class="ob-label">CITY / REGION</div>
+            <input class="ob-input" id="ob-location" type="text" placeholder="e.g. San Francisco, CA">
+            <button class="ob-add-entry" style="margin-top:6px;" onclick="obDetectLocation()">📍 Detect my location</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expandable: Social Links -->
+      <div class="ob-expand-section">
+        <div class="ob-expand-header" onclick="obToggle('ob-social')">
+          🔗 Social Links
+          <span class="ob-expand-icon" id="ob-social-icon">▼</span>
+        </div>
+        <div class="ob-expand-body" id="ob-social-body">
+          <div class="ob-expand-inner">
+            <div class="ob-label">LINKEDIN</div>
+            <input class="ob-input" id="ob-linkedin" type="url" placeholder="https://linkedin.com/in/you">
+            <div style="margin-top:10px;" class="ob-label">TWITTER / X</div>
+            <input class="ob-input" id="ob-twitter" type="url" placeholder="https://twitter.com/you">
+            <div style="margin-top:10px;" class="ob-label">GITHUB</div>
+            <input class="ob-input" id="ob-github" type="url" placeholder="https://github.com/you">
+            <div style="margin-top:10px;" class="ob-label">PORTFOLIO / WEBSITE</div>
+            <input class="ob-input" id="ob-portfolio" type="url" placeholder="https://yoursite.com">
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-field-err hidden" id="ob-profile-err" style="margin-top:8px;"></div>
+      <button class="btn-primary" style="margin-top:16px;" id="ob-profile-btn" onclick="obSubmitProfile()">Complete Setup →</button>
+    </div>
+  </div><!-- /onboarding-wrap -->
+
+  <!-- ══ APP ═══════════════════════════════════════════ -->
+  <div id="app-wrap" class="hidden">
+    <div id="app-views">
+
+      <!-- DISCOVER -->
+      <div class="app-view" id="view-discover">
+        <div class="disc-header">
+          <div class="disc-logo"><em>✦</em>Build Your Network</div>
+          <button class="filter-btn" onclick="openFilters()">
+            ⚡ Filters&nbsp;<span class="filter-count" id="filter-count">0</span>
+          </button>
+        </div>
+        <div id="disc-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+      </div>
+
+      <!-- LIKES -->
+      <div class="app-view hidden" id="view-likes">
+        <div class="screen-header">
+          <h1>Likes</h1>
+          <span id="likes-count-badge" style="background:var(--gold);color:#fff;border-radius:12px;padding:3px 10px;font-size:13px;font-weight:700;display:none;"></span>
+        </div>
+        <div id="likes-content" style="flex:1;display:flex;flex-direction:column;overflow-y:auto;"></div>
+      </div>
+
+      <!-- CHAT LIST -->
+      <div class="app-view hidden" id="view-chats">
+        <div class="screen-header">
+          <h1>Chat</h1>
+          <button style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border2);background:var(--card);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;">⚡</button>
+        </div>
+        <div id="chats-list" style="flex:1;overflow-y:auto;"></div>
+      </div>
+
+      <!-- CHAT DETAIL -->
+      <div class="app-view hidden" id="view-chat" style="overflow:hidden;">
+        <div class="chat-detail-wrap">
+          <div class="chat-detail-header">
+            <span class="chat-back" onclick="goBack()">‹</span>
+            <div class="chat-detail-av" id="chat-detail-av"></div>
+            <div>
+              <div class="chat-detail-name" id="chat-detail-name">—</div>
+              <div class="chat-detail-loc"  id="chat-detail-loc"></div>
+            </div>
+          </div>
+          <div class="msgs-area" id="msgs-area"></div>
+          <div class="chat-input-row">
+            <textarea class="chat-input-field" id="chat-input" placeholder="Send a message…" rows="1"
+              oninput="autoResize(this);updateSendBtn()"
+              onkeydown="chatKeydown(event)"></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" onclick="sendMessage()" disabled>Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="app-view hidden" id="view-profile">
+        <div class="screen-header"><h1>Profile</h1></div>
+        <div class="profile-scroll" id="profile-scroll"></div>
+      </div>
+
+    </div><!-- /app-views -->
+
+    <nav id="bottom-nav">
+      <button class="nav-item active" id="nav-discover" onclick="switchTab('discover')">
+        <span class="nav-icon">🔍</span><span>Discover</span>
+      </button>
+      <button class="nav-item" id="nav-likes" onclick="switchTab('likes')">
+        <span class="nav-badge-wrap">
+          <span class="nav-icon">♡</span>
+          <span class="nav-dot hidden" id="likes-dot"></span>
+        </span>
         <span>Likes</span>
-        <span id="likes-badge" class="ml-auto bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
       </button>
-
-      <button onclick="navigate('chat')" id="nav-chat"
-        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-slate-50 transition-all duration-200 group">
-        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-        </svg>
+      <button class="nav-item" id="nav-chats" onclick="switchTab('chats')">
+        <span class="nav-badge-wrap">
+          <span class="nav-icon">💬</span>
+          <span class="nav-dot hidden" id="chat-dot"></span>
+        </span>
         <span>Chat</span>
-        <span id="chat-badge" class="ml-auto bg-brand-100 text-brand-700 text-xs font-bold px-2 py-0.5 rounded-full hidden">0</span>
       </button>
-
-      <button onclick="navigate('profile')" id="nav-profile"
-        class="nav-item w-full flex items-center gap-3 px-4 py-3 text-slate-600 rounded-xl hover:bg-slate-50 transition-all duration-200 group">
-        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-        </svg>
-        <span>My Profile</span>
+      <button class="nav-item" id="nav-profile" onclick="switchTab('profile')">
+        <span class="nav-icon">👤</span><span>Profile</span>
       </button>
-
-      <div class="pt-4 mt-4 border-t border-slate-100">
-        <button onclick="navigate('premium')" id="nav-premium"
-          class="nav-item w-full flex items-center gap-3 px-4 py-3 text-amber-600 rounded-xl hover:bg-amber-50 transition-all duration-200 group">
-          <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
-          </svg>
-          <span>Go Premium</span>
-        </button>
-      </div>
     </nav>
+  </div><!-- /app-wrap -->
 
-    <!-- Sidebar user footer -->
-    <div class="p-4 border-t border-slate-200 bg-slate-50/50">
-      <div class="flex items-center gap-3">
-        <div id="sidebar-avatar" class="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold text-sm overflow-hidden border-2 border-white shadow-sm"></div>
-        <div class="flex-1 min-w-0">
-          <p id="sidebar-name" class="text-sm font-semibold text-slate-900 truncate"></p>
-          <p id="sidebar-badge" class="text-xs text-slate-500"></p>
-        </div>
-        <button onclick="doLogout()" title="Logout" class="text-slate-400 hover:text-red-500 transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-          </svg>
-        </button>
+  <!-- FILTER MODAL -->
+  <div id="filter-modal" class="hidden">
+    <div class="filter-backdrop" onclick="closeFilters()"></div>
+    <div class="filter-sheet">
+      <div class="filter-handle"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <span style="font-size:18px;font-weight:700;color:var(--text);">Filters</span>
+        <button onclick="resetFilters()" style="font-size:13px;color:var(--primary);background:none;border:none;cursor:pointer;font-weight:600;">Reset</button>
       </div>
-    </div>
-  </aside>
-
-  <!-- Mobile Header -->
-  <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
-    <div class="flex items-center gap-2">
-      <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-        <svg width="16" height="16" viewBox="0 0 100 100" fill="none">
-          <circle cx="35" cy="35" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="35" r="8"  fill="#2dd4bf"/>
-          <circle cx="75" cy="50" r="18" fill="white" fill-opacity=".9"/>
-          <circle cx="75" cy="50" r="10" fill="#2dd4bf"/>
-          <circle cx="35" cy="75" r="15" fill="white" fill-opacity=".9"/>
-          <circle cx="35" cy="75" r="8"  fill="#fb923c"/>
-        </svg>
+      <div class="filter-section-title">Sort By</div>
+      <div class="chips-wrap">
+        <div class="filter-chip active" data-group="sort" data-val="match_score" onclick="filterChip(this)">Match Score</div>
+        <div class="filter-chip" data-group="sort" data-val="recent"       onclick="filterChip(this)">Recent</div>
+        <div class="filter-chip" data-group="sort" data-val="active"       onclick="filterChip(this)">Most Active</div>
       </div>
-      <span class="font-bold text-slate-800">BYN</span>
+      <div class="filter-section-title">Intent</div>
+      <div class="chips-wrap">
+        <div class="filter-chip" data-group="intent" data-val="hiring"     onclick="filterChip(this)">Hiring</div>
+        <div class="filter-chip" data-group="intent" data-val="freelance"  onclick="filterChip(this)">Freelance</div>
+        <div class="filter-chip" data-group="intent" data-val="cofounder"  onclick="filterChip(this)">Co-founder</div>
+        <div class="filter-chip" data-group="intent" data-val="mentorship" onclick="filterChip(this)">Mentorship</div>
+        <div class="filter-chip" data-group="intent" data-val="investing"  onclick="filterChip(this)">Investing</div>
+        <div class="filter-chip" data-group="intent" data-val="networking" onclick="filterChip(this)">Networking</div>
+      </div>
+      <div class="filter-section-title">Location</div>
+      <div class="chips-wrap">
+        <div class="filter-chip" data-group="location" data-val="nearby"    onclick="filterChip(this)">Nearby</div>
+        <div class="filter-chip" data-group="location" data-val="remote"    onclick="filterChip(this)">Remote</div>
+        <div class="filter-chip" data-group="location" data-val="worldwide" onclick="filterChip(this)">Worldwide</div>
+      </div>
+      <button class="filter-apply" onclick="applyFilters()">Show Matches</button>
     </div>
-    <button onclick="openSidebar()" class="text-slate-600">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
-      </svg>
-    </button>
   </div>
 
-  <!-- Main -->
-  <main class="flex-1 h-full overflow-hidden relative pt-16 md:pt-0 flex flex-col">
-
-    <!-- Top header -->
-    <header class="h-20 px-8 border-b border-slate-200 bg-white/50 backdrop-blur-sm flex items-center justify-between flex-shrink-0 z-10">
-      <div>
-        <h2 id="page-title" class="text-2xl font-bold text-slate-800">Discover</h2>
-        <p id="page-subtitle" class="text-sm text-slate-500">Find professionals to connect with</p>
-      </div>
-      <div class="flex items-center gap-3" id="header-actions"></div>
-    </header>
-
-    <!-- Content -->
-    <div class="flex-1 overflow-y-auto relative">
-
-      <!-- ── VIEW: DISCOVER ── -->
-      <div id="view-discover" class="view-section p-4 md:p-8 max-w-5xl mx-auto fade-in">
-        <!-- Filters bar -->
-        <div class="flex flex-wrap gap-3 mb-8 items-center justify-between">
-          <!-- Intent chips -->
-          <div class="flex gap-2 overflow-x-auto pb-1">
-            <button onclick="setIntentFilter('')" data-intent=""
-              class="intent-chip px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-medium shadow-md shadow-brand-500/20 whitespace-nowrap">All</button>
-            <button onclick="setIntentFilter('find-cofounder')" data-intent="find-cofounder"
-              class="intent-chip px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap">Co-founder</button>
-            <button onclick="setIntentFilter('learn-mentorship')" data-intent="learn-mentorship"
-              class="intent-chip px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap">Mentorship</button>
-            <button onclick="setIntentFilter('hire')" data-intent="hire"
-              class="intent-chip px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap">Hiring</button>
-            <button onclick="setIntentFilter('collaborate')" data-intent="collaborate"
-              class="intent-chip px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap">Collab</button>
-          </div>
-          <!-- Location mode + GPS status -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <select id="loc-mode" onchange="onLocModeChange()"
-              class="px-3 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/40 text-sm text-slate-700">
-              <option value="nearby">📍 Nearby (200km)</option>
-              <option value="remote">🌐 Remote only</option>
-              <option value="worldwide">🌍 Worldwide</option>
-            </select>
-            <select id="loc-radius" onchange="loadDiscover()" style="display:none"
-              class="px-3 py-2 rounded-xl border-2 border-brand-500 bg-white focus:outline-none text-sm text-brand-700 font-semibold">
-              <option value="">200 km</option>
-              <option value="50">50 km ⭐</option>
-              <option value="25">25 km ⭐</option>
-              <option value="10">10 km ⭐</option>
-            </select>
-            <span id="gps-status" class="text-xs text-slate-400"></span>
-          </div>
-        </div>
-
-        <!-- Grid -->
-        <div id="discover-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
-        <!-- Empty -->
-        <div id="discover-empty" class="hidden flex flex-col items-center justify-center h-96 text-center">
-          <div class="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <svg class="w-10 h-10 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-slate-700">No profiles found</h3>
-          <p id="discover-empty-msg" class="text-slate-500 text-sm mt-1">Try adjusting your filters.</p>
-          <button onclick="resetDiscover()" class="mt-6 px-6 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors">Reset</button>
-        </div>
-
-        <!-- Load more -->
-        <div id="load-more-wrap" class="hidden mt-8 flex justify-center">
-          <button onclick="loadMoreDiscover()" id="load-more-btn"
-            class="px-8 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-brand-400 transition-all shadow-sm">
-            Load More
-          </button>
-        </div>
-      </div>
-
-      <!-- ── VIEW: LIKES ── -->
-      <div id="view-likes" class="view-section hidden p-4 md:p-8 max-w-4xl mx-auto fade-in">
-        <div id="likes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-        <div id="likes-empty" class="hidden flex flex-col items-center justify-center h-96 text-center">
-          <div class="w-24 h-24 bg-rose-50 rounded-full flex items-center justify-center mb-4 animate-pulse">
-            <svg class="w-10 h-10 text-rose-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-slate-700">No likes yet</h3>
-          <p class="text-slate-500 text-sm mt-1">Keep building your profile to get noticed!</p>
-        </div>
-        <div id="likes-premium-wall" class="hidden text-center py-16">
-          <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-10 h-10 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-slate-800 mb-2">See who liked you</h3>
-          <p class="text-slate-500 mb-6 max-w-xs mx-auto">Upgrade to Premium to see everyone who liked your profile and connect with them first.</p>
-          <button onclick="navigate('premium')" class="px-8 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/30">Upgrade to Premium</button>
-        </div>
-      </div>
-
-      <!-- ── VIEW: CHAT ── -->
-      <div id="view-chat" class="view-section hidden fade-in">
-        <div class="flex h-full">
-          <!-- Conversation list -->
-          <div class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col h-full flex-shrink-0">
-            <div class="p-4 border-b border-slate-100">
-              <h3 class="font-bold text-lg">Messages</h3>
-            </div>
-            <div id="chat-list" class="flex-1 overflow-y-auto divide-y divide-slate-50"></div>
-          </div>
-          <!-- Active chat -->
-          <div class="flex-1 flex flex-col bg-white/50 h-full relative hidden md:flex">
-            <div id="chat-active-header" class="h-16 border-b border-slate-200 flex items-center px-6 gap-3 bg-white hidden">
-              <div id="chat-header-avatar" class="w-10 h-10 rounded-full overflow-hidden bg-brand-100 flex items-center justify-center font-bold text-brand-700"></div>
-              <div>
-                <h4 id="chat-header-name" class="font-bold text-sm text-slate-900"></h4>
-                <span class="text-xs text-green-500 flex items-center gap-1">
-                  <span class="w-2 h-2 bg-green-500 rounded-full inline-block"></span> Active
-                </span>
-              </div>
-            </div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-3"></div>
-            <div id="chat-input-area" class="p-4 border-t border-slate-200 bg-white hidden">
-              <form onsubmit="sendMessage(event)" class="flex gap-2">
-                <input type="text" id="message-input" placeholder="Type a message…"
-                  class="flex-1 px-4 py-2 rounded-full border border-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 bg-slate-50 text-sm">
-                <button type="submit"
-                  class="p-2 bg-brand-600 text-white rounded-full hover:bg-brand-700 transition-colors shadow-md shadow-brand-500/30">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                  </svg>
-                </button>
-              </form>
-            </div>
-            <div id="chat-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-bg-main">
-              <svg class="w-16 h-16 mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-              </svg>
-              <p class="text-sm">Select a conversation</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── VIEW: PROFILE ── -->
-      <div id="view-profile" class="view-section hidden p-4 md:p-8 max-w-3xl mx-auto pb-20 fade-in">
-        <!-- Profile hero -->
-        <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-400 to-brand-600"></div>
-          <div class="relative group">
-            <div id="profile-avatar" class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg bg-brand-100 flex items-center justify-center"></div>
-            <label class="absolute bottom-0 right-0 bg-slate-800 text-white p-1.5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-              </svg>
-              <input type="file" accept="image/*" class="hidden" onchange="uploadAvatar(this)">
-            </label>
-          </div>
-          <div class="flex-1">
-            <h2 id="profile-name" class="text-2xl font-bold text-slate-900"></h2>
-            <p id="profile-role" class="text-slate-500"></p>
-            <div id="profile-premium-badge" class="hidden mt-2 inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wide">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-              </svg>
-              Premium Member
-            </div>
-          </div>
-          <div class="w-full md:w-48">
-            <div class="flex justify-between text-sm mb-1">
-              <span class="text-slate-600 font-medium">Profile Strength</span>
-              <span id="trust-pct" class="text-brand-600 font-bold">0%</span>
-            </div>
-            <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-              <div id="trust-bar" class="bg-brand-500 h-2.5 rounded-full transition-all duration-700" style="width:0%"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Photos -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mb-6">
-          <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Photos</h3>
-          <div id="photos-grid" class="grid grid-cols-3 md:grid-cols-4 gap-4">
-            <!-- injected -->
-            <label class="aspect-square rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 hover:border-brand-500 hover:text-brand-500 transition-colors cursor-pointer">
-              <svg class="w-8 h-8 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              <span class="text-xs font-medium">Add</span>
-              <input type="file" accept="image/*" class="hidden" onchange="uploadPhoto(this)">
-            </label>
-          </div>
-        </div>
-
-        <!-- Edit form -->
-        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Basic Info</h3>
-          <form onsubmit="saveProfile(event)" class="space-y-5">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-500">Full Name</label>
-                <input type="text" id="edit-name" name="name"
-                  class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-500">Location</label>
-                <input type="text" id="edit-location" name="location"
-                  class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-              </div>
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-semibold text-slate-500">Bio</label>
-              <textarea id="edit-bio" name="bio" rows="3"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm resize-none"></textarea>
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-semibold text-slate-500">Currently Exploring <span class="text-slate-400 font-normal">(shown on your card)</span></label>
-              <input type="text" id="edit-exploring" name="currently_exploring" placeholder="e.g. Founder @ Stealth, Senior Dev at Google"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-semibold text-slate-500">Working On</label>
-              <input type="text" id="edit-working-on" name="working_on" placeholder="e.g. AI-powered hiring platform"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div class="space-y-1">
-              <label class="text-xs font-semibold text-slate-500">Interested In</label>
-              <input type="text" id="edit-interested-in" name="interested_in" placeholder="e.g. SaaS, B2B, deep tech"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-500">Skills <span class="text-slate-400 font-normal">(comma-separated)</span></label>
-                <input type="text" id="edit-skills" name="skills" placeholder="e.g. React, Python, Product"
-                  class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-              </div>
-              <div class="space-y-1">
-                <label class="text-xs font-semibold text-slate-500">Interests <span class="text-slate-400 font-normal">(comma-separated)</span></label>
-                <input type="text" id="edit-interests" name="interests" placeholder="e.g. Fintech, Climate, EdTech"
-                  class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-              </div>
-            </div>
-
-            <div class="border-t border-slate-100 pt-5">
-              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Social Links</h4>
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <span class="text-slate-400 text-sm w-24 flex-shrink-0">LinkedIn</span>
-                  <input type="url" id="edit-linkedin" name="linkedin" placeholder="https://linkedin.com/in/…"
-                    class="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-                </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-slate-400 text-sm w-24 flex-shrink-0">Instagram</span>
-                  <input type="url" id="edit-instagram" name="instagram" placeholder="https://instagram.com/…"
-                    class="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-                </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-slate-400 text-sm w-24 flex-shrink-0">Website</span>
-                  <input type="url" id="edit-website" name="website" placeholder="https://…"
-                    class="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 text-sm">
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-1">
-              <label class="text-xs font-semibold text-slate-500">Intent</label>
-              <div class="relative">
-                <select id="edit-intent" name="intent"
-                  class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none transition-all bg-slate-50/50 appearance-none text-sm">
-                  <option value="explore-network">Exploring network</option>
-                  <option value="find-cofounder">Finding a co-founder</option>
-                  <option value="hire">Hiring talent</option>
-                  <option value="find-job">Looking for a job</option>
-                  <option value="learn-mentorship">Mentorship</option>
-                  <option value="collaborate">Collaborating</option>
-                  <option value="find-investors">Finding investors</option>
-                </select>
-                <svg class="w-4 h-4 text-slate-400 absolute right-3 top-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-              </div>
-            </div>
-            <div class="flex items-center gap-3">
-              <input type="checkbox" id="edit-remote" class="w-4 h-4 accent-teal-600">
-              <label for="edit-remote" class="text-sm text-slate-600">I work remotely / open to remote connections</label>
-            </div>
-            <div class="pt-4">
-              <button type="submit" id="save-profile-btn"
-                class="px-8 py-2.5 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-all shadow-lg shadow-brand-500/30 active:scale-95 flex items-center gap-2">
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- ── VIEW: PREMIUM ── -->
-      <div id="view-premium" class="view-section hidden p-4 md:p-8 max-w-4xl mx-auto fade-in">
-        <div class="text-center mb-12">
-          <h2 class="text-3xl font-bold text-slate-900 mb-4">Upgrade to Premium</h2>
-          <p class="text-slate-600 max-w-lg mx-auto">Unlock unlimited connections, see who liked you, priority messages, and exact location filters.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <!-- Free -->
-          <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <h3 class="text-xl font-bold text-slate-800 mb-2">Basic</h3>
-            <div class="text-4xl font-bold text-slate-900 mb-6">Free</div>
-            <ul class="space-y-4 mb-8 text-sm text-slate-600">
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>30 profiles/day</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Basic Chat</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>200 km location filter</li>
-              <li class="flex items-center gap-3 text-slate-400"><svg class="w-5 h-5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>See who liked you</li>
-              <li class="flex items-center gap-3 text-slate-400"><svg class="w-5 h-5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Priority messages</li>
-              <li class="flex items-center gap-3 text-slate-400"><svg class="w-5 h-5 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Exact location (10/25/50 km)</li>
-            </ul>
-            <button class="w-full py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold">Current Plan</button>
-          </div>
-          <!-- Premium -->
-          <div class="bg-slate-900 rounded-2xl p-8 border border-slate-800 shadow-xl relative overflow-hidden md:-translate-y-4">
-            <div class="absolute top-0 right-0 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-bl-xl">POPULAR</div>
-            <h3 class="text-xl font-bold text-white mb-2">Premium</h3>
-            <div class="mb-3">
-              <div class="text-4xl font-bold text-white">₹299<span class="text-lg text-slate-400 font-normal">/mo</span></div>
-              <div class="text-slate-400 text-sm mt-1">or ₹799/quarter</div>
-            </div>
-            <ul class="space-y-4 mb-8 text-sm text-slate-300">
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Unlimited profiles/day</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Priority Messaging</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>See who liked you</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Exact location (10/25/50 km)</li>
-              <li class="flex items-center gap-3"><svg class="w-5 h-5 text-brand-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Profile boost</li>
-            </ul>
-            <div class="space-y-3">
-              <button onclick="startUpgrade('monthly')"
-                class="w-full py-3 rounded-xl bg-brand-500 text-white font-semibold hover:bg-brand-400 transition-colors shadow-lg shadow-brand-500/25">
-                ₹299/month
-              </button>
-              <button onclick="startUpgrade('quarterly')"
-                class="w-full py-3 rounded-xl bg-white/10 text-white font-semibold hover:bg-white/20 transition-colors border border-white/20">
-                ₹799/quarter — Save 11%
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /content -->
-  </main>
-</div><!-- /main-app -->
-
-<!-- Toast -->
-<div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-[999] flex items-center gap-3 text-sm font-medium pointer-events-none">
-  <span id="toast-icon" class="text-lg"></span>
-  <span id="toast-message"></span>
-</div>
-
-<!-- Profile modal -->
-<div id="profile-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-  <div class="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl">
-    <div class="relative">
-      <div id="modal-photos-wrap" class="h-56 bg-brand-100 rounded-t-2xl overflow-hidden flex items-center justify-center">
-        <div id="modal-photo" class="text-6xl text-brand-400 font-bold"></div>
-      </div>
-      <button onclick="closeProfileModal()" class="absolute top-3 right-3 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg hover:bg-black/70">×</button>
-    </div>
-    <div class="p-6">
-      <div class="flex items-start justify-between mb-4">
-        <div>
-          <h2 id="modal-name" class="text-2xl font-bold text-slate-900"></h2>
-          <p id="modal-role" class="text-brand-600 font-medium"></p>
-          <p id="modal-location" class="text-slate-500 text-sm mt-1 flex items-center gap-1"></p>
-        </div>
-        <span id="modal-intent-badge" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold"></span>
-      </div>
-      <p id="modal-bio" class="text-slate-600 text-sm leading-relaxed mb-6"></p>
-      <div class="flex gap-3">
-        <button id="modal-connect-btn" class="flex-1 py-3 bg-brand-600 text-white rounded-xl font-semibold hover:bg-brand-700 transition-colors"></button>
+  <!-- MATCH MODAL -->
+  <div id="match-modal" class="hidden">
+    <div class="match-card">
+      <div class="match-star">✦</div>
+      <div class="match-label">IT'S A MATCH!</div>
+      <div class="match-sub">You and <strong id="match-name-inline"></strong> connected</div>
+      <div class="match-avatar" id="match-avatar"></div>
+      <div class="match-name"  id="match-name-big"></div>
+      <div class="match-score-lbl" id="match-score-lbl"></div>
+      <div class="match-hint">You have 48 hours to start a conversation</div>
+      <div class="match-btns">
+        <button class="btn-match-chat"  onclick="goToMatchChat()">Say hello →</button>
+        <button class="btn-match-later" onclick="closeMatch()">Keep browsing</button>
       </div>
     </div>
   </div>
-</div>
+
+  <div id="toast"></div>
+</div><!-- /root -->
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════
-// CONSTANTS & STATE
-// ═══════════════════════════════════════════════════════════════════════
-const API   = '';          // same origin
-let TOKEN   = localStorage.getItem('byn_tok') || '';
-let ME      = null;        // current user from /api/me
-let _currentView     = 'discover';
-let _intentFilter    = '';
-let _discoverPage    = 0;
-let _discoverDone    = false;
-let _chatPollTimer   = null;
-let _activeChatId    = null;
-let _activeChatUser  = null;
-let _gpsSynced       = false;
-let _gpsSyncing      = false;
-let _modalUserId     = null;
+'use strict';
 
-// Safe data stores (prevent XSS via onclick JSON)
-const userStore = new Map();
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let ME = null, TOKEN = null;
+let _tab = 'discover', _prevTab = null;
 
-// ═══════════════════════════════════════════════════════════════════════
-// XSS ESCAPE
-// ═══════════════════════════════════════════════════════════════════════
-function esc(str) {
-  return String(str == null ? '' : str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+// Discover
+let _matches = [], _cardIdx = 0, _currentCard = null;
+let _filters = { sort:'match_score', intent:null, location:null };
+let _matchConnId = null, _matchChatUser = null;
+let _dragAC = null;
+
+// Likes
+let _likesMap = {};
+
+// Chat
+let _conversations = [];
+let _activeChatId = null, _activeChatUser = null;
+let _chatMsgs = [], _chatPoll = null, _sending = false;
+let _starters = [];
+
+// Profile
+let _pd = {}, _skills = [], _interests = [], _intent = '', _remote = false;
+
+const INTERESTS = ['AI/ML','Startups','SaaS','Fintech','Design','Marketing','Sales','Product','Engineering','VC','Crypto','Health Tech','EdTech','E-commerce','Climate Tech'];
+const INTENTS   = ['Hiring','Freelance','Co-founder','Mentorship','Investing','Networking'];
+const TRUST_STEPS = [
+  { key:'photo',    label:'Add a profile photo' },
+  { key:'bio',      label:'Write a short bio' },
+  { key:'location', label:'Add your location' },
+  { key:'interest', label:'Select at least 3 interests' },
+  { key:'intent',   label:'Set your networking goal' },
+];
+
+// ════════════════════════════════════════
+// API
+// ════════════════════════════════════════
+async function api(method, path, body) {
+  const opts = { method, headers:{ 'Content-Type':'application/json' } };
+  if (TOKEN) opts.headers['Authorization'] = 'Bearer ' + TOKEN;
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res  = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw { status:res.status, data };
+  return data;
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// API HELPER
-// ═══════════════════════════════════════════════════════════════════════
-async function api(method, path, body, isForm) {
-  const opts = {
-    method,
-    headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}
-  };
-  if (body && !isForm) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
-  } else if (isForm) {
-    opts.body = body; // FormData — let browser set content-type
-  }
-  const res = await fetch(API + path, opts);
-  if (res.status === 204) return null;
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(json.error || 'Request failed'), { code: json.code, status: res.status });
-  return json;
+// ════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════
+function saveAuth(token, user) {
+  TOKEN = token; ME = user;
+  try { localStorage.setItem('byn_token', token); localStorage.setItem('byn_user', JSON.stringify(user)); } catch(_) {}
+}
+function loadAuth() {
+  try { TOKEN = localStorage.getItem('byn_token'); const u = localStorage.getItem('byn_user'); if (u) ME = JSON.parse(u); } catch(_) {}
+}
+function clearAuth() {
+  TOKEN = null; ME = null;
+  try { localStorage.removeItem('byn_token'); localStorage.removeItem('byn_user'); } catch(_) {}
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════════════════════
-let _toastTimer = null;
-function showToast(msg, type = 'success') {
-  const el   = document.getElementById('toast');
-  const icon = document.getElementById('toast-icon');
-  const txt  = document.getElementById('toast-message');
-  const styles = {
-    success: 'bg-slate-800 text-white',
-    error:   'bg-red-600 text-white',
-    info:    'bg-brand-700 text-white',
-    warning: 'bg-amber-500 text-white'
-  };
-  const icons = { success:'✓', error:'✕', info:'ℹ', warning:'⚠' };
-  el.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 z-[999] flex items-center gap-3 text-sm font-medium ${styles[type] || styles.success}`;
-  icon.textContent = icons[type] || '✓';
-  txt.textContent  = msg;
-  el.classList.remove('translate-y-20','opacity-0');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.add('translate-y-20','opacity-0'), 3500);
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// SPINNERS
-// ═══════════════════════════════════════════════════════════════════════
-function spinnerHTML(size = 5) {
-  return `<svg class="w-${size} h-${size} spin text-current" fill="none" viewBox="0 0 24 24">
-    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
-  </svg>`;
-}
-function setLoading(btnId, loading, defaultLabel) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.innerHTML = loading
-    ? `${spinnerHTML(4)} Loading…`
-    : defaultLabel;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// AVATAR HELPER
-// ═══════════════════════════════════════════════════════════════════════
-function avatarHTML(user, sizePx = 40) {
-  const init = (user?.name || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  if (user?.photos?.length) {
-    return `<img src="${esc(user.photos[0])}" alt="${esc(user.name)}"
-      style="width:${sizePx}px;height:${sizePx}px;border-radius:50%;object-fit:cover">`;
-  }
-  return `<div style="width:${sizePx}px;height:${sizePx}px;border-radius:50%;background:#ccfbf1;display:flex;align-items:center;justify-content:center;font-size:${Math.round(sizePx/2.8)}px;font-weight:700;color:#0f766e">${esc(init)}</div>`;
-}
-
-function timeAgo(iso) {
-  if (!iso) return '';
-  const diff = (Date.now() - new Date(iso)) / 1000;
-  if (diff < 60)  return 'just now';
-  if (diff < 3600) return Math.floor(diff/60) + 'm';
-  if (diff < 86400) return Math.floor(diff/3600) + 'h';
-  return Math.floor(diff/86400) + 'd';
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// AUTH — OTP device-trust helpers
-// ═══════════════════════════════════════════════════════════════════════
-function getDeviceUntil() {
-  if (!ME?.id) return 0;
-  return parseInt(localStorage.getItem('byn_dev_until_' + ME.id) || '0');
-}
-function setDeviceUntil(ts) {
-  if (!ME?.id) return;
-  localStorage.setItem('byn_dev_until_' + ME.id, String(ts));
-}
-function isEmailVerified() {
-  if (!ME?.email_verified) return false;
-  return getDeviceUntil() > Date.now();
-}
-
-// ── Switch auth tab ──
-function switchAuthTab(tab) {
-  ['login','register'].forEach(t => {
-    document.getElementById('form-' + t).classList.toggle('hidden', t !== tab);
-    const btn = document.getElementById('tab-' + t);
-    btn.classList.toggle('text-brand-700', t === tab);
-    btn.classList.toggle('border-b-2',     t === tab);
-    btn.classList.toggle('border-brand-600', t === tab);
-    btn.classList.toggle('text-slate-500', t !== tab);
-    btn.classList.toggle('border-transparent', t !== tab);
-  });
-  document.getElementById('form-otp').classList.add('hidden');
-}
-
-function showOtpForm() {
-  document.getElementById('auth-tabs').classList.add('hidden');
-  ['form-login','form-register'].forEach(id => document.getElementById(id).classList.add('hidden'));
-  document.getElementById('form-otp').classList.remove('hidden');
-  startOtpRequest();
-}
-
-let _otpTimer = null;
-let _otpSecs  = 0;
-async function startOtpRequest() {
-  try {
-    await api('POST', '/api/auth/send-otp', {});
-    showToast('OTP sent to your email', 'info');
-    _otpSecs = 60;
-    updateOtpCountdown();
-  } catch (e) {
-    showToast(e.message, 'error');
-  }
-}
-
-async function doResendOtp() {
-  await startOtpRequest();
-}
-
-function updateOtpCountdown() {
-  clearInterval(_otpTimer);
-  const el = document.getElementById('otp-countdown');
-  _otpTimer = setInterval(() => {
-    _otpSecs--;
-    if (el) el.textContent = _otpSecs > 0 ? `Resend available in ${_otpSecs}s` : '';
-    if (_otpSecs <= 0) clearInterval(_otpTimer);
-  }, 1000);
-}
-
-// ── BOOTSTRAP ──
-async function bootstrap() {
-  if (!TOKEN) { showAuthScreen(); return; }
-  try {
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-  } catch (e) {
-    TOKEN = ''; ME = null;
-    localStorage.removeItem('byn_tok'); localStorage.removeItem('byn_me');
-    showAuthScreen(); return;
-  }
-  if (!isEmailVerified()) { showAuthScreen(); showOtpForm(); return; }
-  showMainApp();
-}
-
-function showAuthScreen() {
-  document.getElementById('auth-screen').classList.remove('hidden');
-  document.getElementById('main-app').classList.add('hidden');
-}
-
-function showMainApp() {
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('main-app').classList.remove('hidden');
-  renderSidebarUser();
-  navigate('discover');
-}
-
-// ── LOGIN ──
-async function doLogin(e) {
-  e.preventDefault();
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
-  setLoading('login-btn', true, 'Sign In');
-  try {
-    const data = await api('POST', '/api/login', { email, password });
-    TOKEN = data.token;
-    ME    = data.user;
-    localStorage.setItem('byn_tok', TOKEN);
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    if (!isEmailVerified()) { showOtpForm(); } else { showMainApp(); }
-  } catch (e) {
-    showToast(e.message || 'Login failed', 'error');
-  } finally {
-    setLoading('login-btn', false, 'Sign In');
-  }
-}
-
-// ── REGISTER ──
-async function doRegister(e) {
-  e.preventDefault();
-  const name     = document.getElementById('reg-name').value.trim();
-  const email    = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
-  setLoading('register-btn', true, 'Create Account');
-  try {
-    const data = await api('POST', '/api/signup', { name, email, password });
-    TOKEN = data.token;
-    ME    = data.user;
-    localStorage.setItem('byn_tok', TOKEN);
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    showOtpForm();
-  } catch (e) {
-    showToast(e.message || 'Registration failed', 'error');
-  } finally {
-    setLoading('register-btn', false, 'Create Account');
-  }
-}
-
-// ── VERIFY OTP ──
-async function doVerifyOtp(e) {
-  e.preventDefault();
-  const code  = document.getElementById('otp-code').value.trim();
-  const trust = document.getElementById('otp-trust').checked;
-  setLoading('otp-btn', true, 'Verify');
-  try {
-    await api('POST', '/api/auth/verify-otp', { code });
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    if (trust) setDeviceUntil(Date.now() + 30 * 24 * 3600 * 1000);
-    else       setDeviceUntil(Date.now() + 2 * 3600 * 1000); // 2-hour session trust
-    showMainApp();
-  } catch (e) {
-    showToast(e.message || 'Invalid OTP', 'error');
-  } finally {
-    setLoading('otp-btn', false, 'Verify');
-  }
-}
-
-// ── LOGOUT ──
-function doLogout() {
-  TOKEN = ''; ME = null;
-  localStorage.removeItem('byn_tok'); localStorage.removeItem('byn_me');
-  stopChatPoll();
-  showAuthScreen();
-  switchAuthTab('login');
-  document.getElementById('auth-tabs').classList.remove('hidden');
-  document.getElementById('form-otp').classList.add('hidden');
-}
-
-// ── Sidebar user ──
-function renderSidebarUser() {
-  if (!ME) return;
-  const avatarEl = document.getElementById('sidebar-avatar');
-  const nameEl   = document.getElementById('sidebar-name');
-  const badgeEl  = document.getElementById('sidebar-badge');
-  avatarEl.innerHTML = avatarHTML(ME, 40);
-  nameEl.textContent = ME.name || '';
-  badgeEl.innerHTML  = ME.premium
-    ? `<span class="text-amber-500">⭐ Premium</span>`
-    : `<span>Free plan</span>`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════════════════════
-const PAGE_META = {
-  discover: { title: 'Discover',     sub: 'Find professionals to connect with' },
-  likes:    { title: 'Likes',        sub: 'People who liked your profile' },
-  chat:     { title: 'Messages',     sub: 'Your conversations' },
-  profile:  { title: 'My Profile',   sub: 'Manage your profile information' },
-  premium:  { title: 'Go Premium',   sub: 'Unlock the full potential' }
-};
-
-function navigate(view) {
-  _currentView = view;
-  stopChatPoll();
-
-  // Nav active state
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  const navEl = document.getElementById('nav-' + view);
-  if (navEl) navEl.classList.add('active');
-
-  // Show/hide views
-  document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
-  const viewEl = document.getElementById('view-' + view);
-  if (viewEl) viewEl.classList.remove('hidden');
-
-  // Header
-  const meta = PAGE_META[view] || {};
-  document.getElementById('page-title').textContent    = meta.title || '';
-  document.getElementById('page-subtitle').textContent = meta.sub   || '';
-  document.getElementById('header-actions').innerHTML  = '';
-
-  // Load data
-  if (view === 'discover') { _discoverPage = 0; _discoverDone = false; loadDiscover(true); }
-  if (view === 'likes')    loadLikes();
-  if (view === 'chat')     { loadChatList(); startChatPoll(); }
-  if (view === 'profile')  loadProfile();
-  if (view === 'premium')  renderPremium();
-
-  // Mobile sidebar close
-  if (window.innerWidth < 768) closeSidebar();
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// SIDEBAR (mobile overlay)
-// ═══════════════════════════════════════════════════════════════════════
-function openSidebar() {
-  const sb = document.getElementById('sidebar');
-  const bd = document.getElementById('sidebar-backdrop');
-  sb.classList.remove('-translate-x-full');
-  sb.classList.add('translate-x-0');
-  bd.classList.remove('hidden');
-}
-function closeSidebar() {
-  const sb = document.getElementById('sidebar');
-  const bd = document.getElementById('sidebar-backdrop');
-  sb.classList.add('-translate-x-full');
-  sb.classList.remove('translate-x-0');
-  bd.classList.add('hidden');
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// GPS SYNC
-// ═══════════════════════════════════════════════════════════════════════
-async function syncGps() {
-  if (_gpsSynced || _gpsSyncing) return;
-  if (!navigator.geolocation) { _gpsSynced = true; return; }
-  _gpsSyncing = true;
-  const statusEl = document.getElementById('gps-status');
-  if (statusEl) statusEl.textContent = '📡 Locating…';
-  navigator.geolocation.getCurrentPosition(
-    async pos => {
-      _gpsSynced = true; _gpsSyncing = false;
-      try {
-        await api('PUT', '/api/me', { lat: pos.coords.latitude, lng: pos.coords.longitude });
-        if (statusEl) statusEl.textContent = '📍 GPS active';
-        loadDiscover(true);
-      } catch (_) { if (statusEl) statusEl.textContent = ''; }
-    },
-    () => {
-      _gpsSynced = true; _gpsSyncing = false;
-      if (statusEl) statusEl.textContent = '📍 Location off';
-    },
-    { timeout: 10000, maximumAge: 300000 }
-  );
-}
-
-function updateLocRadiusVisibility() {
-  const locMode   = document.getElementById('loc-mode')?.value || 'nearby';
-  const radiusSel = document.getElementById('loc-radius');
-  if (!radiusSel) return;
-  radiusSel.style.display = (locMode === 'nearby' && ME?.premium) ? '' : 'none';
-  if (locMode !== 'nearby') radiusSel.value = '';
-}
-
-function onLocModeChange() {
-  updateLocRadiusVisibility();
-  _discoverPage = 0; _discoverDone = false;
-  loadDiscover(true);
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// DISCOVER
-// ═══════════════════════════════════════════════════════════════════════
-function setIntentFilter(intent) {
-  _intentFilter = intent;
-  // Update chip styles
-  document.querySelectorAll('.intent-chip').forEach(btn => {
-    const isActive = btn.dataset.intent === intent;
-    btn.className = isActive
-      ? 'intent-chip px-4 py-2 bg-brand-600 text-white rounded-full text-sm font-medium shadow-md shadow-brand-500/20 whitespace-nowrap'
-      : 'intent-chip px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-medium hover:bg-slate-50 whitespace-nowrap';
-  });
-  _discoverPage = 0; _discoverDone = false;
-  loadDiscover(true);
-}
-
-function buildDiscoverParams() {
-  const params = new URLSearchParams();
-  if (_intentFilter) params.set('intent', _intentFilter);
-  const locMode   = document.getElementById('loc-mode')?.value  || 'nearby';
-  const locRadius = document.getElementById('loc-radius')?.value || '';
-  if (locMode === 'worldwide') params.set('worldwide', 'true');
-  else if (locMode === 'remote') params.set('remote', 'true');
-  else if (locMode === 'nearby' && locRadius && ME?.premium) params.set('radius', locRadius);
-  return params.toString();
-}
-
-async function loadDiscover(reset = false) {
-  const grid   = document.getElementById('discover-grid');
-  const empty  = document.getElementById('discover-empty');
-  const lmWrap = document.getElementById('load-more-wrap');
-
-  // Show skeleton immediately while GPS permission dialog is pending
-  if (!_gpsSynced && !_gpsSyncing) {
-    if (reset) {
-      grid.innerHTML = skeletonGrid(6);
-      empty.classList.add('hidden');
-      lmWrap?.classList.add('hidden');
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  loadAuth();
+  setupOtpInputs();
+  if (TOKEN && ME) {
+    try {
+      ME = await api('GET', '/api/me');
+      saveAuth(TOKEN, ME);
+      if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
+        showOnboarding(ME.onboarding_stage);
+      } else {
+        showApp();
+      }
     }
-    syncGps(); // syncGps calls loadDiscover(true) once resolved
+    catch(_) { clearAuth(); showAuth(); }
+  } else { showAuth(); }
+});
+
+function showAuth() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.remove('hidden');
+  document.getElementById('app-wrap').classList.add('hidden');
+  document.getElementById('onboarding-wrap').classList.add('hidden');
+  showScreen('login');
+}
+function showApp() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.add('hidden');
+  document.getElementById('onboarding-wrap').classList.add('hidden');
+  document.getElementById('app-wrap').classList.remove('hidden');
+  _tab = null; // reset so switchTab always fires even if already on discover
+  switchTab('discover');
+}
+
+// ════════════════════════════════════════
+// AUTH SCREENS
+// ════════════════════════════════════════
+function showScreen(s) {
+  ['login','signup','otp'].forEach(n =>
+    document.getElementById('screen-'+n).classList.toggle('hidden', n !== s));
+  if (s === 'signup') {
+    _consent = false;
+    const cb = q('consent-box'); if (cb) cb.classList.remove('on');
+    const sb = q('signup-btn'); if (sb) sb.disabled = true;
+  }
+}
+
+// Login
+async function doLogin() {
+  const email = q('login-email').value.trim();
+  const pw    = q('login-pw').value;
+  const errEl = q('login-err'), btn = q('login-btn');
+  errEl.classList.add('hidden');
+  if (!email) return showE(errEl,'Please enter your email');
+  if (!pw)    return showE(errEl,'Please enter your password');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await api('POST', '/api/login', { email, password:pw });
+    saveAuth(r.token, r.user);
+    if (r.user.onboarding_stage && r.user.onboarding_stage !== 'complete') {
+      showOnboarding(r.user.onboarding_stage);
+    } else {
+      showApp();
+    }
+  } catch(e) { showE(errEl, e.data?.error || 'Login failed. Please try again.'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Sign In'; }
+}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (!q('screen-login').classList.contains('hidden'))  doLogin();
+  if (!q('screen-signup').classList.contains('hidden')) doSignup();
+  if (!q('screen-otp').classList.contains('hidden'))    doVerifyOtp();
+});
+
+// Signup
+let _consent = false;
+function toggleConsent() {
+  _consent = !_consent;
+  q('consent-box').classList.toggle('on', _consent);
+  q('signup-btn').disabled = !_consent;
+}
+async function doSignup() {
+  const name  = q('signup-name').value.trim();
+  const email = q('signup-email').value.trim();
+  const pw    = q('signup-pw').value;
+  const errEl = q('signup-err'), btn = q('signup-btn');
+  errEl.classList.add('hidden');
+  if (!name)       return showE(errEl,'Please enter your full name');
+  if (!email)      return showE(errEl,'Please enter your email');
+  if (!pw)         return showE(errEl,'Please create a password');
+  if (pw.length<6) return showE(errEl,'Password must be at least 6 characters');
+  if (!_consent)   return showE(errEl,'You must agree to the Terms & Conditions to continue');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await api('POST', '/api/signup', { name, email, password:pw }); // BUG-FIX: /api/signup not /api/register
+    saveAuth(r.token, r.user);
+    try { await api('POST', '/api/auth/send-otp', { email }); } catch(_) {} // BUG-FIX: /api/auth/send-otp
+    q('otp-hint').textContent = 'We sent a code to ' + email;
+    showScreen('otp');
+  } catch(e) { showE(errEl, e.data?.error || 'Signup failed. Please try again.'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Create Account'; }
+}
+
+// OTP
+function setupOtpInputs() {
+  const digits = [...document.querySelectorAll('.otp-digit')];
+  digits.forEach((inp, i) => {
+    inp.addEventListener('input', e => {
+      const v = e.target.value.replace(/\D/g,'');
+      e.target.value = v.slice(-1);
+      if (v && i < digits.length-1) digits[i+1].focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key==='Backspace' && !inp.value && i>0) digits[i-1].focus();
+    });
+    inp.addEventListener('paste', e => {
+      e.preventDefault();
+      const txt = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+      txt.split('').slice(0,6).forEach((c,j) => { if (digits[j]) digits[j].value = c; });
+      digits[Math.min(txt.length,5)].focus();
+    });
+  });
+}
+function otpCode() { return [...document.querySelectorAll('.otp-digit')].map(d=>d.value).join(''); }
+
+async function doVerifyOtp() {
+  const code = otpCode(), errEl = q('otp-err'), btn = q('otp-btn');
+  errEl.classList.add('hidden');
+  if (code.length < 6) return showE(errEl,'Please enter the 6-digit code');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    await api('POST', '/api/auth/verify-otp', { code }); // BUG-FIX: /api/auth/verify-otp
+    ME = await api('GET', '/api/me'); // refresh to get onboarding_stage
+    saveAuth(TOKEN, ME);
+    if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
+      showOnboarding(ME.onboarding_stage);
+    } else {
+      showApp();
+    }
+  } catch(e) { showE(errEl, e.data?.error || 'Invalid code. Please try again.'); }
+  finally { btn.disabled = false; btn.innerHTML = 'Verify Email'; }
+}
+async function doResendOtp() {
+  if (!ME?.email) return;
+  try { await api('POST', '/api/auth/send-otp', { email:ME.email }); toast('Code resent!'); } // BUG-FIX
+  catch(_) { toast('Could not resend. Try again.'); }
+}
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function switchTab(tab) {
+  if (tab === _tab) return;
+  _prevTab = _tab; _tab = tab;
+  ['discover','likes','chats','profile'].forEach(t => {
+    q('nav-'+t)?.classList.toggle('active', t===tab);
+    q('view-'+t)?.classList.toggle('hidden', t!==tab);
+  });
+  q('view-chat').classList.add('hidden');
+  if (tab==='discover') loadDiscover();
+  if (tab==='likes')    loadLikes();
+  if (tab==='chats')    loadChats();
+  if (tab==='profile')  loadProfile();
+}
+function goBack() {
+  stopPoll();
+  _activeChatId = null; _activeChatUser = null;
+  q('view-chat').classList.add('hidden');
+  q('view-chats').classList.remove('hidden');
+  _tab = 'chats';
+  q('nav-chats').classList.add('active');
+  loadChats();
+}
+
+// ════════════════════════════════════════
+// DISCOVER
+// ════════════════════════════════════════
+async function loadDiscover() {
+  q('disc-content').innerHTML = `<div class="disc-empty"><div class="spinner spinner-dark" style="width:36px;height:36px;border-width:3px;"></div><p style="color:var(--sub);font-size:14px;margin-top:12px;">Finding your matches…</p></div>`;
+  try {
+    const p = new URLSearchParams();
+    if (_filters.intent)   p.set('intent',   _filters.intent);
+    if (_filters.location) p.set('location', _filters.location);
+    if (_filters.sort)     p.set('sort',     _filters.sort);
+    const data = await api('GET', '/api/discover?' + p);
+    _matches = data.profiles || [];
+    _cardIdx = 0;
+    renderCards();
+  } catch(e) { renderDiscErr(e.status===403 ? 'trust' : 'error'); }
+}
+
+function renderCards() {
+  const el = q('disc-content');
+  if (!_matches.length) {
+    el.innerHTML = `<div class="disc-empty"><div class="icon">🔍</div><h3>No matches found</h3><p>Try adjusting your filters or complete your profile.</p><button class="retry-btn" onclick="loadDiscover()">Refresh</button></div>`;
+    return;
+  }
+  if (_cardIdx >= _matches.length) {
+    el.innerHTML = `<div class="disc-empty"><div class="icon">✦</div><h3>You're all caught up!</h3><p>Check back later for new connections.</p><button class="retry-btn" onclick="loadDiscover()">Refresh</button></div>`;
     return;
   }
 
-  updateLocRadiusVisibility();
-  if (reset) { _discoverPage = 0; _discoverDone = false; }
+  el.innerHTML = '<div class="card-stack-area" id="card-stack"></div>';
+  const stack = q('card-stack');
 
-  if (reset) {
-    grid.innerHTML = skeletonGrid(6);
-    empty.classList.add('hidden');
-    lmWrap?.classList.add('hidden');
+  // Render back card first (lower z)
+  const next = _matches[_cardIdx + 1];
+  if (next) {
+    const backCard = buildCard(next);
+    backCard.style.cssText += ';transform:scale(0.96) translateY(10px);z-index:1;pointer-events:none;';
+    stack.appendChild(backCard);
   }
+  // Top card
+  const top = _matches[_cardIdx];
+  _currentCard = top.user || top;
+  const topCard = buildCard(top);
+  topCard.style.cssText += ';z-index:2;';
+  stack.appendChild(topCard);
+  attachDrag(topCard);
 
-  try {
-    const qs   = buildDiscoverParams();
-    const data = await api('GET', '/api/discover?' + qs);
-    const users = data.profiles || (Array.isArray(data) ? data : []);
-
-    if (reset) grid.innerHTML = '';
-
-    if (!users.length && reset) {
-      empty.classList.remove('hidden');
-      document.getElementById('discover-empty-msg').textContent =
-        data.limited ? "You've reached your daily limit. Come back tomorrow!" : "No profiles match your filters.";
-      return;
-    }
-
-    users.forEach(u => {
-      userStore.set(String(u.id), u);
-      grid.appendChild(discoverCard(u));
-    });
-
-    _discoverPage++;
-    // Server returns at most `remaining` profiles; if we got a full page show load-more
-    if (!data.limited && users.length >= 6 && lmWrap) lmWrap.classList.remove('hidden');
-    else lmWrap?.classList.add('hidden');
-
-  } catch (e) {
-    if (reset) grid.innerHTML = '';
-    if (e.code === 'PREMIUM_REQUIRED') {
-      empty.classList.remove('hidden');
-      document.getElementById('discover-empty-msg').textContent = 'Exact location filter requires Premium.';
-    } else {
-      showToast(e.message || 'Failed to load profiles', 'error');
-    }
-  }
+  // Action row
+  const connId = top.connection?.id || top.id || '';
+  const actions = document.createElement('div');
+  actions.className = 'card-actions';
+  actions.style.cssText = 'position:relative;z-index:10;max-width:400px;width:calc(100% - 32px);';
+  actions.innerHTML = `
+    <button class="action-btn action-skip"    onclick="doSwipe('skip')">✕ Skip</button>
+    <button class="action-btn action-message" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>
+    <button class="action-btn action-connect" onclick="doSwipe('connect')">✦ Connect</button>`;
+  el.appendChild(actions);
 }
 
-function skeletonGrid(n) {
-  return Array.from({length: n}, () =>
-    `<div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-      <div class="flex items-start gap-4 mb-4">
-        <div class="skeleton w-16 h-16 rounded-xl"></div>
-        <div class="flex-1 space-y-2"><div class="skeleton h-4 w-3/4"></div><div class="skeleton h-3 w-1/2"></div></div>
-      </div>
-      <div class="skeleton h-3 w-1/3 mb-4"></div>
-      <div class="flex gap-2"><div class="skeleton flex-1 h-9 rounded-lg"></div><div class="skeleton flex-1 h-9 rounded-lg"></div></div>
-    </div>`
-  ).join('');
-}
+function buildCard(m) {
+  const u = m.user || m;
+  const photos = u.photos || [];
+  const photo  = photos[0];
+  const name   = u.name || 'Unknown';
+  const role   = u.role || u.current_role || '';
+  const loc    = u.location || '';
+  const bio    = u.bio || u.currently_exploring || '';
+  const score  = m.match_score || m.matchScore || 0;
+  const tags   = [...(u.interests||[]).slice(0,2), ...(u.skills||[]).slice(0,2)];
+  const verified = u.verified || false;
+  const online   = u.is_online || false;
 
-function loadMoreDiscover() {
-  loadDiscover(false);
-}
-
-function resetDiscover() {
-  _intentFilter = '';
-  setIntentFilter('');
-}
-
-function discoverCard(u) {
   const card = document.createElement('div');
-  card.className = 'bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 group relative overflow-hidden';
-  const photo = u.photos?.length
-    ? `<img src="${esc(u.photos[0])}" class="w-16 h-16 rounded-xl object-cover shadow-sm" alt="${esc(u.name)}">`
-    : `<div class="w-16 h-16 rounded-xl bg-brand-100 flex items-center justify-center text-2xl font-bold text-brand-600">${esc((u.name||'?')[0])}</div>`;
-  const dist = u.distance != null ? `<span class="text-xs text-slate-400 ml-2">· ${u.distance}km</span>` : '';
+  card.className = 'swipe-card';
+  card.dataset.connId  = m.connection?.id || m.id || '';
+  card.dataset.userId  = u.id || '';
 
   card.innerHTML = `
-    <div class="flex items-start gap-4">
-      <button onclick="openProfileModal('${esc(String(u.id))}')" class="flex-shrink-0">${photo}</button>
-      <div class="flex-1 min-w-0">
-        <button onclick="openProfileModal('${esc(String(u.id))}')" class="font-bold text-slate-900 hover:text-brand-700 text-left leading-tight">${esc(u.name || 'Unknown')}</button>
-        <p class="text-sm text-brand-600 font-medium truncate">${esc(u.currently_exploring || '')}</p>
-        <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-0.5 flex-wrap">
-          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-          ${esc(u.location || '')}${dist}
-        </p>
-      </div>
-      ${u.matchScore ? `<div class="flex flex-col items-center bg-brand-50 rounded-xl px-2 py-1.5 border border-brand-100"><span class="text-lg font-bold text-brand-700 leading-none">${esc(String(u.matchScore))}</span><span class="text-[9px] text-slate-400 font-medium">match</span></div>` : ''}
+    <div class="card-photo">
+      ${photo ? `<img src="${esc(photo)}" alt="${esc(name)}" loading="lazy">` : `<div class="card-photo-placeholder">👤</div>`}
+      <div class="card-gradient"></div>
+      ${verified ? `<div class="card-verified">✓ Verified</div>` : ''}
+      ${online   ? `<div class="card-online-dot"></div>` : ''}
+      <div class="swipe-label label-connect">CONNECT</div>
+      <div class="swipe-label label-skip">SKIP</div>
     </div>
-    <div class="mt-3">
-      <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 text-xs rounded-full font-medium border border-slate-200">${esc(u.intent || '')}</span>
-    </div>
-    <div class="mt-4 flex gap-2">
-      <button onclick="swipeOnUser('${esc(String(u.id))}','like',this)"
-        class="flex-1 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-rose-50 hover:border-rose-300 hover:text-rose-500 transition-colors flex items-center justify-center gap-1.5">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-        Like
-      </button>
-      <button onclick="swipeOnUser('${esc(String(u.id))}','connect',this)"
-        class="flex-1 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm shadow-brand-500/20">
-        Connect
-      </button>
+    <div class="card-body">
+      <div class="card-name">${esc(name)}${loc ? ` <span style="font-size:13px;font-weight:400;color:var(--sub);">📍${esc(loc)}</span>` : ''}</div>
+      ${role ? `<div class="card-role">${esc(role)}</div>` : ''}
+      ${tags.length ? `<div class="chips-row">${tags.map((t,i)=>`<span class="${i<2?'chip':'chip chip-gold'}">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${bio  ? `<div class="card-bio">${esc(bio.slice(0,120))}${bio.length>120?'…':''}</div>` : ''}
+      ${score ? `<div class="match-score-box">✦ ${score}% match</div>` : ''}
     </div>`;
   return card;
 }
 
-async function swipeOnUser(userId, action, btn) {
-  const parent = btn.closest('div.flex.gap-2');
-  if (parent) parent.querySelectorAll('button').forEach(b => b.disabled = true);
-  try {
-    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
-    const u = userStore.get(String(userId));
-    if (data?.match) {
-      showToast(`🎉 You matched with ${u?.name || 'them'}! Go chat →`, 'success');
-      document.getElementById('nav-chat')?.classList.add('ring-2','ring-brand-400');
-      setTimeout(() => document.getElementById('nav-chat')?.classList.remove('ring-2','ring-brand-400'), 3000);
-    } else {
-      showToast(action === 'like' ? `You liked ${u?.name || 'them'}` : `Connection request sent to ${u?.name || 'them'}`, 'success');
-    }
-    // Remove card with animation
-    const card = btn.closest('.bg-white.rounded-2xl');
-    if (card) { card.style.opacity='0'; card.style.transform='scale(0.95)'; card.style.transition='.2s'; setTimeout(() => card.remove(), 200); }
-  } catch (e) {
-    showToast(e.message || 'Failed', 'error');
-    if (parent) parent.querySelectorAll('button').forEach(b => b.disabled = false);
-  }
-}
-
-// ── Profile modal ──
-function openProfileModal(userId) {
-  const u = userStore.get(String(userId));
-  if (!u) return;
-  _modalUserId = userId;
-  const photoWrap = document.getElementById('modal-photos-wrap');
-  if (u.photos?.length) {
-    photoWrap.innerHTML = `<img src="${esc(u.photos[0])}" class="w-full h-full object-cover">`;
+function renderDiscErr(type) {
+  const el = q('disc-content');
+  if (type === 'trust') {
+    el.innerHTML = `<div class="disc-empty"><div class="icon">🔒</div><h3>Complete your profile first</h3><p>Add these details to unlock Discover:</p><div style="text-align:left;width:100%;max-width:300px;margin-top:8px;">${TRUST_STEPS.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;color:var(--sub);"><span style="font-size:15px;">○</span>${s.label}</div>`).join('')}</div><button class="retry-btn" style="background:var(--gold);" onclick="switchTab('profile')">Complete Profile</button></div>`;
   } else {
-    // Re-inject the placeholder div (photoWrap.innerHTML = '' destroys the old one)
-    photoWrap.innerHTML = `<div class="text-6xl text-brand-400 font-bold">${esc((u.name||'?')[0].toUpperCase())}</div>`;
+    el.innerHTML = `<div class="disc-empty"><div class="icon">⚠️</div><h3>Something went wrong</h3><p>Could not load matches.</p><button class="retry-btn" onclick="loadDiscover()">Retry</button></div>`;
   }
-  document.getElementById('modal-name').textContent      = u.name || '';
-  document.getElementById('modal-role').textContent      = u.currently_exploring || '';
-  document.getElementById('modal-location').textContent  = u.location || '';
-  document.getElementById('modal-bio').textContent       = u.bio || u.currently_exploring || '';
-  document.getElementById('modal-intent-badge').textContent = u.intent || '';
-  const connectBtn = document.getElementById('modal-connect-btn');
-  connectBtn.textContent = 'Connect';
-  connectBtn.onclick = () => { connectBtn.textContent = '…'; swipeFromModal(userId); };
-  document.getElementById('profile-modal').classList.remove('hidden');
-  document.getElementById('profile-modal').classList.add('flex');
 }
 
-async function swipeFromModal(userId) {
+// Swipe drag
+function attachDrag(card) {
+  if (!card) return;
+  // Clean up any previous global listeners
+  if (_dragAC) _dragAC.abort();
+  _dragAC = new AbortController();
+  const sig = _dragAC.signal;
+
+  let startX, startY, curX = 0, curY = 0, active = false;
+
+  function start(cx, cy) { startX=cx; startY=cy; active=true; card.style.transition='none'; }
+  function move(cx, cy) {
+    if (!active) return;
+    curX = cx-startX; curY = cy-startY;
+    card.style.transform = `translate(${curX}px,${curY}px) rotate(${curX*0.07}deg)`;
+    const f = Math.min(Math.abs(curX)/80, 1);
+    card.querySelector('.label-connect').style.opacity = curX > 15 ? f : 0;
+    card.querySelector('.label-skip').style.opacity    = curX < -15 ? f : 0;
+  }
+  function end() {
+    if (!active) return; active = false;
+    card.style.transition = 'transform .35s ease, opacity .35s ease';
+    if (curX > 75)       animateOut('connect', card);
+    else if (curX < -75) animateOut('skip', card);
+    else {
+      card.style.transform = '';
+      card.querySelector('.label-connect').style.opacity = 0;
+      card.querySelector('.label-skip').style.opacity    = 0;
+      curX = 0; curY = 0;
+    }
+  }
+
+  card.addEventListener('mousedown',  e => { start(e.clientX, e.clientY); e.preventDefault(); }, { signal: sig });
+  window.addEventListener('mousemove', e => { move(e.clientX, e.clientY); }, { signal: sig });
+  window.addEventListener('mouseup',   () => end(), { signal: sig });
+  card.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive:true, signal: sig });
+  card.addEventListener('touchmove',  e => move(e.touches[0].clientX, e.touches[0].clientY),  { passive:true, signal: sig });
+  card.addEventListener('touchend',   () => end(), { signal: sig });
+}
+
+function animateOut(action, card) {
+  const dir = action==='connect' ? 1 : -1;
+  card.style.transform = `translate(${dir*600}px,-80px) rotate(${dir*25}deg)`;
+  card.style.opacity = '0';
+  setTimeout(() => performAction(action), 280);
+}
+
+function doSwipe(action) {
+  const card = document.querySelector('#card-stack .swipe-card:last-child');
+  if (card) animateOut(action, card);
+  else performAction(action);
+}
+
+async function performAction(action) {
+  if (_cardIdx >= _matches.length) return;
+  const m = _matches[_cardIdx];
+  const u = m.user || m;
+  _cardIdx++;
   try {
-    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
-    const u = userStore.get(String(userId));
-    closeProfileModal();
-    if (data?.match) showToast(`🎉 Matched with ${u?.name||'them'}! Go chat →`, 'success');
-    else showToast(`Connection request sent to ${u?.name||'them'}`, 'success');
-    const card = document.querySelector(`[onclick*="${userId}"]`)?.closest('.bg-white.rounded-2xl');
-    if (card) { card.style.opacity='0'; setTimeout(() => card.remove(), 200); }
-  } catch (e) {
-    showToast(e.message, 'error');
-    document.getElementById('modal-connect-btn').textContent = 'Connect';
+    const res = await api('POST', '/api/swipe', {
+      targetId: u.id || m.id,
+      direction: action === 'connect' ? 'right' : 'left',
+    });
+    if (action === 'connect' && res.match) {
+      _matchConnId  = res.connectionId;
+      _matchChatUser = u;
+      setTimeout(() => showMatchModal(u, u.matchScore), 350);
+    }
+  } catch(e) { toast('Could not connect. Try again.'); }
+  renderCards();
+}
+
+function openChatFromCard(connId) {
+  openChat(connId, _currentCard || {});
+}
+
+// ════════════════════════════════════════
+// FILTERS
+// ════════════════════════════════════════
+function openFilters()  { q('filter-modal').classList.remove('hidden'); }
+function closeFilters() { q('filter-modal').classList.add('hidden');    }
+function filterChip(el) {
+  const { group, val } = el.dataset;
+  if (group === 'sort') {
+    document.querySelectorAll('[data-group="sort"]').forEach(c => c.classList.remove('active'));
+    el.classList.add('active'); _filters.sort = val;
+  } else {
+    const was = el.classList.contains('active');
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(c => c.classList.remove('active'));
+    if (!was) { el.classList.add('active'); _filters[group] = val; }
+    else _filters[group] = null;
   }
+  q('filter-count').textContent = (_filters.intent?1:0) + (_filters.location?1:0);
+}
+function resetFilters() {
+  _filters = { sort:'match_score', intent:null, location:null };
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-val="match_score"]')?.classList.add('active');
+  q('filter-count').textContent = '0';
+}
+function applyFilters() { closeFilters(); loadDiscover(); }
+
+// ════════════════════════════════════════
+// MATCH MODAL
+// ════════════════════════════════════════
+function showMatchModal(user, score) {
+  const name  = user?.name || 'your connection';
+  const photo = (user?.photos||[])[0];
+  q('match-name-inline').textContent = name;
+  q('match-name-big').textContent    = name;
+  q('match-score-lbl').textContent   = score ? `${score}% compatibility` : '';
+  const av = q('match-avatar');
+  av.innerHTML = photo ? `<img src="${esc(photo)}" alt="${esc(name)}">` : initials(name);
+  q('match-modal').classList.remove('hidden');
+}
+function closeMatch() { q('match-modal').classList.add('hidden'); }
+function goToMatchChat() {
+  closeMatch();
+  if (_matchConnId) openChat(_matchConnId, _matchChatUser);
 }
 
-function closeProfileModal() {
-  document.getElementById('profile-modal').classList.add('hidden');
-  document.getElementById('profile-modal').classList.remove('flex');
-}
-
-// ═══════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 // LIKES
-// ═══════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════
 async function loadLikes() {
-  const grid      = document.getElementById('likes-grid');
-  const empty     = document.getElementById('likes-empty');
-  const premWall  = document.getElementById('likes-premium-wall');
-  grid.innerHTML  = skeletonGrid(4).replace(/grid-cols.*gap-6/,'grid-cols-1 gap-4');
-  empty.classList.add('hidden');
-  premWall.classList.add('hidden');
-
+  q('likes-content').innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
   try {
-    const data  = await api('GET', '/api/liked-me');
-    const likers = data.profiles || data.likers || (Array.isArray(data) ? data : []);
-    const count  = data.count ?? likers.length;
+    const data = await api('GET', '/api/liked-me');
+    renderLikes(data);
+  } catch(_) {
+    q('likes-content').innerHTML = `<div class="likes-locked"><div class="heart">♡</div><h3>Could not load</h3><p>Please try again later.</p></div>`;
+  }
+}
 
-    grid.innerHTML = '';
-
-    if (!ME?.premium && count > 0 && !likers.length) {
-      // Server hides likers for free users
-      premWall.classList.remove('hidden');
-      return;
-    }
-
-    // Update likes badge
-    if (count > 0) {
-      const badge = document.getElementById('likes-badge');
-      badge.textContent = count;
-      badge.classList.remove('hidden');
-    }
-
-    if (!likers.length) { empty.classList.remove('hidden'); return; }
-
-    likers.forEach(u => {
-      userStore.set(String(u.id), u);
-      const card = document.createElement('div');
-      card.className = 'bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md transition-shadow';
-      card.innerHTML = `
-        <div class="cursor-pointer flex-shrink-0" onclick="openProfileModal('${esc(String(u.id))}')">${avatarHTML(u, 48)}</div>
-        <div class="flex-1 min-w-0">
-          <h4 class="font-bold text-slate-900 text-sm truncate">${esc(u.name||'')}</h4>
-          <p class="text-xs text-slate-500 truncate">${esc([u.currently_exploring, u.location].filter(Boolean).join(' · '))}</p>
+function renderLikes(data) {
+  const el    = q('likes-content');
+  const badge = q('likes-count-badge');
+  const dot   = q('likes-dot');
+  if (data.premium_required) {
+    const cnt = data.count || 0;
+    if (cnt) { badge.textContent = cnt; badge.style.display = 'block'; dot.classList.remove('hidden'); }
+    el.innerHTML = `<div class="likes-locked">
+      <div class="heart">♡</div>
+      <h3>${cnt ? `${cnt} people liked you` : 'You have likes!'}</h3>
+      <p>Upgrade to Premium to see who liked your profile and connect instantly.</p>
+      <div class="blur-row">
+        <div class="blur-card">👤</div><div class="blur-card">👤</div><div class="blur-card">👤</div>
+      </div>
+      <button class="btn-unlock" onclick="toast('Upgrade coming soon!')">✦ Unlock with Premium</button>
+    </div>`;
+    return;
+  }
+  const likes = data.profiles || [];
+  if (likes.length) { badge.textContent = likes.length; badge.style.display='block'; dot.classList.remove('hidden'); }
+  if (!likes.length) {
+    el.innerHTML = `<div class="likes-locked"><div class="heart">♡</div><h3>No likes yet</h3><p>Complete your profile and keep swiping to attract connections.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="likes-list" id="likes-list"></div>`;
+  const list = q('likes-list');
+  _likesMap = {};
+  likes.forEach(l => {
+    if (l.id) _likesMap[l.id] = l;
+    const photo = (l.photos||[])[0];
+    const name  = l.name || 'Unknown';
+    const uid   = l.id || '';
+    const card  = document.createElement('div');
+    card.className = 'like-card';
+    card.innerHTML = `
+      <div class="like-avatar">${photo?`<img src="${esc(photo)}" alt="${esc(name)}">`:`<span>${initials(name)}</span>`}</div>
+      <div class="like-info">
+        <div class="like-name">${esc(name)}</div>
+        ${l.location ? `<div class="like-loc">📍 ${esc(l.location)}</div>` : ''}
+        ${l.intent ? `<div class="like-intent">${esc(l.intent)}</div>` : ''}
+        ${(l.skills||[]).length ? `<div class="like-skills">${l.skills.slice(0,3).map(s=>esc(s)).join(' · ')}</div>` : ''}
+        <div class="like-view" onclick="toast('Profile view coming soon')">View profile →</div>
+      </div>
+      <div class="like-right">
+        ${l.matchScore ? `<div class="like-score-box">${l.matchScore}%</div>` : ''}
+        <div class="like-actions">
+          <button class="like-skip-btn"    onclick="likeAction('${esc(String(uid))}','skip')">✕</button>
+          <button class="like-connect-btn" onclick="likeAction('${esc(String(uid))}','connect')">♡</button>
         </div>
-        <button onclick="swipeLiker('${esc(String(u.id))}',this)"
-          class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700 transition-colors flex-shrink-0">
-          Connect
-        </button>`;
-      grid.appendChild(card);
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+async function likeAction(uid, action) {
+  try {
+    const res = await api('POST', '/api/swipe', {
+      targetId: uid,
+      direction: action === 'connect' ? 'right' : 'left',
     });
-  } catch (e) {
-    grid.innerHTML = '';
-    showToast(e.message || 'Failed to load likes', 'error');
+    if (action === 'connect' && res.match) {
+      const u = _likesMap[uid] || {};
+      showMatchModal(u, u.matchScore);
+    } else {
+      toast(action === 'connect' ? 'Connected!' : 'Skipped');
+    }
+    loadLikes();
+  } catch(_) { toast('Something went wrong'); }
+}
+
+// ════════════════════════════════════════
+// CHAT LIST
+// ════════════════════════════════════════
+async function loadChats() {
+  q('chats-list').innerHTML = `<div style="padding:48px;display:flex;align-items:center;justify-content:center;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
+  try {
+    const data = await api('GET', '/api/connections');
+    _conversations = Array.isArray(data) ? data : [];
+    renderChatList();
+  } catch(_) {
+    q('chats-list').innerHTML = `<div class="chat-empty"><div class="icon">💬</div><h3>Could not load chats</h3><p>Please try again.</p></div>`;
   }
 }
 
-async function swipeLiker(userId, btn) {
-  btn.disabled = true; btn.textContent = '…';
-  try {
-    const data = await api('POST', '/api/swipe', { targetId: userId, direction: 'right' });
-    const u = userStore.get(String(userId));
-    if (data?.match) showToast(`🎉 Matched with ${u?.name||'them'}!`, 'success');
-    else showToast(`Connected with ${u?.name||'them'}`, 'success');
-    btn.closest('div.bg-white')?.remove();
-  } catch (e) {
-    showToast(e.message, 'error');
-    btn.disabled = false; btn.textContent = 'Connect';
+function renderChatList() {
+  const el  = q('chats-list');
+  const dot = q('chat-dot');
+  if (_conversations.some(c=>c.unread_count>0)) dot.classList.remove('hidden');
+  if (!_conversations.length) {
+    el.innerHTML = `<div class="chat-empty"><div class="icon">◎</div><h3>No conversations yet</h3><p>Swipe right on Discover to connect with professionals.</p></div>`;
+    return;
   }
-}
+  el.innerHTML = '';
+  _conversations.forEach(conv => {
+    const u      = conv.user || {};
+    const name   = u.name || 'Unknown';
+    const photo  = (u.photos||[])[0];
+    const last   = conv.lastMessage;
+    const preview= last?.text || '';
+    const time   = last?.created_at ? relTime(last.created_at) : '';
+    const unread = (conv.msgCount||0) > 0;
+    const online = u.is_online || false;
+    const connId = conv.connection?.id || conv.connection_id;
 
-// ═══════════════════════════════════════════════════════════════════════
-// CHAT
-// ═══════════════════════════════════════════════════════════════════════
-async function loadChatList() {
-  const list = document.getElementById('chat-list');
-  list.innerHTML = `<div class="p-6 flex justify-center">${spinnerHTML(6)}</div>`;
-  try {
-    const conns = await api('GET', '/api/connections');
-    list.innerHTML = '';
-    if (!Array.isArray(conns) || !conns.length) {
-      list.innerHTML = `<div class="p-6 text-center text-slate-400 text-sm">
-        <div class="text-3xl mb-2">💬</div>No conversations yet. Connect with someone to start chatting!</div>`;
-      updateBadge('chat-badge', 0);
-      return;
+    let expiryBadge = '';
+    if (conv.hoursLeft != null) {
+      const h = conv.hoursLeft;
+      expiryBadge = `<span class="chat-badge badge-expiry${h<12?' soon':''}">${h<12?'⚠ ':''}${Math.ceil(Math.max(h,0))}h left</span>`;
     }
 
-    conns.forEach(entry => {
-      const conn = entry.connection || entry;
-      const other = entry.user || entry;
-      const connId = conn.id || entry.id;
-      const lastMsg = entry.lastMessage;
-
-      // Derive name/photos from other user
-      const name    = other.name  || '';
-      const photos  = other.photos || [];
-      const lastTxt = lastMsg?.text || '';
-      const lastTs  = lastMsg?.created_at || conn.created_at || '';
-
-      const item = document.createElement('div');
-      item.dataset.connId = connId;
-      const isActive = String(connId) === String(_activeChatId);
-      item.className = `p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-50 transition-colors border-b border-slate-50 ${isActive ? 'bg-brand-50 border-l-4 border-l-brand-500' : ''}`;
-      item.onclick = () => openChat(connId, other);
-      item.innerHTML = `
-        <div class="relative flex-shrink-0">${avatarHTML(other, 48)}</div>
-        <div class="flex-1 min-w-0">
-          <div class="flex justify-between items-baseline">
-            <h4 class="font-semibold text-sm text-slate-900 truncate">${esc(name)}</h4>
-            <span class="text-xs text-slate-400 flex-shrink-0 ml-1">${timeAgo(lastTs)}</span>
-          </div>
-          <p class="text-xs text-slate-500 truncate">${esc(lastTxt || 'Say hi!')}</p>
-        </div>`;
-      list.appendChild(item);
-    });
-  } catch (e) {
-    list.innerHTML = '';
-    showToast(e.message || 'Failed to load chats', 'error');
-  }
-}
-
-async function openChat(connId, user) {
-  _activeChatId   = connId;
-  _activeChatUser = user;
-
-  // Desktop: show right panel
-  document.getElementById('chat-empty-state').classList.add('hidden');
-  document.getElementById('chat-active-header').classList.remove('hidden');
-  document.getElementById('chat-input-area').classList.remove('hidden');
-  const headerAvatar = document.getElementById('chat-header-avatar');
-  headerAvatar.innerHTML = avatarHTML(user, 40);
-  document.getElementById('chat-header-name').textContent = user?.name || '';
-
-  // Highlight active chat
-  document.querySelectorAll('#chat-list > div').forEach(el => {
-    const active = String(el.dataset.connId) === String(connId);
-    el.classList.toggle('bg-brand-50',           active);
-    el.classList.toggle('border-l-4',            active);
-    el.classList.toggle('border-l-brand-500',    active);
+    const row = document.createElement('div');
+    row.className = 'chat-row';
+    row.onclick = () => openChat(connId, u);
+    row.innerHTML = `
+      <div class="chat-av-wrap">
+        <div class="chat-av">${photo?`<img src="${esc(photo)}" alt="${esc(name)}">`:`<span>${initials(name)}</span>`}</div>
+        ${online?'<div class="chat-online"></div>':''}
+      </div>
+      <div class="chat-body">
+        <div class="chat-name-row">
+          <span class="chat-name${unread?' unread':''}">${esc(name)}</span>
+          ${conv.active?`<span class="chat-badge badge-active">Active</span>`:''}
+          ${expiryBadge}
+          ${conv.is_priority?`<span class="chat-badge badge-priority">⚡</span>`:''}
+        </div>
+        <div class="chat-preview${unread?' unread':''}">${esc(preview)||'No messages yet'}</div>
+      </div>
+      ${time?`<div class="chat-time">${time}</div>`:''}`;
+    el.appendChild(row);
   });
-
-  await fetchMessages();
 }
 
-async function fetchMessages() {
-  if (!_activeChatId) return;
-  const container = document.getElementById('chat-messages');
-  try {
-    const msgs = await api('GET', '/api/messages/' + _activeChatId);
-    const list = Array.isArray(msgs) ? msgs : (msgs.messages || []);
-    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+// ════════════════════════════════════════
+// CHAT DETAIL
+// ════════════════════════════════════════
+function openChat(connId, user) {
+  stopPoll();
+  _activeChatId = connId; _activeChatUser = user || {};
+  _chatMsgs = []; _starters = [];
 
-    container.innerHTML = '';
-    list.forEach(m => {
-      const isMe = m.from === ME?.id;
-      const bubble = document.createElement('div');
-      bubble.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'}`;
-      bubble.innerHTML = `
-        <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
-          ${isMe ? 'bg-brand-600 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'}">
-          ${esc(m.content || m.text || '')}
-          <div class="text-[10px] mt-0.5 ${isMe ? 'text-brand-200' : 'text-slate-400'} text-right">${timeAgo(m.created_at)}</div>
-        </div>`;
-      container.appendChild(bubble);
-    });
-    if (wasAtBottom || list.length <= 1) container.scrollTop = container.scrollHeight;
-  } catch (_) {}
+  ['discover','likes','chats','profile'].forEach(t => {
+    q('view-'+t).classList.add('hidden');
+    q('nav-'+t)?.classList.remove('active');
+  });
+  q('view-chat').classList.remove('hidden');
+  _tab = 'chat';
+
+  const name  = _activeChatUser.name || '—';
+  const photo = (_activeChatUser.photos||[])[0];
+  const av = q('chat-detail-av');
+  av.innerHTML = photo ? `<img src="${esc(photo)}" alt="${esc(name)}">` : initials(name);
+  q('chat-detail-name').textContent = name;
+  q('chat-detail-loc').textContent  = _activeChatUser.location || '';
+
+  q('msgs-area').innerHTML = '';
+  q('chat-input').value = '';
+  q('chat-send-btn').disabled = true;
+
+  Promise.all([fetchMsgs(), fetchStarters()]).then(() => {
+    if (_chatMsgs.length === 0) renderStarters();
+  });
+  _chatPoll = setInterval(fetchMsgs, 4000);
 }
 
-async function sendMessage(e) {
-  e.preventDefault();
+function stopPoll() {
+  if (_chatPoll) { clearInterval(_chatPoll); _chatPoll = null; }
+}
+
+async function fetchMsgs() {
   if (!_activeChatId) return;
-  const input   = document.getElementById('message-input');
-  const content = input.value.trim();
-  if (!content) return;
-  input.value = '';
-
-  // Optimistic render
-  const container = document.getElementById('chat-messages');
-  const bubble = document.createElement('div');
-  bubble.className = 'flex w-full justify-end';
-  bubble.innerHTML = `<div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm bg-brand-600 text-white rounded-tr-none leading-relaxed">${esc(content)}</div>`;
-  container.appendChild(bubble);
-  container.scrollTop = container.scrollHeight;
-
   try {
-    await api('POST', '/api/messages/' + _activeChatId, { text: content });
-  } catch (err) {
-    showToast(err.message || 'Failed to send', 'error');
-    bubble.remove();
-    input.value = content;
+    const data = await api('GET', `/api/messages/${_activeChatId}`);
+    _chatMsgs = Array.isArray(data) ? data : [];
+    renderMsgs();
+  } catch(_) {}
+}
+
+async function fetchStarters() {
+  if (!_activeChatId) return;
+  try {
+    const data = await api('GET', `/api/conversation-starters/${_activeChatId}`);
+    _starters = data.prompts || [];
+  } catch(_) {
+    _starters = [
+      'What are you currently exploring?',
+      'What led you to this platform?',
+      'What would a great conversation look like for you?',
+    ];
   }
 }
 
-function startChatPoll() {
-  stopChatPoll();
-  _chatPollTimer = setInterval(async () => {
-    await loadChatList();
-    if (_activeChatId) await fetchMessages();
-  }, 3000);
-}
+function renderMsgs() {
+  const el = q('msgs-area');
+  const startersEl = el.querySelector('.starters-wrap');
+  if (_chatMsgs.length > 0 && startersEl) startersEl.remove();
 
-function stopChatPoll() {
-  if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
-  _activeChatId = null;
-  _activeChatUser = null;
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PROFILE
-// ═══════════════════════════════════════════════════════════════════════
-async function loadProfile() {
-  try {
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-  } catch (_) {}
-  if (!ME) return;
-
-  // Hero
-  document.getElementById('profile-name').textContent = ME.name || '';
-  document.getElementById('profile-role').textContent = ME.currently_exploring || ME.intent || '';
-  const premBadge = document.getElementById('profile-premium-badge');
-  if (ME.premium) premBadge.classList.remove('hidden'); else premBadge.classList.add('hidden');
-
-  // Trust bar
-  const trust = ME.trust_score ?? 0;
-  const pct   = Math.min(Math.round(trust), 100);
-  document.getElementById('trust-pct').textContent = pct + '%';
-  document.getElementById('trust-bar').style.width  = pct + '%';
-
-  // Avatar
-  const avatarEl = document.getElementById('profile-avatar');
-  avatarEl.innerHTML = avatarHTML(ME, 96);
-
-  // Photos grid
-  renderProfilePhotos();
-
-  // Form — all fields map directly to server-supported fields
-  document.getElementById('edit-name').value          = ME.name || '';
-  document.getElementById('edit-location').value      = ME.location || '';
-  document.getElementById('edit-bio').value           = ME.bio || '';
-  document.getElementById('edit-exploring').value     = ME.currently_exploring || '';
-  document.getElementById('edit-working-on').value    = ME.working_on || '';
-  document.getElementById('edit-interested-in').value = ME.interested_in || '';
-  document.getElementById('edit-skills').value        = (ME.skills || []).join(', ');
-  document.getElementById('edit-interests').value     = (ME.interests || []).join(', ');
-  document.getElementById('edit-linkedin').value      = ME.linkedin || '';
-  document.getElementById('edit-instagram').value     = ME.instagram || '';
-  document.getElementById('edit-website').value       = ME.website || '';
-  document.getElementById('edit-remote').checked      = !!ME.remote;
-  const intentSel = document.getElementById('edit-intent');
-  if (intentSel && ME.intent) {
-    const opt = [...intentSel.options].find(o => o.value === ME.intent);
-    if (opt) intentSel.value = ME.intent;
-  }
-
-  renderSidebarUser();
-}
-
-function renderProfilePhotos() {
-  const grid  = document.getElementById('photos-grid');
-  const addLbl = grid.querySelector('label');
-  // Remove old photo thumbs
-  grid.querySelectorAll('.photo-thumb').forEach(el => el.remove());
-  (ME?.photos || []).forEach((url, i) => {
+  const existing = new Set([...el.querySelectorAll('[data-mid]')].map(e=>e.dataset.mid));
+  let added = false;
+  _chatMsgs.forEach(m => {
+    if (existing.has(String(m.id))) return;
+    const mine = m.from === ME?.id; // BUG-FIX: m.from not m.sender_id
     const wrap = document.createElement('div');
-    wrap.className = 'photo-thumb aspect-square rounded-xl overflow-hidden relative group';
+    wrap.className = `msg-wrap ${mine?'mine':'theirs'}`;
+    wrap.dataset.mid = m.id;
     wrap.innerHTML = `
-      <img src="${esc(url)}" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Photo ${i+1}">
-      <button onclick="deletePhoto('${esc(url)}')" class="absolute top-2 right-2 bg-black/50 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>`;
-    grid.insertBefore(wrap, addLbl);
+      <div class="bubble ${mine?'mine':'theirs'}">
+        <div class="bubble-txt ${mine?'mine':'theirs'}">${esc(m.text||'')}</div>
+        <div class="bubble-time ${mine?'mine':'theirs'}">${fmtTime(m.created_at)}</div>
+      </div>`;
+    el.appendChild(wrap);
+    added = true;
+  });
+  if (added) el.scrollTop = el.scrollHeight;
+}
+
+function renderStarters() {
+  if (!_starters.length) return;
+  const el = q('msgs-area');
+  if (el.querySelector('.starters-wrap')) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'starters-wrap';
+  wrap.innerHTML = `
+    <div class="starters-label">✦ Conversation starters</div>
+    <div class="starters-row">${_starters.map(s=>`<div class="starter-chip" onclick="useStarter(${JSON.stringify(s)})">${esc(s)}</div>`).join('')}</div>`;
+  el.insertBefore(wrap, el.firstChild);
+}
+
+function useStarter(text) {
+  const inp = q('chat-input');
+  inp.value = text;
+  updateSendBtn();
+  inp.focus();
+}
+
+async function sendMessage() {
+  const inp = q('chat-input');
+  const text = inp.value.trim();
+  if (!text || !_activeChatId || _sending) return;
+  _sending = true;
+  inp.value = '';
+  updateSendBtn();
+  autoResize(inp);
+  try {
+    await api('POST', `/api/messages/${_activeChatId}`, { text }); // BUG-FIX: { text } not { content }
+    await fetchMsgs();
+  } catch(_) {
+    inp.value = text;
+    updateSendBtn();
+    toast('Could not send message');
+  } finally { _sending = false; }
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function updateSendBtn() {
+  q('chat-send-btn').disabled = !q('chat-input').value.trim();
+}
+
+// ════════════════════════════════════════
+// PROFILE
+// ════════════════════════════════════════
+async function loadProfile() {
+  const el = q('profile-scroll');
+  el.innerHTML = `<div style="padding:48px;display:flex;align-items:center;justify-content:center;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
+  try {
+    _pd = await api('GET', '/api/me');
+  } catch(_) { _pd = { ...ME }; }
+  _skills    = [...(_pd.skills    || [])];
+  _interests = [...(_pd.interests || [])];
+  _intent    = _pd.intent || '';
+  _remote    = !!_pd.remote;
+  renderProfile();
+}
+
+function renderProfile() {
+  const el    = q('profile-scroll');
+  const p     = _pd;
+  const name  = p.name || ME?.name || '';
+  const photo = (p.photos||[])[0];
+  const isPro = p.is_premium || false;
+
+  let score = 0;
+  if ((p.photos||[]).length)    score += 20;
+  if (p.bio)                    score += 10;
+  if (p.location)               score += 10;
+  if ((_interests).length >= 3) score += 20;
+  if (_intent)                  score += 20;
+  if (_skills.length)           score += 10;
+  if (p.linkedin || p.instagram) score += 10;
+  const scoreTag = score>=90?'Excellent':score>=70?'Strong':score>=50?'Good Start':score>=30?'Discovery Unlocked':'Complete your profile';
+
+  const trust = {
+    photo:    (p.photos||[]).length>0,
+    bio:      !!p.bio,
+    location: !!p.location,
+    interest: _interests.length>=3,
+    intent:   !!_intent,
+  };
+
+  el.innerHTML = `
+    <div class="profile-hero">
+      <div class="hero-av-wrap">
+        <div class="hero-av">${photo?`<img src="${esc(photo)}" alt="${esc(name)}">`:`<span>${initials(name)||'👤'}</span>`}</div>
+        ${isPro?'<div class="hero-pro-badge">PRO</div>':''}
+      </div>
+      <div class="hero-name">${esc(name||'Your Name')}</div>
+      <div class="hero-intent">${esc(_intent||'Set your networking goal')}</div>
+      <div class="score-section">
+        <div class="score-top"><span class="score-label">Profile Score</span><span class="score-pct">${score}%</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:${score}%"></div></div>
+        <div class="score-tag">${scoreTag}</div>
+      </div>
+      <div class="trust-steps">
+        ${TRUST_STEPS.map(s=>`<div class="trust-step">
+          <div class="trust-dot${trust[s.key]?' done':''}">${trust[s.key]?'✓':'○'}</div>
+          <span style="color:${trust[s.key]?'var(--text)':'var(--dim)'};font-size:13px;">${s.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">📸 Photos</div>
+      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb"><img src="${esc(ph)}" alt="photo"></div>`).join('')}<div class="photo-add" onclick="toast('Photo upload coming soon')">＋</div></div>
+      ${(p.photos||[]).length<4?`<div class="photos-warn">⚡ Add ${4-(p.photos||[]).length} more photo${4-(p.photos||[]).length>1?'s':''} to boost your profile</div>`:''}
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">👤 Identity</div>
+      <div class="panel-field"><div class="panel-label">FULL NAME</div><input class="panel-input" id="pf-name" value="${escA(p.name||'')}" placeholder="Your name"></div>
+      <div class="panel-field"><div class="panel-label">BIO <span style="color:var(--gold);font-size:11px;">+10 pts</span></div><textarea class="panel-input" id="pf-bio" placeholder="Tell people about yourself…">${esc(p.bio||'')}</textarea></div>
+      <div class="panel-field"><div class="panel-label">LOCATION <span style="color:var(--gold);font-size:11px;">+10 pts</span></div><input class="panel-input" id="pf-location" value="${escA(p.location||'')}" placeholder="City, Country"></div>
+      <div class="panel-field"><div class="remote-row"><span class="remote-lbl">Open to remote</span><div class="toggle${_remote?' on':''}" id="remote-toggle" onclick="toggleRemote()"><div class="toggle-knob"></div></div></div></div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">🎯 Networking Goal</div>
+      <div class="intent-chips">${INTENTS.map(i=>`<div class="intent-chip${_intent.toLowerCase()===i.toLowerCase()?' active':''}" onclick="selectIntent(this,'${i}')">${i}</div>`).join('')}</div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">✦ Interests <span style="font-size:12px;color:var(--sub);font-weight:400;">(min 3)</span></div>
+      <div class="interest-chips">${INTERESTS.map(i=>`<div class="interest-chip${_interests.includes(i)?' active':''}" onclick="toggleInterest(this,'${i}')">${i}</div>`).join('')}</div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">⚡ Skills</div>
+      <div class="skills-input-row">
+        <input class="skills-input" id="skill-inp" placeholder="e.g. Product Design" onkeydown="if(event.key==='Enter'){event.preventDefault();addSkill();}">
+        <button class="skills-add" onclick="addSkill()">Add</button>
+      </div>
+      <div class="skill-tags" id="skill-tags">${_skills.map(s=>`<div class="skill-tag" data-skill="${escA(s)}">${esc(s)}<span class="skill-tag-del" onclick="removeSkill('${escA(s)}')">×</span></div>`).join('')}</div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">💡 What you're up to</div>
+      <div class="panel-field"><div class="panel-label">CURRENTLY EXPLORING</div><input class="panel-input" id="pf-exploring" value="${escA(p.currently_exploring||'')}" placeholder="What opportunities are you looking for?"></div>
+      <div class="panel-field"><div class="panel-label">WORKING ON</div><input class="panel-input" id="pf-working" value="${escA(p.working_on||'')}" placeholder="Current projects or ventures…"></div>
+    </div>
+
+    <div class="profile-panel">
+      <div class="panel-title">🔗 Links</div>
+      <div class="panel-field"><div class="panel-label">LINKEDIN</div><input class="panel-input" id="pf-linkedin" value="${escA(p.linkedin||'')}" placeholder="https://linkedin.com/in/…" type="url"></div>
+      <div class="panel-field"><div class="panel-label">INSTAGRAM</div><input class="panel-input" id="pf-instagram" value="${escA(p.instagram||'')}" placeholder="@handle"></div>
+      <div class="panel-field"><div class="panel-label">WEBSITE</div><input class="panel-input" id="pf-website" value="${escA(p.website||'')}" placeholder="https://…" type="url"></div>
+    </div>
+
+    <button class="btn-save" id="save-btn" onclick="saveProfile()">Save Profile</button>
+    <button class="btn-upgrade" onclick="toast('Upgrade coming soon!')">✦ Upgrade to Premium</button>
+    <button class="btn-settings" onclick="toast('Settings coming soon')">⚙ Settings</button>
+    <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
+  `;
+}
+
+function selectIntent(el, val) {
+  document.querySelectorAll('.intent-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); _intent = val;
+}
+function toggleInterest(el, val) {
+  if (el.classList.contains('active')) { el.classList.remove('active'); _interests = _interests.filter(i=>i!==val); }
+  else { el.classList.add('active'); _interests.push(val); }
+}
+function toggleRemote() {
+  _remote = !_remote;
+  q('remote-toggle').classList.toggle('on', _remote);
+}
+function addSkill() {
+  const inp = q('skill-inp');
+  const val = inp.value.trim();
+  if (!val || _skills.includes(val)) { inp.value=''; return; }
+  _skills.push(val); inp.value = '';
+  const tags = q('skill-tags');
+  const tag = document.createElement('div');
+  tag.className = 'skill-tag';
+  tag.dataset.skill = val;
+  tag.innerHTML = `${esc(val)}<span class="skill-tag-del" onclick="removeSkill('${escA(val)}')">×</span>`;
+  tags.appendChild(tag);
+}
+function removeSkill(val) {
+  _skills = _skills.filter(s=>s!==val);
+  const tags = q('skill-tags');
+  [...tags.querySelectorAll('.skill-tag')].forEach(el => {
+    if (el.dataset.skill === val) el.remove();
   });
 }
-
-async function saveProfile(e) {
-  e.preventDefault();
-  const btn = document.getElementById('save-profile-btn');
-  btn.disabled = true;
-  btn.innerHTML = `${spinnerHTML(4)} Saving…`;
+async function saveProfile() {
+  const btn = q('save-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
-    // Parse comma-separated strings into arrays for skills/interests
-    const toArr = val => val.split(',').map(s => s.trim()).filter(Boolean);
-    const payload = {
-      name:                document.getElementById('edit-name').value.trim(),
-      location:            document.getElementById('edit-location').value.trim(),
-      bio:                 document.getElementById('edit-bio').value.trim(),
-      currently_exploring: document.getElementById('edit-exploring').value.trim(),
-      working_on:          document.getElementById('edit-working-on').value.trim(),
-      interested_in:       document.getElementById('edit-interested-in').value.trim(),
-      skills:              toArr(document.getElementById('edit-skills').value),
-      interests:           toArr(document.getElementById('edit-interests').value),
-      linkedin:            document.getElementById('edit-linkedin').value.trim(),
-      instagram:           document.getElementById('edit-instagram').value.trim(),
-      website:             document.getElementById('edit-website').value.trim(),
-      intent:              document.getElementById('edit-intent').value,
-      remote:              document.getElementById('edit-remote').checked,
+    const body = {
+      name:                q('pf-name').value.trim(),
+      bio:                 q('pf-bio').value.trim(),
+      location:            q('pf-location').value.trim(),
+      currently_exploring: q('pf-exploring').value.trim(),
+      working_on:          q('pf-working').value.trim(),
+      linkedin:            q('pf-linkedin').value.trim(),
+      instagram:           q('pf-instagram').value.trim(),
+      website:             q('pf-website').value.trim(),
+      intent:              _intent,
+      interests:           _interests,
+      skills:              _skills,
+      remote:              _remote,
     };
-    ME = await api('PUT', '/api/me', payload);
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    renderSidebarUser();
+    const res = await api('PUT', '/api/me', body);
+    ME = { ...ME, ...res }; saveAuth(TOKEN, ME);
+    toast('Profile saved!');
     loadProfile();
-    showToast('Profile updated ✓', 'success');
-  } catch (err) {
-    showToast(err.message || 'Save failed', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Save Changes';
-  }
+  } catch(e) { toast(e.data?.error || 'Could not save profile'); }
+  finally { btn.disabled=false; btn.innerHTML='Save Profile'; }
+}
+function doSignOut() { stopPoll(); clearAuth(); showAuth(); }
+
+// ════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════
+function q(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escA(s) { return esc(s); }
+function showE(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+function initials(name) {
+  return (name||'?').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'?';
+}
+function fmtTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+function relTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso), now = new Date();
+  const diff = Math.floor((now-d)/86400000);
+  if (diff===0) return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  if (diff===1) return 'Yesterday';
+  if (diff<7)   return d.toLocaleDateString([],{weekday:'short'});
+  return d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+let _toastT = null;
+function toast(msg) {
+  const el = q('toast');
+  el.textContent = msg; el.classList.add('show');
+  if (_toastT) clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2500);
 }
 
-async function uploadAvatar(input) {
-  if (!input.files?.[0]) return;
-  showToast('Uploading…', 'info');
-  const fd = new FormData();
-  fd.append('photo', input.files[0]);
+// ════════════════════════════════════════
+// ONBOARDING
+// ════════════════════════════════════════
+const OB_INTENTS = [
+  { label:'🤝 Networking',               key:'Networking' },
+  { label:'💼 Find Opportunities',       key:'Find Opportunities' },
+  { label:'🚀 Build Startup Connections',key:'Build Startup Connections' },
+  { label:'🧩 Find Co-founder',          key:'Find Co-founder' },
+  { label:'👥 Hiring',                   key:'Hiring' },
+  { label:'🤑 Find Clients',             key:'Find Clients' },
+  { label:'🎓 Mentorship',               key:'Mentorship' },
+  { label:'📚 Learn from People',        key:'Learn from People' },
+  { label:'🌐 Community',                key:'Community' },
+  { label:'💰 Investment Opportunities', key:'Investment Opportunities' },
+];
+const OB_INTERESTS_PRESET = [
+  'Technology','Entrepreneurship','Design','Finance','Marketing',
+  'AI / ML','Web3','Climate Tech','Healthcare','Education',
+  'Product','Sales','Leadership','Writing','Music','Sports',
+];
+let _obIntents    = new Set();
+let _obInterests  = [];
+let _obEduCount   = 0;
+let _obWorkCount  = 0;
+
+function showOnboarding(stage) {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.add('hidden');
+  document.getElementById('app-wrap').classList.add('hidden');
+  document.getElementById('onboarding-wrap').classList.remove('hidden');
+  obShowScreen(stage);
+}
+
+function obShowScreen(stage) {
+  ['acquisition','intent','profile'].forEach(s =>
+    q('ob-screen-'+s)?.classList.toggle('hidden', s !== stage));
+  // Update progress dots
+  const order = ['acquisition','intent','profile'];
+  const idx = order.indexOf(stage);
+  for (let i = 1; i <= 3; i++)
+    q('ob-dot-'+i)?.classList.toggle('active', i - 1 === idx);
+  // Per-screen setup
+  if (stage === 'intent')  obRenderIntentGrid();
+  if (stage === 'profile') obRenderInterestChips();
+}
+
+// ── Screen 1: Acquisition ──────────────
+function obSourceChange() {
+  const src = q('ob-source').value;
+  q('ob-referral-wrap').classList.toggle('hidden', src !== 'Friend/Referral');
+}
+async function obSubmitAcquisition() {
+  const source   = q('ob-source').value;
+  const referral = q('ob-referral').value.trim().slice(0, 50) || null;
+  const errEl = q('ob-acq-err'), btn = q('ob-acq-btn');
+  errEl.classList.add('hidden');
+  if (!source) { errEl.textContent = 'Please select a source'; errEl.classList.remove('hidden'); return; }
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
-    const data = await api('POST', '/api/me/photos', fd, true);
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    document.getElementById('profile-avatar').innerHTML = avatarHTML(ME, 96);
-    renderProfilePhotos();
-    renderSidebarUser();
-    showToast('Photo updated ✓', 'success');
-  } catch (err) {
-    showToast(err.message || 'Upload failed', 'error');
-  }
+    await api('POST', '/api/onboarding/acquisition', { source, referral });
+    obShowScreen('intent');
+  } catch(e) {
+    errEl.textContent = e.data?.error || 'Something went wrong. Please try again.';
+    errEl.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.innerHTML = 'Continue →'; }
 }
 
-async function uploadPhoto(input) {
-  if (!input.files?.[0]) return;
-  showToast('Uploading…', 'info');
-  const fd = new FormData();
-  fd.append('photo', input.files[0]);
+// ── Screen 2: Intent ───────────────────
+function obRenderIntentGrid() {
+  const grid = q('ob-intent-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  OB_INTENTS.forEach(({ label, key }) => {
+    const card = document.createElement('button');
+    card.className = 'ob-intent-card' + (_obIntents.has(key) ? ' selected' : '');
+    card.textContent = label;
+    card.onclick = () => {
+      if (_obIntents.has(key)) _obIntents.delete(key);
+      else _obIntents.add(key);
+      card.classList.toggle('selected', _obIntents.has(key));
+    };
+    grid.appendChild(card);
+  });
+}
+async function obSubmitIntent() {
+  const intents = [..._obIntents];
+  const errEl = q('ob-intent-err'), btn = q('ob-intent-btn');
+  errEl.classList.add('hidden');
+  if (intents.length === 0) {
+    errEl.textContent = 'Please select at least one';
+    errEl.classList.remove('hidden'); return;
+  }
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
-    await api('POST', '/api/me/photos', fd, true);
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    renderProfilePhotos();
-    input.value = '';
-    showToast('Photo added ✓', 'success');
-  } catch (err) {
-    showToast(err.message || 'Upload failed', 'error');
-  }
+    await api('POST', '/api/onboarding/intent', { intents });
+    obShowScreen('profile');
+  } catch(e) {
+    errEl.textContent = e.data?.error || 'Something went wrong. Please try again.';
+    errEl.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.innerHTML = 'Continue →'; }
 }
 
-async function deletePhoto(url) {
-  if (!confirm('Remove this photo?')) return;
+// ── Screen 3: Profile ──────────────────
+function obRenderInterestChips() {
+  const wrap = q('ob-interest-chips');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  OB_INTERESTS_PRESET.forEach(label => {
+    const chip = document.createElement('button');
+    chip.className = 'ob-interest-chip' + (_obInterests.includes(label) ? ' selected' : '');
+    chip.textContent = label;
+    chip.onclick = () => obSelectInterest(chip, label);
+    wrap.appendChild(chip);
+  });
+}
+function obSelectInterest(chip, label) {
+  if (_obInterests.includes(label)) {
+    _obInterests = _obInterests.filter(i => i !== label);
+    chip.classList.remove('selected');
+  } else {
+    _obInterests.push(label);
+    chip.classList.add('selected');
+  }
+}
+function obAddInterest() {
+  const input = q('ob-interest-input');
+  const val = input.value.trim();
+  if (!val || _obInterests.includes(val) || _obInterests.length >= 20) return;
+  _obInterests.push(val);
+  input.value = '';
+  const tags = q('ob-interest-tags');
+  const tag = document.createElement('div');
+  tag.className = 'ob-tag';
+  tag.dataset.interest = val;
+  tag.innerHTML = `${esc(val)}<button class="ob-tag-del" onclick="obRemoveInterest('${escA(val)}')">×</button>`;
+  tags.appendChild(tag);
+}
+function obRemoveInterest(val) {
+  _obInterests = _obInterests.filter(i => i !== val);
+  [...q('ob-interest-tags').querySelectorAll('.ob-tag')].forEach(el => {
+    if (el.dataset.interest === val) el.remove();
+  });
+  const chips = q('ob-interest-chips');
+  if (chips) [...chips.querySelectorAll('.ob-interest-chip')].forEach(c => {
+    if (c.textContent === val) c.classList.remove('selected');
+  });
+}
+function obHeadlineCount() {
+  q('ob-headline-count').textContent = q('ob-headline').value.length;
+}
+function obBioValidate() {
+  q('ob-bio-count').textContent = q('ob-bio').value.length;
+}
+function obToggle(id) {
+  const body = q(id+'-body'), icon = q(id+'-icon');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (icon) icon.classList.toggle('open', body.classList.contains('open'));
+}
+function obAddEduEntry() {
+  _obEduCount++;
+  const entries = q('ob-edu-entries');
+  const div = document.createElement('div');
+  div.className = 'ob-edu-entry';
+  div.innerHTML = `
+    ${_obEduCount > 1 ? '<div class="ob-entry-sep"></div>' : ''}
+    <div class="ob-label">SCHOOL</div>
+    <input class="ob-input" data-edu-field="school" placeholder="School name (optional)">
+    <div class="ob-label" style="margin-top:10px;">UNIVERSITY</div>
+    <input class="ob-input" data-edu-field="university" placeholder="University name (optional)">
+    <div class="ob-label" style="margin-top:10px;">DEGREE</div>
+    <input class="ob-input" data-edu-field="degree" placeholder="e.g. Bachelor of Science">
+    <div class="ob-label" style="margin-top:10px;">FIELD OF STUDY</div>
+    <input class="ob-input" data-edu-field="field" placeholder="e.g. Computer Science">`;
+  entries.appendChild(div);
+  if (!q('ob-edu-body').classList.contains('open')) obToggle('ob-edu');
+}
+function obAddWorkEntry() {
+  _obWorkCount++;
+  const entries = q('ob-work-entries');
+  const div = document.createElement('div');
+  div.className = 'ob-work-entry';
+  div.innerHTML = `
+    ${_obWorkCount > 1 ? '<div class="ob-entry-sep"></div>' : ''}
+    <div class="ob-label">COMPANY</div>
+    <input class="ob-input" data-work-field="company" placeholder="Company name">
+    <div class="ob-label" style="margin-top:10px;">JOB TITLE</div>
+    <input class="ob-input" data-work-field="job_title" placeholder="e.g. Software Engineer">
+    <div class="ob-label" style="margin-top:10px;">INDUSTRY</div>
+    <input class="ob-input" data-work-field="industry" placeholder="e.g. Fintech">
+    <div class="ob-label" style="margin-top:10px;">EMPLOYMENT TYPE</div>
+    <select class="ob-select" data-work-field="employment_type" style="margin-bottom:0;">
+      <option value="">Select…</option>
+      <option>Full-time</option><option>Part-time</option><option>Freelancer</option>
+      <option>Founder</option><option>Self-employed</option><option>Student</option>
+      <option>Intern</option><option>Consultant</option><option>Open to Work</option>
+      <option>Other</option>
+    </select>`;
+  entries.appendChild(div);
+  if (!q('ob-work-body').classList.contains('open')) obToggle('ob-work');
+}
+function obPickPhoto() { q('ob-photo-input').click(); }
+async function obUploadPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const btn = q('ob-photo-btn');
+  btn.innerHTML = '<div class="spinner"></div>';
   try {
-    await api('DELETE', '/api/me/photos', { url });
-    ME = await api('GET', '/api/me');
-    localStorage.setItem('byn_me', JSON.stringify(ME));
-    renderProfilePhotos();
-    showToast('Photo removed', 'success');
-  } catch (err) {
-    showToast(err.message || 'Failed', 'error');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// PREMIUM
-// ═══════════════════════════════════════════════════════════════════════
-function renderPremium() {
-  // Nothing dynamic needed — static HTML shows correct plans
-  // If user is already premium, disable upgrade buttons
-  if (ME?.premium) {
-    document.querySelectorAll('#view-premium button[onclick^="startUpgrade"]').forEach(b => {
-      b.textContent = '✓ Active';
-      b.disabled    = true;
-      b.className   = b.className.replace('bg-brand-500','bg-slate-400');
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch('/api/me/photos', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+      body: fd
     });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const url = (data.photos || [])[0] || data.url;
+    if (url) {
+      btn.style.backgroundImage = `url(${url})`;
+      btn.style.backgroundSize = 'cover';
+      btn.innerHTML = '';
+    } else {
+      btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
+    }
+    toast('Photo uploaded!');
+  } catch(_) {
+    btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
+    toast('Photo upload failed — you can add it later in your profile.');
   }
 }
-
-function startUpgrade(plan) {
-  const allowed = ['monthly', 'quarterly'];
-  if (!allowed.includes(plan)) return;
-  window.open('/upgrade?plan=' + plan, '_blank');
+function obDetectLocation() {
+  if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
+  navigator.geolocation.getCurrentPosition(
+    async pos => {
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+        );
+        const d = await r.json();
+        const city    = d.address?.city || d.address?.town || d.address?.village || '';
+        const state   = d.address?.state || '';
+        const country = (d.address?.country_code || '').toUpperCase();
+        q('ob-location').value = [city, state, country].filter(Boolean).join(', ');
+      } catch(_) { toast('Could not determine location'); }
+    },
+    () => toast('Location permission denied')
+  );
 }
+async function obSubmitProfile() {
+  const errEl = q('ob-profile-err'), btn = q('ob-profile-btn');
+  errEl.classList.add('hidden');
 
-// ═══════════════════════════════════════════════════════════════════════
-// BADGE UTILITY
-// ═══════════════════════════════════════════════════════════════════════
-function updateBadge(id, count) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
-  else           { el.classList.add('hidden'); }
+  // Collect education
+  const education = [];
+  document.querySelectorAll('.ob-edu-entry').forEach(entry => {
+    const school     = entry.querySelector('[data-edu-field="school"]')?.value.trim()     || '';
+    const university = entry.querySelector('[data-edu-field="university"]')?.value.trim() || '';
+    const degree     = entry.querySelector('[data-edu-field="degree"]')?.value.trim()     || '';
+    const field      = entry.querySelector('[data-edu-field="field"]')?.value.trim()      || '';
+    if (school || university || degree || field) education.push({ school, university, degree, field });
+  });
+
+  // Collect work
+  const work = [];
+  document.querySelectorAll('.ob-work-entry').forEach(entry => {
+    const company         = entry.querySelector('[data-work-field="company"]')?.value.trim()          || '';
+    const job_title       = entry.querySelector('[data-work-field="job_title"]')?.value.trim()        || '';
+    const industry        = entry.querySelector('[data-work-field="industry"]')?.value.trim()         || '';
+    const employment_type = entry.querySelector('[data-work-field="employment_type"]')?.value         || '';
+    if (company || job_title) work.push({ company, job_title, industry, employment_type });
+  });
+
+  // Validate URLs
+  const URL_OK = /^https?:\/\/[^\s<>"']+$/i;
+  const linkedin  = q('ob-linkedin').value.trim();
+  const twitter   = q('ob-twitter').value.trim();
+  const github    = q('ob-github').value.trim();
+  const portfolio = q('ob-portfolio').value.trim();
+  for (const [name, val] of [['LinkedIn',linkedin],['Twitter',twitter],['GitHub',github],['Portfolio',portfolio]]) {
+    if (val && !URL_OK.test(val)) {
+      errEl.textContent = `${name} must be a valid URL (https://…)`;
+      errEl.classList.remove('hidden'); return;
+    }
+  }
+
+  const body = {
+    headline:         q('ob-headline').value.trim(),
+    bio:              q('ob-bio').value.trim(),
+    profession:       q('ob-profession').value.trim(),
+    industry:         q('ob-industry').value.trim(),
+    experience_level: q('ob-exp-level').value,
+    location:         q('ob-location').value.trim(),
+    interests:        _obInterests,
+    social_links: [
+      linkedin  ? { platform:'linkedin',  url:linkedin  } : null,
+      twitter   ? { platform:'twitter',   url:twitter   } : null,
+      github    ? { platform:'github',    url:github    } : null,
+      portfolio ? { platform:'portfolio', url:portfolio } : null,
+    ].filter(Boolean),
+    education,
+    work,
+  };
+
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    await api('POST', '/api/onboarding/profile', body);
+    ME = await api('GET', '/api/me');
+    saveAuth(TOKEN, ME);
+    showApp();
+    toast('Welcome to BYN! 🎉');
+  } catch(e) {
+    const msg = e.data?.errors?.[0]?.error || e.data?.error || 'Something went wrong. Please try again.';
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.innerHTML = 'Complete Setup →'; }
 }
-
-// ═══════════════════════════════════════════════════════════════════════
-// KEYBOARD SHORTCUTS
-// ═══════════════════════════════════════════════════════════════════════
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeProfileModal();
-});
-
-// Close profile modal on backdrop click
-document.getElementById('profile-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('profile-modal')) closeProfileModal();
-});
-
-// ═══════════════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════════════
-bootstrap();
 </script>
 </body>
 </html>

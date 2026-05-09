@@ -2309,6 +2309,225 @@ app.post('/api/payments/webhook', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const onboardingLimiter = rateLimit({ windowMs: 60*1000, max: 20, message: { error: 'Slow down' } });
+
+const ACQUISITION_SOURCES = [
+  'LinkedIn','Instagram','Twitter/X','WhatsApp','Friend/Referral',
+  'Google Search','Community/Event','YouTube','Other',
+];
+const VALID_INTENTS = [
+  'Networking','Find Opportunities','Build Startup Connections','Find Co-founder',
+  'Hiring','Find Clients','Mentorship','Learn from People','Community','Investment Opportunities',
+];
+// Maps display-intent to legacy intent key used by the match engine
+const INTENT_LEGACY_MAP = {
+  'Networking':                'explore-network',
+  'Find Opportunities':        'explore-network',
+  'Build Startup Connections': 'build-relationships',
+  'Find Co-founder':           'collaborate',
+  'Hiring':                    'build-relationships',
+  'Find Clients':              'build-relationships',
+  'Mentorship':                'learn-mentorship',
+  'Learn from People':         'learn-mentorship',
+  'Community':                 'build-relationships',
+  'Investment Opportunities':  'explore-network',
+};
+const VALID_EXP_LEVELS    = ['Beginner','Intermediate','Advanced','Expert'];
+const VALID_EMP_TYPES     = ['Full-time','Part-time','Freelancer','Founder','Self-employed','Student','Intern','Consultant','Open to Work','Other'];
+const VALID_LINK_PLATFORMS = ['linkedin','twitter','portfolio','website','github','instagram'];
+// Non-global URL test (avoids lastIndex stateful bug of /gi regex used with .test())
+const URL_TEST_RE = /^https?:\/\/[^\s<>"']+$/i;
+
+// GET /api/onboarding/stage
+// Returns current stage from req.userData — no extra DB round-trip.
+app.get('/api/onboarding/stage', auth, (req, res) => {
+  res.json({ stage: req.userData.onboarding_stage || 'acquisition' });
+});
+
+// POST /api/onboarding/acquisition — Screen 1: "How did you hear about us?"
+app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res) => {
+  try {
+    const user  = req.userData;
+    const stage = user.onboarding_stage || 'acquisition';
+    if (stage !== 'acquisition') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
+
+    const { source, referral } = req.body;
+    if (!source || !ACQUISITION_SOURCES.includes(source)) {
+      return res.status(400).json({ error: 'Please select where you heard about us' });
+    }
+    const cleanReferral = (source === 'Friend/Referral' && referral)
+      ? String(referral).trim().slice(0, 50) || null
+      : null;
+
+    // Upsert so retries after network timeout don't 500
+    const { error: upsertErr } = await supabase.from('user_acquisition').upsert(
+      { user_id: user.id, source, referral: cleanReferral },
+      { onConflict: 'user_id' }
+    );
+    if (upsertErr) throw new Error(upsertErr.message);
+
+    const { error: updateErr } = await supabase.from('users')
+      .update({ onboarding_stage: 'intent' }).eq('id', user.id);
+    if (updateErr) throw new Error(updateErr.message);
+
+    res.json({ stage: 'intent' });
+  } catch(e) {
+    console.error('Onboarding acquisition error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/onboarding/intent — Screen 2: "What brings you here?"
+app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => {
+  try {
+    const user  = req.userData;
+    const stage = user.onboarding_stage || 'acquisition';
+    if (stage !== 'intent') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
+
+    const { intents } = req.body;
+    if (!Array.isArray(intents) || intents.length === 0) {
+      return res.status(400).json({ error: 'Please select at least one intent' });
+    }
+    const invalid = intents.filter(i => !VALID_INTENTS.includes(i));
+    if (invalid.length) return res.status(400).json({ error: 'Invalid intent values: ' + invalid.join(', ') });
+
+    const deduped = [...new Set(intents)];
+    const rows = deduped.map(intent => ({ id: uuidv4(), user_id: user.id, intent }));
+    const { error: upsertErr } = await supabase.from('user_intents')
+      .upsert(rows, { onConflict: 'user_id,intent', ignoreDuplicates: true });
+    if (upsertErr) throw new Error(upsertErr.message);
+
+    // Populate legacy `intent` field so match engine still works
+    const legacyIntent = INTENT_LEGACY_MAP[deduped[0]] || 'explore-network';
+    const { error: updateErr } = await supabase.from('users')
+      .update({ onboarding_stage: 'profile', intent: legacyIntent }).eq('id', user.id);
+    if (updateErr) throw new Error(updateErr.message);
+
+    res.json({ stage: 'profile' });
+  } catch(e) {
+    console.error('Onboarding intent error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/onboarding/profile — Screen 3: "Complete your profile"
+// Every field is optional. An empty body is a valid submission.
+app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) => {
+  try {
+    const user  = req.userData;
+    const stage = user.onboarding_stage || 'acquisition';
+    if (stage !== 'profile') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
+
+    const { headline, bio, profession, industry, experience_level, location, interests, education, work, social_links } = req.body;
+
+    // Validate
+    const errors = [];
+    let cleanHeadline = headline ? String(headline).trim().slice(0, 80) : undefined;
+    if (cleanHeadline === '') cleanHeadline = undefined;
+
+    let cleanBio = (bio !== undefined && bio !== null) ? String(bio).trim() : undefined;
+    if (cleanBio === '') cleanBio = undefined;
+    if (cleanBio !== undefined && cleanBio.length < 30) {
+      errors.push({ field: 'bio', error: 'Bio must be at least 30 characters long.' });
+    }
+    if (cleanBio && cleanBio.length > 180) cleanBio = cleanBio.slice(0, 180);
+
+    const cleanExp = (experience_level && VALID_EXP_LEVELS.includes(experience_level)) ? experience_level : undefined;
+    if (experience_level && !cleanExp) errors.push({ field: 'experience_level', error: 'Invalid experience level' });
+
+    if (errors.length) return res.status(400).json({ errors });
+
+    // Build user updates
+    const userUpdates = { onboarding_stage: 'complete' };
+    if (cleanHeadline !== undefined) userUpdates.headline  = sanitize(cleanHeadline);
+    if (cleanBio      !== undefined) userUpdates.bio       = sanitize(cleanBio);
+    if (profession) userUpdates.profession  = sanitize(String(profession).trim().slice(0, 100));
+    if (industry)   userUpdates.industry    = sanitize(String(industry).trim().slice(0, 100));
+    if (cleanExp)   userUpdates.experience_level = cleanExp;
+    if (location)   userUpdates.location    = sanitize(String(location).trim().slice(0, 100));
+
+    // Interests — merge into existing interests[] array
+    if (Array.isArray(interests) && interests.length) {
+      const newInts = [...new Set(interests.map(i => sanitize(String(i).trim())).filter(Boolean))];
+      userUpdates.interests = [...new Set([...(user.interests || []), ...newInts])];
+    }
+
+    // Social links — map platform names directly to user columns
+    if (Array.isArray(social_links)) {
+      for (const link of social_links) {
+        if (!link || !VALID_LINK_PLATFORMS.includes(link.platform)) continue;
+        const rawUrl = link.url ? String(link.url).trim() : '';
+        if (!rawUrl || !URL_TEST_RE.test(rawUrl)) continue;
+        userUpdates[link.platform] = sanitize(rawUrl.slice(0, 300));
+      }
+    }
+
+    // Recalculate scores with updated values before writing
+    const merged = { ...user, ...userUpdates };
+    userUpdates.trust_score         = calcTrust(merged);
+    userUpdates.profile_score       = calcProfileScore(merged);
+    userUpdates.is_profile_complete = userUpdates.profile_score >= 70;
+
+    const { error: updateErr } = await supabase.from('users')
+      .update(userUpdates).eq('id', user.id);
+    if (updateErr) throw new Error(updateErr.message);
+
+    // Education entries
+    if (Array.isArray(education) && education.length) {
+      const seenEdu = new Set();
+      for (const entry of education) {
+        const school     = entry.school     ? sanitize(String(entry.school).trim().slice(0, 200))     : null;
+        const university = entry.university ? sanitize(String(entry.university).trim().slice(0, 200)) : null;
+        const degree     = entry.degree     ? sanitize(String(entry.degree).trim().slice(0, 100))     : null;
+        const field      = entry.field      ? sanitize(String(entry.field).trim().slice(0, 100))      : null;
+        if (!school && !university && !degree && !field) continue;
+        const key = [school, university, degree, field].join('|');
+        if (seenEdu.has(key)) continue;
+        seenEdu.add(key);
+        // DB duplicate check using exact field matching
+        let q = supabase.from('user_education').select('id').eq('user_id', user.id);
+        q = school     ? q.eq('school', school)         : q.is('school', null);
+        q = university ? q.eq('university', university) : q.is('university', null);
+        q = degree     ? q.eq('degree', degree)         : q.is('degree', null);
+        q = field      ? q.eq('field', field)           : q.is('field', null);
+        const { data: dup } = await q.maybeSingle();
+        if (dup) continue;
+        await supabase.from('user_education').insert({ id: uuidv4(), user_id: user.id, school, university, degree, field });
+      }
+    }
+
+    // Work entries
+    if (Array.isArray(work) && work.length) {
+      const seenWork = new Set();
+      for (const entry of work) {
+        const company   = entry.company   ? sanitize(String(entry.company).trim().slice(0, 200))   : null;
+        const job_title = entry.job_title ? sanitize(String(entry.job_title).trim().slice(0, 200)) : null;
+        const work_ind  = entry.industry  ? sanitize(String(entry.industry).trim().slice(0, 100))  : null;
+        const emp_type  = (entry.employment_type && VALID_EMP_TYPES.includes(entry.employment_type)) ? entry.employment_type : null;
+        if (!company && !job_title) continue;
+        const key = [company, job_title].join('|');
+        if (seenWork.has(key)) continue;
+        seenWork.add(key);
+        let q = supabase.from('user_work').select('id').eq('user_id', user.id);
+        q = company   ? q.eq('company', company)     : q.is('company', null);
+        q = job_title ? q.eq('job_title', job_title) : q.is('job_title', null);
+        const { data: dup } = await q.maybeSingle();
+        if (dup) continue;
+        await supabase.from('user_work').insert({ id: uuidv4(), user_id: user.id, company, job_title, industry: work_ind, employment_type: emp_type });
+      }
+    }
+
+    res.json({ stage: 'complete', trust_score: userUpdates.trust_score });
+  } catch(e) {
+    console.error('Onboarding profile error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -2318,4 +2537,19 @@ app.listen(PORT, () => {
   console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
   console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
   console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
+
+  // One-time idempotent migration: set all existing verified users to complete
+  // so they skip onboarding on next login. Safe to run on every startup.
+  setImmediate(async () => {
+    try {
+      const { count } = await supabase.from('users')
+        .update({ onboarding_stage: 'complete' })
+        .eq('email_verified', true)
+        .eq('onboarding_stage', 'acquisition')
+        .select('*', { count: 'exact', head: true });
+      if (count) console.log(`Onboarding migration: ${count} existing verified user(s) set to complete`);
+    } catch(e) {
+      console.error('Onboarding startup migration error:', e.message);
+    }
+  });
 });
