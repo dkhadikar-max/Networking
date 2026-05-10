@@ -996,7 +996,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <div class="app-view hidden" id="view-chats">
         <div class="screen-header">
           <h1>Chat</h1>
-          <button style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border2);background:var(--card);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;">⚡</button>
+          <button onclick="openPriorityInbox()" aria-label="Priority Messages" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border2);background:var(--card);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;">⚡</button>
         </div>
         <div id="chats-list" style="flex:1;overflow-y:auto;"></div>
       </div>
@@ -1007,10 +1007,11 @@ textarea.panel-input { resize:vertical; min-height:80px; }
           <div class="chat-detail-header">
             <span class="chat-back" onclick="goBack()">‹</span>
             <div class="chat-detail-av" id="chat-detail-av"></div>
-            <div>
+            <div style="flex:1;">
               <div class="chat-detail-name" id="chat-detail-name">—</div>
               <div class="chat-detail-loc"  id="chat-detail-loc"></div>
             </div>
+            <button onclick="openPrioritySend()" aria-label="Send Priority Message" style="width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--sur2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">⚡</button>
           </div>
           <div class="msgs-area" id="msgs-area"></div>
           <div class="chat-input-row">
@@ -1124,6 +1125,41 @@ textarea.panel-input { resize:vertical; min-height:80px; }
   </div>
 
   <div id="toast"></div>
+
+  <!-- PRIORITY MESSAGE MODAL -->
+  <div id="priority-modal" class="hidden" style="position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;justify-content:flex-end;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.45);" onclick="closePriorityModal()"></div>
+    <div id="priority-sheet" style="position:relative;background:#fff;border-radius:28px 28px 0 0;padding:24px 20px 36px;max-height:80vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(15,23,42,.14);">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+      <div id="priority-inbox-view">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <span style="font-size:17px;font-weight:800;color:var(--text);">⚡ Priority Messages</span>
+          <button onclick="showPriorityCompose()" style="font-size:13px;color:var(--primary);background:none;border:none;cursor:pointer;font-weight:600;">+ Compose</button>
+        </div>
+        <div id="priority-inbox-content" style="display:flex;flex-direction:column;gap:10px;min-height:60px;"></div>
+      </div>
+      <div id="priority-compose-view" class="hidden">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <button onclick="showPriorityInbox()" style="font-size:22px;color:var(--primary);background:none;border:none;cursor:pointer;font-weight:300;padding:0;">‹</button>
+          <span style="font-size:17px;font-weight:800;color:var(--text);">⚡ Priority Message</span>
+        </div>
+        <div id="priority-compose-target" style="font-size:13px;color:var(--text-soft);margin-bottom:12px;"></div>
+        <textarea id="priority-text" class="field-input" placeholder="Write a brief, professional message…" rows="4" maxlength="500" style="margin-bottom:6px;resize:none;" oninput="q('priority-char').textContent=this.value.length"></textarea>
+        <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:16px;"><span id="priority-char">0</span>/500</div>
+        <div id="priority-quota" style="font-size:12px;color:var(--text-soft);margin-bottom:12px;"></div>
+        <button class="btn-primary" onclick="sendPriorityMessage()" id="priority-send-btn">Send Priority Message</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE DETAIL MODAL -->
+  <div id="profile-detail-modal" class="hidden" style="position:fixed;inset:0;z-index:250;display:flex;flex-direction:column;justify-content:flex-end;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="closeProfileDetail()"></div>
+    <div style="position:relative;background:#fff;border-radius:28px 28px 0 0;max-height:90vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(15,23,42,.18);">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:16px auto 0;"></div>
+      <div id="profile-detail-content" style="padding:20px 20px 40px;"></div>
+    </div>
+  </div>
 </div><!-- /root -->
 
 <script>
@@ -1426,9 +1462,15 @@ async function loadDiscover() {
   q('disc-content').innerHTML = `<div class="disc-empty"><div class="spinner spinner-dark spinner-xl"></div><p style="color:var(--text-soft);font-size:14px;margin-top:12px;">Finding your matches…</p></div>`;
   try {
     const p = new URLSearchParams();
-    if (_filters.intent)   p.set('intent',   _filters.intent);
-    if (_filters.location) p.set('location', _filters.location);
-    if (_filters.sort)     p.set('sort',     _filters.sort);
+    // Server stores intents capitalised — map chip values to DB values
+    const INTENT_MAP = { hiring:'Hiring', freelance:'Freelance', cofounder:'Co-founder', mentorship:'Mentorship', investing:'Investing', networking:'Networking' };
+    if (_filters.intent)   p.set('intent', INTENT_MAP[_filters.intent] || _filters.intent);
+    // Server uses remote=true / worldwide=true query flags, NOT location=nearby|remote|worldwide
+    if (_filters.location === 'remote')    p.set('remote', 'true');
+    else if (_filters.location === 'worldwide') p.set('worldwide', 'true');
+    // 'nearby' = default radius behavior, no param needed
+    if (_filters.sort === 'recent') p.set('sort', 'recent');
+    // match_score and active both fall through to server default (matchScore sort)
     const data = await api('GET', '/api/discover?' + p);
     _matches = data.profiles || [];
     _cardIdx = 0;
@@ -1533,10 +1575,12 @@ function attachDrag(card) {
   _dragAC = new AbortController();
   const sig = _dragAC.signal;
 
-  let startX, startY, curX = 0, curY = 0, active = false;
+  let startX, startY, curX = 0, curY = 0, active = false, moved = false;
 
-  function start(cx, cy) { startX=cx; startY=cy; active=true; card.style.transition='none'; }
+  function start(cx, cy) { startX=cx; startY=cy; active=true; moved=false; card.style.transition='none'; }
   function move(cx, cy) {
+    const dx = cx - startX, dy = cy - startY;
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
     if (!active) return;
     curX = cx-startX; curY = cy-startY;
     card.style.transform = `translate(${curX}px,${curY}px) rotate(${curX*0.07}deg)`;
@@ -1547,6 +1591,14 @@ function attachDrag(card) {
   function end() {
     if (!active) return; active = false;
     card.style.transition = 'transform .35s ease, opacity .35s ease';
+    if (!moved) {
+      // Tap — open full profile
+      card.style.transform = '';
+      curX = 0; curY = 0;
+      const idx = _cardIdx < _matches.length ? _cardIdx : 0;
+      if (_matches[idx]) openProfileDetail(_matches[idx]);
+      return;
+    }
     if (curX > 75)       animateOut('connect', card);
     else if (curX < -75) animateOut('skip', card);
     else {
@@ -1946,7 +1998,7 @@ function renderProfile() {
   const p     = _pd;
   const name  = p.name || ME?.name || '';
   const photo = (p.photos||[])[0];
-  const isPro = p.is_premium || false;
+  const isPro = p.premium || p.is_premium || false; // server returns `premium`, not `is_premium`
 
   let score = 0;
   if ((p.photos||[]).length)    score += 20;
@@ -2422,6 +2474,129 @@ async function doUpgrade() {
   } catch(e) {
     toast(e.data?.error || 'Could not open upgrade. Please try again.');
   }
+}
+
+// ════════════════════════════════════════
+// PRIORITY MESSAGES
+// ════════════════════════════════════════
+let _priorityTargetId = null, _priorityTargetName = '';
+
+function openPriorityInbox() {
+  q('priority-modal').classList.remove('hidden');
+  showPriorityInbox();
+  loadPriorityMessages();
+}
+
+function openPrioritySend() {
+  if (!_activeChatUser?.id) { toast('Open a chat first'); return; }
+  _priorityTargetId   = _activeChatUser.id;
+  _priorityTargetName = _activeChatUser.name || 'this person';
+  q('priority-modal').classList.remove('hidden');
+  showPriorityCompose();
+  loadPriorityMessages(); // also pre-load quota
+}
+
+function closePriorityModal() { q('priority-modal').classList.add('hidden'); }
+
+function showPriorityInbox() {
+  q('priority-inbox-view').classList.remove('hidden');
+  q('priority-compose-view').classList.add('hidden');
+}
+
+function showPriorityCompose() {
+  q('priority-inbox-view').classList.add('hidden');
+  q('priority-compose-view').classList.remove('hidden');
+  q('priority-compose-target').textContent = `To: ${_priorityTargetName}`;
+  q('priority-text').value = '';
+  q('priority-char').textContent = '0';
+}
+
+async function loadPriorityMessages() {
+  const content = q('priority-inbox-content');
+  content.innerHTML = `<div class="loading-center" style="padding:20px;"><div class="spinner spinner-dark spinner-lg"></div></div>`;
+  try {
+    const data = await api('GET', '/api/priority-messages');
+    const received = data.received || [];
+    const limit    = data.limit  || 3;
+    const used     = data.sent_this_month || 0;
+    q('priority-quota').textContent = `${used} / ${limit} priority messages used this month`;
+
+    if (!received.length) {
+      content.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:14px;">No priority messages yet</div>`;
+      return;
+    }
+    content.innerHTML = '';
+    received.forEach(pm => {
+      const name  = pm.sender?.name || 'Unknown';
+      const photo = (pm.sender?.photos || [])[0];
+      const d = document.createElement('div');
+      d.style.cssText = 'display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--sur2);border-radius:16px;';
+      d.innerHTML = `
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--goldlt);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--gold);flex-shrink:0;overflow:hidden;">
+          ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;">` : initials(name)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">⚡ ${esc(name)}</div>
+          <div style="font-size:13px;color:var(--text-soft);margin-top:3px;line-height:1.5;">${esc(pm.text)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">${relTime(pm.created_at)}</div>
+        </div>`;
+      content.appendChild(d);
+    });
+  } catch(e) {
+    content.innerHTML = `<div style="text-align:center;padding:20px;color:var(--danger);font-size:13px;">Could not load messages</div>`;
+  }
+}
+
+async function sendPriorityMessage() {
+  const text = q('priority-text').value.trim();
+  if (!text) { toast('Please write a message'); return; }
+  if (!_priorityTargetId) { toast('No recipient selected'); return; }
+  const btn = q('priority-send-btn');
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    const r = await api('POST', '/api/priority-message', { targetId: _priorityTargetId, text });
+    toast(`⚡ Sent! ${r.remaining} messages remaining this month`);
+    closePriorityModal();
+  } catch(e) {
+    toast(e.data?.error || 'Could not send priority message');
+  } finally { btn.disabled = false; btn.innerHTML = 'Send Priority Message'; }
+}
+
+// ════════════════════════════════════════
+// FULL PROFILE DETAIL (tap on card)
+// ════════════════════════════════════════
+function openProfileDetail(profile) {
+  const u     = profile.user || profile;
+  const name  = u.name || 'Unknown';
+  const photo = (u.photos || [])[0];
+  const score = profile.match_score || profile.matchScore || 0;
+  const tags  = [...(u.interests || []).slice(0, 5), ...(u.skills || []).slice(0, 3)];
+
+  q('profile-detail-content').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="width:72px;height:72px;border-radius:20px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#D5F5EE,#BFF0E8);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--primary);">
+        ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;">` : initials(name)}
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.03em;">${esc(name)}</div>
+        ${u.current_role || u.role ? `<div style="font-size:13px;color:var(--text-soft);margin-top:2px;">${esc(u.current_role || u.role)}</div>` : ''}
+        ${u.location ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">📍 ${esc(u.location)}</div>` : ''}
+      </div>
+      ${score ? `<div style="background:linear-gradient(135deg,#D5F5EE,#BBF0E7);border-radius:12px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--primary);">${score}%</div>` : ''}
+    </div>
+    ${u.bio ? `<div style="font-size:14px;color:var(--text-soft);line-height:1.65;margin-bottom:16px;padding:14px;background:var(--sur2);border-radius:14px;">${esc(u.bio)}</div>` : ''}
+    ${tags.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">${tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : ''}
+    ${u.intent ? `<div style="font-size:13px;color:var(--primary);background:var(--light);padding:8px 14px;border-radius:10px;margin-bottom:16px;font-weight:600;">🎯 ${esc(u.intent)}</div>` : ''}
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
+      <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
+    </div>`;
+
+  q('profile-detail-modal').classList.remove('hidden');
+}
+
+function closeProfileDetail() {
+  q('profile-detail-modal').classList.add('hidden');
 }
 
 async function obSubmitProfile() {
