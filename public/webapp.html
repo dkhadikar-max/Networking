@@ -2139,7 +2139,7 @@ function renderLikes(data) {
       <div class="blur-row">
         <div class="blur-card">👤</div><div class="blur-card">👤</div><div class="blur-card">👤</div>
       </div>
-      <button class="btn-unlock" onclick="toast('Upgrade coming soon!')">✦ Unlock with Premium</button>
+      <button class="btn-unlock" onclick="doUpgrade()">✦ Unlock with Premium</button>
     </div>`;
     return;
   }
@@ -2495,7 +2495,7 @@ function renderProfile() {
     </div>
 
     <button class="btn-save" id="save-btn" onclick="saveProfile()">Save Profile</button>
-    <button class="btn-upgrade" onclick="toast('Upgrade coming soon!')">✦ Upgrade to Premium</button>
+    <button class="btn-upgrade" onclick="doUpgrade()">✦ Upgrade to Premium</button>
     <button class="btn-settings" onclick="toast('Settings coming soon')">⚙ Settings</button>
     <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
   `;
@@ -2845,6 +2845,19 @@ function obDetectLocation() {
     () => toast('Location permission denied')
   );
 }
+// ════════════════════════════════════════
+// UPGRADE
+// ════════════════════════════════════════
+async function doUpgrade() {
+  try {
+    toast('Opening upgrade…');
+    const r = await api('POST', '/api/payments/session');
+    window.location.href = '/upgrade?s=' + encodeURIComponent(r.payment_token);
+  } catch(e) {
+    toast(e.data?.error || 'Could not open upgrade. Please try again.');
+  }
+}
+
 async function obSubmitProfile() {
   const errEl = q('ob-profile-err'), btn = q('ob-profile-btn');
   errEl.classList.add('hidden');
