@@ -4,10 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Build Your Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  button,
-input,
-textarea,
 .hidden{
   display:none !important;
 }
@@ -68,6 +67,7 @@ textarea,
 --soft:#99F6E4;
 }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+#root { display:flex; flex-direction:column; height:100%; }
 html,
 body {
   height:100%;
@@ -93,7 +93,7 @@ body {
   padding:24px; background:var(--bg);
 }
 .auth-brand { text-align:center; margin-bottom:28px; }
-.auth-icon  { font-size:40px; color:var(--primary); display:block; margin-bottom:10px; }
+.auth-icon  { display:block; margin-bottom:10px; }
 .auth-title { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.4px; }
 .auth-tag   { font-size:13px; color:var(--sub); margin-top:4px; }
 .auth-card  {
@@ -111,7 +111,7 @@ body {
   border-radius:10px; padding:14px; color:var(--text); font-size:15px;
   margin-bottom:16px; transition:border-color .2s;
 }
-.field-input:focus { border-color:var(--primary); }
+.field-input:focus { border-color:var(--primary); outline:none; }
 .field-input::placeholder { color:var(--dim); }
 .consent-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; margin-top:4px; cursor:pointer; }
 .checkbox {
@@ -208,7 +208,7 @@ body {
 .nav-item.active {
   color:var(--primary);
 }
-.nav-icon { font-size:22px; line-height:1; }
+.nav-icon { font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center; }
 .nav-badge-wrap { position:relative; display:inline-block; }
 .nav-dot {
   position:absolute; top:-2px; right:-6px;
@@ -317,7 +317,7 @@ body {
   background:
     linear-gradient(135deg,#DFFAF3,#FFF0DF);
 }
-.card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:64px; }
+.card-photo-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#DFFAF3,#BFF7EE); font-size:80px; font-weight:800; color:#157A6E; letter-spacing:-0.04em; }
 .card-gradient {
   position:absolute;
 
@@ -1059,9 +1059,21 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 .loading-overlay {
   position:fixed; inset:0; background:var(--bg);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:16px; z-index:999;
+  gap:0; z-index:999;
 }
-.loading-overlay .logo { font-size:32px; color:var(--primary); font-weight:800; }
+.byn-logo-box {
+  width:72px; height:72px; border-radius:22px;
+  background:linear-gradient(145deg,#157A6E,#0E5E55);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 20px 40px rgba(21,122,110,.3);
+}
+.byn-logo-box-sm {
+  width:44px; height:44px; border-radius:14px;
+  background:linear-gradient(145deg,#157A6E,#0E5E55);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 10px 22px rgba(21,122,110,.22);
+  flex-shrink:0;
+}
 
 #toast {
   position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px);
@@ -1155,7 +1167,17 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 <div id="root">
 
   <div class="loading-overlay" id="loading-screen">
-    <div class="logo">✦ BYN</div>
+    <div class="byn-logo-box" style="margin-bottom:18px;">
+      <svg width="40" height="40" viewBox="0 0 100 100" fill="none">
+        <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+        <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+        <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+        <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div style="font-size:20px;font-weight:800;letter-spacing:-0.04em;color:var(--text);margin-bottom:24px;">Build Your Network</div>
     <div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div>
   </div>
 
@@ -1165,7 +1187,18 @@ textarea.panel-input { resize:vertical; min-height:80px; }
     <!-- LOGIN -->
     <div id="screen-login">
       <div class="auth-brand">
-        <span class="auth-icon">✦</span>
+        <span class="auth-icon">
+          <div class="byn-logo-box" style="width:60px;height:60px;border-radius:18px;margin:0 auto 2px;">
+            <svg width="34" height="34" viewBox="0 0 100 100" fill="none">
+              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+              <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </span>
         <div class="auth-title">Build Your Network</div>
         <div class="auth-tag">Professional connections that matter</div>
       </div>
@@ -1188,7 +1221,18 @@ textarea.panel-input { resize:vertical; min-height:80px; }
     <!-- SIGNUP -->
     <div id="screen-signup" class="hidden">
       <div class="auth-brand">
-        <span class="auth-icon">✦</span>
+        <span class="auth-icon">
+          <div class="byn-logo-box" style="width:60px;height:60px;border-radius:18px;margin:0 auto 2px;">
+            <svg width="34" height="34" viewBox="0 0 100 100" fill="none">
+              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+              <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </span>
         <div class="auth-title">Build Your Network</div>
         <div class="auth-tag">Connect with high-intent professionals</div>
       </div>
@@ -1217,7 +1261,18 @@ textarea.panel-input { resize:vertical; min-height:80px; }
     <!-- OTP -->
     <div id="screen-otp" class="hidden">
       <div class="auth-brand">
-        <span class="auth-icon">✦</span>
+        <span class="auth-icon">
+          <div class="byn-logo-box" style="width:60px;height:60px;border-radius:18px;margin:0 auto 2px;">
+            <svg width="34" height="34" viewBox="0 0 100 100" fill="none">
+              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+              <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </span>
         <div class="auth-title">Verify your email</div>
         <div class="auth-tag" id="otp-hint">Enter the 6-digit code we sent you</div>
       </div>
@@ -1422,7 +1477,19 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <!-- DISCOVER -->
       <div class="app-view" id="view-discover">
         <div class="disc-header">
-          <div class="disc-logo"><em>✦</em>Build Your Network</div>
+          <div class="disc-logo" style="display:flex;align-items:center;gap:12px;">
+            <div class="byn-logo-box-sm">
+              <svg width="26" height="26" viewBox="0 0 100 100" fill="none">
+                <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+                <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+                <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+                <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+                <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+                <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <span>Build Your Network</span>
+          </div>
           <button class="filter-btn" onclick="openFilters()">
             ⚡ Filters&nbsp;<span class="filter-count" id="filter-count">0</span>
           </button>
@@ -1479,24 +1546,42 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 
     <nav id="bottom-nav">
       <button class="nav-item active" id="nav-discover" onclick="switchTab('discover')">
-        <span class="nav-icon">🔍</span><span>Discover</span>
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
+        <span>Discover</span>
       </button>
       <button class="nav-item" id="nav-likes" onclick="switchTab('likes')">
         <span class="nav-badge-wrap">
-          <span class="nav-icon">♡</span>
+          <span class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </span>
           <span class="nav-dot hidden" id="likes-dot"></span>
         </span>
         <span>Likes</span>
       </button>
       <button class="nav-item" id="nav-chats" onclick="switchTab('chats')">
         <span class="nav-badge-wrap">
-          <span class="nav-icon">💬</span>
+          <span class="nav-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </span>
           <span class="nav-dot hidden" id="chat-dot"></span>
         </span>
         <span>Chat</span>
       </button>
       <button class="nav-item" id="nav-profile" onclick="switchTab('profile')">
-        <span class="nav-icon">👤</span><span>Profile</span>
+        <span class="nav-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </span>
+        <span>Profile</span>
       </button>
     </nav>
   </div><!-- /app-wrap -->
@@ -1765,7 +1850,7 @@ async function doVerifyOtp() {
   finally { btn.disabled = false; btn.innerHTML = 'Verify Email'; }
 }
 async function doResendOtp() {
-  if (!ME?.email) return;
+  if (!ME?.email) { toast('Email not available — please sign in again'); return; }
   try { await api('POST', '/api/auth/send-otp', { email:ME.email }); toast('Code resent!'); } // BUG-FIX
   catch(_) { toast('Could not resend. Try again.'); }
 }
@@ -1792,7 +1877,8 @@ function goBack() {
   q('view-chat').classList.add('hidden');
   q('view-chats').classList.remove('hidden');
   _tab = 'chats';
-  q('nav-chats').classList.add('active');
+  ['discover','likes','chats','profile'].forEach(t =>
+    q('nav-'+t)?.classList.toggle('active', t === 'chats'));
   loadChats();
 }
 
@@ -1874,7 +1960,7 @@ function buildCard(m) {
 
   card.innerHTML = `
     <div class="card-photo">
-      ${photo ? `<img src="${esc(photo)}" alt="${esc(name)}" loading="lazy">` : `<div class="card-photo-placeholder">👤</div>`}
+      ${photo ? `<img src="${esc(photo)}" alt="${esc(name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">` : `<div class="card-photo-placeholder">${esc(initials(name))}</div>`}
       <div class="card-gradient"></div>
       ${verified ? `<div class="card-verified">✓ Verified</div>` : ''}
       ${online   ? `<div class="card-online-dot"></div>` : ''}
@@ -1947,7 +2033,11 @@ function animateOut(action, card) {
   setTimeout(() => performAction(action), 280);
 }
 
+let _swiping = false;
 function doSwipe(action) {
+  if (_swiping) return;
+  _swiping = true;
+  setTimeout(() => _swiping = false, 600);
   const card = document.querySelector('#card-stack .swipe-card:last-child');
   if (card) animateOut(action, card);
   else performAction(action);
@@ -1966,13 +2056,14 @@ async function performAction(action) {
     if (action === 'connect' && res.match) {
       _matchConnId  = res.connectionId;
       _matchChatUser = u;
-      setTimeout(() => showMatchModal(u, u.matchScore), 350);
+      setTimeout(() => showMatchModal(u, m.match_score || m.matchScore), 350);
     }
   } catch(e) { toast('Could not connect. Try again.'); }
   renderCards();
 }
 
 function openChatFromCard(connId) {
+  if (!connId) { toast('Connect first to start a chat'); return; }
   openChat(connId, _currentCard || {});
 }
 
@@ -2189,7 +2280,9 @@ function openChat(connId, user) {
   q('chat-detail-loc').textContent  = _activeChatUser.location || '';
 
   q('msgs-area').innerHTML = '';
-  q('chat-input').value = '';
+  const inp = q('chat-input');
+  inp.value = '';
+  inp.style.height = 'auto';
   q('chat-send-btn').disabled = true;
 
   Promise.all([fetchMsgs(), fetchStarters()]).then(() => {
