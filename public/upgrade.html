@@ -607,11 +607,7 @@
   }
 
   function returnToApp() {
-    window.location.href = 'byn://premium-success';
-    setTimeout(() => {
-      try { window.close(); } catch(e) {}
-      document.getElementById('ol-sub').textContent = 'You can close this tab and return to the BYN app. Your Premium is now active!';
-    }, 800);
+    window.location.href = '/app';
   }
 </script>
 </body>
