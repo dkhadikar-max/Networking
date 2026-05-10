@@ -188,6 +188,7 @@ body {
 .app-view   {
   position:absolute; inset:0;
   display:flex; flex-direction:column; background:var(--bg); overflow:hidden;
+  width:100%; /* explicit width for centred flex contexts */
 }
 
 /* ── BOTTOM NAV ─────────────────────────────────────── */
@@ -257,6 +258,7 @@ body {
 .card-stack-area {
   flex:1; display:flex; flex-direction:column; align-items:center;
   justify-content:center; padding:12px 14px; position:relative; overflow:hidden;
+  width:100%; /* needed when parent has align-items:center */
 }
 .swipe-card {
   position:absolute;
@@ -338,6 +340,7 @@ body {
 .disc-empty {
   flex:1; display:flex; flex-direction:column; align-items:center;
   justify-content:center; gap:10px; padding:36px 28px; text-align:center;
+  width:100%; /* needed when parent has align-items:center */
 }
 .disc-empty .icon { font-size:48px; }
 .disc-empty h3   { font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
@@ -621,6 +624,58 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 .profile-scroll {
   padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));
 }
+
+/* ── DESKTOP PHONE FRAME ─────────────────────────────── */
+/* On non-mobile screens, render the app inside a phone-shaped frame */
+@media (min-width: 768px) {
+  html {
+    height:100%;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse 80% 60% at 18% 20%, rgba(29,183,166,.18) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 55% at 82% 78%, rgba(244,162,89,.14) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 80% at 50% 50%, rgba(21,122,110,.04) 0%, transparent 100%),
+      #DCE5EC;
+  }
+  body {
+    width:100%; height:100%;
+    background:transparent !important;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+  #root {
+    width:390px;
+    min-width:390px;
+    height:min(844px, calc(100vh - 40px));
+    min-height:unset;
+    border-radius:48px;
+    overflow:hidden;
+    box-shadow:
+      0 0 0 1.5px rgba(0,0,0,.14),
+      0 0 0 3px rgba(255,255,255,.08),
+      0 60px 140px rgba(15,23,42,.38),
+      0 20px 40px rgba(15,23,42,.18),
+      inset 0 0 0 1px rgba(255,255,255,.18);
+    position:relative;
+  }
+  /* Subtle "notch" top decoration on desktop */
+  #root::before {
+    content:'';
+    position:absolute;
+    top:0; left:50%; transform:translateX(-50%);
+    width:120px; height:6px;
+    background:rgba(0,0,0,.18);
+    border-radius:0 0 6px 6px;
+    z-index:9999;
+  }
+}
+
+/* ── DISCOVER: keep card actions centred inside flex column ── */
+#disc-content { align-items:center; }
 </style>
 </head>
 <body>
@@ -954,7 +1009,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
             ⚡ Filters&nbsp;<span class="filter-count" id="filter-count">0</span>
           </button>
         </div>
-        <div id="disc-content" style="flex:1;display:flex;flex-direction:column;overflow:hidden;"></div>
+        <div id="disc-content" style="flex:1;display:flex;flex-direction:column;align-items:center;overflow:hidden;"></div>
       </div>
 
       <!-- LIKES -->
@@ -1443,7 +1498,7 @@ function renderCards() {
   const connId = top.connection?.id || top.id || '';
   const actions = document.createElement('div');
   actions.className = 'card-actions';
-  actions.style.cssText = 'position:relative;z-index:10;max-width:400px;width:calc(100% - 32px);';
+  actions.style.cssText = 'position:relative;z-index:10;max-width:420px;width:calc(100% - 28px);';
   actions.innerHTML = `
     <button class="action-btn action-skip"    onclick="doSwipe('skip')">✕ Skip</button>
     <button class="action-btn action-message" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>
@@ -1481,7 +1536,7 @@ function buildCard(m) {
     <div class="card-body">
       <div class="card-name">
         ${esc(name)}
-        ${score ? `<span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--primary);background:linear-gradient(135deg,#D5F5EE,#BBF0E7);padding:3px 10px;border-radius:999px;white-space:nowrap;">✦ ${score}%</span>` : ''}
+        ${score ? `<span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--primary);background:linear-gradient(135deg,#D5F5EE,#BBF0E7);padding:4px 11px;border-radius:999px;white-space:nowrap;letter-spacing:0.2px;">${score}% match</span>` : ''}
       </div>
       ${role ? `<div class="card-role">${esc(role)}${loc ? ` · <span style="color:var(--muted);">📍 ${esc(loc)}</span>` : ''}</div>` : (loc ? `<div class="card-role" style="color:var(--muted);">📍 ${esc(loc)}</div>` : '')}
       ${tags.length ? `<div class="chips-row">${tags.map((t,i)=>`<span class="${i<2?'chip':'chip chip-gold'}">${esc(t)}</span>`).join('')}</div>` : ''}
