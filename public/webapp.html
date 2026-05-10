@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Build Your Network</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -10,7 +10,7 @@
 /* ── RESET & TOKENS ─────────────────────────────────── */
 .hidden { display:none !important; }
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-#root { display:flex; flex-direction:column; height:100%; }
+#root { display:flex; flex-direction:column; height:100%; min-height:-webkit-fill-available; }
 
 :root {
   --bg:#F6F8FA;
@@ -25,11 +25,13 @@
   --danger:#EF4444;
   --green:#22C55E;
   --card:#FFFFFF;
-  --sur:#FFFFFF;
+  /* ── Canonical aliases (consolidate duplicate tokens) ─ */
+  --sur:var(--card);
+  --surface:var(--card);
   --sur2:#F8FAFC;
-  --sub:#64748B;
-  --dim:#94A3B8;
-  --border2:#E2E8F0;
+  --sub:var(--text-soft);     /* was duplicate of --text-soft */
+  --dim:var(--muted);         /* was duplicate of --muted */
+  --border2:var(--border);    /* was duplicate of --border */
   --gold:#F4A259;
   --goldlt:#FFF4E7;
   --light:#ECFDF5;
@@ -43,7 +45,11 @@
   --r-sm:12px;
 }
 
-html, body {
+html {
+  height:100%;
+  overflow:hidden; /* prevent iOS rubber-band at root level */
+}
+body {
   height:100%;
   background:
     radial-gradient(ellipse at 0% 0%,#D8FAF2 0%,transparent 40%),
@@ -51,7 +57,8 @@ html, body {
     var(--bg);
   font-family:'Inter',sans-serif;
   color:var(--text);
-  overflow:hidden;
+  overflow-x:hidden; /* allow vertical reflow when keyboard appears */
+  overscroll-behavior:none; /* prevent pull-to-refresh artifacts */
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
 }
@@ -187,8 +194,9 @@ html, body {
 #bottom-nav {
   display:flex;
   margin:8px 14px 14px;
-  background:rgba(255,255,255,.88);
-  backdrop-filter:blur(28px);
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
   border:1px solid rgba(255,255,255,.75);
   border-radius:28px;
   padding:4px 6px;
@@ -217,15 +225,15 @@ html, body {
 /* ── SCREEN HEADER ──────────────────────────────────── */
 .screen-header {
   display:flex; align-items:center; padding:16px 18px;
-  border-bottom:1px solid rgba(226,232,240,.6); background:rgba(255,255,255,.9);
-  backdrop-filter:blur(16px); gap:12px; flex-shrink:0;
+  border-bottom:1px solid rgba(226,232,240,.6); background:rgba(255,255,255,.95);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); gap:12px; flex-shrink:0;
 }
 .screen-header h1 { font-size:24px; font-weight:800; color:var(--text); flex:1; letter-spacing:-0.5px; }
 
 /* ── DISCOVER HEADER ────────────────────────────────── */
 .disc-header {
   display:flex; align-items:center; padding:14px 18px;
-  background:rgba(255,255,255,.85); backdrop-filter:blur(20px);
+  background:rgba(255,255,255,.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
   border-bottom:1px solid rgba(226,232,240,.5); flex-shrink:0;
 }
 .disc-logo {
@@ -256,7 +264,7 @@ html, body {
   border-radius:var(--r-xl); overflow:hidden;
   background:var(--surface);
   box-shadow:var(--shadow-lg);
-  user-select:none; touch-action:none;
+  user-select:none; touch-action:pan-y; /* pan-y preserves native scroll, swipe still works */
   border:1px solid rgba(255,255,255,.9);
 }
 .card-photo {
@@ -340,7 +348,7 @@ html, body {
 #filter-modal { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; justify-content:flex-end; }
 .filter-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.42); }
 .filter-sheet {
-  position:relative; background:rgba(255,255,255,.97); backdrop-filter:blur(30px);
+  position:relative; background:rgba(255,255,255,.98); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
   border-radius:28px 28px 0 0; padding:24px 22px 36px;
   max-height:85vh; overflow-y:auto;
   box-shadow:0 -16px 60px rgba(15,23,42,.16);
@@ -453,7 +461,7 @@ html, body {
 .chat-detail-header {
   display:flex; align-items:center; gap:12px;
   padding:12px 16px; border-bottom:1px solid var(--border);
-  background:rgba(255,255,255,.94); backdrop-filter:blur(16px); flex-shrink:0;
+  background:rgba(255,255,255,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); flex-shrink:0;
 }
 .chat-back { font-size:26px; color:var(--primary); cursor:pointer; line-height:1; padding-right:2px; font-weight:300; }
 .chat-detail-av { width:40px; height:40px; border-radius:50%; background:var(--goldlt); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:var(--gold); overflow:hidden; flex-shrink:0; }
@@ -477,7 +485,7 @@ html, body {
 .starters-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
 .starters-row::-webkit-scrollbar { display:none; }
 .starter-chip { background:white; border:1px solid var(--border2); border-radius:20px; padding:9px 15px; font-size:13px; color:var(--sub); cursor:pointer; flex-shrink:0; max-width:240px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.chat-input-row { display:flex; gap:10px; padding:12px 14px; border-top:1px solid rgba(226,232,240,.6); background:rgba(255,255,255,.94); backdrop-filter:blur(16px); }
+.chat-input-row { display:flex; gap:10px; padding:12px 14px; padding-bottom:calc(12px + env(safe-area-inset-bottom,0px)); border-top:1px solid rgba(226,232,240,.6); background:rgba(255,255,255,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
 .chat-input-field { flex:1; background:var(--sur2); border:none; border-radius:20px; padding:13px 16px; color:var(--text); font-size:14px; resize:none; }
 .chat-input-field::placeholder { color:var(--dim); }
 .chat-input-field:focus { outline:none; }
@@ -592,6 +600,27 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 .ob-add-entry       { font-size:13px; color:var(--primary); font-weight:600; cursor:pointer; background:none; border:none; padding:4px 0; }
 .ob-photo-btn { width:96px; height:96px; border-radius:50%; background:var(--goldlt); border:3px dashed var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; margin:0 auto 16px; font-size:28px; color:var(--gold); }
 .ob-photo-hint { font-size:10px; color:var(--gold); margin-top:3px; }
+
+/* ── UTILITY CLASSES (replaces common inline styles) ── */
+.loading-center {
+  flex:1; display:flex; align-items:center; justify-content:center; padding:48px;
+}
+.spinner-lg { width:32px; height:32px; border-width:3px; }
+.spinner-xl { width:36px; height:36px; border-width:3px; }
+.card-actions-fixed {
+  position:relative; z-index:10;
+  max-width:400px; width:calc(100% - 32px);
+}
+/* Keyboard-safe chat — input stays above keyboard */
+.chat-detail-wrap {
+  display:flex; flex-direction:column;
+  height:100%;
+  /* On mobile browsers with visible keyboard the flex shrinks naturally */
+}
+/* Ensure profile scroll has safe-area bottom padding */
+.profile-scroll {
+  padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));
+}
 </style>
 </head>
 <body>
@@ -976,38 +1005,38 @@ textarea.panel-input { resize:vertical; min-height:80px; }
     </div><!-- /app-views -->
 
     <nav id="bottom-nav">
-      <button class="nav-item active" id="nav-discover" onclick="switchTab('discover')">
-        <span class="nav-icon">
+      <button class="nav-item active" id="nav-discover" onclick="switchTab('discover')" aria-label="Discover" role="tab" aria-selected="true">
+        <span class="nav-icon" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
         </span>
         <span>Discover</span>
       </button>
-      <button class="nav-item" id="nav-likes" onclick="switchTab('likes')">
+      <button class="nav-item" id="nav-likes" onclick="switchTab('likes')" aria-label="Likes" role="tab" aria-selected="false">
         <span class="nav-badge-wrap">
-          <span class="nav-icon">
+          <span class="nav-icon" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </span>
-          <span class="nav-dot hidden" id="likes-dot"></span>
+          <span class="nav-dot hidden" id="likes-dot" aria-hidden="true"></span>
         </span>
         <span>Likes</span>
       </button>
-      <button class="nav-item" id="nav-chats" onclick="switchTab('chats')">
+      <button class="nav-item" id="nav-chats" onclick="switchTab('chats')" aria-label="Chats" role="tab" aria-selected="false">
         <span class="nav-badge-wrap">
-          <span class="nav-icon">
+          <span class="nav-icon" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </span>
-          <span class="nav-dot hidden" id="chat-dot"></span>
+          <span class="nav-dot hidden" id="chat-dot" aria-hidden="true"></span>
         </span>
         <span>Chat</span>
       </button>
-      <button class="nav-item" id="nav-profile" onclick="switchTab('profile')">
-        <span class="nav-icon">
+      <button class="nav-item" id="nav-profile" onclick="switchTab('profile')" aria-label="Profile" role="tab" aria-selected="false">
+        <span class="nav-icon" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
@@ -1142,19 +1171,68 @@ function clearAuth() {
 window.addEventListener('DOMContentLoaded', async () => {
   loadAuth();
   setupOtpInputs();
-  if (TOKEN && ME) {
-    try {
-      ME = await api('GET', '/api/me');
-      saveAuth(TOKEN, ME);
-      if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
-        showOnboarding(ME.onboarding_stage);
-      } else {
-        showApp();
-      }
+  setupKeyboardAwareness();
+
+  // ── Loading screen safety fallback ───────────────────────
+  // If anything throws before showAuth/showApp runs, this ensures
+  // the loading screen never permanently blocks the user (bug #4).
+  const _loadGuard = setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    if (ls && !ls.classList.contains('hidden')) {
+      console.warn('BYN: load timeout — forcing auth screen');
+      clearAuth(); showAuth();
     }
-    catch(_) { clearAuth(); showAuth(); }
-  } else { showAuth(); }
+  }, 8000);
+
+  try {
+    if (TOKEN && ME) {
+      try {
+        ME = await api('GET', '/api/me');
+        saveAuth(TOKEN, ME);
+        if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
+          showOnboarding(ME.onboarding_stage);
+        } else {
+          showApp();
+        }
+      }
+      catch(_) { clearAuth(); showAuth(); }
+    } else { showAuth(); }
+  } finally {
+    clearTimeout(_loadGuard);
+  }
 });
+
+// ── Keyboard / Visual Viewport awareness ─────────────────
+// Fixes chat input and onboarding forms hidden behind Android keyboard (bug #3).
+function setupKeyboardAwareness() {
+  // Scroll focused input into view when keyboard appears
+  document.addEventListener('focusin', e => {
+    const tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      setTimeout(() => {
+        try { e.target.scrollIntoView({ behavior:'smooth', block:'nearest' }); } catch(_) {}
+      }, 320); // wait for keyboard animation (~300ms on Android)
+    }
+  });
+
+  // visualViewport API: re-anchor chat input when keyboard resizes viewport
+  if (window.visualViewport) {
+    let _lastVVH = window.visualViewport.height;
+    window.visualViewport.addEventListener('resize', () => {
+      const vvh = window.visualViewport.height;
+      const shrinking = vvh < _lastVVH;
+      _lastVVH = vvh;
+      // When keyboard pops up, scroll active chat messages to bottom
+      if (shrinking && document.activeElement) {
+        const chatInput = document.getElementById('chat-input');
+        const msgsArea  = document.getElementById('msgs-area');
+        if (document.activeElement === chatInput && msgsArea) {
+          setTimeout(() => { msgsArea.scrollTop = msgsArea.scrollHeight; }, 100);
+        }
+      }
+    });
+  }
+}
 
 function showAuth() {
   document.getElementById('loading-screen').classList.add('hidden');
@@ -1293,7 +1371,9 @@ function switchTab(tab) {
   if (tab === _tab) return;
   _prevTab = _tab; _tab = tab;
   ['discover','likes','chats','profile'].forEach(t => {
-    q('nav-'+t)?.classList.toggle('active', t===tab);
+    const btn = q('nav-'+t);
+    btn?.classList.toggle('active', t===tab);
+    btn?.setAttribute('aria-selected', t===tab ? 'true' : 'false');
     q('view-'+t)?.classList.toggle('hidden', t!==tab);
   });
   q('view-chat').classList.add('hidden');
@@ -1317,7 +1397,7 @@ function goBack() {
 // DISCOVER
 // ════════════════════════════════════════
 async function loadDiscover() {
-  q('disc-content').innerHTML = `<div class="disc-empty"><div class="spinner spinner-dark" style="width:36px;height:36px;border-width:3px;"></div><p style="color:var(--sub);font-size:14px;margin-top:12px;">Finding your matches…</p></div>`;
+  q('disc-content').innerHTML = `<div class="disc-empty"><div class="spinner spinner-dark spinner-xl"></div><p style="color:var(--text-soft);font-size:14px;margin-top:12px;">Finding your matches…</p></div>`;
   try {
     const p = new URLSearchParams();
     if (_filters.intent)   p.set('intent',   _filters.intent);
@@ -1393,17 +1473,19 @@ function buildCard(m) {
     <div class="card-photo">
       ${photo ? `<img src="${esc(photo)}" alt="${esc(name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;">` : `<div class="card-photo-placeholder">${esc(initials(name))}</div>`}
       <div class="card-gradient"></div>
-      ${verified ? `<div class="card-verified">✓ Verified</div>` : ''}
-      ${online   ? `<div class="card-online-dot"></div>` : ''}
-      <div class="swipe-label label-connect">CONNECT</div>
-      <div class="swipe-label label-skip">SKIP</div>
+      ${verified ? `<div class="card-verified" aria-label="Verified profile">✓ Verified</div>` : ''}
+      ${online   ? `<div class="card-online-dot" aria-label="Online now"></div>` : ''}
+      <div class="swipe-label label-connect" aria-hidden="true">CONNECT</div>
+      <div class="swipe-label label-skip" aria-hidden="true">SKIP</div>
     </div>
     <div class="card-body">
-      <div class="card-name">${esc(name)}${loc ? ` <span style="font-size:13px;font-weight:400;color:var(--sub);">📍${esc(loc)}</span>` : ''}</div>
-      ${role ? `<div class="card-role">${esc(role)}</div>` : ''}
+      <div class="card-name">
+        ${esc(name)}
+        ${score ? `<span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--primary);background:linear-gradient(135deg,#D5F5EE,#BBF0E7);padding:3px 10px;border-radius:999px;white-space:nowrap;">✦ ${score}%</span>` : ''}
+      </div>
+      ${role ? `<div class="card-role">${esc(role)}${loc ? ` · <span style="color:var(--muted);">📍 ${esc(loc)}</span>` : ''}</div>` : (loc ? `<div class="card-role" style="color:var(--muted);">📍 ${esc(loc)}</div>` : '')}
       ${tags.length ? `<div class="chips-row">${tags.map((t,i)=>`<span class="${i<2?'chip':'chip chip-gold'}">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${bio  ? `<div class="card-bio">${esc(bio.slice(0,120))}${bio.length>120?'…':''}</div>` : ''}
-      ${score ? `<div class="match-score-box">✦ ${score}% match</div>` : ''}
+      ${bio  ? `<div class="card-bio">${esc(bio.slice(0,140))}${bio.length>140?'…':''}</div>` : ''}
     </div>`;
   return card;
 }
@@ -1547,7 +1629,7 @@ function goToMatchChat() {
 // LIKES
 // ════════════════════════════════════════
 async function loadLikes() {
-  q('likes-content').innerHTML = `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:48px;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
+  q('likes-content').innerHTML = `<div class="loading-center"><div class="spinner spinner-dark spinner-lg"></div></div>`;
   try {
     const data = await api('GET', '/api/liked-me');
     renderLikes(data);
@@ -1630,7 +1712,7 @@ async function likeAction(uid, action) {
 // CHAT LIST
 // ════════════════════════════════════════
 async function loadChats() {
-  q('chats-list').innerHTML = `<div style="padding:48px;display:flex;align-items:center;justify-content:center;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
+  q('chats-list').innerHTML = `<div class="loading-center"><div class="spinner spinner-dark spinner-lg"></div></div>`;
   try {
     const data = await api('GET', '/api/connections');
     _conversations = Array.isArray(data) ? data : [];
@@ -1822,7 +1904,7 @@ function updateSendBtn() {
 // ════════════════════════════════════════
 async function loadProfile() {
   const el = q('profile-scroll');
-  el.innerHTML = `<div style="padding:48px;display:flex;align-items:center;justify-content:center;"><div class="spinner spinner-dark" style="width:32px;height:32px;border-width:3px;"></div></div>`;
+  el.innerHTML = `<div class="loading-center"><div class="spinner spinner-dark spinner-lg"></div></div>`;
   try {
     _pd = await api('GET', '/api/me');
   } catch(_) { _pd = { ...ME }; }
@@ -2229,12 +2311,39 @@ function obAddWorkEntry() {
   if (!q('ob-work-body').classList.contains('open')) obToggle('ob-work');
 }
 function obPickPhoto() { q('ob-photo-input').click(); }
+
+// Client-side image compression — prevents memory spikes on large uploads (bug #11).
+// Resizes to max 1200px wide and re-encodes as JPEG at 82% quality.
+async function compressImage(file, maxW = 1200, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        blob => resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' })),
+        'image/jpeg', quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); }; // fallback: use original
+    img.src = url;
+  });
+}
+
 async function obUploadPhoto(input) {
-  const file = input.files?.[0];
-  if (!file) return;
+  const raw = input.files?.[0];
+  if (!raw) return;
   const btn = q('ob-photo-btn');
   btn.innerHTML = '<div class="spinner"></div>';
   try {
+    // Compress before upload to prevent memory spikes on large images
+    const file = raw.size > 500_000 ? await compressImage(raw) : raw;
     const fd = new FormData();
     fd.append('photo', file);
     const res = await fetch('/api/me/photos', {
