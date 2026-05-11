@@ -2552,4 +2552,4 @@ app.listen(PORT, () => {
       console.error('Onboarding startup migration error:', e.message);
     }
   });
-});                                                        
+});
