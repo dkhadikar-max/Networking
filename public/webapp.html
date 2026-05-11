@@ -331,7 +331,7 @@ body {
 }
 .action-btn:active { transform:scale(0.96); }
 .action-skip    { background:white; border:none; color:var(--text-soft); box-shadow:var(--shadow-sm); }
-.action-message { background:#FFF4E7; border:none; color:var(--accent); }
+.action-message { background:var(--sur2); border:1.5px solid var(--border2); color:var(--text-soft); }
 .action-connect {
   background:linear-gradient(135deg,var(--primary),var(--primary-2));
   color:white; border:none;
@@ -1135,7 +1135,6 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <div id="priority-inbox-view">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <span style="font-size:17px;font-weight:800;color:var(--text);">⚡ Priority Messages</span>
-          <button onclick="showPriorityCompose()" style="font-size:13px;color:var(--primary);background:none;border:none;cursor:pointer;font-weight:600;">+ Compose</button>
         </div>
         <div id="priority-inbox-content" style="display:flex;flex-direction:column;gap:10px;min-height:60px;"></div>
       </div>
@@ -1520,7 +1519,7 @@ function renderCards() {
   actions.style.cssText = 'position:relative;z-index:10;max-width:420px;width:calc(100% - 28px);';
   actions.innerHTML = `
     <button class="action-btn action-skip"    onclick="doSwipe('skip')">✕ Skip</button>
-    <button class="action-btn action-message" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>
+    ${connId ? `<button class="action-btn action-message" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>` : ''}
     <button class="action-btn action-connect" onclick="doSwipe('connect')">✦ Connect</button>`;
   el.appendChild(actions);
 }
@@ -2103,7 +2102,6 @@ function renderProfile() {
 
     <button class="btn-save" id="save-btn" onclick="saveProfile()">Save Profile</button>
     ${!isPro ? `<button class="btn-upgrade" onclick="doUpgrade()">✦ Upgrade to Premium</button>` : ''}
-    <button class="btn-settings" onclick="toast('Settings coming soon')">⚙ Settings</button>
     <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
   `;
 }
@@ -2637,8 +2635,8 @@ async function loadPriorityMessages() {
 
 async function sendPriorityMessage() {
   const text = q('priority-text').value.trim();
+  if (!_priorityTargetId) { toast('No recipient — open a chat or profile to send a priority message'); return; }
   if (!text) { toast('Please write a message'); return; }
-  if (!_priorityTargetId) { toast('No recipient selected'); return; }
   const btn = q('priority-send-btn');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   try {
