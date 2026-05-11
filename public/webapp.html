@@ -1968,10 +1968,19 @@ async function sendMessage() {
   try {
     await api('POST', `/api/messages/${_activeChatId}`, { text }); // BUG-FIX: { text } not { content }
     await fetchMsgs();
-  } catch(_) {
+  } catch(e) {
     inp.value = text;
     updateSendBtn();
-    toast('Could not send message');
+    const reason = e?.data?.error || '';
+    if (e?.status === 400 && reason.includes('expired')) {
+      toast('⏱ This connection has expired — you can no longer message here');
+    } else if (e?.status === 403) {
+      toast('🔒 ' + (reason || 'You don\'t have access to this chat'));
+    } else if (e?.status === 400) {
+      toast(reason || 'Message could not be sent');
+    } else {
+      toast('Could not send message — check your connection and try again');
+    }
   } finally { _sending = false; }
 }
 
@@ -2728,33 +2737,4 @@ async function obSubmitProfile() {
     headline:         q('ob-headline').value.trim(),
     bio:              q('ob-bio').value.trim(),
     profession:       q('ob-profession').value.trim(),
-    industry:         q('ob-industry').value.trim(),
-    experience_level: q('ob-exp-level').value,
-    location:         q('ob-location').value.trim(),
-    interests:        _obInterests,
-    social_links: [
-      linkedin  ? { platform:'linkedin',  url:linkedin  } : null,
-      twitter   ? { platform:'twitter',   url:twitter   } : null,
-      github    ? { platform:'github',    url:github    } : null,
-      portfolio ? { platform:'portfolio', url:portfolio } : null,
-    ].filter(Boolean),
-    education,
-    work,
-  };
-
-  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
-  try {
-    await api('POST', '/api/onboarding/profile', body);
-    ME = await api('GET', '/api/me');
-    saveAuth(TOKEN, ME);
-    showApp();
-    toast('Welcome to BYN! 🎉');
-  } catch(e) {
-    const msg = e.data?.errors?.[0]?.error || e.data?.error || 'Something went wrong. Please try again.';
-    errEl.textContent = msg;
-    errEl.classList.remove('hidden');
-  } finally { btn.disabled = false; btn.innerHTML = 'Complete Setup →'; }
-}
-</script>
-</body>
-</html>
+    industry:         q('ob-ind
