@@ -980,6 +980,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
             ⚡ Filters&nbsp;<span class="filter-count" id="filter-count">0</span>
           </button>
         </div>
+        <div id="trust-banner" class="hidden" style="margin:0 14px 8px;padding:12px 16px;background:linear-gradient(135deg,#FFF4E7,#FFF0D6);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;color:#92600A;line-height:1.5;cursor:pointer;" onclick="switchTab('profile')"></div>
         <div id="disc-content" style="flex:1;display:flex;flex-direction:column;align-items:center;overflow:hidden;"></div>
       </div>
 
@@ -1251,8 +1252,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       try {
         ME = await api('GET', '/api/me');
         saveAuth(TOKEN, ME);
-        if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
-          showOnboarding(ME.onboarding_stage);
+        if (ME.onboarding_stage !== 'complete') {
+          showOnboarding(ME.onboarding_stage || 'acquisition');
         } else {
           showApp();
         }
@@ -1337,8 +1338,8 @@ async function doLogin() {
   try {
     const r = await api('POST', '/api/login', { email, password:pw });
     saveAuth(r.token, r.user);
-    if (r.user.onboarding_stage && r.user.onboarding_stage !== 'complete') {
-      showOnboarding(r.user.onboarding_stage);
+    if (r.user.onboarding_stage !== 'complete') {
+      showOnboarding(r.user.onboarding_stage || 'acquisition');
     } else {
       showApp();
     }
@@ -1412,8 +1413,8 @@ async function doVerifyOtp() {
     await api('POST', '/api/auth/verify-otp', { code }); // BUG-FIX: /api/auth/verify-otp
     ME = await api('GET', '/api/me'); // refresh to get onboarding_stage
     saveAuth(TOKEN, ME);
-    if (ME.onboarding_stage && ME.onboarding_stage !== 'complete') {
-      showOnboarding(ME.onboarding_stage);
+    if (ME.onboarding_stage !== 'complete') {
+      showOnboarding(ME.onboarding_stage || 'acquisition');
     } else {
       showApp();
     }
@@ -1475,7 +1476,11 @@ async function loadDiscover() {
     _matches = data.profiles || [];
     _cardIdx = 0;
     renderCards();
-  } catch(e) { renderDiscErr(e.status===403 ? 'trust' : 'error'); }
+    updateTrustBanner();
+  } catch(e) {
+    q('trust-banner')?.classList.add('hidden');
+    renderDiscErr(e.status===403 ? 'trust' : 'error');
+  }
 }
 
 function renderCards() {
@@ -2041,7 +2046,8 @@ function renderProfile() {
 
     <div class="profile-panel">
       <div class="panel-title">📸 Photos</div>
-      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb"><img src="${esc(ph)}" alt="photo"></div>`).join('')}<div class="photo-add" onclick="toast('Photo upload coming soon')">＋</div></div>
+      <input type="file" id="profile-photo-input" accept="image/*" class="hidden" onchange="profileUploadPhoto(this)">
+      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb"><img src="${esc(ph)}" alt="photo"></div>`).join('')}<div class="photo-add" id="profile-photo-add-btn" onclick="q('profile-photo-input').click()">＋</div></div>
       ${(p.photos||[]).length<4?`<div class="photos-warn">⚡ Add ${4-(p.photos||[]).length} more photo${4-(p.photos||[]).length>1?'s':''} to boost your profile</div>`:''}
     </div>
 
@@ -2445,6 +2451,78 @@ async function obUploadPhoto(input) {
     toast('Photo upload failed — you can add it later in your profile.');
   }
 }
+// ── Profile section photo upload ──────────
+async function profileUploadPhoto(input) {
+  const raw = input.files?.[0];
+  if (!raw) return;
+  input.value = ''; // allow re-selecting same file
+  const addBtn = q('profile-photo-add-btn');
+  if (addBtn) { addBtn.innerHTML = '<div class="spinner spinner-dark" style="width:20px;height:20px;"></div>'; addBtn.style.pointerEvents='none'; }
+  try {
+    const file = raw.size > 500_000 ? await compressImage(raw) : raw;
+    const fd = new FormData();
+    fd.append('photo', file);
+    const res = await fetch('/api/me/photos', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + TOKEN },
+      body: fd
+    });
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Upload failed'); }
+    const data = await res.json();
+    // Merge updated photo list + trust score back into ME
+    ME = { ...ME, photos: data.photos || ME.photos, trust_score: data.trust_score ?? ME.trust_score };
+    saveAuth(TOKEN, ME);
+    toast('📸 Photo added!');
+    loadProfile(); // re-render profile with new photos
+  } catch(e) {
+    if (addBtn) { addBtn.innerHTML = '＋'; addBtn.style.pointerEvents=''; }
+    toast(e.message || 'Photo upload failed');
+  }
+}
+
+// ── Discover error renderer ────────────────
+function renderDiscErr(type) {
+  const el = q('disc-content');
+  if (type === 'trust') {
+    const ts = ME?.trust_score || 0;
+    const missing = [
+      !(ME?.photos?.length)  && '📸 Add at least 1 photo',
+      !ME?.bio               && '📝 Write a short bio',
+      !ME?.intent            && '🎯 Set your networking goal',
+      !ME?.location          && '📍 Add your location',
+    ].filter(Boolean);
+    el.innerHTML = `
+      <div class="disc-empty" style="max-width:320px;text-align:center;padding:28px 20px;">
+        <div style="font-size:52px;margin-bottom:14px;">🔒</div>
+        <h3 style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px;">Unlock Discovery</h3>
+        <p style="font-size:14px;color:var(--text-soft);margin-bottom:16px;line-height:1.55;">You need <strong>20 trust points</strong> to see matches.<br>You have <strong>${ts} pts</strong> so far.</p>
+        ${missing.length ? `<div style="text-align:left;background:var(--sur2);border-radius:14px;padding:12px 16px;margin-bottom:18px;display:flex;flex-direction:column;gap:6px;">${missing.map(s=>`<div style="font-size:13px;color:var(--text-soft);display:flex;gap:8px;align-items:flex-start;"><span style="flex-shrink:0;">→</span><span>${s}</span></div>`).join('')}</div>` : ''}
+        <button class="btn-primary" style="font-size:14px;padding:12px 28px;" onclick="switchTab('profile')">Complete Profile →</button>
+      </div>`;
+  } else {
+    el.innerHTML = `<div class="disc-empty"><div class="icon">⚠️</div><h3>Something went wrong</h3><p>Could not load matches. Please try again.</p><button class="retry-btn" onclick="loadDiscover()">Retry</button></div>`;
+  }
+}
+
+// ── Trust score banner (shows above cards when trust < 40 but discovery is unlocked) ──
+function updateTrustBanner() {
+  const banner = q('trust-banner');
+  if (!banner) return;
+  const ts = ME?.trust_score || 0;
+  if (ts >= 40) { banner.classList.add('hidden'); return; }
+  // Build checklist of what's missing
+  const items = [
+    !(ME?.photos?.length)  && 'add a photo',
+    !ME?.bio               && 'write a bio',
+    !ME?.intent            && 'set your goal',
+    !ME?.location          && 'add location',
+    !(ME?.linkedin || ME?.website || ME?.instagram) && 'add a social link',
+  ].filter(Boolean);
+  banner.innerHTML = `<strong>⚡ Boost your profile</strong> — ${ts}/40 pts to reach full visibility.<br>
+    <span style="opacity:.85;">To improve: ${items.join(', ')}. Tap to open Profile.</span>`;
+  banner.classList.remove('hidden');
+}
+
 function obDetectLocation() {
   if (!navigator.geolocation) { toast('Geolocation not supported'); return; }
   navigator.geolocation.getCurrentPosition(
