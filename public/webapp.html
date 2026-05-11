@@ -1155,10 +1155,11 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 
   <!-- PROFILE DETAIL MODAL -->
   <div id="profile-detail-modal" class="hidden" style="position:fixed;inset:0;z-index:250;display:flex;flex-direction:column;justify-content:flex-end;">
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,.5);" onclick="closeProfileDetail()"></div>
-    <div style="position:relative;background:#fff;border-radius:28px 28px 0 0;max-height:90vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(15,23,42,.18);">
-      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:16px auto 0;"></div>
-      <div id="profile-detail-content" style="padding:20px 20px 40px;"></div>
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.55);" onclick="closeProfileDetail()"></div>
+    <div style="position:relative;background:var(--bg);border-radius:28px 28px 0 0;height:92vh;display:flex;flex-direction:column;box-shadow:0 -12px 40px rgba(15,23,42,.2);">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 0;flex-shrink:0;"></div>
+      <div id="profile-detail-content" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 8px;"></div>
+      <div id="profile-detail-actions" style="flex-shrink:0;padding:12px 16px 28px;background:var(--card);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;"></div>
     </div>
   </div>
 </div><!-- /root -->
@@ -2653,32 +2654,76 @@ async function sendPriorityMessage() {
 // FULL PROFILE DETAIL (tap on card)
 // ════════════════════════════════════════
 function openProfileDetail(profile) {
-  const u     = profile.user || profile;
-  const name  = u.name || 'Unknown';
-  const photo = (u.photos || [])[0];
-  const score = profile.match_score || profile.matchScore || 0;
-  const tags  = [...(u.interests || []).slice(0, 5), ...(u.skills || []).slice(0, 3)];
+  const u      = profile.user || profile;
+  const name   = u.name || 'Unknown';
+  const photos = u.photos || [];
+  const score  = profile.match_score || profile.matchScore || 0;
+  const interests = u.interests || [];
+  const skills    = u.skills    || [];
+  const role      = u.current_role || u.role || '';
+  const uid = String(u.id || '');
+
+  // ── Photo gallery ──────────────────────
+  let galleryHTML = '';
+  if (photos.length > 0) {
+    galleryHTML = `
+      <div style="position:relative;width:100%;aspect-ratio:4/3;overflow:hidden;background:#000;">
+        <div id="pd-photos" style="display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none;">
+          ${photos.map(ph => `<div style="flex:0 0 100%;scroll-snap-align:start;height:100%;"><img src="${esc(ph)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>`).join('')}
+        </div>
+        ${photos.length > 1 ? `<div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">${photos.map((_,i) => `<div class="pd-dot" style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,${i===0?1:.45});"></div>`).join('')}</div>` : ''}
+      </div>`;
+  } else {
+    galleryHTML = `<div style="width:100%;aspect-ratio:4/3;background:linear-gradient(135deg,#D5F5EE,#BFF0E8);display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:900;color:var(--primary);">${initials(name)}</div>`;
+  }
+
+  // ── Content rows ───────────────────────
+  const rows = [];
+  if (u.bio) rows.push(`<div style="font-size:14px;color:var(--text-soft);line-height:1.65;padding:14px;background:var(--card);border-radius:16px;">${esc(u.bio)}</div>`);
+  if (u.intent) rows.push(`<div style="font-size:13px;color:var(--primary);background:var(--light);padding:9px 14px;border-radius:12px;font-weight:600;">🎯 ${esc(u.intent)}</div>`);
+  if (interests.length || skills.length) {
+    const chips = [...interests.slice(0,6).map(t=>`<span class="chip">${esc(t)}</span>`), ...skills.slice(0,4).map(t=>`<span class="chip chip-gold">${esc(t)}</span>`)].join('');
+    rows.push(`<div style="display:flex;flex-wrap:wrap;gap:8px;">${chips}</div>`);
+  }
+  if (u.currently_exploring) rows.push(`<div style="background:var(--card);border-radius:14px;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:4px;">EXPLORING</div><div style="font-size:13px;color:var(--text-soft);">${esc(u.currently_exploring)}</div></div>`);
+  if (u.working_on)          rows.push(`<div style="background:var(--card);border-radius:14px;padding:12px 14px;"><div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin-bottom:4px;">WORKING ON</div><div style="font-size:13px;color:var(--text-soft);">${esc(u.working_on)}</div></div>`);
+  const links = [u.linkedin&&`<a href="${esc(u.linkedin)}" target="_blank" style="font-size:13px;color:var(--primary);font-weight:600;text-decoration:none;">LinkedIn ↗</a>`, u.website&&`<a href="${esc(u.website)}" target="_blank" style="font-size:13px;color:var(--primary);font-weight:600;text-decoration:none;">Website ↗</a>`].filter(Boolean);
+  if (links.length) rows.push(`<div style="display:flex;gap:16px;">${links.join('')}</div>`);
 
   q('profile-detail-content').innerHTML = `
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
-      <div style="width:72px;height:72px;border-radius:20px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#D5F5EE,#BFF0E8);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--primary);">
-        ${photo ? `<img src="${esc(photo)}" style="width:100%;height:100%;object-fit:cover;">` : initials(name)}
+    ${galleryHTML}
+    <div style="padding:18px 16px 12px;">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
+        <div style="flex:1;">
+          <div style="font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.03em;line-height:1.2;">${esc(name)}</div>
+          ${role ? `<div style="font-size:13px;color:var(--text-soft);margin-top:3px;">${esc(role)}</div>` : ''}
+          ${u.location ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">📍 ${esc(u.location)}</div>` : ''}
+        </div>
+        ${score ? `<div style="background:linear-gradient(135deg,#D5F5EE,#BBF0E7);border-radius:12px;padding:6px 12px;font-size:14px;font-weight:800;color:var(--primary);white-space:nowrap;flex-shrink:0;">${score}%</div>` : ''}
       </div>
-      <div style="flex:1;">
-        <div style="font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.03em;">${esc(name)}</div>
-        ${u.current_role || u.role ? `<div style="font-size:13px;color:var(--text-soft);margin-top:2px;">${esc(u.current_role || u.role)}</div>` : ''}
-        ${u.location ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">📍 ${esc(u.location)}</div>` : ''}
-      </div>
-      ${score ? `<div style="background:linear-gradient(135deg,#D5F5EE,#BBF0E7);border-radius:12px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--primary);">${score}%</div>` : ''}
-    </div>
-    ${u.bio ? `<div style="font-size:14px;color:var(--text-soft);line-height:1.65;margin-bottom:16px;padding:14px;background:var(--sur2);border-radius:14px;">${esc(u.bio)}</div>` : ''}
-    ${tags.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">${tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}</div>` : ''}
-    ${u.intent ? `<div style="font-size:13px;color:var(--primary);background:var(--light);padding:8px 14px;border-radius:10px;margin-bottom:16px;font-weight:600;">🎯 ${esc(u.intent)}</div>` : ''}
-    <div style="display:flex;gap:10px;margin-top:8px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">${rows.join('')}</div>
+    </div>`;
+
+  // ── Sticky actions ─────────────────────
+  q('profile-detail-actions').innerHTML = `
+    <div style="display:flex;gap:10px;">
       <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
       <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
     </div>
-    <button onclick="openPriorityFromProfile('${esc(String(u.id))}','${esc(u.name||'')}')" style="width:100%;margin-top:10px;padding:11px;background:var(--goldlt);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;font-weight:700;color:#92600A;cursor:pointer;">⚡ Send Priority Message</button>`;
+    <button onclick="openPriorityFromProfile('${esc(uid)}','${esc(u.name||'')}')" style="width:100%;padding:12px;background:var(--goldlt);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;font-weight:700;color:#92600A;cursor:pointer;">⚡ Send Priority Message</button>`;
+
+  // ── Photo dot indicator update on scroll ─
+  if (photos.length > 1) {
+    setTimeout(() => {
+      const strip = document.getElementById('pd-photos');
+      if (!strip) return;
+      strip.addEventListener('scroll', () => {
+        const idx = Math.round(strip.scrollLeft / strip.offsetWidth);
+        strip.parentElement.querySelectorAll('.pd-dot').forEach((d, i) =>
+          d.style.background = `rgba(255,255,255,${i===idx?1:.45})`);
+      }, { passive: true });
+    }, 100);
+  }
 
   q('profile-detail-modal').classList.remove('hidden');
 }
@@ -2737,4 +2782,33 @@ async function obSubmitProfile() {
     headline:         q('ob-headline').value.trim(),
     bio:              q('ob-bio').value.trim(),
     profession:       q('ob-profession').value.trim(),
-    industry:         q('ob-ind
+    industry:         q('ob-industry').value.trim(),
+    experience_level: q('ob-exp-level').value,
+    location:         q('ob-location').value.trim(),
+    interests:        _obInterests,
+    social_links: [
+      linkedin  ? { platform:'linkedin',  url:linkedin  } : null,
+      twitter   ? { platform:'twitter',   url:twitter   } : null,
+      github    ? { platform:'github',    url:github    } : null,
+      portfolio ? { platform:'portfolio', url:portfolio } : null,
+    ].filter(Boolean),
+    education,
+    work,
+  };
+
+  btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  try {
+    await api('POST', '/api/onboarding/profile', body);
+    ME = await api('GET', '/api/me');
+    saveAuth(TOKEN, ME);
+    showApp();
+    toast('Welcome to BYN! 🎉');
+  } catch(e) {
+    const msg = e.data?.errors?.[0]?.error || e.data?.error || 'Something went wrong. Please try again.';
+    errEl.textContent = msg;
+    errEl.classList.remove('hidden');
+  } finally { btn.disabled = false; btn.innerHTML = 'Complete Setup →'; }
+}
+</script>
+</body>
+</html>
