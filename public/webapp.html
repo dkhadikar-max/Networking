@@ -2668,13 +2668,23 @@ function openProfileDetail(profile) {
     <div style="display:flex;gap:10px;margin-top:8px;">
       <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
       <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
-    </div>`;
+    </div>
+    <button onclick="openPriorityFromProfile('${esc(String(u.id))}','${esc(u.name||'')}')" style="width:100%;margin-top:10px;padding:11px;background:var(--goldlt);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;font-weight:700;color:#92600A;cursor:pointer;">⚡ Send Priority Message</button>`;
 
   q('profile-detail-modal').classList.remove('hidden');
 }
 
 function closeProfileDetail() {
   q('profile-detail-modal').classList.add('hidden');
+}
+
+function openPriorityFromProfile(userId, userName) {
+  closeProfileDetail();
+  _priorityTargetId   = userId;
+  _priorityTargetName = userName || 'this person';
+  q('priority-modal').classList.remove('hidden');
+  showPriorityCompose();
+  loadPriorityMessages(); // pre-load quota info
 }
 
 async function obSubmitProfile() {

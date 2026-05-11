@@ -1427,7 +1427,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
 });
 
 // ── CONNECTIONS ──
-app.get('/api/connections', auth, profileGuard, async (req, res) => {
+app.get('/api/connections', auth, async (req, res) => {
   try {
     const now = new Date();
     const { data: conns } = await supabase.from('connections')
@@ -1489,7 +1489,7 @@ app.get('/api/connections', auth, profileGuard, async (req, res) => {
 });
 
 // ── GET MESSAGES ──
-app.get('/api/messages/:connId', auth, profileGuard, async (req, res) => {
+app.get('/api/messages/:connId', auth, async (req, res) => {
   try {
     const { data: conn } = await supabase.from('connections')
       .select('*').eq('id', req.params.connId).maybeSingle();
@@ -1508,7 +1508,7 @@ app.get('/api/messages/:connId', auth, profileGuard, async (req, res) => {
 // ── FIXED: SEND MESSAGE ──
 // - Properly handles null avg_reply_minutes to prevent NaN
 // - Better error handling in background tracking
-app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, res) => {
+app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
   try {
     const { data: conn } = await supabase.from('connections')
       .select('*').eq('id', req.params.connId).maybeSingle();
@@ -1596,7 +1596,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, profileGuard, async (req, re
 
 // ── FIXED: PRIORITY MESSAGE ──
 // Uses stricter URL regex to avoid false positives
-app.post('/api/priority-message', auth, profileGuard, async (req, res) => {
+app.post('/api/priority-message', auth, async (req, res) => {
   try {
     const { targetId, text } = req.body;
     if (!targetId || !text) return res.status(400).json({ error: 'targetId and text required' });
