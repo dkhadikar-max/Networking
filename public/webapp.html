@@ -557,6 +557,9 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 .btn-upgrade { width:100%; padding:14px; background:transparent; color:var(--gold); border:2px solid var(--gold); border-radius:var(--r-md); font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
 .btn-settings { width:100%; padding:13px; background:var(--sur2); color:var(--sub); border:1.5px solid var(--border2); border-radius:var(--r-md); font-size:14px; cursor:pointer; }
 .btn-signout { width:100%; padding:13px; background:transparent; color:var(--danger); border:1.5px solid rgba(239,68,68,.25); border-radius:var(--r-md); font-size:14px; cursor:pointer; }
+.btn-support { width:100%; padding:13px; background:var(--sur2); color:var(--sub); border:1.5px solid var(--border2); border-radius:var(--r-md); font-size:14px; cursor:pointer; }
+.supp-cat { padding:7px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--sur2);color:var(--text);transition:all .2s; }
+.supp-cat.active { background:var(--primary);color:#fff;border-color:var(--primary); }
 
 /* ── ONBOARDING ─────────────────────────────────────── */
 #onboarding-wrap { flex:1; overflow-y:auto; display:flex; flex-direction:column; align-items:center; background:transparent; padding:20px 16px 48px; }
@@ -1012,6 +1015,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
               <div class="chat-detail-name" id="chat-detail-name">—</div>
               <div class="chat-detail-loc"  id="chat-detail-loc"></div>
             </div>
+            <button onclick="openReview()" aria-label="Review Connection" style="width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--sur2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px;">★</button>
             <button onclick="openPrioritySend()" aria-label="Send Priority Message" style="width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--sur2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">⚡</button>
           </div>
           <div class="msgs-area" id="msgs-area"></div>
@@ -1161,6 +1165,47 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <div id="profile-detail-actions" style="flex-shrink:0;padding:12px 16px 28px;background:var(--card);border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px;"></div>
     </div>
   </div>
+
+  <!-- SUPPORT MODAL -->
+  <div id="support-modal" class="hidden" style="position:fixed;inset:0;z-index:400;display:flex;flex-direction:column;justify-content:flex-end;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.45);" onclick="closeSupport()"></div>
+    <div style="position:relative;background:var(--card);border-radius:28px 28px 0 0;padding:24px 20px 40px;max-height:85vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(15,23,42,.14);">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;">💬 Support &amp; Feedback</div>
+      <div style="font-size:13px;color:var(--sub);margin-bottom:18px;">We read every message. Tell us anything.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <div class="supp-cat active" onclick="selectSupportCat(this)">General Feedback</div>
+        <div class="supp-cat" onclick="selectSupportCat(this)">Bug Report</div>
+        <div class="supp-cat" onclick="selectSupportCat(this)">Feature Request</div>
+        <div class="supp-cat" onclick="selectSupportCat(this)">Account Issue</div>
+      </div>
+      <textarea id="support-text" class="field-input" placeholder="Describe your issue or idea…" rows="5" maxlength="1000" style="margin-bottom:6px;resize:none;" oninput="q('support-char').textContent=this.value.length"></textarea>
+      <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:16px;"><span id="support-char">0</span>/1000</div>
+      <button class="btn-primary" id="support-send-btn" onclick="submitSupport()">Send Feedback</button>
+    </div>
+  </div>
+
+  <!-- REVIEW MODAL -->
+  <div id="review-modal" class="hidden" style="position:fixed;inset:0;z-index:400;display:flex;flex-direction:column;justify-content:flex-end;">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.45);" onclick="closeReview()"></div>
+    <div style="position:relative;background:var(--card);border-radius:28px 28px 0 0;padding:24px 20px 40px;max-height:85vh;overflow-y:auto;box-shadow:0 -12px 40px rgba(15,23,42,.14);">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px;">⭐ Review Connection</div>
+      <div id="review-target-name" style="font-size:13px;color:var(--sub);margin-bottom:18px;"></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Rating</div>
+      <div id="review-stars" style="display:flex;gap:8px;margin-bottom:18px;">
+        <span data-star="1" onclick="selectStar(1)" style="font-size:34px;cursor:pointer;color:#D1D5DB;transition:transform .15s;">★</span>
+        <span data-star="2" onclick="selectStar(2)" style="font-size:34px;cursor:pointer;color:#D1D5DB;transition:transform .15s;">★</span>
+        <span data-star="3" onclick="selectStar(3)" style="font-size:34px;cursor:pointer;color:#D1D5DB;transition:transform .15s;">★</span>
+        <span data-star="4" onclick="selectStar(4)" style="font-size:34px;cursor:pointer;color:#D1D5DB;transition:transform .15s;">★</span>
+        <span data-star="5" onclick="selectStar(5)" style="font-size:34px;cursor:pointer;color:#D1D5DB;transition:transform .15s;">★</span>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Tags <span style="font-size:11px;color:var(--sub);font-weight:400;">(optional, up to 5)</span></div>
+      <div id="review-tags-wrap" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;"></div>
+      <button class="btn-primary" id="review-send-btn" onclick="submitReview()" disabled>Submit Review</button>
+    </div>
+  </div>
+
 </div><!-- /root -->
 
 <script>
@@ -2102,6 +2147,7 @@ function renderProfile() {
 
     <button class="btn-save" id="save-btn" onclick="saveProfile()">Save Profile</button>
     ${!isPro ? `<button class="btn-upgrade" onclick="doUpgrade()">✦ Upgrade to Premium</button>` : ''}
+    <button class="btn-support" onclick="openSupport()">💬 Support &amp; Feedback</button>
     <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
   `;
 }
@@ -2163,6 +2209,78 @@ async function saveProfile() {
   finally { btn.disabled=false; btn.innerHTML='Save Profile'; }
 }
 function doSignOut() { stopPoll(); clearAuth(); showAuth(); }
+
+// ── SUPPORT / FEEDBACK ──────────────────────────────────
+let _supportCat = 'General Feedback';
+function openSupport() {
+  q('support-text').value = ''; q('support-char').textContent = '0';
+  _supportCat = 'General Feedback';
+  document.querySelectorAll('.supp-cat').forEach((el,i) => el.classList.toggle('active', i===0));
+  const btn = q('support-send-btn'); btn.disabled = false; btn.textContent = 'Send Feedback';
+  q('support-modal').classList.remove('hidden');
+}
+function closeSupport() { q('support-modal').classList.add('hidden'); }
+function selectSupportCat(el) {
+  document.querySelectorAll('.supp-cat').forEach(c => c.classList.remove('active'));
+  el.classList.add('active'); _supportCat = el.textContent;
+}
+async function submitSupport() {
+  const text = q('support-text').value.trim();
+  if (!text) { toast('Please describe your issue or feedback'); return; }
+  const btn = q('support-send-btn'); btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    await api('POST', '/api/feedback', { category: _supportCat, message: text });
+    toast('✅ Feedback sent — thank you!'); closeSupport();
+  } catch(e) {
+    toast(e.data?.error || 'Could not send feedback');
+    btn.disabled = false; btn.textContent = 'Send Feedback';
+  }
+}
+
+// ── REVIEW CONNECTION ───────────────────────────────────
+const REVIEW_TAGS_FE = ['Responsive','Professional','Knowledgeable','Collaborative','Trustworthy','Inspiring','Well-connected','Good listener','Helpful','Creative','Reliable','Authentic'];
+let _reviewRating = 0, _reviewTags = [], _reviewTargetId = null;
+function openReview() {
+  if (!_activeChatUser?.id) { toast('Open a chat first'); return; }
+  _reviewTargetId = _activeChatUser.id; _reviewRating = 0; _reviewTags = [];
+  q('review-target-name').textContent = 'How was your experience with ' + (_activeChatUser.name || 'this person') + '?';
+  document.querySelectorAll('#review-stars span').forEach(s => { s.style.color = '#D1D5DB'; s.style.transform = ''; });
+  q('review-send-btn').disabled = true;
+  q('review-tags-wrap').innerHTML = REVIEW_TAGS_FE.map(t =>
+    `<div class="rev-tag" data-tag="${t}" onclick="toggleReviewTag(this,'${t}')" style="padding:6px 12px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:var(--sur2);color:var(--text);transition:all .2s;">${t}</div>`
+  ).join('');
+  q('review-modal').classList.remove('hidden');
+}
+function closeReview() { q('review-modal').classList.add('hidden'); }
+function selectStar(n) {
+  _reviewRating = n;
+  document.querySelectorAll('#review-stars span').forEach(s => {
+    const v = parseInt(s.dataset.star);
+    s.style.color = v <= n ? '#F59E0B' : '#D1D5DB';
+    s.style.transform = v === n ? 'scale(1.25)' : 'scale(1)';
+  });
+  q('review-send-btn').disabled = false;
+}
+function toggleReviewTag(el, tag) {
+  if (el.classList.contains('active')) {
+    el.classList.remove('active'); el.style.background='var(--sur2)'; el.style.color='var(--text)'; el.style.borderColor='var(--border)';
+    _reviewTags = _reviewTags.filter(t => t !== tag);
+  } else if (_reviewTags.length < 5) {
+    el.classList.add('active'); el.style.background='var(--primary)'; el.style.color='#fff'; el.style.borderColor='var(--primary)';
+    _reviewTags.push(tag);
+  } else { toast('Pick up to 5 tags'); }
+}
+async function submitReview() {
+  if (!_reviewRating || !_reviewTargetId) return;
+  const btn = q('review-send-btn'); btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    await api('POST', `/api/users/${_reviewTargetId}/review`, { rating: _reviewRating, tags: _reviewTags });
+    toast('⭐ Review submitted — thank you!'); closeReview();
+  } catch(e) {
+    toast(e.data?.error || 'Could not submit review');
+    btn.disabled = false; btn.textContent = 'Submit Review';
+  }
+}
 
 // ════════════════════════════════════════
 // HELPERS
@@ -2708,7 +2826,7 @@ function openProfileDetail(profile) {
       <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
       <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
     </div>
-    <button onclick="openPriorityFromProfile('${esc(uid)}','${esc(u.name||'')}')" style="width:100%;padding:12px;background:var(--goldlt);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;font-weight:700;color:#92600A;cursor:pointer;">⚡ Send Priority Message</button>`;
+    <div onclick="openPriorityFromProfile('${esc(uid)}','${esc(u.name||'')}')" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
 
   // ── Photo dot indicator update on scroll ─
   if (photos.length > 1) {

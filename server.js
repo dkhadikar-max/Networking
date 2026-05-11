@@ -1594,6 +1594,25 @@ app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
   }
 });
 
+// ── FEEDBACK / SUPPORT ──
+app.post('/api/feedback', auth, async (req, res) => {
+  try {
+    const { category, message } = req.body;
+    if (!message || message.trim().length < 5)
+      return res.status(400).json({ error: 'Message too short' });
+    await supabase.from('feedback').insert({
+      user_id: req.user.id,
+      category: category || 'General Feedback',
+      message: message.trim().slice(0, 1000),
+      created_at: new Date().toISOString(),
+    });
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Feedback error:', e);
+    res.status(500).json({ error: 'Could not save feedback' });
+  }
+});
+
 // ── FIXED: PRIORITY MESSAGE ──
 // Uses stricter URL regex to avoid false positives
 app.post('/api/priority-message', auth, async (req, res) => {
