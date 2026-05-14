@@ -1558,7 +1558,7 @@ function renderCards() {
   attachDrag(topCard);
 
   // Action row
-  const connId = top.connection?.id || top.id || '';
+  const connId = top.connection?.id || '';
   const actions = document.createElement('div');
   actions.className = 'card-actions';
   actions.style.cssText = 'position:relative;z-index:10;max-width:420px;width:calc(100% - 28px);';
