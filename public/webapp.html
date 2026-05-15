@@ -9,6 +9,12 @@
 <style>
 /* ── RESET & TOKENS ─────────────────────────────────── */
 .hidden { display:none !important; }
+/* File inputs MUST NOT use display:none — iOS Safari blocks programmatic .click() on hidden inputs.
+   Use .sr-file-input instead: visually hidden but still accessible to the browser's file picker. */
+.sr-file-input {
+  position:absolute; left:-9999px; width:1px; height:1px;
+  overflow:hidden; opacity:0; pointer-events:none;
+}
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 #root { display:flex; flex-direction:column; height:100%; min-height:-webkit-fill-available; }
 
@@ -840,7 +846,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <div class="ob-photo-btn" id="ob-photo-btn" onclick="obPickPhoto()">
         📷<div class="ob-photo-hint">Add Photo</div>
       </div>
-      <input type="file" id="ob-photo-input" accept="image/*" class="hidden" onchange="obUploadPhoto(this)">
+      <input type="file" id="ob-photo-input" accept="image/*" class="sr-file-input" onchange="obUploadPhoto(this)">
 
       <!-- Headline -->
       <div class="ob-field">
@@ -1479,15 +1485,23 @@ async function doResendOtp() {
 // NAVIGATION
 // ════════════════════════════════════════
 function switchTab(tab) {
-  if (tab === _tab) return;
-  _prevTab = _tab; _tab = tab;
-  ['discover','likes','chats','profile'].forEach(t => {
-    const btn = q('nav-'+t);
-    btn?.classList.toggle('active', t===tab);
-    btn?.setAttribute('aria-selected', t===tab ? 'true' : 'false');
-    q('view-'+t)?.classList.toggle('hidden', t!==tab);
-  });
-  q('view-chat').classList.add('hidden');
+  const from = _tab;
+  // Stop chat polling whenever we leave the chat view (fix: was leaking interval)
+  if (from === 'chat') stopPoll();
+
+  // Only update DOM if the tab actually changed (avoid unnecessary reflows)
+  if (tab !== from) {
+    _prevTab = from; _tab = tab;
+    ['discover','likes','chats','profile'].forEach(t => {
+      const btn = q('nav-'+t);
+      btn?.classList.toggle('active', t===tab);
+      btn?.setAttribute('aria-selected', t===tab ? 'true' : 'false');
+      q('view-'+t)?.classList.toggle('hidden', t!==tab);
+    });
+    q('view-chat').classList.add('hidden');
+  }
+
+  // Always refresh data — tapping the active tab acts as a pull-to-refresh
   if (tab==='discover') loadDiscover();
   if (tab==='likes')    loadLikes();
   if (tab==='chats')    loadChats();
@@ -1499,8 +1513,10 @@ function goBack() {
   q('view-chat').classList.add('hidden');
   q('view-chats').classList.remove('hidden');
   _tab = 'chats';
-  ['discover','likes','chats','profile'].forEach(t =>
-    q('nav-'+t)?.classList.toggle('active', t === 'chats'));
+  ['discover','likes','chats','profile'].forEach(t => {
+    q('nav-'+t)?.classList.toggle('active', t === 'chats');
+    q('nav-'+t)?.setAttribute('aria-selected', t === 'chats' ? 'true' : 'false');
+  });
   loadChats();
 }
 
@@ -2103,8 +2119,8 @@ function renderProfile() {
 
     <div class="profile-panel">
       <div class="panel-title">📸 Photos</div>
-      <input type="file" id="profile-photo-input" accept="image/*" class="hidden" onchange="profileUploadPhoto(this)">
-      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb"><img src="${esc(ph)}" alt="photo"></div>`).join('')}<div class="photo-add" id="profile-photo-add-btn" onclick="q('profile-photo-input').click()">＋</div></div>
+      <input type="file" id="profile-photo-input" accept="image/*" class="sr-file-input" onchange="profileUploadPhoto(this)">
+      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb" style="position:relative;"><img src="${esc(ph)}" alt="photo"><button onclick="deletePhoto(${JSON.stringify(ph)})" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(15,23,42,.7);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;" aria-label="Remove photo">×</button></div>`).join('')}<div class="photo-add" id="profile-photo-add-btn" onclick="q('profile-photo-input').click()">＋</div></div>
       ${(p.photos||[]).length<4?`<div class="photos-warn">⚡ Add ${4-(p.photos||[]).length} more photo${4-(p.photos||[]).length>1?'s':''} to boost your profile</div>`:''}
     </div>
 
@@ -2552,10 +2568,10 @@ async function compressImage(file, maxW = 1200, quality = 0.82) {
 async function obUploadPhoto(input) {
   const raw = input.files?.[0];
   if (!raw) return;
+  input.value = ''; // allow re-selecting same file (fix: was missing, broke retry)
   const btn = q('ob-photo-btn');
   btn.innerHTML = '<div class="spinner"></div>';
   try {
-    // Compress before upload to prevent memory spikes on large images
     const file = raw.size > 500_000 ? await compressImage(raw) : raw;
     const fd = new FormData();
     fd.append('photo', file);
@@ -2564,20 +2580,23 @@ async function obUploadPhoto(input) {
       headers: { 'Authorization': 'Bearer ' + TOKEN },
       body: fd
     });
-    if (!res.ok) throw new Error('Upload failed');
+    // fix: read error body before throwing so user sees real reason (e.g. "Max 6 photos")
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Upload failed'); }
     const data = await res.json();
-    const url = (data.photos || [])[0] || data.url;
+    // fix: use data.url (the just-uploaded photo) not data.photos[0] (could be an old photo)
+    const url = data.url || (data.photos || []).at(-1);
     if (url) {
       btn.style.backgroundImage = `url(${url})`;
       btn.style.backgroundSize = 'cover';
+      btn.style.backgroundPosition = 'center';
       btn.innerHTML = '';
     } else {
       btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
     }
     toast('Photo uploaded!');
-  } catch(_) {
+  } catch(e) {
     btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
-    toast('Photo upload failed — you can add it later in your profile.');
+    toast(e.message || 'Photo upload failed — you can add it later in your profile.');
   }
 }
 // ── Profile section photo upload ──────────
@@ -2606,6 +2625,29 @@ async function profileUploadPhoto(input) {
   } catch(e) {
     if (addBtn) { addBtn.innerHTML = '＋'; addBtn.style.pointerEvents=''; }
     toast(e.message || 'Photo upload failed');
+  }
+}
+
+// ── Profile photo delete ───────────────────
+async function deletePhoto(url) {
+  if (!url) return;
+  const addBtn = q('profile-photo-add-btn');
+  if (addBtn) { addBtn.style.pointerEvents = 'none'; }
+  try {
+    const res = await fetch('/api/me/photos', {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.error || 'Delete failed'); }
+    const data = await res.json();
+    ME = { ...ME, photos: data.photos || ME.photos, trust_score: data.trust_score ?? ME.trust_score };
+    saveAuth(TOKEN, ME);
+    toast('Photo removed');
+    loadProfile();
+  } catch(e) {
+    if (addBtn) addBtn.style.pointerEvents = '';
+    toast(e.message || 'Could not remove photo');
   }
 }
 
@@ -2829,7 +2871,7 @@ function openProfileDetail(profile) {
       <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
       <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
     </div>
-    <div onclick="openPriorityFromProfile('${esc(uid)}','${esc(u.name||'')}')" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
+    <div onclick="openPriorityFromProfile(${JSON.stringify(uid)},${JSON.stringify(u.name||'')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
 
   // ── Photo dot indicator update on scroll ─
   if (photos.length > 1) {
