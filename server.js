@@ -123,12 +123,28 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'dkhadikar@gmail.com')
 fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 
 // ── SECURITY HEADERS ──
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'"], // unsafe-inline required until inline JS is extracted
+      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.cloudinary.com'],
+      connectSrc:     ["'self'"],
+      frameAncestors: ["'none'"],   // blocks clickjacking
+      objectSrc:      ["'none'"],
+      baseUri:        ["'self'"],
+    },
+  },
+}));
 
 // ── CORS ──
 const ALLOWED_ORIGINS = [
   'https://buildyournetwork.online',
   'https://www.buildyournetwork.online',
+  'https://urnetwork.online',
+  'https://www.urnetwork.online',
   // Expo / Metro dev origins
   'http://localhost:8081',
   'http://localhost:19000',
@@ -663,7 +679,6 @@ async function auditLog(adminId, action, targetId) {
 
 // ── HEALTH CHECK ──
 app.get('/api/health', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
 });
 
@@ -759,7 +774,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     // Send OTP email (non-blocking — don't fail signup if email fails)
     sendOtpEmail(normalizedEmail, otp, newUser.name).catch(() => {});
 
-    const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, user: clean(inserted), email_verified: false });
   } catch(e) {
     console.error('Signup error:', e);
@@ -795,7 +810,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
     await supabase.from('users').update(updates).eq('id', user.id);
     Object.assign(user, updates);
 
-    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '30d' });
+    const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
     // NOTE: OTP is NOT auto-sent on login. The client calls /api/auth/send-otp
     // explicitly when it detects email_verified === false, so the user sees a
     // proper "Sending code…" state rather than a silent background fire-and-forget.
@@ -888,7 +903,15 @@ app.get('/api/me', auth, async (req, res) => {
     const u = clean(user);
     u.trust_steps = trustSteps(user);
     u.works = worksData || [];
-    res.json(u);
+
+    // Silent token refresh — issue a fresh 24h token on every /api/me call
+    // so active users never get logged out mid-session after the TTL was shortened from 30d
+    const freshToken = jwt.sign(
+      { id: user.id, email: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    res.json({ ...u, _token: freshToken });
   } catch(e) {
     console.error('Get me error:', e);
     res.status(500).json({ error: e.message });
@@ -1068,8 +1091,8 @@ app.post('/api/me/push-token', auth, async (req, res) => {
 });
 
 // ── PUBLIC PROFILE ──
-// BUG FIX 9: Added per-IP rate limit to prevent scraping all user profiles
-app.get('/api/profiles/:id', profileViewLimiter, async (req, res) => {
+// SECURITY: require auth + per-IP rate limit to prevent unauthenticated profile scraping
+app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
   try {
     const { data: user } = await supabase.from('users')
       .select('*').eq('id', req.params.id).maybeSingle();
@@ -1175,7 +1198,8 @@ app.post('/api/users/:id/review', auth, async (req, res) => {
 });
 
 // ── GET REVIEW SUMMARY ──
-app.get('/api/users/:id/reviews', async (req, res) => {
+// SECURITY: added auth + rate limit — was fully open, leaked avg_rating/tags for any user ID
+app.get('/api/users/:id/reviews', auth, profileViewLimiter, async (req, res) => {
   try {
     const { data: reviews } = await supabase.from('user_reviews')
       .select('rating,tags,created_at')
@@ -1243,9 +1267,17 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
       }
     }
 
-    // FIXED: Limit candidates to prevent loading entire DB into memory
+    // SECURITY: explicit field list — excludes email, password, otp_code, otp_expires_at, push_token
+    // PII never enters application memory; cleanPublic() still applied before response
+    const DISCOVER_FIELDS = [
+      'id','name','bio','photos','location','lat','lng','remote',
+      'intent','interests','skills','currently_exploring','working_on','interested_in',
+      'trust_score','profile_score','is_profile_complete','premium',
+      'banned','role','last_active','verification',
+      'instagram','linkedin','website','created_at',
+    ].join(',');
     const { data: allUsers } = await supabase.from('users')
-      .select('*')
+      .select(DISCOVER_FIELDS)
       .or('banned.is.null,banned.eq.false')
       .gte('trust_score', 10)
       .neq('id', req.user.id)

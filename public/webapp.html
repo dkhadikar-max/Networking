@@ -1295,7 +1295,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   try {
     if (TOKEN && ME) {
       try {
-        ME = await api('GET', '/api/me');
+        const meResp = await api('GET', '/api/me');
+        // Consume silent token refresh (server issues fresh 24h token on every /api/me)
+        if (meResp._token) { TOKEN = meResp._token; delete meResp._token; }
+        ME = meResp;
         saveAuth(TOKEN, ME);
         if (ME.onboarding_stage !== 'complete') {
           showOnboarding(ME.onboarding_stage || 'acquisition');
