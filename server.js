@@ -128,6 +128,7 @@ app.use(helmet({
     directives: {
       defaultSrc:     ["'self'"],
       scriptSrc:      ["'self'", "'unsafe-inline'"], // unsafe-inline required until inline JS is extracted
+      scriptSrcAttr:  ["'unsafe-inline'"],           // allow onclick/oninput attrs — Helmet sets 'none' by default which blocks all inline handlers
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.cloudinary.com'],
