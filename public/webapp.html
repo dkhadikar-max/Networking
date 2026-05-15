@@ -2010,7 +2010,7 @@ function renderStarters() {
   wrap.className = 'starters-wrap';
   wrap.innerHTML = `
     <div class="starters-label">✦ Conversation starters</div>
-    <div class="starters-row">${_starters.map(s=>`<div class="starter-chip" onclick="useStarter(${JSON.stringify(s)})">${esc(s)}</div>`).join('')}</div>`;
+    <div class="starters-row">${_starters.map(s=>`<div class="starter-chip" onclick="useStarter(${JSON.stringify(s).replace(/"/g,'&quot;')})">${esc(s)}</div>`).join('')}</div>`;
   el.insertBefore(wrap, el.firstChild);
 }
 
@@ -2120,7 +2120,7 @@ function renderProfile() {
     <div class="profile-panel">
       <div class="panel-title">📸 Photos</div>
       <input type="file" id="profile-photo-input" accept="image/*" class="sr-file-input" onchange="profileUploadPhoto(this)">
-      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div class="photo-thumb" style="position:relative;"><img src="${esc(ph)}" alt="photo"><button onclick="deletePhoto(${JSON.stringify(ph)})" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(15,23,42,.7);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;" aria-label="Remove photo">×</button></div>`).join('')}<div class="photo-add" id="profile-photo-add-btn" onclick="q('profile-photo-input').click()">＋</div></div>
+      <div class="photos-grid">${(p.photos||[]).map(ph=>`<div style="position:relative;display:inline-block;width:74px;height:74px;"><div class="photo-thumb"><img src="${esc(ph)}" alt="photo"></div><button onclick="deletePhoto(${JSON.stringify(ph).replace(/"/g,'&quot;')})" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:rgba(15,23,42,.8);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.4);" aria-label="Remove photo">×</button></div>`).join('')}<div class="photo-add" id="profile-photo-add-btn" onclick="q('profile-photo-input').click()">＋</div></div>
       ${(p.photos||[]).length<4?`<div class="photos-warn">⚡ Add ${4-(p.photos||[]).length} more photo${4-(p.photos||[]).length>1?'s':''} to boost your profile</div>`:''}
     </div>
 
@@ -2871,7 +2871,7 @@ function openProfileDetail(profile) {
       <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
       <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
     </div>
-    <div onclick="openPriorityFromProfile(${JSON.stringify(uid)},${JSON.stringify(u.name||'')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
+    <div onclick="openPriorityFromProfile(${JSON.stringify(uid).replace(/"/g,'&quot;')},${JSON.stringify(u.name||'').replace(/"/g,'&quot;')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
 
   // ── Photo dot indicator update on scroll ─
   if (photos.length > 1) {
