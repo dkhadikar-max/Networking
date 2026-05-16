@@ -4,7 +4,10 @@
       "Bash(Get-ChildItem -Path C:\\\\Networking -Force)",
       "Bash(Select-Object FullName, PSIsContainer)",
       "Bash(Format-Table -AutoSize)",
-      "PowerShell(Get-ChildItem -Path C:\\\\Networking -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem -Path C:\\\\Networking -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "Bash(Get-ChildItem C:\\\\Networking\\\\backend -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 5 Name)",
+      "PowerShell(git *)"
     ]
   }
 }
