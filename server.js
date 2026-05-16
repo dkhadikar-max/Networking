@@ -699,6 +699,11 @@ function generateOtp() {
   return String(crypto.randomInt(100000, 1000000));
 }
 
+// SHA-256 hash for OTP storage — raw code is emailed, only the hash lives in DB
+function hashOtp(raw) {
+  return crypto.createHash('sha256').update(String(raw)).digest('hex');
+}
+
 async function sendOtpEmail(toEmail, otp, name) {
   if (!ResendClient) {
     console.error('[OTP] Resend client not created — RESEND_API_KEY env var is missing or empty in Railway');
@@ -771,7 +776,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    newUser.otp_code       = otp;
+    newUser.otp_code       = hashOtp(otp);
     newUser.otp_expires_at = otpExpiry;
     newUser.email_verified = false;
 
@@ -844,7 +849,7 @@ app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     await supabase.from('users')
-      .update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', req.user.id);
+      .update({ otp_code: hashOtp(otp), otp_expires_at: otpExpiry }).eq('id', req.user.id);
 
     const sent = await sendOtpEmail(user.email, otp, user.name);
     if (!sent) {
@@ -875,10 +880,20 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
     // Bypassing here lets any 6-digit number pass on web, since send-otp also skipped sending
     // a real code when email_verified was true. Both gates must be enforced together.
     if (!user.otp_code) return res.status(400).json({ error: 'No verification code found — request a new one' });
+    // Guard against plaintext OTP left in DB from before hashing was deployed.
+    // SHA-256 hex is always 64 chars; a 6-digit plaintext OTP is not — treat as invalid.
+    if (user.otp_code.length !== 64) return res.status(400).json({ error: 'No verification code found — request a new one' });
     if (new Date() > new Date(user.otp_expires_at))
       return res.status(400).json({ error: 'Code expired — request a new one' });
-    if (String(code).trim() !== String(user.otp_code))
-      return res.status(400).json({ error: 'Incorrect code' });
+    const incomingHash = hashOtp(String(code).trim());
+    let otpMatch = false;
+    try {
+      otpMatch = crypto.timingSafeEqual(
+        Buffer.from(incomingHash, 'hex'),
+        Buffer.from(user.otp_code, 'hex'),
+      );
+    } catch (_) { /* buffer length mismatch — stays false */ }
+    if (!otpMatch) return res.status(400).json({ error: 'Incorrect code' });
 
     // Mark email_verified = true (idempotent — safe to re-apply even if already true)
     await supabase.from('users')
