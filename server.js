@@ -182,6 +182,13 @@ const profileViewLimiter = rateLimit({ windowMs: 60*1000, max: 30, message: { er
 const forgotPasswordLimiter = rateLimit({ windowMs: 60*60*1000, max: 3, message: { error: 'Too many reset requests — try again in an hour' } });
 const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many reset attempts — wait 15 minutes' } });
 
+// ── PER-ACCOUNT LOGIN LOCKOUT ──
+const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
+const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+// Pre-generated once at startup — bcrypt.compare against this on "user not found"
+// so response time is indistinguishable from a real wrong-password attempt.
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync('__byn_timing_dummy__', 12);
+
 app.use(globalLimiter);
 
 // ── REQUEST LOGGER ──
@@ -339,6 +346,8 @@ function cleanPublic(u) {
   delete r.otp_expires_at;
   delete r.push_token;
   delete r.role;           // admin status must not be publicly enumerable
+  delete r.failed_login_attempts;
+  delete r.lockout_until;
   r.is_recently_active = !!(u.last_active &&
     (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000);
   return r;
@@ -351,6 +360,8 @@ function clean(u) {
   delete r.otp_code;
   delete r.otp_expires_at;
   delete r.push_token;
+  delete r.failed_login_attempts;
+  delete r.lockout_until;
   return r;
 }
 
@@ -796,14 +807,45 @@ app.post('/api/login', authLimiter, async (req, res) => {
     let { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' });
     email = String(email).trim().toLowerCase();
+
     const { data: user } = await supabase.from('users')
       .select('*').eq('email', email).maybeSingle();
-    if (!user || !(await bcrypt.compare(password, user.password)))
+
+    // Timing-safe rejection — always run bcrypt so response time doesn't
+    // reveal whether the email exists in the database.
+    if (!user) {
+      await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Per-account lockout check (defense against distributed password spraying)
+    if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
+      return res.status(429).json({
+        error: 'Account temporarily locked — too many failed attempts. Try again later.',
+        lockout_until: new Date(user.lockout_until).toISOString(),
+      });
+    }
+
+    const passwordOk = await bcrypt.compare(password, user.password);
+
+    if (!passwordOk) {
+      const attempts = (user.failed_login_attempts || 0) + 1;
+      const update = { failed_login_attempts: attempts };
+      if (attempts >= LOGIN_LOCKOUT_THRESHOLD) {
+        update.lockout_until = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS).toISOString();
+        update.failed_login_attempts = 0; // reset so the next window starts clean after lockout expires
+      }
+      await supabase.from('users').update(update).eq('id', user.id)
+        .catch(e => console.error('[login] Failed to record failed attempt:', e.message));
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
+    // Successful authentication — reset lockout state
+    const updates = { failed_login_attempts: 0, lockout_until: null };
+
     // Auto-grant admin if in ADMIN_EMAILS list (survives DB resets)
-    const updates = {};
     if (ADMIN_EMAILS.includes(user.email.toLowerCase()) && user.role !== 'admin') {
       updates.role = 'admin';
       user.role = 'admin';
@@ -989,11 +1031,14 @@ app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
 
     const hashed = await bcrypt.hash(String(newPassword), 12);
     await supabase.from('users').update({
-      password:               hashed,
-      reset_token_hash:       null,
-      reset_token_expires_at: null,
-      reset_token_attempts:   null,
-      password_changed_at:    new Date().toISOString(),
+      password:                hashed,
+      reset_token_hash:        null,
+      reset_token_expires_at:  null,
+      reset_token_attempts:    null,
+      password_changed_at:     new Date().toISOString(),
+      // Clear lockout — a successful password reset proves identity
+      failed_login_attempts:   0,
+      lockout_until:           null,
     }).eq('id', user.id);
 
     res.json({ ok: true });
