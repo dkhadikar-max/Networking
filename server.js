@@ -179,6 +179,8 @@ const otpSendLimiter    = rateLimit({ windowMs: 15*60*1000, max: 5, message: { e
 const worksLimiter      = rateLimit({ windowMs: 60*1000, max: 5, message: { error: 'Works creation rate limit reached' } });
 // BUG FIX 9: Public profile scraping — per-IP cap
 const profileViewLimiter = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Too many profile requests' } });
+const forgotPasswordLimiter = rateLimit({ windowMs: 60*60*1000, max: 3, message: { error: 'Too many reset requests — try again in an hour' } });
+const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many reset attempts — wait 15 minutes' } });
 
 app.use(globalLimiter);
 
@@ -560,6 +562,11 @@ async function auth(req, res, next) {
     if (!user) return res.status(401).json({ error: 'Account not found' });
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
+    // SECURITY: invalidate tokens issued before a password reset
+    if (user.password_changed_at && decoded.iat * 1000 < new Date(user.password_changed_at).getTime()) {
+      return res.status(401).json({ error: 'Password was changed — please sign in again' });
+    }
+
     req.user     = decoded;
     req.userData = user;
 
@@ -881,6 +888,118 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
   } catch(e) {
     console.error('Verify OTP error:', e);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── FORGOT PASSWORD ──
+// Always returns 200 so callers cannot enumerate whether an email exists.
+// Rate-limited per IP (3/hr) to prevent email flooding.
+app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.json({ ok: true }); // no enumeration
+
+    const normalized = String(email).trim().toLowerCase();
+    const { data: user } = await supabase.from('users')
+      .select('id, name, email').eq('email', normalized).maybeSingle();
+
+    if (user) {
+      const rawCode = crypto.randomInt(100000, 1000000);
+      const hash    = crypto.createHash('sha256').update(String(rawCode)).digest('hex');
+      const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      await supabase.from('users').update({
+        reset_token_hash:       hash,
+        reset_token_expires_at: expires,
+      }).eq('id', user.id);
+
+      // Send email (non-blocking — don't fail the request if email fails)
+      if (ResendClient) {
+        ResendClient.emails.send({
+          from:    process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
+          to:      user.email,
+          subject: `${rawCode} is your BYN password reset code`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
+              <h2 style="color:#0F766E;margin-bottom:4px">Build Your Network</h2>
+              <p style="color:#6B7280;font-size:13px;margin-top:0">connect · grow · thrive</p>
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+              <p style="font-size:16px;color:#111827">Hi ${user.name || 'there'},</p>
+              <p style="font-size:15px;color:#374151">Your password reset code is:</p>
+              <div style="background:#F0FDF4;border:2px solid #0F766E;border-radius:12px;padding:24px;text-align:center;margin:20px 0">
+                <span style="font-size:40px;font-weight:700;letter-spacing:10px;color:#0F766E">${rawCode}</span>
+              </div>
+              <p style="font-size:13px;color:#6B7280">This code expires in <strong>15 minutes</strong>. If you didn't request a reset, ignore this email — your password has not changed.</p>
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+              <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
+            </div>
+          `,
+        }).catch(e => console.error('[Reset] Email send failed:', e.message));
+      }
+    }
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Forgot password error:', e);
+    res.json({ ok: true }); // never leak errors that reveal whether email exists
+  }
+});
+
+// ── RESET PASSWORD ──
+// resetPasswordLimiter: 10 attempts / 15 min / IP — caps brute-force window
+// Attempt counter: token voided after 5 wrong codes regardless of IP
+app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const INVALID = 'Invalid or expired reset code';
+
+    if (!email || !code || !newPassword)
+      return res.status(400).json({ error: 'email, code, and newPassword are required' });
+    if (String(newPassword).length < 6)
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const normalized = String(email).trim().toLowerCase();
+    const { data: user } = await supabase.from('users')
+      .select('id, reset_token_hash, reset_token_expires_at, reset_token_attempts').eq('email', normalized).maybeSingle();
+
+    if (!user || !user.reset_token_hash)
+      return res.status(400).json({ error: INVALID });
+    if (new Date() > new Date(user.reset_token_expires_at))
+      return res.status(400).json({ error: INVALID });
+
+    // SECURITY: timing-safe comparison — prevents hash timing side-channel
+    const incomingBuf = Buffer.from(crypto.createHash('sha256').update(String(code).trim()).digest('hex'), 'hex');
+    const storedBuf   = Buffer.from(user.reset_token_hash, 'hex');
+    const match = crypto.timingSafeEqual(incomingBuf, storedBuf);
+
+    if (!match) {
+      const attempts = (user.reset_token_attempts || 0) + 1;
+      if (attempts >= 5) {
+        // Void token after 5 wrong attempts — force a fresh code request
+        await supabase.from('users').update({
+          reset_token_hash:       null,
+          reset_token_expires_at: null,
+          reset_token_attempts:   null,
+        }).eq('id', user.id);
+      } else {
+        await supabase.from('users').update({ reset_token_attempts: attempts }).eq('id', user.id);
+      }
+      return res.status(400).json({ error: INVALID });
+    }
+
+    const hashed = await bcrypt.hash(String(newPassword), 12);
+    await supabase.from('users').update({
+      password:               hashed,
+      reset_token_hash:       null,
+      reset_token_expires_at: null,
+      reset_token_attempts:   null,
+      password_changed_at:    new Date().toISOString(),
+    }).eq('id', user.id);
+
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Reset password error:', e);
+    res.status(500).json({ error: 'Reset failed — please try again' });
   }
 });
 

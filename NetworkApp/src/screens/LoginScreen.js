@@ -71,6 +71,10 @@ export default function LoginScreen({ navigation }) {
               ? <ActivityIndicator color={C.bg} />
               : <Text style={s.btnTxt}>Sign In</Text>}
           </TouchableOpacity>
+
+          <TouchableOpacity style={s.forgotRow} onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={s.forgotTxt}>Forgot password?</Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={s.switchRow} onPress={() => navigation.navigate('Signup')}>
@@ -103,6 +107,9 @@ const s = StyleSheet.create({
 
   btn:        { backgroundColor: C.gold, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 4 },
   btnTxt:     { color: C.bg, fontSize: 15 },
+
+  forgotRow:  { alignItems: 'center', marginTop: 12 },
+  forgotTxt:  { color: C.sub, fontSize: 13, textDecorationLine: 'underline' },
 
   switchRow:  { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   switchTxt:  { color: C.sub, fontSize: 14 },

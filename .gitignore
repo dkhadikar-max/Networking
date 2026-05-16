@@ -4,3 +4,7 @@ public/uploads/*
 !public/uploads/.gitkeep
 *.log
 .env
+.env.*
+*.backup
+outputs/
+NetworkMobile/outputs/

@@ -10,6 +10,8 @@ import BYNLogo               from '../components/BYNLogo';
 import VerifyEmailScreen     from '../screens/VerifyEmailScreen';
 import LoginScreen           from '../screens/LoginScreen';
 import SignupScreen          from '../screens/SignupScreen';
+import ForgotPasswordScreen  from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen   from '../screens/ResetPasswordScreen';
 import ProfileCompleteScreen from '../screens/ProfileCompleteScreen';
 import DiscoverScreen        from '../screens/DiscoverScreen';
 import LikesScreen           from '../screens/LikesScreen';
@@ -165,8 +167,10 @@ function MainTabs() {
 function AuthStack() {
   return (
     <Auth.Navigator screenOptions={{ headerShown: false }}>
-      <Auth.Screen name="Login"  component={LoginScreen} />
-      <Auth.Screen name="Signup" component={SignupScreen} />
+      <Auth.Screen name="Login"          component={LoginScreen} />
+      <Auth.Screen name="Signup"         component={SignupScreen} />
+      <Auth.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Auth.Screen name="ResetPassword"  component={ResetPasswordScreen} />
     </Auth.Navigator>
   );
 }
