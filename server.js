@@ -2295,6 +2295,66 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   }
 });
 
+app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
+  try {
+    const now    = Date.now();
+    const ago24h = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+    const ago7d  = new Date(now -  7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const STAGES     = ['acquisition', 'intent', 'profile', 'complete'];
+    const PRE_STAGES = ['acquisition', 'intent', 'profile'];
+
+    const [stageCounts, stuck24h, stuck7d, { count: gateFail }] = await Promise.all([
+      // Count of verified users at each stage
+      Promise.all(STAGES.map(s =>
+        supabase.from('users').select('*', { count: 'exact', head: true })
+          .eq('email_verified', true).eq('onboarding_stage', s)
+      )),
+      // Stuck >24h at pre-complete stages (likely dropped off)
+      Promise.all(PRE_STAGES.map(s =>
+        supabase.from('users').select('*', { count: 'exact', head: true })
+          .eq('email_verified', true).eq('onboarding_stage', s).lt('created_at', ago24h)
+      )),
+      // Stuck >7d (almost certainly abandoned)
+      Promise.all(PRE_STAGES.map(s =>
+        supabase.from('users').select('*', { count: 'exact', head: true })
+          .eq('email_verified', true).eq('onboarding_stage', s).lt('created_at', ago7d)
+      )),
+      // Completed onboarding but still blocked by profile_score < 70 gate
+      supabase.from('users').select('*', { count: 'exact', head: true })
+        .eq('onboarding_stage', 'complete').eq('is_profile_complete', false),
+    ]);
+
+    const byStage = {};
+    STAGES.forEach((s, i) => { byStage[s] = stageCounts[i].count || 0; });
+
+    const stuckDay  = {};
+    const stuckWeek = {};
+    PRE_STAGES.forEach((s, i) => {
+      stuckDay[s]  = stuck24h[i].count || 0;
+      stuckWeek[s] = stuck7d[i].count  || 0;
+    });
+
+    const totalVerified = STAGES.reduce((n, s) => n + byStage[s], 0);
+    const completed     = byStage['complete'] || 0;
+
+    res.json({
+      by_stage:              byStage,
+      stuck_over_24h:        stuckDay,
+      stuck_over_7d:         stuckWeek,
+      gate_failures:         gateFail || 0,
+      total_verified:        totalVerified,
+      drop_before_complete:  totalVerified - completed,
+      funnel_completion_rate: totalVerified
+        ? Math.round(completed / totalVerified * 100) + '%'
+        : '0%',
+    });
+  } catch(e) {
+    console.error('Onboarding funnel error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/audit', adminAuth, async (req, res) => {
   // Return in-memory buffer (fast) + optionally fetch from DB for full history
   res.json(adminAuditLog.slice(-200).reverse());
@@ -2614,6 +2674,8 @@ app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res
       .update({ onboarding_stage: 'intent' }).eq('id', user.id);
     if (updateErr) throw new Error(updateErr.message);
 
+    const elapsedAcq = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
+    console.log(`[Onboarding] userId=${user.id} acquisition→intent elapsed=${elapsedAcq}s source=${source}`);
     res.json({ stage: 'intent' });
   } catch(e) {
     console.error('Onboarding acquisition error:', e);
@@ -2647,6 +2709,8 @@ app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => 
       .update({ onboarding_stage: 'profile', intent: legacyIntent }).eq('id', user.id);
     if (updateErr) throw new Error(updateErr.message);
 
+    const elapsedInt = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
+    console.log(`[Onboarding] userId=${user.id} intent→profile elapsed=${elapsedInt}s intents=${deduped.join(',')}`);
     res.json({ stage: 'profile' });
   } catch(e) {
     console.error('Onboarding intent error:', e);
@@ -2761,6 +2825,8 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
       }
     }
 
+    const elapsedPro = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
+    console.log(`[Onboarding] userId=${user.id} profile→complete elapsed=${elapsedPro}s score=${userUpdates.profile_score} gate=${userUpdates.is_profile_complete ? 'pass' : 'fail'}`);
     res.json({ stage: 'complete', trust_score: userUpdates.trust_score });
   } catch(e) {
     console.error('Onboarding profile error:', e);
