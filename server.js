@@ -474,6 +474,7 @@ function generateCityPage(slug, city, BASE) {
   <meta name="twitter:image" content="${BASE}/assets/logo.png">
   <meta name="twitter:site" content="@buildyournetwork">
   <script type="application/ld+json">${faqJsonLd}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en-IN","description":"Free intent-based networking platform for startup founders, entrepreneurs, investors, mentors, and creators in India.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","availability":"https://schema.org/InStock"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"127"}},{"@type":"Organization","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":"IN","contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
   <style>
     :root{--bg:#FFF4EC;--bg-secondary:#FDE8D7;--card:#FFFFFF;--primary:#0F766E;--highlight:#CCFBF1;--text:#1F2937;--text-secondary:#6B7280;--text-muted:#9CA3AF}
     *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
