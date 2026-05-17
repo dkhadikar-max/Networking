@@ -4043,7 +4043,7 @@ app.get('/api/admin/audit', adminAuth, async (req, res) => {
   res.json(adminAuditLog.slice(-200).reverse());
 });
 
-// ── PHASE 6 — SEO Measurement ─────────────────────────────────────────────────
+// ── PHASE 10 — SEO Analytics Dashboard ────────────────────────────────────────
 app.get('/api/admin/seo', adminAuth, (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   const pages = SEO_PAGES.map(p => {
@@ -4051,6 +4051,7 @@ app.get('/api/admin/seo', adminAuth, (req, res) => {
     const signups = seoSignups.get(p.slug)   || 0;
     return {
       url:      BASE + (p.slug ? '/' + p.slug : '/'),
+      slug:     p.slug || '',
       label:    p.label,
       schema:   p.schema,
       priority: p.priority,
@@ -4063,15 +4064,70 @@ app.get('/api/admin/seo', adminAuth, (req, res) => {
   const totalViews   = pages.reduce((s, p) => s + p.views,   0);
   const totalSignups = pages.reduce((s, p) => s + p.signups, 0);
 
+  // ── City breakdown: aggregate views/signups across all pages for each city ──
+  const cityData = {};
+  const citySlugs = Object.keys(CITIES);
+  citySlugs.forEach(cs => {
+    const cityPages = pages.filter(p => p.slug.endsWith('-' + cs) || p.slug === 'networking-in-' + cs);
+    const views = cityPages.reduce((s, p) => s + p.views, 0);
+    const signups = cityPages.reduce((s, p) => s + p.signups, 0);
+    cityData[cs] = { city: CITIES[cs].name, pages: cityPages.length, views, signups, cvr: views > 0 ? Math.round(signups / views * 100) + '%' : '—' };
+  });
+  const top_cities = Object.values(cityData).sort((a, b) => b.views - a.views).slice(0, 6);
+
+  // ── Intent pattern breakdown ──
+  const intentPatterns = ['networking-in-', 'founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-'];
+  const top_intents = intentPatterns.map(pat => {
+    const pp = pages.filter(p => p.slug.startsWith(pat));
+    const v = pp.reduce((s, p) => s + p.views, 0);
+    const sg = pp.reduce((s, p) => s + p.signups, 0);
+    return { pattern: '/' + pat + ':city', page_count: pp.length, views: v, signups: sg, cvr: v > 0 ? Math.round(sg / v * 100) + '%' : '—' };
+  }).sort((a, b) => b.views - a.views);
+
+  // ── Blog performance ──
+  const blogPages   = pages.filter(p => p.slug.startsWith('blog/'));
+  const blogIndex   = pages.find(p => p.slug === 'blog');
+  const top_blog    = blogPages.slice(0, 10);
+  const blogViews   = blogPages.reduce((s, p) => s + p.views, 0) + (blogIndex?.views || 0);
+  const blogSignups = blogPages.reduce((s, p) => s + p.signups, 0) + (blogIndex?.signups || 0);
+
+  // ── Schema coverage count ──
+  const schema_coverage = {};
+  SEO_PAGES.forEach(p => {
+    (p.schema || '').split('+').forEach(s => { schema_coverage[s] = (schema_coverage[s] || 0) + 1; });
+  });
+
+  // ── Segment summary ──
+  const staticLandingPages = pages.filter(p => !p.slug.includes('/') && !p.slug.includes('-in-') && !p.slug.startsWith('networking-in-') && !p.slug.startsWith('founders-in-') && !p.slug.startsWith('startup-founders-') && !p.slug.startsWith('find-cofounders-') && !p.slug.startsWith('startup-networking-'));
+
   res.json({
+    as_of:         new Date().toISOString(),
+    note:          'View/signup counts reset on each deploy. Pair with Google Search Console for persistent data.',
+    // Totals
     total_pages:   SEO_PAGES.length,
     total_views:   totalViews,
     total_signups: totalSignups,
     overall_cvr:   totalViews > 0 ? Math.round(totalSignups / totalViews * 100) + '%' : '—',
+    // Infrastructure
     indexnow:      INDEXNOW_KEY ? 'configured ✓' : 'not configured',
     gsc:           process.env.GSC_VERIFICATION ? 'configured ✓' : 'not configured',
     bing:          process.env.BING_VERIFICATION ? 'configured ✓' : 'not configured',
-    note:          'Counts reset on each deploy. Use Google Search Console for persistent data.',
+    // Page segment counts
+    segments: {
+      static_landing_pages: staticLandingPages.length,
+      city_pages:           12,
+      intent_pages:         48,
+      blog_pages:           blogPages.length,
+      blog_views:           blogViews,
+      blog_signups:         blogSignups,
+    },
+    // Breakdowns
+    top_10_pages:  pages.slice(0, 10),
+    top_cities,
+    top_intents,
+    top_blog,
+    schema_coverage,
+    // Full sorted list
     pages,
   });
 });
