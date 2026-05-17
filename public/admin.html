@@ -483,54 +483,139 @@ async function delUser(uid,btn){
   }catch(e){alert('Delete failed: '+e.message);btn.disabled=false}
 }
 
-// ── SEO
+// ── SEO BAR HELPER
+function seoBar(v,max,color){
+  const pct=max>0?Math.round(v/max*100):0;
+  const c=color||'var(--blue)';
+  return`<div style="display:flex;align-items:center;gap:6px"><div style="width:72px;background:var(--card);border-radius:2px;height:5px;overflow:hidden;flex-shrink:0"><div style="width:${pct}%;height:100%;background:${c};border-radius:2px"></div></div><span style="font-size:12px;color:var(--text)">${v.toLocaleString()}</span></div>`;
+}
+
+// ── SEO DASHBOARD
 async function loadSeo(){
   const wrap=document.getElementById('seo-wrap');
   try{
     const d=await apiCall('GET','/api/admin/seo');
+    const pages=d.pages||[];
+    const seg=d.segments||{};
 
-    // Summary cards
-    const cards=`
-      <div class="stat-grid" style="margin-bottom:24px">
+    // ── Row 1: Core metrics ──
+    const on=k=>d[k]&&d[k].includes('✓');
+    const coreCards=`
+      <div class="stat-grid" style="margin-bottom:16px">
         <div class="stat-card"><div class="lbl">Indexed Pages</div><div class="val ct">${d.total_pages}</div><div class="sub">in sitemap.xml</div></div>
-        <div class="stat-card"><div class="lbl">Page Views</div><div class="val cg">${d.total_views.toLocaleString()}</div><div class="sub">since last deploy</div></div>
-        <div class="stat-card"><div class="lbl">SEO Signups</div><div class="val ca">${d.total_signups}</div><div class="sub">landing page attributed</div></div>
-        <div class="stat-card"><div class="lbl">Overall CVR</div><div class="val cp">${d.overall_cvr}</div><div class="sub">views → signups</div></div>
-        <div class="stat-card"><div class="lbl">IndexNow</div><div class="val ${d.indexnow.includes('✓')?'cg':'cw'}">${d.indexnow.includes('✓')?'ON':'OFF'}</div><div class="sub">Bing/Yandex submission</div></div>
-        <div class="stat-card"><div class="lbl">GSC</div><div class="val ${d.gsc.includes('✓')?'cg':'cw'}">${d.gsc.includes('✓')?'ON':'OFF'}</div><div class="sub">Search Console verified</div></div>
-        <div class="stat-card"><div class="lbl">Bing</div><div class="val ${d.bing.includes('✓')?'cg':'cw'}">${d.bing.includes('✓')?'ON':'OFF'}</div><div class="sub">Webmaster verified</div></div>
+        <div class="stat-card"><div class="lbl">Page Views</div><div class="val cg">${(d.total_views||0).toLocaleString()}</div><div class="sub">since last deploy</div></div>
+        <div class="stat-card"><div class="lbl">SEO Signups</div><div class="val ca">${d.total_signups||0}</div><div class="sub">landing page attributed</div></div>
+        <div class="stat-card"><div class="lbl">Overall CVR</div><div class="val cp">${d.overall_cvr||'—'}</div><div class="sub">views → signups</div></div>
+        <div class="stat-card"><div class="lbl">IndexNow</div><div class="val ${on('indexnow')?'cg':'cr'}">${on('indexnow')?'✓ ON':'✗ OFF'}</div><div class="sub">Bing/Yandex pings</div></div>
+        <div class="stat-card"><div class="lbl">GSC</div><div class="val ${on('gsc')?'cg':'cr'}">${on('gsc')?'✓ ON':'✗ OFF'}</div><div class="sub">Search Console</div></div>
+        <div class="stat-card"><div class="lbl">Bing WMT</div><div class="val ${on('bing')?'cg':'cr'}">${on('bing')?'✓ ON':'✗ OFF'}</div><div class="sub">Webmaster Tools</div></div>
       </div>`;
 
-    // Page table
-    const maxViews=Math.max(...d.pages.map(p=>p.views),1);
-    const rows=d.pages.map(p=>`
-      <tr>
-        <td><a href="${esc(p.url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:12px">${esc(p.label)}</a></td>
-        <td style="font-size:11px;color:var(--muted)">${esc(p.priority)}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:80px;background:var(--card);border-radius:2px;height:5px;overflow:hidden">
-              <div style="width:${Math.round(p.views/maxViews*100)}%;height:100%;background:var(--blue);border-radius:2px"></div>
-            </div>
-            <span style="font-size:12px;color:var(--text)">${p.views}</span>
-          </div>
-        </td>
-        <td style="text-align:right;font-size:12px;color:var(--text)">${p.signups}</td>
-        <td style="text-align:right;font-size:12px;font-weight:600;color:${p.views>0?'var(--green)':'var(--muted)'}">${p.cvr}</td>
-        <td style="font-size:10px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.schema)}</td>
-      </tr>`).join('');
+    // ── Row 2: Page segment counts ──
+    const segCards=`
+      <div class="stat-grid" style="margin-bottom:28px">
+        <div class="stat-card"><div class="lbl">Static Landing</div><div class="val cb">${seg.static_landing_pages||0}</div><div class="sub">comparison + intent pages</div></div>
+        <div class="stat-card"><div class="lbl">City Pages</div><div class="val ct">${seg.city_pages||0}</div><div class="sub">networking-in-:city</div></div>
+        <div class="stat-card"><div class="lbl">Intent Pages</div><div class="val cp">${seg.intent_pages||0}</div><div class="sub">4 patterns × 12 cities</div></div>
+        <div class="stat-card"><div class="lbl">Blog Articles</div><div class="val ca">${seg.blog_pages||0}</div><div class="sub">${(seg.blog_views||0).toLocaleString()} views · ${seg.blog_signups||0} signups</div></div>
+      </div>`;
 
-    const table=`
-      <div class="sh" style="margin-top:4px"><span class="st">Landing Pages</span></div>
-      <div class="tw"><table>
-        <thead><tr><th>Page</th><th>Priority</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th><th>Schema</th></tr></thead>
-        <tbody>${rows}</tbody>
+    // ── Top Cities ──
+    const cities=d.top_cities||[];
+    const cityMax=Math.max(...cities.map(c=>c.views),1);
+    const cityRows=cities.length?cities.map(c=>`
+      <tr>
+        <td style="font-weight:600;font-size:13px">${esc(c.city)}</td>
+        <td style="color:var(--muted);font-size:12px;text-align:center">${c.pages}</td>
+        <td>${seoBar(c.views,cityMax,'var(--teal-lt)')}</td>
+        <td style="text-align:right;font-size:12px">${c.signups}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:${c.views>0?'var(--green)':'var(--muted)'}">${c.cvr}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="5" class="empty" style="padding:20px">No city traffic yet — pages need visits after deploy</td></tr>';
+    const citiesSection=`
+      <div class="sh"><span class="st">Top Cities</span></div>
+      <div class="tw" style="margin-bottom:24px"><table>
+        <thead><tr><th>City</th><th style="text-align:center">Pages</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th></tr></thead>
+        <tbody>${cityRows}</tbody>
       </table></div>`;
 
-    const note=`<div style="margin-top:16px;font-size:11px;color:var(--muted);padding:0 4px">${esc(d.note)}</div>`;
+    // ── Top Intent Patterns ──
+    const intents=d.top_intents||[];
+    const intentMax=Math.max(...intents.map(i=>i.views),1);
+    const intentRows=intents.length?intents.map(i=>`
+      <tr>
+        <td style="font-size:12px;color:var(--purple);font-family:monospace">${esc(i.pattern)}</td>
+        <td style="color:var(--muted);font-size:12px;text-align:center">${i.page_count}</td>
+        <td>${seoBar(i.views,intentMax,'var(--purple)')}</td>
+        <td style="text-align:right;font-size:12px">${i.signups}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:${i.views>0?'var(--green)':'var(--muted)'}">${i.cvr}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="5" class="empty" style="padding:20px">No intent page traffic yet</td></tr>';
+    const intentsSection=`
+      <div class="sh"><span class="st">Intent Patterns</span></div>
+      <div class="tw" style="margin-bottom:24px"><table>
+        <thead><tr><th>Pattern</th><th style="text-align:center">Pages</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th></tr></thead>
+        <tbody>${intentRows}</tbody>
+      </table></div>`;
 
-    wrap.innerHTML=cards+table+note;
-  }catch(e){wrap.innerHTML=`<div class="empty">Failed: ${e.message}</div>`}
+    // ── Top Blog Articles ──
+    const blog=d.top_blog||[];
+    const blogMax=Math.max(...blog.map(b=>b.views),1);
+    const blogRows=blog.length?blog.map(b=>`
+      <tr>
+        <td><a href="${esc(b.url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:12px;line-height:1.4">${esc(b.label)}</a></td>
+        <td>${seoBar(b.views,blogMax,'var(--amber)')}</td>
+        <td style="text-align:right;font-size:12px">${b.signups}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:${b.views>0?'var(--green)':'var(--muted)'}">${b.cvr}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="4" class="empty" style="padding:20px">No blog traffic yet</td></tr>';
+    const blogSection=`
+      <div class="sh"><span class="st">Top Blog Articles</span></div>
+      <div class="tw" style="margin-bottom:24px"><table>
+        <thead><tr><th>Article</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th></tr></thead>
+        <tbody>${blogRows}</tbody>
+      </table></div>`;
+
+    // ── Schema Coverage ──
+    const sc=d.schema_coverage||{};
+    const scEntries=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+    const scMax=scEntries[0]?.[1]||1;
+    const schemaRows=scEntries.map(([s,n])=>`
+      <tr>
+        <td style="font-size:12px;font-family:monospace;color:var(--blue)">${esc(s)}</td>
+        <td>${seoBar(n,scMax,'var(--green)')}</td>
+        <td style="text-align:right;font-size:12px;color:var(--muted)">${n} page${n!==1?'s':''}</td>
+      </tr>`).join('');
+    const schemaSection=`
+      <div class="sh"><span class="st">Schema Coverage</span></div>
+      <div class="tw" style="margin-bottom:24px"><table>
+        <thead><tr><th>Schema Type</th><th>Coverage</th><th style="text-align:right">Count</th></tr></thead>
+        <tbody>${schemaRows||'<tr><td colspan="3" class="empty">No schema data</td></tr>'}</tbody>
+      </table></div>`;
+
+    // ── All Pages (full list, sorted by views) ──
+    const allMax=Math.max(...pages.map(p=>p.views),1);
+    const allRows=pages.map(p=>`
+      <tr>
+        <td><a href="${esc(p.url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:12px">${esc(p.label)}</a></td>
+        <td style="font-size:11px;color:var(--muted);text-align:center">${esc(p.priority)}</td>
+        <td>${seoBar(p.views,allMax)}</td>
+        <td style="text-align:right;font-size:12px">${p.signups}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:${p.views>0?'var(--green)':'var(--muted)'}">${p.cvr}</td>
+        <td style="font-size:10px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.schema)}</td>
+      </tr>`).join('');
+    const allSection=`
+      <div class="sh"><span class="st">All Pages <span style="font-size:12px;font-weight:400;color:var(--muted)">${pages.length} total · sorted by views</span></span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Page</th><th style="text-align:center">Priority</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th><th>Schema</th></tr></thead>
+        <tbody>${allRows||'<tr><td colspan="6" class="empty">No pages found</td></tr>'}</tbody>
+      </table></div>`;
+
+    const ts=d.as_of?new Date(d.as_of).toLocaleTimeString():'unknown';
+    const note=`<div style="margin-top:16px;font-size:11px;color:var(--muted);padding:0 4px">Refreshed at ${ts} · ${esc(d.note||'')}</div>`;
+
+    wrap.innerHTML=coreCards+segCards+citiesSection+intentsSection+blogSection+schemaSection+allSection+note;
+  }catch(e){wrap.innerHTML=`<div class="empty">Failed to load SEO data: ${esc(e.message)}</div>`}
 }
 
 // ── AUDIT LOG
