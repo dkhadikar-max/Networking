@@ -2759,6 +2759,39 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
   }
 });
 
+// ── PROFILE COMPLETION NUDGE ──
+// Runs hourly. Targets users whose account is 24-48h old, onboarding is
+// complete, but profile_score < 70 and they have a push token.
+// The 24-48h window is self-expiring — no new DB column needed, each user
+// can only fall inside it once.
+async function sendProfileNudges() {
+  try {
+    const now   = Date.now();
+    const lo    = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+    const hi    = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+    const { data: users } = await supabase.from('users')
+      .select('id, profile_score, push_token')
+      .eq('onboarding_stage', 'complete')
+      .eq('is_profile_complete', false)
+      .not('push_token', 'is', null)
+      .gt('created_at', lo)
+      .lt('created_at', hi);
+    if (!users || users.length === 0) return;
+    for (const user of users) {
+      const gap = 70 - (user.profile_score || 0);
+      await sendPush(
+        [user.id],
+        'Complete your BYN profile',
+        `You're ${gap} points from unlocking Discovery. Add photos or interests to get started.`,
+        { screen: 'ProfileComplete' }
+      );
+    }
+    console.log(`[NudgePush] Sent profile nudge to ${users.length} user(s)`);
+  } catch(e) {
+    console.error('[NudgePush] Error:', e.message);
+  }
+}
+
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
@@ -2768,6 +2801,10 @@ app.listen(PORT, () => {
   console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
   console.log(`Supabase URL: ${process.env.SUPABASE_URL ? 'configured ✓' : 'MISSING ✗'}`);
   console.log(`Supabase Key: ${process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured ✓' : 'MISSING ✗'}`);
+
+  // Profile nudge: run immediately then every hour
+  sendProfileNudges();
+  setInterval(sendProfileNudges, 60 * 60 * 1000);
 
   // One-time idempotent migration: set all existing verified users to complete
   // so they skip onboarding on next login. Safe to run on every startup.
