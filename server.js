@@ -224,7 +224,10 @@ app.use(express.json({
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
-  const cityUrls = Object.keys(CITIES).map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
+  const citySlugs = Object.keys(CITIES);
+  const cityUrls = citySlugs.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
+  const intentPatterns = ['founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-'];
+  const intentUrls = intentPatterns.flatMap(p => citySlugs.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
   const urls = [
     { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
@@ -238,6 +241,7 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
     ...cityUrls,
+    ...intentUrls,
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
@@ -267,6 +271,10 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /find-cofounders',
     'Allow: /startup-founders-india',
     'Allow: /networking-in-',
+    'Allow: /founders-in-',
+    'Allow: /startup-founders-',
+    'Allow: /find-cofounders-',
+    'Allow: /startup-networking-',
     'Allow: /terms',
     'Allow: /privacy',
     'Allow: /support',
@@ -350,7 +358,9 @@ const CITIES = {
   kolkata:    { name: 'Kolkata',      state: 'West Bengal',     ecosystem: 'fintech, agritech, social impact, and e-commerce',    hubs: 'IIT Kharagpur, Bengal Startup, and Calcutta Innovation Hub',           excerpt: "Kolkata is an emerging startup hub with strength in fintech, agritech, and social impact ventures. Its lower cost base and proximity to ASEAN markets attract founders building for the next billion users." },
   ahmedabad:  { name: 'Ahmedabad',    state: 'Gujarat',         ecosystem: 'fintech, MSME tech, manufacturing, and agritech',     hubs: 'GUSEC, IIM Ahmedabad CIIE, and GIFT City',                            excerpt: "Ahmedabad is the entrepreneurial capital of Gujarat — a state with the highest density of small-business owners in India. GUSEC and CIIE drive a strong fintech and MSME-tech startup ecosystem." },
   jaipur:     { name: 'Jaipur',       state: 'Rajasthan',       ecosystem: 'travel tech, fashion tech, handicraft e-commerce, and edtech', hubs: 'iStart Rajasthan, IIT Jodhpur, and Jaipur Startup Ecosystem',    excerpt: "Jaipur is India's fastest-growing Tier 2 startup hub with strength in travel tech, fashion tech, and e-commerce for India's craft economy. The iStart Rajasthan program has catalysed hundreds of startups across the state." },
-  kochi:      { name: 'Kochi',        state: 'Kerala',          ecosystem: 'tourism tech, sustainability, fintech, and health tech', hubs: 'Kerala Startup Mission (KSUM), Startup Village, and Infopark',       excerpt: "Kochi leads Kerala's startup ecosystem driven by Kerala Startup Mission, one of India's most active state-run startup programs. Strong in sustainability, tourism tech, and fintech with a growing base of climate-tech and health-tech founders." }
+  kochi:      { name: 'Kochi',        state: 'Kerala',          ecosystem: 'tourism tech, sustainability, fintech, and health tech', hubs: 'Kerala Startup Mission (KSUM), Startup Village, and Infopark',       excerpt: "Kochi leads Kerala's startup ecosystem driven by Kerala Startup Mission, one of India's most active state-run startup programs. Strong in sustainability, tourism tech, and fintech with a growing base of climate-tech and health-tech founders." },
+  gurgaon:    { name: 'Gurgaon',      state: 'Haryana',         ecosystem: 'fintech, edtech, enterprise SaaS, HR tech, and mobility',hubs: 'Awfis, WeWork Gurgaon, and the Cyber City startup corridor',          excerpt: "Gurgaon (Gurugram) is the corporate and startup spine of Delhi NCR. Home to the India offices of hundreds of global tech companies and a dense network of angel investors, it is the go-to city for B2B SaaS, HR tech, and enterprise founders seeking enterprise sales access." },
+  noida:      { name: 'Noida',        state: 'Uttar Pradesh',   ecosystem: 'IT services, gaming, edtech, e-commerce, and media tech', hubs: 'STPI Noida, Amity University, and the Sector 62 tech corridor',       excerpt: "Noida is the technology backbone of Delhi NCR, anchored by a dense IT services cluster and a fast-growing startup scene in gaming, edtech, and media tech. Lower real estate costs and proximity to Delhi make it attractive for early-stage and bootstrapped founders." }
 };
 
 // SEO page metadata for /api/admin/seo (defined after CITIES so city pages auto-populate)
@@ -371,6 +381,30 @@ const SEO_PAGES = [
     label: 'Networking in ' + CITIES[s].name,
     schema: 'WebPage+FAQPage+BreadcrumbList',
     priority: '0.8',
+  })),
+  ...Object.keys(CITIES).map(s => ({
+    slug: 'founders-in-' + s,
+    label: 'Founders in ' + CITIES[s].name,
+    schema: 'WebPage+FAQPage+BreadcrumbList',
+    priority: '0.7',
+  })),
+  ...Object.keys(CITIES).map(s => ({
+    slug: 'startup-founders-' + s,
+    label: 'Startup Founders ' + CITIES[s].name,
+    schema: 'WebPage+FAQPage+BreadcrumbList',
+    priority: '0.7',
+  })),
+  ...Object.keys(CITIES).map(s => ({
+    slug: 'find-cofounders-' + s,
+    label: 'Find Co-founders ' + CITIES[s].name,
+    schema: 'WebPage+FAQPage+BreadcrumbList',
+    priority: '0.7',
+  })),
+  ...Object.keys(CITIES).map(s => ({
+    slug: 'startup-networking-' + s,
+    label: 'Startup Networking ' + CITIES[s].name,
+    schema: 'WebPage+FAQPage+BreadcrumbList',
+    priority: '0.7',
   })),
 ];
 
@@ -624,7 +658,346 @@ function generateCityPage(slug, city, BASE) {
 }
 
 // Bangalore → Bengaluru canonical redirect
-app.get('/networking-in-bangalore', (req, res) => res.redirect(301, '/networking-in-bengaluru'));
+app.get('/networking-in-bangalore',    (req, res) => res.redirect(301, '/networking-in-bengaluru'));
+app.get('/founders-in-bangalore',      (req, res) => res.redirect(301, '/founders-in-bengaluru'));
+app.get('/startup-founders-bangalore', (req, res) => res.redirect(301, '/startup-founders-bengaluru'));
+app.get('/find-cofounders-bangalore',  (req, res) => res.redirect(301, '/find-cofounders-bengaluru'));
+app.get('/startup-networking-bangalore',(req,res) => res.redirect(301, '/startup-networking-bengaluru'));
+
+// ── PHASE 3 — 4 additional city-intent route patterns ────────────────────────
+
+function makeCityRoute(pattern, pageViews) {
+  return (req, res) => {
+    const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+    const raw  = req.params.city || '';
+    const slug = raw.toLowerCase().replace(/[^a-z]/g, '');
+    const city = CITIES[slug];
+    if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    const pageSlug = pattern + slug;
+    seoPageViews.set(pageSlug, (seoPageViews.get(pageSlug) || 0) + 1);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(generateCityIntentPage(slug, city, BASE, pattern));
+  };
+}
+
+function cityIntentSchema(title, canonical, BASE, city, faqs, breadLabel, breadPath) {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebPage', 'name': title, 'url': canonical,
+        'inLanguage': 'en-IN',
+        'breadcrumb': {
+          '@type': 'BreadcrumbList',
+          'itemListElement': [
+            { '@type': 'ListItem', 'position': 1, 'name': 'Home',          'item': BASE + '/' },
+            { '@type': 'ListItem', 'position': 2, 'name': breadLabel,       'item': BASE + '/' + breadPath },
+            { '@type': 'ListItem', 'position': 3, 'name': city.name,        'item': canonical }
+          ]
+        }
+      },
+      {
+        '@type': 'FAQPage',
+        'mainEntity': faqs.map(f => ({ '@type': 'Question', 'name': f.q, 'acceptedAnswer': { '@type': 'Answer', 'text': f.a } }))
+      },
+      {
+        '@type': 'SoftwareApplication', 'name': 'Build Your Network', 'url': BASE,
+        'applicationCategory': 'BusinessApplication', 'operatingSystem': 'Android, Web',
+        'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'INR' },
+        'aggregateRating': { '@type': 'AggregateRating', 'ratingValue': '4.8', 'ratingCount': '127' }
+      }
+    ]
+  });
+}
+
+function otherCityPills(slug, pattern, cities) {
+  return Object.keys(cities).filter(k => k !== slug)
+    .map(k => `<a href="/${pattern}${k}" class="city-pill">${escHtml(cities[k].name)}</a>`).join('');
+}
+
+const CITY_PAGE_CSS = `
+    :root{--bg:#FFF4EC;--bg2:#FDE8D7;--card:#fff;--primary:#0F766E;--hl:#CCFBF1;--text:#1F2937;--muted:#6B7280;--dim:#9CA3AF}
+    *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+    body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,244,236,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(253,232,215,.6)}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-weight:800;font-size:18px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+    .logo img{width:26px;height:26px;border-radius:6px}
+    .nav-cta{background:var(--primary);color:#fff;padding:9px 18px;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none}
+    .wrap{max-width:860px;margin:0 auto;padding:100px 24px 80px}
+    .bc{font-size:13px;color:var(--dim);margin-bottom:32px}.bc a{color:var(--primary);text-decoration:none}
+    .tag{display:inline-block;background:var(--hl);color:var(--primary);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;margin-bottom:16px;letter-spacing:.02em;text-transform:uppercase}
+    h1{font-size:clamp(28px,4.5vw,44px);font-weight:800;line-height:1.15;letter-spacing:-1px;margin-bottom:20px}h1 span{color:var(--primary)}
+    .lead{font-size:18px;color:var(--muted);line-height:1.7;margin-bottom:36px;max-width:680px}
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:60px}
+    .btn-p{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--primary);color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px}
+    .btn-s{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;color:var(--primary);text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;border:2px solid var(--primary)}
+    .answer-block{background:var(--card);border-left:4px solid var(--primary);border-radius:0 12px 12px 0;padding:24px 28px;margin-bottom:56px}
+    .answer-block h2{font-size:17px;font-weight:700;margin-bottom:10px}
+    .answer-block p{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:8px}.answer-block p:last-child{margin-bottom:0}
+    .sh2{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+    .sub{font-size:15px;color:var(--muted);margin-bottom:28px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:56px}
+    .card{background:var(--card);border:1px solid var(--bg2);border-radius:16px;padding:22px}
+    .card-icon{font-size:26px;margin-bottom:10px}.card h3{font-size:15px;font-weight:700;margin-bottom:6px}
+    .card p{font-size:13px;color:var(--muted);line-height:1.55}
+    details.faq{border:1px solid var(--bg2);border-radius:12px;margin-bottom:10px;overflow:hidden}
+    details.faq summary{padding:18px 20px;font-weight:600;font-size:15px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;background:var(--card)}
+    details.faq summary::-webkit-details-marker{display:none}
+    details.faq summary::after{content:'+';font-size:20px;color:var(--primary);font-weight:400;flex-shrink:0;margin-left:12px}
+    details[open].faq summary::after{content:'−'}
+    details.faq div{padding:0 20px 18px;background:var(--card);font-size:14px;color:var(--muted);line-height:1.7}
+    .faq-sec{margin-bottom:56px}
+    .city-pills{background:var(--bg2);border-radius:16px;padding:24px;margin-bottom:48px}
+    .city-pills h3{font-size:14px;font-weight:700;margin-bottom:12px}
+    .city-pill{display:inline-block;background:var(--card);color:var(--primary);text-decoration:none;font-size:13px;font-weight:500;padding:5px 12px;border-radius:8px;margin:3px;border:1px solid rgba(15,118,110,.15)}
+    .rel-links{background:var(--card);border:1px solid var(--bg2);border-radius:16px;padding:24px;margin-bottom:48px}
+    .rel-links h3{font-size:14px;font-weight:700;margin-bottom:12px}
+    .rel-links a{display:inline-block;color:var(--primary);text-decoration:none;font-size:13px;font-weight:500;padding:5px 12px;border-radius:8px;margin:3px;background:var(--bg);border:1px solid var(--bg2)}
+    .cta-block{background:var(--primary);border-radius:20px;padding:44px 36px;text-align:center;color:#fff;margin-bottom:60px}
+    .cta-block h2{font-size:clamp(18px,3vw,26px);font-weight:800;margin-bottom:10px}
+    .cta-block p{font-size:15px;opacity:.85;margin-bottom:22px}
+    .cta-block .btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:#fff;color:var(--primary);text-decoration:none;border-radius:10px;font-weight:700;font-size:15px}
+    footer{border-top:1px solid var(--bg2);padding:28px 24px;text-align:center;font-size:13px;color:var(--dim)}
+    footer a{color:var(--primary);text-decoration:none}
+    @media(max-width:640px){.wrap{padding:80px 16px 60px}.cta-block{padding:28px 16px}}`;
+
+function cityPageShell(head, body, BASE) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  ${head}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/logo.png" type="image/png">
+  <style>${CITY_PAGE_CSS}</style>
+</head>
+<body>
+<nav><div class="nav-inner">
+  <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network" loading="lazy">BuildYourNetwork</a>
+  <a href="/app" class="nav-cta">Join Free</a>
+</div></nav>
+${body}
+<footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');</script>
+<script>
+(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();
+</script>
+</body></html>`;
+}
+
+function generateCityIntentPage(slug, city, BASE, pattern) {
+  const E = escHtml;
+  const cn = city.name;
+
+  const configs = {
+    'founders-in-': {
+      title:    `Startup Founders in ${cn} — Connect & Collaborate | Build Your Network`,
+      metaDesc: `Find and connect with startup founders in ${cn}. Build Your Network shows you founders actively building in ${cn}, ${city.state} — filtered by intent, skills, and proximity. Free to join.`,
+      canonical: `${BASE}/founders-in-${slug}`,
+      tag:      `${cn} Founders`,
+      h1:       `Connect with Startup Founders in <span>${cn}</span>`,
+      lead:     `Build Your Network surfaces startup founders in ${cn} who are actively building — filtered by what they're working on, what skills they need, and how close they are to you. No cold email, no noise.`,
+      answerH2: `Who are the startup founders in ${cn}?`,
+      answerP:  [`${cn} has a growing community of startup founders across ${city.ecosystem}. Key institutions supporting them include ${city.hubs}. ${city.excerpt}`,
+                 `On Build Your Network, founders in ${cn} list their venture, their skills, and their current intent — whether they're looking for a co-founder, a mentor, or their first investor. You see exactly who is building what, before you send the first message.`],
+      cards: [
+        { icon: '🔍', h: 'Discover who\'s building',   p: `See founders in ${cn} filtered by industry, skills, and what they're working on right now.` },
+        { icon: '🤝', h: 'Intent-based connection',    p: 'Both founders declare intent before connecting — no wasted meetings, no pitch spam.' },
+        { icon: '📍', h: 'Location-aware discovery',   p: `Filter by distance within ${cn} for in-person co-working and collaboration.` },
+      ],
+      faqs: [
+        { q: `How do I find startup founders in ${cn}?`, a: `Join Build Your Network free, enable location discovery, and set your radius to cover ${cn}. BYN shows you founders in ${cn} who are actively building and open to connections — filtered by intent, industry, and skills. No cold outreach needed.` },
+        { q: `What are startup founders in ${cn} building?`, a: `${cn} founders are predominantly building in ${city.ecosystem}. ${city.excerpt} On Build Your Network, each founder lists their current project, skills, and intent — giving you full context before the first conversation.` },
+        { q: `Is Build Your Network free for founders in ${cn}?`, a: `Yes. Build Your Network is free for founders in ${cn} — create a profile, set your intent, and discover other founders in your city at no cost. Premium plans unlock unlimited connections and priority visibility.` },
+        { q: `How is BYN different from LinkedIn for finding founders in ${cn}?`, a: `LinkedIn shows you job titles and work history. BYN shows you what founders in ${cn} are actively building and what they need right now. Intent-based discovery means you connect with people who are looking for exactly what you offer.` },
+        { q: `Can I find co-founders in ${cn} through Build Your Network?`, a: `Yes. Set your intent to "Looking for Co-founder" and BYN will surface founders in ${cn} with complementary skills who are also open to co-founding. Filter by technical vs business background, industry, and distance.` },
+        { q: `Are there networking events for founders in ${cn}?`, a: `Build Your Network is always-on discovery — unlike event platforms, you can find and message founders in ${cn} any time, not just at scheduled meetups. Key startup hubs in ${cn} include ${city.hubs}.` },
+      ],
+      breadLabel: 'Startup Founders India', breadPath: 'startup-founders-india',
+      ctaH: `Join ${cn}'s Founder Community`, ctaP: 'Free to join. No app download required.',
+    },
+    'startup-founders-': {
+      title:    `Startup Founder Community in ${cn} — Build Your Network`,
+      metaDesc: `Join the startup founder community in ${cn}. Build Your Network connects founders, co-founders, mentors, and investors across ${cn}'s startup ecosystem. Free.`,
+      canonical: `${BASE}/startup-founders-${slug}`,
+      tag:      `${cn} Founder Community`,
+      h1:       `${cn}'s <span>Startup Founder Community</span>`,
+      lead:     `Build Your Network is the always-on community for startup founders in ${cn}. Connect with founders building in ${city.ecosystem}, find mentors who've done it before, and get in front of investors actively looking at ${cn} deals.`,
+      answerH2: `What is the startup founder community in ${cn}?`,
+      answerP:  [`${cn}'s startup ecosystem spans ${city.ecosystem}, supported by ${city.hubs}. ${city.excerpt}`,
+                 `Build Your Network brings this community online — founders, mentors, and investors all on one platform, each declaring their intent so every connection is purposeful.`],
+      cards: [
+        { icon: '🏙️', h: `${cn} founder network`,      p: `Access the growing community of founders, operators, and builders in ${cn}'s startup ecosystem.` },
+        { icon: '🎯', h: 'Intent-first community',     p: 'Every member declares what they need — co-founder, mentor, investor, or collaborator — before you connect.' },
+        { icon: '📈', h: 'Mentors & investors',        p: `Meet ${cn}-based mentors who have scaled startups and investors actively deploying in the city.` },
+      ],
+      faqs: [
+        { q: `What is the startup founder community in ${cn}?`, a: `${cn}'s startup founder community spans ${city.ecosystem}, backed by ${city.hubs}. Build Your Network is the platform where this community connects online — founders, mentors, and investors all in one place, with intent-based discovery that removes cold-outreach friction.` },
+        { q: `How do I join the startup community in ${cn}?`, a: `Create a free profile on Build Your Network, set your location to ${cn}, and declare your intent. You'll immediately appear in discovery for other founders, mentors, and investors in ${cn} who are looking for what you offer.` },
+        { q: `Are there angel investors in ${cn} on Build Your Network?`, a: `Yes. Investors in ${cn} use BYN to discover early-stage founders. They set their intent to "Angel Investing" or "Looking to Invest" — so when you filter by investor intent in ${cn}, you see exactly who is actively looking at new deals.` },
+        { q: `What startup hubs and accelerators are in ${cn}?`, a: `Key startup infrastructure in ${cn} includes ${city.hubs}. ${city.excerpt}` },
+        { q: `How is Build Your Network different from other startup communities in ${cn}?`, a: `Most startup communities are event-based or passive directories. BYN is active — every member declares their current intent, so you know who is open to co-founding, who is mentoring, and who is investing, right now. No guessing, no cold DMs.` },
+        { q: `Is Build Your Network free for founders in ${cn}?`, a: `Yes. Free accounts include profile creation, intent setting, location-based discovery, and direct messaging. Premium plans unlock unlimited daily connections and priority visibility for faster introductions.` },
+      ],
+      breadLabel: 'Startup Community India', breadPath: 'startup-community-india',
+      ctaH: `Join ${cn}'s Startup Community`, ctaP: 'Free. No app download needed.',
+    },
+    'find-cofounders-': {
+      title:    `Find a Co-Founder in ${cn} — Build Your Network`,
+      metaDesc: `Find your co-founder in ${cn}. Build Your Network matches startup founders in ${cn} based on complementary skills and intent. Free to join. No install required.`,
+      canonical: `${BASE}/find-cofounders-${slug}`,
+      tag:      `Find Co-founders in ${cn}`,
+      h1:       `Find Your <span>Co-Founder</span> in ${cn}`,
+      lead:     `Build Your Network matches founders in ${cn} who are actively looking for a co-founder. Set your skills, declare your intent, and get surfaced to founders in ${cn} with complementary profiles — no cold email required.`,
+      answerH2: `How to find a co-founder in ${cn}`,
+      answerP:  [`The best co-founders come from warm connections in your ecosystem. ${cn} has a strong startup base across ${city.ecosystem}, supported by ${city.hubs}.`,
+                 `Build Your Network makes co-founder discovery in ${cn} intent-driven: both parties declare they're looking for a co-founder before the match is made. This filters out passive networkers and surfaces only founders who are actively building and ready to partner.`],
+      cards: [
+        { icon: '🧩', h: 'Skill-based matching',       p: `Tell BYN your skills and what you're building. It surfaces co-founder candidates in ${cn} with complementary profiles.` },
+        { icon: '🤝', h: 'Both sides declare intent',  p: 'Co-founder matches only happen when both founders have declared they\'re looking — no wasted conversations.' },
+        { icon: '📍', h: `${cn} proximity filter`,     p: `Filter by distance within ${cn} to find co-founders you can meet in person for the early-stage work that matters.` },
+      ],
+      faqs: [
+        { q: `How do I find a co-founder in ${cn}?`, a: `Join Build Your Network free, set your intent to "Looking for Co-founder", add your skills and startup description, and enable location discovery in ${cn}. BYN surfaces founders in ${cn} with complementary skills who are also looking for a co-founder. You can filter by distance — 10 km, 50 km, or 200 km.` },
+        { q: `What skills should I look for in a co-founder in ${cn}?`, a: `The most common co-founder pairings in ${cn}'s ecosystem are technical + business (a developer and a GTM founder), or domain expert + operator. In ${cn}'s ${city.ecosystem} space, look for complementary expertise rather than duplicate skills. BYN lets you filter by skill category.` },
+        { q: `Is it safe to connect with co-founders on Build Your Network?`, a: `Yes. Every BYN member has a verified profile with their intent, current project, and background visible before you connect. You can review their profile, see their skills and what they're building, and message them directly — all before any commitment.` },
+        { q: `How long does it take to find a co-founder in ${cn} on BYN?`, a: `Most founders on BYN receive their first relevant co-founder match within 48 hours of setting up a complete profile. Response rates are higher than LinkedIn DMs because both parties have declared matching intent before the connection request.` },
+        { q: `Are there technical co-founders available in ${cn}?`, a: `Yes. ${cn} has a strong talent base across ${city.ecosystem}, and BYN has profiles from engineers, product managers, designers, and domain experts in the city. Filter by skill (engineering, product, design, finance, marketing) to find the right complement for your startup.` },
+        { q: `What is Build Your Network and is it free?`, a: `Build Your Network (BYN) is a free intent-based networking platform for startup founders in India. Free accounts include profile creation, co-founder matching, and direct messaging. Premium plans (₹249/month) unlock unlimited daily connections and priority discovery.` },
+      ],
+      breadLabel: 'Find Co-founders', breadPath: 'find-cofounders',
+      ctaH: `Find Your Co-Founder in ${cn}`, ctaP: 'Free. Works in your browser — no download needed.',
+    },
+    'startup-networking-': {
+      title:    `Startup Networking in ${cn} — Connect with Founders | BYN`,
+      metaDesc: `Startup networking in ${cn} — connect with founders, investors, and mentors in ${cn}'s startup ecosystem. Build Your Network is the free platform for startup networking in ${cn}, ${city.state}.`,
+      canonical: `${BASE}/startup-networking-${slug}`,
+      tag:      `Startup Networking · ${cn}`,
+      h1:       `Startup Networking in <span>${cn}</span>`,
+      lead:     `Build Your Network is the always-on startup networking platform for ${cn}. Meet founders, investors, and mentors in ${cn}'s ecosystem without waiting for the next event. Discover people based on intent, not job title.`,
+      answerH2: `How startup networking works in ${cn}`,
+      answerP:  [`${cn}'s startup ecosystem is built on ${city.ecosystem}, powered by institutions like ${city.hubs}. ${city.excerpt}`,
+                 `Traditional startup networking in ${cn} is event-dependent — pitch nights, demo days, accelerator cohorts. Build Your Network makes it always-on: discover and message founders, investors, and mentors in ${cn} any day, filtered by what they're actively looking for.`],
+      cards: [
+        { icon: '🌐', h: 'Always-on networking',       p: `Meet founders and investors in ${cn} any time — not just at scheduled events.` },
+        { icon: '🎯', h: 'Intent before connection',   p: 'See what each person is open to before you reach out — co-founding, investing, advising, or collaborating.' },
+        { icon: '🏙️', h: `${cn} ecosystem access`,    p: `GPS-based discovery surfaces people in ${cn} within your chosen radius — 10 km to 200 km.` },
+      ],
+      faqs: [
+        { q: `How do I do startup networking in ${cn}?`, a: `Join Build Your Network free, set your location to ${cn}, and declare your intent (looking for a co-founder, open to investing, seeking mentorship, etc.). BYN immediately surfaces people in ${cn} who match your intent — no event required, no cold email.` },
+        { q: `What startup networking events happen in ${cn}?`, a: `${cn} has regular startup events through ${city.hubs}. Beyond events, Build Your Network provides always-on networking — you can discover and connect with founders, investors, and mentors in ${cn} any day of the week, not just at scheduled meetups.` },
+        { q: `How do I meet angel investors through startup networking in ${cn}?`, a: `On Build Your Network, investors in ${cn} set their intent to "Angel Investing" or "Open to Deals". Filter by investor intent in your city radius and you'll see exactly which investors in ${cn} are actively looking at new investments — and you can message them directly.` },
+        { q: `Is Build Your Network better than LinkedIn for startup networking in ${cn}?`, a: `For startup-specific networking, yes. LinkedIn shows past jobs; BYN shows current intent. Every member in ${cn} on BYN has declared what they need right now — co-founder, mentor, investor, or collaborator — making connections significantly more likely to convert.` },
+        { q: `How do I find mentors for my startup in ${cn}?`, a: `On BYN, mentors in ${cn} set their intent to "Open to Advising". Filter by mentor intent and your city to see exactly who is available. ${cn} has experienced operators across ${city.ecosystem} — many of whom actively mentor early-stage founders via BYN.` },
+        { q: `Is Build Your Network free for startup networking in ${cn}?`, a: `Yes. Build Your Network is free — create a profile, set your intent, and start connecting with founders, investors, and mentors in ${cn} at no cost. Premium plans (₹249/month) unlock unlimited connections and priority visibility.` },
+      ],
+      breadLabel: 'Networking for Founders', breadPath: 'networking-for-founders',
+      ctaH: `Start Networking in ${cn}`, ctaP: 'Free. No install required.',
+    },
+  };
+
+  const cfg = configs[pattern];
+  if (!cfg) return '';
+
+  const faqHtml = cfg.faqs.map(f => `
+      <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+        <summary itemprop="name">${E(f.q)}</summary>
+        <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+          <p itemprop="text">${E(f.a)}</p>
+        </div>
+      </details>`).join('');
+
+  const schema = cityIntentSchema(cfg.title, cfg.canonical, BASE, city, cfg.faqs, cfg.breadLabel, cfg.breadPath);
+
+  const head = `
+  <title>${E(cfg.title)}</title>
+  <link rel="canonical" href="${E(cfg.canonical)}">
+  <meta name="description" content="${E(cfg.metaDesc)}">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="geo.region" content="IN">
+  <meta name="geo.placename" content="${E(cn)}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="${E(cfg.canonical)}">
+  <meta property="og:title" content="${E(cfg.title)}">
+  <meta property="og:description" content="${E(cfg.metaDesc)}">
+  <meta property="og:image" content="${BASE}/assets/logo.png">
+  <meta property="og:image:alt" content="Build Your Network — ${E(cn)}">
+  <meta property="og:site_name" content="Build Your Network">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${E(cfg.title)}">
+  <meta name="twitter:description" content="${E(cfg.metaDesc)}">
+  <meta name="twitter:image" content="${BASE}/assets/logo.png">
+  <meta name="twitter:site" content="@buildyournetwork">
+  <script type="application/ld+json">${schema}</script>`;
+
+  const body = `
+<div class="wrap">
+  <p class="bc"><a href="/">Home</a> › <a href="/${cfg.breadPath}">${E(cfg.breadLabel)}</a> › ${E(cn)}</p>
+  <span class="tag">${E(cfg.tag)}</span>
+  <h1>${cfg.h1}</h1>
+  <p class="lead">${E(cfg.lead)}</p>
+  <div class="cta-row">
+    <a href="/app" class="btn-p">Join Free in ${E(cn)}</a>
+    <a href="#faq" class="btn-s">How it works</a>
+  </div>
+
+  <div class="answer-block">
+    <h2>${E(cfg.answerH2)}</h2>
+    ${cfg.answerP.map(p => `<p>${E(p)}</p>`).join('')}
+  </div>
+
+  <div class="sh2">${E(cfg.cards[0].h)}, ${E(cfg.cards[1].h)}, and more</div>
+  <p class="sub">Built for India's founder ecosystem</p>
+  <div class="cards">
+    ${cfg.cards.map(c => `<div class="card"><div class="card-icon">${c.icon}</div><h3>${E(c.h)}</h3><p>${E(c.p)}</p></div>`).join('')}
+  </div>
+
+  <div id="faq" class="faq-sec" itemscope itemtype="https://schema.org/FAQPage">
+    <h2 class="sh2">Frequently Asked Questions</h2>
+    <p class="sub" style="margin-bottom:20px">About startup networking in ${E(cn)}</p>
+    ${faqHtml}
+  </div>
+
+  <div class="city-pills">
+    <h3>Other startup cities in India</h3>
+    ${otherCityPills(slug, pattern, CITIES)}
+  </div>
+
+  <div class="rel-links">
+    <h3>Related pages</h3>
+    <a href="/networking-in-${slug}">Networking in ${E(cn)}</a>
+    <a href="/founders-in-${slug}">Founders in ${E(cn)}</a>
+    <a href="/find-cofounders-${slug}">Find Co-founders in ${E(cn)}</a>
+    <a href="/startup-founders-${slug}">Startup Founders ${E(cn)}</a>
+    <a href="/startup-networking-${slug}">Startup Networking ${E(cn)}</a>
+    <a href="/networking-for-founders">Networking for Founders</a>
+    <a href="/find-cofounders">Find Co-founders</a>
+    <a href="/startup-community-india">Startup Community India</a>
+    <a href="/linkedin-alternative">LinkedIn Alternative</a>
+  </div>
+
+  <div class="cta-block">
+    <h2>${E(cfg.ctaH)}</h2>
+    <p>${E(cfg.ctaP)}</p>
+    <a href="/app" class="btn">Get Started — Free</a>
+  </div>
+</div>`;
+
+  return cityPageShell(head, body, BASE);
+}
+
+// Register 4 new intent-pattern routes + Programmatic city route
+app.get('/founders-in-:city',       makeCityRoute('founders-in-',       seoPageViews));
+app.get('/startup-founders-:city',  makeCityRoute('startup-founders-',  seoPageViews));
+app.get('/find-cofounders-:city',   makeCityRoute('find-cofounders-',   seoPageViews));
+app.get('/startup-networking-:city',makeCityRoute('startup-networking-',seoPageViews));
 
 // Programmatic city route — must come after all static routes
 app.get('/networking-in-:city', (req, res) => {
