@@ -220,6 +220,86 @@ app.use(express.json({
   limit: '1mb',
   verify: (req, _res, buf) => { req.rawBody = buf; },
 }));
+// ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
+app.get('/sitemap.xml', (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+  const cityUrls = Object.keys(CITIES).map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
+  const urls = [
+    { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/business-networking-app',        priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
+    ...cityUrls,
+    { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
+    { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
+    { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
+  ];
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + today + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
+    '\n</urlset>';
+  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(xml);
+});
+app.get('/robots.txt', (req, res) => {
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  const txt = [
+    'User-agent: *',
+    'Allow: /',
+    'Allow: /networking-for-founders',
+    'Allow: /linkedin-alternative',
+    'Allow: /networking-for-entrepreneurs',
+    'Allow: /networking-for-creators',
+    'Allow: /networking-for-freelancers',
+    'Allow: /startup-community-india',
+    'Allow: /business-networking-app',
+    'Allow: /networking-for-investors',
+    'Allow: /find-cofounders',
+    'Allow: /startup-founders-india',
+    'Allow: /networking-in-',
+    'Allow: /terms',
+    'Allow: /privacy',
+    'Allow: /support',
+    'Allow: /sitemap.xml',
+    'Disallow: /api/',
+    'Disallow: /app',
+    'Disallow: /admin',
+    'Disallow: /upgrade',
+    '',
+    '# AI search crawlers — explicitly allowed for AEO',
+    'User-agent: GPTBot',
+    'Allow: /',
+    '',
+    'User-agent: ChatGPT-User',
+    'Allow: /',
+    '',
+    'User-agent: Claude-Web',
+    'Allow: /',
+    '',
+    'User-agent: PerplexityBot',
+    'Allow: /',
+    '',
+    'User-agent: Google-Extended',
+    'Allow: /',
+    '',
+    'User-agent: Googlebot',
+    'Crawl-delay: 1',
+    '',
+    'Sitemap: ' + BASE + '/sitemap.xml',
+  ].join('\n');
+  res.send(txt);
+});
+
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -547,7 +627,7 @@ app.get('/networking-in-bangalore', (req, res) => res.redirect(301, '/networking
 
 // Programmatic city route — must come after all static routes
 app.get('/networking-in-:city', (req, res) => {
-  const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   const slug = req.params.city.toLowerCase().replace(/[^a-z]/g, '');
   const city = CITIES[slug];
   if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -589,85 +669,7 @@ if (INDEXNOW_KEY) {
   });
 }
 
-// SEO routes
-app.get('/sitemap.xml', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
-  const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
-  const cityUrls = Object.keys(CITIES).map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
-  const urls = [
-    { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/business-networking-app',        priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
-    ...cityUrls,
-    { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
-    { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
-    { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
-  ];
-  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + today + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
-    '\n</urlset>';
-  res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.send(xml);
-});
-app.get('/robots.txt', (req, res) => {
-  const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
-  const txt = [
-    'User-agent: *',
-    'Allow: /',
-    'Allow: /networking-for-founders',
-    'Allow: /linkedin-alternative',
-    'Allow: /networking-for-entrepreneurs',
-    'Allow: /networking-for-creators',
-    'Allow: /networking-for-freelancers',
-    'Allow: /startup-community-india',
-    'Allow: /business-networking-app',
-    'Allow: /networking-for-investors',
-    'Allow: /find-cofounders',
-    'Allow: /startup-founders-india',
-    'Allow: /networking-in-',
-    'Allow: /terms',
-    'Allow: /privacy',
-    'Allow: /support',
-    'Allow: /sitemap.xml',
-    'Disallow: /api/',
-    'Disallow: /app',
-    'Disallow: /admin',
-    'Disallow: /upgrade',
-    '',
-    '# AI search crawlers — explicitly allowed for AEO',
-    'User-agent: GPTBot',
-    'Allow: /',
-    '',
-    'User-agent: ChatGPT-User',
-    'Allow: /',
-    '',
-    'User-agent: Claude-Web',
-    'Allow: /',
-    '',
-    'User-agent: PerplexityBot',
-    'Allow: /',
-    '',
-    'User-agent: Google-Extended',
-    'Allow: /',
-    '',
-    'User-agent: Googlebot',
-    'Crawl-delay: 1',
-    '',
-    'Sitemap: ' + BASE + '/sitemap.xml',
-  ].join('\n');
-  res.send(txt);
-});
+// sitemap.xml and robots.txt are registered before express.static (above)
 
 
 // APK download — serves BuildYourNetwork.apk directly from public/apk/.
@@ -2888,7 +2890,7 @@ app.get('/api/admin/audit', adminAuth, async (req, res) => {
 
 // ── PHASE 6 — SEO Measurement ─────────────────────────────────────────────────
 app.get('/api/admin/seo', adminAuth, (req, res) => {
-  const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   const pages = SEO_PAGES.map(p => {
     const views   = seoPageViews.get(p.slug) || 0;
     const signups = seoSignups.get(p.slug)   || 0;
@@ -3509,7 +3511,7 @@ app.listen(PORT, () => {
   // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
   if (INDEXNOW_KEY) {
     setImmediate(() => {
-      const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
+      const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
       const host = BASE.replace(/^https?:\/\//, '');
       const citySlugUrls = Object.keys(CITIES).map(s => BASE + '/networking-in-' + s);
       const indexNowUrls = [
