@@ -612,6 +612,13 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 .ob-add-entry       { font-size:13px; color:var(--primary); font-weight:600; cursor:pointer; background:none; border:none; padding:4px 0; }
 .ob-photo-btn { width:96px; height:96px; border-radius:50%; background:var(--goldlt); border:3px dashed var(--gold); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; margin:0 auto 16px; font-size:28px; color:var(--gold); }
 .ob-photo-hint { font-size:10px; color:var(--gold); margin-top:3px; }
+.ob-score-bar-wrap { margin-bottom:18px; background:var(--sur2); border-radius:var(--r-sm); border:1px solid var(--border2); padding:12px 14px; }
+.ob-score-track { height:8px; background:var(--border2); border-radius:4px; overflow:hidden; margin:8px 0 6px; }
+.ob-score-fill  { height:100%; border-radius:4px; transition:width .3s ease,background-color .3s; }
+.ob-score-meta  { display:flex; justify-content:space-between; align-items:center; }
+.ob-score-label { font-size:12px; color:var(--sub); font-weight:500; }
+.ob-score-pts   { font-size:12px; font-weight:700; }
+.ob-score-hint  { font-size:11px; color:var(--sub); }
 
 /* ── UTILITY CLASSES (replaces common inline styles) ── */
 .loading-center {
@@ -842,6 +849,18 @@ textarea.panel-input { resize:vertical; min-height:80px; }
       <div class="ob-title">Set up your profile</div>
       <div class="ob-sub">Stand out to the right people.</div>
 
+      <!-- Score gate -->
+      <div class="ob-score-bar-wrap">
+        <div class="ob-score-meta">
+          <span class="ob-score-label">Profile Score</span>
+          <span class="ob-score-pts" id="ob-score-pts" style="color:#ef4444">30/100</span>
+        </div>
+        <div class="ob-score-track">
+          <div class="ob-score-fill" id="ob-score-fill" style="width:30%;background:#ef4444"></div>
+        </div>
+        <div class="ob-score-hint" id="ob-score-hint">Add a photo, bio &amp; 3 interests to unlock Discovery</div>
+      </div>
+
       <!-- Photo -->
       <div class="ob-photo-btn" id="ob-photo-btn" onclick="obPickPhoto()">
         📷<div class="ob-photo-hint">Add Photo</div>
@@ -858,7 +877,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 
       <!-- Bio -->
       <div class="ob-field">
-        <div class="ob-label">BIO <span style="color:var(--dim);font-weight:400;">(optional, 30+ chars recommended)</span></div>
+        <div class="ob-label">BIO <span style="color:var(--dim);font-weight:400;">(optional, 10+ chars)</span></div>
         <textarea class="ob-textarea" id="ob-bio" rows="3" maxlength="300"
           placeholder="Tell people what you're working on, what excites you, or what you're looking for…"
           oninput="obBioValidate()"></textarea>
@@ -934,7 +953,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
         <div class="ob-expand-body" id="ob-loc-body">
           <div class="ob-expand-inner">
             <div class="ob-label">CITY / REGION</div>
-            <input class="ob-input" id="ob-location" type="text" placeholder="e.g. San Francisco, CA">
+            <input class="ob-input" id="ob-location" type="text" placeholder="e.g. San Francisco, CA" oninput="obUpdateScoreBar()">
             <button class="ob-add-entry" style="margin-top:6px;" onclick="obDetectLocation()">📍 Detect my location</button>
           </div>
         </div>
@@ -2358,10 +2377,11 @@ const OB_INTERESTS_PRESET = [
   'AI / ML','Web3','Climate Tech','Healthcare','Education',
   'Product','Sales','Leadership','Writing','Music','Sports',
 ];
-let _obIntents    = new Set();
-let _obInterests  = [];
-let _obEduCount   = 0;
-let _obWorkCount  = 0;
+let _obIntents       = new Set();
+let _obInterests     = [];
+let _obEduCount      = 0;
+let _obWorkCount     = 0;
+let _obPhotoUploaded = false;
 
 function showOnboarding(stage) {
   document.getElementById('loading-screen').classList.add('hidden');
@@ -2381,7 +2401,7 @@ function obShowScreen(stage) {
     q('ob-dot-'+i)?.classList.toggle('active', i - 1 === idx);
   // Per-screen setup
   if (stage === 'intent')  obRenderIntentGrid();
-  if (stage === 'profile') obRenderInterestChips();
+  if (stage === 'profile') { obRenderInterestChips(); obUpdateScoreBar(); }
 }
 
 // ── Screen 1: Acquisition ──────────────
@@ -2441,6 +2461,38 @@ async function obSubmitIntent() {
 }
 
 // ── Screen 3: Profile ──────────────────
+function obCalcProfileScore() {
+  // Screens 1-2 already gave: name(+10) + intent(+20) = 30
+  let score = 30;
+  if (_obPhotoUploaded) score += 10;
+  const bio = q('ob-bio')?.value.trim() || '';
+  if (bio.length >= 10) score += 10;
+  const loc = q('ob-location')?.value.trim() || '';
+  if (loc.length > 0) score += 10;
+  if (_obInterests.length >= 3)      score += 20;
+  else if (_obInterests.length >= 1) score += 8;
+  return Math.min(score, 100);
+}
+function obUpdateScoreBar() {
+  const score = obCalcProfileScore();
+  const fill  = q('ob-score-fill');
+  const pts   = q('ob-score-pts');
+  const hint  = q('ob-score-hint');
+  if (!fill) return;
+  const color = score >= 70 ? '#22c55e' : score >= 50 ? 'var(--gold)' : '#ef4444';
+  fill.style.width           = score + '%';
+  fill.style.backgroundColor = color;
+  pts.textContent = score + '/100';
+  pts.style.color = color;
+  if (score >= 70) {
+    hint.textContent = '✓ Score unlocked — ready to go!';
+    hint.style.color = '#22c55e';
+  } else {
+    hint.textContent = `${70 - score} more pts needed to unlock Discovery`;
+    hint.style.color = 'var(--sub)';
+  }
+}
+
 function obRenderInterestChips() {
   const wrap = q('ob-interest-chips');
   if (!wrap) return;
@@ -2461,6 +2513,7 @@ function obSelectInterest(chip, label) {
     _obInterests.push(label);
     chip.classList.add('selected');
   }
+  obUpdateScoreBar();
 }
 function obAddInterest() {
   const input = q('ob-interest-input');
@@ -2474,6 +2527,7 @@ function obAddInterest() {
   tag.dataset.interest = val;
   tag.innerHTML = `${esc(val)}<button class="ob-tag-del" onclick="obRemoveInterest('${escA(val)}')">×</button>`;
   tags.appendChild(tag);
+  obUpdateScoreBar();
 }
 function obRemoveInterest(val) {
   _obInterests = _obInterests.filter(i => i !== val);
@@ -2484,12 +2538,14 @@ function obRemoveInterest(val) {
   if (chips) [...chips.querySelectorAll('.ob-interest-chip')].forEach(c => {
     if (c.textContent === val) c.classList.remove('selected');
   });
+  obUpdateScoreBar();
 }
 function obHeadlineCount() {
   q('ob-headline-count').textContent = q('ob-headline').value.length;
 }
 function obBioValidate() {
   q('ob-bio-count').textContent = q('ob-bio').value.length;
+  obUpdateScoreBar();
 }
 function obToggle(id) {
   const body = q(id+'-body'), icon = q(id+'-icon');
@@ -2593,6 +2649,8 @@ async function obUploadPhoto(input) {
     } else {
       btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
     }
+    _obPhotoUploaded = true;
+    obUpdateScoreBar();
     toast('Photo uploaded!');
   } catch(e) {
     btn.innerHTML = '📷<div class="ob-photo-hint">Add Photo</div>';
@@ -2707,6 +2765,7 @@ function obDetectLocation() {
         const state   = d.address?.state || '';
         const country = (d.address?.country_code || '').toUpperCase();
         q('ob-location').value = [city, state, country].filter(Boolean).join(', ');
+        obUpdateScoreBar();
       } catch(_) { toast('Could not determine location'); }
     },
     () => toast('Location permission denied')
