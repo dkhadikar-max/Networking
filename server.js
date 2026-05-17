@@ -227,10 +227,15 @@ app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'u
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
-// AEO landing pages
+// AEO + search-intent landing pages
 app.get('/networking-for-founders',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-founders.html')));
 app.get('/linkedin-alternative',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'linkedin-alternative.html')));
 app.get('/networking-for-entrepreneurs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-entrepreneurs.html')));
+app.get('/networking-for-creators',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-creators.html')));
+app.get('/networking-for-freelancers',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-freelancers.html')));
+app.get('/startup-community-india',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'startup-community-india.html')));
+app.get('/business-networking-app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'business-networking-app.html')));
+app.get('/networking-for-investors',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-investors.html')));
 
 // SEO routes
 app.get('/sitemap.xml', (req, res) => {
@@ -241,6 +246,11 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/business-networking-app',        priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly'  },
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
@@ -262,6 +272,11 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /networking-for-founders',
     'Allow: /linkedin-alternative',
     'Allow: /networking-for-entrepreneurs',
+    'Allow: /networking-for-creators',
+    'Allow: /networking-for-freelancers',
+    'Allow: /startup-community-india',
+    'Allow: /business-networking-app',
+    'Allow: /networking-for-investors',
     'Allow: /terms',
     'Allow: /privacy',
     'Allow: /support',
