@@ -152,6 +152,7 @@ tbody td{padding:11px 14px;vertical-align:middle}
       <button class="tab" onclick="switchTab('users',this)">👥 Users</button>
       <button class="tab" onclick="switchTab('seo',this)">🔍 SEO</button>
       <button class="tab" onclick="switchTab('audit',this)">📋 Audit Log</button>
+      <button class="tab" onclick="switchTab('agents',this)">🤖 Agents</button>
     </div>
     <div id="tab-analytics" class="tab-panel active">
       <div class="stat-grid" id="stat-grid"><div class="stat-card"><div class="lbl">Loading…</div><div class="val ct"><span class="spinner"></span></div></div></div>
@@ -174,6 +175,57 @@ tbody td{padding:11px 14px;vertical-align:middle}
     <div id="tab-audit" class="tab-panel">
       <div class="sh"><span class="st">Recent Admin Actions</span></div>
       <div class="al" id="audit-list"><div class="empty"><span class="spinner"></span></div></div>
+    </div>
+    <div id="tab-agents" class="tab-panel">
+      <div id="agent-status-bar" style="margin-bottom:20px"></div>
+      <div class="stat-grid" id="agent-registry" style="margin-bottom:28px"><div class="stat-card"><div class="lbl">Loading agents…</div><div class="val ct"><span class="spinner"></span></div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+        <div class="al" style="padding:20px">
+          <div class="sh" style="margin-bottom:16px"><span class="st">Run Agent Directly</span></div>
+          <div style="margin-bottom:12px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Agent</label>
+            <select id="run-agent" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+              <option>ceo</option><option>backend</option><option>frontend</option><option selected>growth</option><option>security</option><option>qa</option><option>pm</option><option>research</option><option>devops</option>
+            </select>
+          </div>
+          <div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Message</label>
+            <textarea id="run-msg" rows="4" placeholder="What do you want this agent to do?" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <button class="btn-rf" id="run-btn" onclick="doRunDirect()" style="width:100%;padding:10px">Run Agent</button>
+          <div id="run-result" style="margin-top:14px;display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;max-height:320px;overflow-y:auto;line-height:1.6"></div>
+        </div>
+        <div class="al" style="padding:20px">
+          <div class="sh" style="margin-bottom:16px"><span class="st">Create Queued Task</span></div>
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Agent</label>
+            <select id="task-agent" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+              <option>ceo</option><option>backend</option><option>frontend</option><option selected>growth</option><option>security</option><option>qa</option><option>pm</option><option>research</option><option>devops</option>
+            </select>
+          </div>
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Task Type</label>
+            <input id="task-type" placeholder="e.g. seo_audit, content_review, security_check" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+          </div>
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Message / Payload</label>
+            <textarea id="task-msg" rows="3" placeholder="Task description or JSON payload…" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
+          </div>
+          <div style="margin-bottom:14px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Priority (1=high, 10=low)</label>
+            <input id="task-priority" type="number" min="1" max="10" value="5" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+          </div>
+          <button class="btn-rf" onclick="doCreateTask()" style="width:100%;padding:10px">Create Task</button>
+        </div>
+      </div>
+      <div style="margin-bottom:28px">
+        <div class="sh"><span class="st">Task Queue</span><button class="btn-rf" onclick="loadTaskQueue()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
+        <div class="tw"><table>
+          <thead><tr><th>Status</th><th>Agent</th><th>Type</th><th>Tokens</th><th>Duration</th><th>Created</th><th>Actions</th></tr></thead>
+          <tbody id="tasks-tbody"><tr class="lr"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+        </table></div>
+      </div>
+      <div>
+        <div class="sh"><span class="st">Agent Memory</span><button class="btn-rf" onclick="loadAgentMemory()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
+        <div class="tw"><table>
+          <thead><tr><th>Agent</th><th>Key</th><th>Category</th><th>Value</th><th>Confidence</th><th>Updated</th><th></th></tr></thead>
+          <tbody id="memory-tbody"><tr class="lr"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+        </table></div>
+      </div>
     </div>
   </main>
 </div>
@@ -269,7 +321,7 @@ function enterApp(token,user){
   document.getElementById('admin-name').textContent=ADMIN.name||ADMIN.email;
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
-  loadAnalytics();loadUsers();loadAudit();loadSeo();
+  loadAnalytics();loadUsers();loadAudit();loadSeo();loadAgents();
 }
 
 // ── LOGOUT
@@ -291,7 +343,7 @@ function switchTab(n,el){
   el.classList.add('active');
   document.getElementById('tab-'+n).classList.add('active');
 }
-function refreshAll(){loadAnalytics();loadUsers();loadAudit();loadSeo();toast('Refreshed')}
+function refreshAll(){loadAnalytics();loadUsers();loadAudit();loadSeo();loadAgents();toast('Refreshed')}
 // loadFunnel is called by loadAnalytics — no separate call needed here
 
 // ── API HELPER
@@ -616,6 +668,143 @@ async function loadSeo(){
 
     wrap.innerHTML=coreCards+segCards+citiesSection+intentsSection+blogSection+schemaSection+allSection+note;
   }catch(e){wrap.innerHTML=`<div class="empty">Failed to load SEO data: ${esc(e.message)}</div>`}
+}
+
+// ── AI AGENTS
+const STATUS_COLORS={pending:'cb',running:'ca',completed:'cg',failed:'cr'};
+const STATUS_LABELS={pending:'⏳ Pending',running:'⚡ Running',completed:'✓ Done',failed:'✗ Failed'};
+
+async function loadAgents(){
+  const reg=document.getElementById('agent-registry');
+  const bar=document.getElementById('agent-status-bar');
+  try{
+    const d=await apiCall('GET','/api/admin/agents');
+    bar.innerHTML=d.anthropic_configured
+      ?'<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--green);margin-bottom:0">Anthropic API configured — agents ready to execute</div>'
+      :'<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--amber);margin-bottom:0">ANTHROPIC_API_KEY not set — set in Railway environment variables to enable agent execution</div>';
+    reg.innerHTML=d.agents.map(a=>`
+      <div class="stat-card">
+        <div class="lbl">${esc(a.name)}</div>
+        <div style="font-size:11px;color:${a.claude_ready?'var(--green)':'var(--muted)'};margin-bottom:8px">${a.claude_ready?'Claude ready':'No API key'}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;word-break:break-word">${esc(a.prompt_preview)}…</div>
+      </div>`).join('');
+    await Promise.all([loadTaskQueue(),loadAgentMemory()]);
+  }catch(e){
+    reg.innerHTML=`<div class="empty">Agent system not yet available. Run Supabase migration 003_agent_infrastructure.sql first, then deploy.</div>`;
+    bar.innerHTML='';
+  }
+}
+
+async function loadTaskQueue(){
+  const tb=document.getElementById('tasks-tbody');
+  try{
+    const d=await apiCall('GET','/api/admin/agents/tasks?limit=100');
+    if(!d.tasks.length){tb.innerHTML='<tr class="lr"><td colspan="7" style="color:var(--muted)">No tasks yet.</td></tr>';return}
+    tb.innerHTML=d.tasks.map(t=>`
+      <tr>
+        <td><span class="val ${STATUS_COLORS[t.status]||'cw'}" style="font-size:12px;font-weight:600">${STATUS_LABELS[t.status]||t.status}</span></td>
+        <td><span class="badge ba">${esc(t.agent)}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${esc(t.type)}</td>
+        <td style="font-size:12px;color:var(--muted)">${t.tokens_used!=null?t.tokens_used.toLocaleString():'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${t.duration_ms!=null?Math.round(t.duration_ms/100)/10+'s':'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${timeAgo(t.created_at)}</td>
+        <td class="actions">
+          ${t.status==='pending'?`<button class="ab a-ver" onclick="execTask('${esc(t.id)}',this)">Execute</button>`:''}
+          ${t.status==='failed'?`<button class="ab a-unb" onclick="retryTask('${esc(t.id)}',this)">Retry</button>`:''}
+          ${t.status==='completed'?`<button class="ab a-pre" onclick="viewTaskResult('${esc(t.id)}')">Result</button>`:''}
+        </td>
+      </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr class="lr"><td colspan="7" style="color:var(--muted)">${esc(e.message)}</td></tr>`}
+}
+
+async function loadAgentMemory(){
+  const tb=document.getElementById('memory-tbody');
+  try{
+    const d=await apiCall('GET','/api/admin/agents/memory?limit=200');
+    if(!d.entries.length){tb.innerHTML='<tr class="lr"><td colspan="7" style="color:var(--muted)">No memory entries yet.</td></tr>';return}
+    tb.innerHTML=d.entries.map(m=>`
+      <tr>
+        <td><span class="badge ba">${esc(m.agent)}</span></td>
+        <td style="font-size:12px;font-weight:600">${esc(m.key)}</td>
+        <td style="font-size:11px;color:var(--purple)">${esc(m.category)}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(JSON.stringify(m.value))}</td>
+        <td style="font-size:12px;color:var(--muted)">${Math.round(m.confidence*100)}%</td>
+        <td style="font-size:11px;color:var(--muted)">${timeAgo(m.updated_at)}</td>
+        <td><button class="ab a-del" onclick="deleteMemory('${esc(m.id)}',this)">Delete</button></td>
+      </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr class="lr"><td colspan="7" style="color:var(--muted)">${esc(e.message)}</td></tr>`}
+}
+
+async function doRunDirect(){
+  const agent=document.getElementById('run-agent').value;
+  const message=document.getElementById('run-msg').value.trim();
+  if(!message){toast('Enter a message','err');return}
+  const btn=document.getElementById('run-btn');
+  const out=document.getElementById('run-result');
+  btn.disabled=true;btn.textContent='Running…';
+  out.style.display='none';out.textContent='';
+  try{
+    const d=await apiCall('POST','/api/admin/agents/run',{agent,message});
+    out.textContent=d.result.output;
+    out.style.display='block';
+    out.style.color='var(--text)';
+    toast(`Done — ${d.result.tokens_in+d.result.tokens_out} tokens in ${Math.round(d.result.duration_ms/100)/10}s`);
+  }catch(e){
+    out.textContent='Error: '+e.message;out.style.display='block';out.style.color='var(--red)';
+    toast(e.message,'err');
+  }finally{btn.disabled=false;btn.textContent='Run Agent'}
+}
+
+async function doCreateTask(){
+  const agent=document.getElementById('task-agent').value;
+  const type=document.getElementById('task-type').value.trim();
+  const msg=document.getElementById('task-msg').value.trim();
+  const priority=Number(document.getElementById('task-priority').value)||5;
+  if(!type||!msg){toast('Type and message required','err');return}
+  try{
+    await apiCall('POST','/api/admin/agents/task',{agent,type,payload:{message:msg},priority});
+    toast('Task created');
+    document.getElementById('task-type').value='';
+    document.getElementById('task-msg').value='';
+    await loadTaskQueue();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function execTask(id,btn){
+  btn.disabled=true;btn.textContent='Running…';
+  try{
+    await apiCall('POST',`/api/admin/agents/task/${id}/execute`);
+    toast('Task executed');
+    await loadTaskQueue();
+  }catch(e){toast(e.message,'err')}finally{btn.disabled=false;btn.textContent='Execute'}
+}
+
+async function retryTask(id,btn){
+  btn.disabled=true;
+  try{
+    await apiCall('POST',`/api/admin/agents/task/${id}/retry`);
+    toast('Task reset to pending');
+    await loadTaskQueue();
+  }catch(e){toast(e.message,'err')}finally{btn.disabled=false}
+}
+
+async function viewTaskResult(id){
+  try{
+    const t=await apiCall('GET',`/api/admin/agents/task/${id}`);
+    const out=t.result?.output||t.error||'No output';
+    const win=window.open('','_blank');
+    win.document.write(`<pre style="font-family:monospace;padding:24px;background:#0d1117;color:#e6edf3;white-space:pre-wrap;line-height:1.6">${out.replace(/</g,'&lt;')}</pre>`);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function deleteMemory(id,btn){
+  if(!confirm('Delete this memory entry?'))return;
+  btn.disabled=true;
+  try{
+    await apiCall('DELETE',`/api/admin/agents/memory/${id}`);
+    toast('Memory deleted');
+    await loadAgentMemory();
+  }catch(e){toast(e.message,'err')}finally{btn.disabled=false}
 }
 
 // ── AUDIT LOG

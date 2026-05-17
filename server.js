@@ -102,6 +102,16 @@ try {
   supabase = { from: () => ({ select: () => Promise.resolve({ data: null, error: e }) }) };
 }
 
+// ── AI AGENT ORCHESTRATOR ── (non-blocking; routes return 503 until ready)
+let agentOrchestrator = null;
+let agentMemory       = null;
+import('./agents/orchestrator.js')
+  .then(m => { agentOrchestrator = new m.AgentOrchestrator(supabase); console.log('AI agents ready ✓'); })
+  .catch(e => console.warn('Agent orchestrator unavailable:', e.message));
+import('./agents/memory.js')
+  .then(m => { agentMemory = new m.AgentMemory(supabase); })
+  .catch(e => console.warn('Agent memory unavailable:', e.message));
+
 // ── CLOUDINARY CONFIG ──
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
@@ -4130,6 +4140,141 @@ app.get('/api/admin/seo', adminAuth, (req, res) => {
     // Full sorted list
     pages,
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI OPERATING SYSTEM — Admin Agent Routes
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function requireAgents(res) {
+  if (!agentOrchestrator) {
+    res.status(503).json({ error: 'Agent system initializing. Retry in a few seconds.' });
+    return false;
+  }
+  return true;
+}
+
+// List available agents and their roles
+app.get('/api/admin/agents', adminAuth, (req, res) => {
+  if (!agentOrchestrator) return res.status(503).json({ error: 'Agent system initializing.' });
+  const agents = Object.entries(agentOrchestrator.agents).map(([name, ag]) => ({
+    name,
+    prompt_preview: ag.systemPrompt.slice(0, 200),
+    claude_ready: !!ag.client,
+  }));
+  res.json({ agents, anthropic_configured: !!process.env.ANTHROPIC_API_KEY });
+});
+
+// Create a queued task
+app.post('/api/admin/agents/task', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    const { type, agent, payload, priority } = req.body;
+    if (!type || !agent) return res.status(400).json({ error: 'type and agent required' });
+    const task = await agentOrchestrator.createTask({
+      type: String(type).trim(),
+      agent: String(agent).trim(),
+      payload: payload || {},
+      priority: Number(priority) || 5,
+      createdBy: req.user.id,
+    });
+    res.json({ ok: true, task });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Execute a pending/failed task now (sync — times out at 60s max via client)
+app.post('/api/admin/agents/task/:id/execute', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    const result = await agentOrchestrator.executeTask(req.params.id);
+    res.json({ ok: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Retry a failed task
+app.post('/api/admin/agents/task/:id/retry', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    await agentOrchestrator.retryTask(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// List tasks with optional filters
+app.get('/api/admin/agents/tasks', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    const { status, agent, limit } = req.query;
+    const tasks = await agentOrchestrator.listTasks({
+      status: status || undefined,
+      agent: agent || undefined,
+      limit: Math.min(Number(limit) || 50, 200),
+    });
+    res.json({ tasks });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get a single task with full result and logs
+app.get('/api/admin/agents/task/:id', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    const task = await agentOrchestrator.getTask(req.params.id);
+    res.json(task);
+  } catch (e) {
+    res.status(404).json({ error: e.message });
+  }
+});
+
+// Run agent directly (no task record created — for quick queries)
+app.post('/api/admin/agents/run', adminAuth, async (req, res) => {
+  if (!requireAgents(res)) return;
+  try {
+    const { agent, message, context } = req.body;
+    if (!agent || !message) return res.status(400).json({ error: 'agent and message required' });
+    const result = await agentOrchestrator.runDirect(
+      String(agent).trim(),
+      String(message),
+      context || {}
+    );
+    res.json({ ok: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// List agent memory entries
+app.get('/api/admin/agents/memory', adminAuth, async (req, res) => {
+  if (!agentMemory) return res.status(503).json({ error: 'Agent memory initializing.' });
+  try {
+    const { agent, category, limit } = req.query;
+    const entries = await agentMemory.list({
+      agent: agent || undefined,
+      category: category || undefined,
+      limit: Math.min(Number(limit) || 100, 500),
+    });
+    res.json({ entries });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Delete a memory entry
+app.delete('/api/admin/agents/memory/:id', adminAuth, async (req, res) => {
+  if (!agentMemory) return res.status(503).json({ error: 'Agent memory initializing.' });
+  try {
+    await agentMemory.delete(req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── ADMIN BOOTSTRAP ──
