@@ -2662,8 +2662,8 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
 
     let cleanBio = (bio !== undefined && bio !== null) ? String(bio).trim() : undefined;
     if (cleanBio === '') cleanBio = undefined;
-    if (cleanBio !== undefined && cleanBio.length < 30) {
-      errors.push({ field: 'bio', error: 'Bio must be at least 30 characters long.' });
+    if (cleanBio !== undefined && cleanBio.length < 10) {
+      errors.push({ field: 'bio', error: 'Bio must be at least 10 characters long.' });
     }
     if (cleanBio && cleanBio.length > 180) cleanBio = cleanBio.slice(0, 180);
 
