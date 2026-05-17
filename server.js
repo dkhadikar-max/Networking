@@ -227,15 +227,23 @@ app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'u
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
+// AEO landing pages
+app.get('/networking-for-founders',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-founders.html')));
+app.get('/linkedin-alternative',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'linkedin-alternative.html')));
+app.get('/networking-for-entrepreneurs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-entrepreneurs.html')));
+
 // SEO routes
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
   const urls = [
-    { loc: BASE + '/',        priority: '1.0', freq: 'weekly'  },
-    { loc: BASE + '/terms',   priority: '0.4', freq: 'monthly' },
-    { loc: BASE + '/privacy', priority: '0.4', freq: 'monthly' },
-    { loc: BASE + '/support', priority: '0.5', freq: 'monthly' },
+    { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
+    { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
+    { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
   ];
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + today + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
@@ -251,6 +259,9 @@ app.get('/robots.txt', (req, res) => {
   const txt = [
     'User-agent: *',
     'Allow: /',
+    'Allow: /networking-for-founders',
+    'Allow: /linkedin-alternative',
+    'Allow: /networking-for-entrepreneurs',
     'Allow: /terms',
     'Allow: /privacy',
     'Allow: /support',
