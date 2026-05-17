@@ -132,13 +132,22 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'"], // unsafe-inline required until inline JS is extracted
-      scriptSrcAttr:  ["'unsafe-inline'"],           // allow onclick/oninput attrs — Helmet sets 'none' by default which blocks all inline handlers
-      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.cloudinary.com'],
-      connectSrc:     ["'self'"],
-      frameAncestors: ["'none'"],   // blocks clickjacking
+      scriptSrc:      ["'self'", "'unsafe-inline'",    // unsafe-inline required until inline JS is extracted
+                       'https://checkout.razorpay.com', // Razorpay Standard Checkout script
+                       'https://cdn.tailwindcss.com'],  // Tailwind CDN used on upgrade page
+      scriptSrcAttr:  ["'unsafe-inline'"],              // allow onclick/oninput attrs — Helmet sets 'none' by default which blocks all inline handlers
+      styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com',
+                       'https://cdnjs.cloudflare.com'], // Font Awesome CSS on upgrade page
+      fontSrc:        ["'self'", 'https://fonts.gstatic.com',
+                       'https://cdnjs.cloudflare.com'], // Font Awesome webfonts on upgrade page
+      imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.cloudinary.com',
+                       'https://cdn.razorpay.com'],     // Razorpay logo/images inside checkout modal
+      connectSrc:     ["'self'",
+                       'https://api.razorpay.com',      // Razorpay order/payment API calls
+                       'https://lumberjack.razorpay.com'], // Razorpay internal logging
+      frameSrc:       ['https://api.razorpay.com',      // Razorpay checkout modal iframe
+                       'https://checkout.razorpay.com'],
+      frameAncestors: ["'none'"],                       // blocks clickjacking — unchanged
       objectSrc:      ["'none'"],
       baseUri:        ["'self'"],
     },
