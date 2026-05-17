@@ -88,6 +88,12 @@ tbody td{padding:11px 14px;vertical-align:middle}
 .atm{font-size:11px;color:var(--muted);white-space:nowrap}
 .act-delete_user{color:var(--red)}.act-ban{color:var(--amber)}.act-unban{color:var(--green)}.act-verify{color:var(--blue)}.act-grant_premium{color:var(--purple)}.act-revoke_premium{color:var(--muted)}
 .empty{text-align:center;padding:48px 24px;color:var(--muted)}
+.funnel-stage{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+.funnel-label{width:100px;font-size:12px;color:var(--muted);text-align:right;flex-shrink:0}
+.funnel-bar-wrap{flex:1;background:var(--card);border-radius:4px;height:26px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding:0 10px;font-size:12px;font-weight:600;color:rgba(255,255,255,.9);white-space:nowrap;min-width:60px;transition:width .4s ease}
+.funnel-drop{margin:2px 0 10px 112px;font-size:11px;color:var(--muted)}
+.funnel-stuck{color:var(--amber)}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--teal-lt);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .lr td{text-align:center;padding:40px}
@@ -148,6 +154,10 @@ tbody td{padding:11px 14px;vertical-align:middle}
     </div>
     <div id="tab-analytics" class="tab-panel active">
       <div class="stat-grid" id="stat-grid"><div class="stat-card"><div class="lbl">Loading…</div><div class="val ct"><span class="spinner"></span></div></div></div>
+      <div style="margin-top:24px">
+        <div class="sh"><span class="st">Onboarding Funnel</span></div>
+        <div id="funnel-wrap" class="al" style="padding:20px 24px"><div class="empty"><span class="spinner"></span></div></div>
+      </div>
     </div>
     <div id="tab-users" class="tab-panel">
       <div class="sh"><span class="st">All Users</span><input class="sb" id="user-search" placeholder="Search by name or email…" oninput="filterUsers(this.value)"></div>
@@ -277,6 +287,7 @@ function switchTab(n,el){
   document.getElementById('tab-'+n).classList.add('active');
 }
 function refreshAll(){loadAnalytics();loadUsers();loadAudit();toast('Refreshed')}
+// loadFunnel is called by loadAnalytics — no separate call needed here
 
 // ── API HELPER
 async function apiCall(method,path,body){
@@ -305,6 +316,62 @@ async function loadAnalytics(){
       <div class="stat-card"><div class="lbl">Messages Sent</div><div class="val cw">${(d.messages||0).toLocaleString()}</div><div class="sub">&nbsp;</div></div>
       <div class="stat-card"><div class="lbl">Reports</div><div class="val ca">${d.reports||0}</div><div class="sub">${d.blocks||0} blocks</div></div>`;
   }catch(e){g.innerHTML=`<div class="empty" style="grid-column:1/-1">Failed: ${e.message}</div>`}
+  loadFunnel();
+}
+
+async function loadFunnel(){
+  const wrap=document.getElementById('funnel-wrap');
+  try{
+    const f=await apiCall('GET','/api/admin/onboarding/funnel');
+    const total=f.total_verified||1;
+    const s=f.by_stage||{};
+
+    // Cumulative "reached this stage" counts — stages are sequential so
+    // users at later stages have already passed all earlier ones.
+    const reached={
+      acquisition: total,
+      intent:  (s.intent||0)+(s.profile||0)+(s.complete||0),
+      profile: (s.profile||0)+(s.complete||0),
+      complete: s.complete||0,
+    };
+    const LABELS={acquisition:'How heard',intent:'Intent set',profile:'Profile step',complete:'Complete'};
+    const COLORS={acquisition:'var(--blue)',intent:'var(--teal)',profile:'var(--purple)',complete:'var(--green)'};
+    const STAGES=['acquisition','intent','profile','complete'];
+
+    let html='';
+    STAGES.forEach((stage,i)=>{
+      const n=reached[stage];
+      const pct=Math.round(n/total*100);
+      const drop=i<3?reached[stage]-reached[STAGES[i+1]]:0;
+      const dropPct=total?Math.round(drop/total*100):0;
+      const st24=(f.stuck_over_24h||{})[stage]||0;
+      const st7 =(f.stuck_over_7d ||{})[stage]||0;
+      html+=`
+        <div class="funnel-stage">
+          <div class="funnel-label">${LABELS[stage]}</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:${pct}%;background:${COLORS[stage]}">${n} (${pct}%)</div>
+          </div>
+        </div>`;
+      if(i<3){
+        const stuckNote=st24?` · <span class="funnel-stuck">${st24} stuck &gt;24h${st7?`, ${st7} &gt;7d`:''}</span>`:'';
+        html+=`<div class="funnel-drop">${drop>0?`↓ ${drop} dropped (${dropPct}%)`:''}${stuckNote}</div>`;
+      }
+    });
+
+    if(f.gate_failures){
+      html+=`<div style="margin-top:14px;padding:12px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;font-size:13px">
+        <span style="color:var(--amber);font-weight:600">⚠ ${f.gate_failures} users</span>
+        <span style="color:var(--muted)"> finished onboarding but are blocked — profile_score &lt; 70</span>
+      </div>`;
+    }
+
+    wrap.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <span style="font-size:12px;color:var(--muted)">${f.total_verified} verified users</span>
+        <span style="font-size:13px;font-weight:700;color:var(--green)">${f.funnel_completion_rate} completed onboarding</span>
+      </div>${html}`;
+  }catch(e){wrap.innerHTML=`<div class="empty">Failed: ${e.message}</div>`}
 }
 
 // ── USERS
