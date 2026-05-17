@@ -648,8 +648,14 @@ function generateCityPage(slug, city, BASE) {
     <a href="/networking-for-founders">Networking for Founders</a>
     <a href="/find-cofounders">How to Find a Co-Founder</a>
     <a href="/startup-community-india">Startup Community India</a>
-    <a href="/linkedin-alternative">BYN vs LinkedIn</a>
+    <a href="/linkedin-alternative">LinkedIn Alternative</a>
+    <a href="/linkedin-vs-byn">LinkedIn vs BYN</a>
+    <a href="/meetup-alternative">Meetup Alternative</a>
+    <a href="/best-networking-platform-for-founders">Best Networking Platform</a>
     <a href="/networking-for-investors">Networking for Investors</a>
+    <a href="/find-cofounders-${slug}">Find Co-founders in ${escHtml(city.name)}</a>
+    <a href="/founders-in-${slug}">Startup Founders in ${escHtml(city.name)}</a>
+    <a href="/startup-networking-${slug}">Startup Networking ${escHtml(city.name)}</a>
   </div>
 
   <div class="cta-block">
@@ -994,6 +1000,9 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
     <a href="/find-cofounders">Find Co-founders</a>
     <a href="/startup-community-india">Startup Community India</a>
     <a href="/linkedin-alternative">LinkedIn Alternative</a>
+    <a href="/linkedin-vs-byn">LinkedIn vs BYN</a>
+    <a href="/best-networking-platform-for-founders">Best Networking Platform</a>
+    <a href="/meetup-alternative">Meetup Alternative</a>
   </div>
 
   <div class="cta-block">
