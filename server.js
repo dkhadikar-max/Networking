@@ -231,8 +231,11 @@ app.get('/sitemap.xml', (req, res) => {
   const urls = [
     { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/linkedin-alternative',                    priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/linkedin-vs-byn',                        priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/meetup-alternative',                     priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/best-networking-platform-for-founders',  priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/networking-for-entrepreneurs',           priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly'  },
     { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly'  },
     { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly'  },
@@ -262,6 +265,9 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /',
     'Allow: /networking-for-founders',
     'Allow: /linkedin-alternative',
+    'Allow: /linkedin-vs-byn',
+    'Allow: /meetup-alternative',
+    'Allow: /best-networking-platform-for-founders',
     'Allow: /networking-for-entrepreneurs',
     'Allow: /networking-for-creators',
     'Allow: /networking-for-freelancers',
@@ -335,8 +341,11 @@ app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'a
 app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
 // AEO + search-intent landing pages
-app.get('/networking-for-founders',      (req, res) => sendSeoPage(res, 'networking-for-founders.html'));
-app.get('/linkedin-alternative',         (req, res) => sendSeoPage(res, 'linkedin-alternative.html'));
+app.get('/networking-for-founders',               (req, res) => sendSeoPage(res, 'networking-for-founders.html'));
+app.get('/linkedin-alternative',                  (req, res) => sendSeoPage(res, 'linkedin-alternative.html'));
+app.get('/linkedin-vs-byn',                       (req, res) => sendSeoPage(res, 'linkedin-vs-byn.html'));
+app.get('/meetup-alternative',                    (req, res) => sendSeoPage(res, 'meetup-alternative.html'));
+app.get('/best-networking-platform-for-founders', (req, res) => sendSeoPage(res, 'best-networking-platform-for-founders.html'));
 app.get('/networking-for-entrepreneurs', (req, res) => sendSeoPage(res, 'networking-for-entrepreneurs.html'));
 app.get('/networking-for-creators',      (req, res) => sendSeoPage(res, 'networking-for-creators.html'));
 app.get('/networking-for-freelancers',   (req, res) => sendSeoPage(res, 'networking-for-freelancers.html'));
@@ -367,8 +376,11 @@ const CITIES = {
 const SEO_PAGES = [
   { slug: '',                             label: 'Homepage',                   schema: 'WebSite+SoftwareApplication+FAQPage', priority: '1.0' },
   { slug: 'networking-for-founders',      label: 'Networking for Founders',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
-  { slug: 'linkedin-alternative',         label: 'LinkedIn Alternative',       schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
-  { slug: 'networking-for-entrepreneurs', label: 'Networking for Entrepreneurs', schema: 'WebPage+FAQPage+BreadcrumbList',     priority: '0.9' },
+  { slug: 'linkedin-alternative',                    label: 'LinkedIn Alternative',               schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'linkedin-vs-byn',                        label: 'LinkedIn vs BYN',                    schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.8' },
+  { slug: 'meetup-alternative',                     label: 'Meetup Alternative',                 schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.8' },
+  { slug: 'best-networking-platform-for-founders',  label: 'Best Networking Platform Founders',  schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'networking-for-entrepreneurs',           label: 'Networking for Entrepreneurs',       schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
   { slug: 'startup-community-india',      label: 'Startup Community India',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
   { slug: 'find-cofounders',              label: 'Find Co-founders',           schema: 'WebPage+HowTo+FAQPage+BreadcrumbList', priority: '0.9' },
   { slug: 'networking-for-creators',      label: 'Networking for Creators',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
