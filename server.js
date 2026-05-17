@@ -839,6 +839,8 @@ app.post('/api/login', authLimiter, async (req, res) => {
       if (attempts >= LOGIN_LOCKOUT_THRESHOLD) {
         update.lockout_until = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS).toISOString();
         update.failed_login_attempts = 0; // reset so the next window starts clean after lockout expires
+
+      
       }
       const { error } = await supabase
   .from('users')
@@ -848,6 +850,9 @@ app.post('/api/login', authLimiter, async (req, res) => {
 console.log('LOCKOUT UPDATE ERROR:', error);
 console.log('LOCKOUT UPDATE PAYLOAD:', update);
 console.log('USER ID:', user.id);
+return res.status(401).json({
+  error: 'Invalid email or password'
+});
     }
 
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
