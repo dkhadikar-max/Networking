@@ -47,6 +47,7 @@ const razorpay = (razorpayPkg && process.env.RAZORPAY_KEY_ID && process.env.RAZO
   ? new razorpayPkg({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
   : null;
 const { createClient } = require('@supabase/supabase-js');
+const https = require('https');
 const uuidv4 = () => crypto.randomUUID();
 
 // ── FIXED: multer fallback returns correct object shape with .single(), .array(), etc. ──
@@ -222,22 +223,34 @@ app.use(express.json({
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ── PHASE 5 — Crawl budget: X-Robots-Tag on private routes ──────────────────
+app.use(['/api', '/app', '/admin', '/upgrade'], (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
+
+// Cache-Control helper for SEO landing pages (1-hour public cache)
+const sendSeoPage = (res, file) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.sendFile(path.join(__dirname, 'public', file));
+};
+
 // Named HTML routes (express.static only serves /upgrade.html, not /upgrade)
 app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
 app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
 app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
 // AEO + search-intent landing pages
-app.get('/networking-for-founders',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-founders.html')));
-app.get('/linkedin-alternative',         (req, res) => res.sendFile(path.join(__dirname, 'public', 'linkedin-alternative.html')));
-app.get('/networking-for-entrepreneurs', (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-entrepreneurs.html')));
-app.get('/networking-for-creators',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-creators.html')));
-app.get('/networking-for-freelancers',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-freelancers.html')));
-app.get('/startup-community-india',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'startup-community-india.html')));
-app.get('/business-networking-app',      (req, res) => res.sendFile(path.join(__dirname, 'public', 'business-networking-app.html')));
-app.get('/networking-for-investors',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'networking-for-investors.html')));
-app.get('/find-cofounders',              (req, res) => res.sendFile(path.join(__dirname, 'public', 'find-cofounders.html')));
-app.get('/startup-founders-india',       (req, res) => res.sendFile(path.join(__dirname, 'public', 'startup-founders-india.html')));
+app.get('/networking-for-founders',      (req, res) => sendSeoPage(res, 'networking-for-founders.html'));
+app.get('/linkedin-alternative',         (req, res) => sendSeoPage(res, 'linkedin-alternative.html'));
+app.get('/networking-for-entrepreneurs', (req, res) => sendSeoPage(res, 'networking-for-entrepreneurs.html'));
+app.get('/networking-for-creators',      (req, res) => sendSeoPage(res, 'networking-for-creators.html'));
+app.get('/networking-for-freelancers',   (req, res) => sendSeoPage(res, 'networking-for-freelancers.html'));
+app.get('/startup-community-india',      (req, res) => sendSeoPage(res, 'startup-community-india.html'));
+app.get('/business-networking-app',      (req, res) => sendSeoPage(res, 'business-networking-app.html'));
+app.get('/networking-for-investors',     (req, res) => sendSeoPage(res, 'networking-for-investors.html'));
+app.get('/find-cofounders',              (req, res) => sendSeoPage(res, 'find-cofounders.html'));
+app.get('/startup-founders-india',       (req, res) => sendSeoPage(res, 'startup-founders-india.html'));
 
 // ── PHASE 4 — Programmatic SEO: City landing pages ──────────────────────────
 
@@ -515,6 +528,37 @@ app.get('/networking-in-:city', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(generateCityPage(slug, city, BASE));
 });
+
+// ── PHASE 5 — Webmaster verification + IndexNow ──────────────────────────────
+// Google Search Console: set GSC_VERIFICATION env var to the token from the
+// verification file URL (e.g. for google<TOKEN>.html set GSC_VERIFICATION=<TOKEN>)
+if (process.env.GSC_VERIFICATION) {
+  app.get('/google' + process.env.GSC_VERIFICATION + '.html', (req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send('google-site-verification: ' + process.env.GSC_VERIFICATION);
+  });
+}
+
+// Bing Webmaster Tools: set BING_VERIFICATION env var to the BingSiteAuth key
+if (process.env.BING_VERIFICATION) {
+  app.get('/BingSiteAuth.xml', (req, res) => {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send('<?xml version="1.0"?>\n<users>\n  <user>' + process.env.BING_VERIFICATION + '</user>\n</users>');
+  });
+}
+
+// IndexNow — key file served at /<KEY>.txt; submission fires on startup
+// Set INDEXNOW_KEY env var to a random UUID (generate once, reuse forever)
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || null;
+if (INDEXNOW_KEY) {
+  app.get('/' + INDEXNOW_KEY + '.txt', (req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(INDEXNOW_KEY);
+  });
+}
 
 // SEO routes
 app.get('/sitemap.xml', (req, res) => {
@@ -3390,6 +3434,41 @@ app.listen(PORT, () => {
   // Profile nudge: run immediately then every hour
   sendProfileNudges();
   setInterval(sendProfileNudges, 60 * 60 * 1000);
+
+  // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
+  if (INDEXNOW_KEY) {
+    setImmediate(() => {
+      const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
+      const host = BASE.replace(/^https?:\/\//, '');
+      const citySlugUrls = Object.keys(CITIES).map(s => BASE + '/networking-in-' + s);
+      const indexNowUrls = [
+        BASE + '/',
+        BASE + '/networking-for-founders',
+        BASE + '/linkedin-alternative',
+        BASE + '/networking-for-entrepreneurs',
+        BASE + '/networking-for-creators',
+        BASE + '/networking-for-freelancers',
+        BASE + '/startup-community-india',
+        BASE + '/business-networking-app',
+        BASE + '/networking-for-investors',
+        BASE + '/find-cofounders',
+        BASE + '/startup-founders-india',
+        ...citySlugUrls,
+      ];
+      const body = JSON.stringify({ host, key: INDEXNOW_KEY, urlList: indexNowUrls });
+      const inReq = https.request({
+        hostname: 'api.indexnow.org',
+        path: '/IndexNow',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) },
+      }, (inRes) => {
+        console.log('[SEO] IndexNow submission status:', inRes.statusCode);
+      });
+      inReq.on('error', (e) => console.warn('[SEO] IndexNow error:', e.message));
+      inReq.write(body);
+      inReq.end();
+    });
+  }
 
   // One-time idempotent migration: set all existing verified users to complete
   // so they skip onboarding on next login. Safe to run on every startup.
