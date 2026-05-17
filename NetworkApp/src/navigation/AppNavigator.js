@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, Platform } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator }    from '@react-navigation/stack';
 import { useSafeAreaInsets }       from 'react-native-safe-area-context';
+import * as Notifications          from 'expo-notifications';
 
 import { useAuth }           from '../context/AuthContext';
 import BYNLogo               from '../components/BYNLogo';
@@ -30,6 +31,8 @@ import { C }                 from '../utils/theme';
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const Auth  = createStackNavigator();
+
+const navigationRef = createNavigationContainerRef();
 
 const navTheme = {
   ...DefaultTheme,                      // preserves fonts.regular/medium/bold/heavy
@@ -197,6 +200,19 @@ function VerifyStack() {
 export default function AppNavigator() {
   const { token, user, ready, emailVerified } = useAuth();
 
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(response => {
+      const screen = response.notification.request.content.data?.screen;
+      if (!screen || !navigationRef.isReady()) return;
+      // ProfileComplete: AppNavigator's gate already routes there — no action needed.
+      // Chat/ChatDetail/PriorityMessages all live under the Chat tab.
+      if (screen === 'Chat' || screen === 'ChatDetail' || screen === 'PriorityMessages') {
+        navigationRef.navigate('Chat');
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   if (!ready) {
     return (
       <View style={{ flex: 1, backgroundColor: C.bg, justifyContent: 'center', alignItems: 'center' }}>
@@ -207,7 +223,7 @@ export default function AppNavigator() {
 
   if (!token) {
     return (
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <AuthStack />
       </NavigationContainer>
     );
@@ -216,7 +232,7 @@ export default function AppNavigator() {
   // Gate 1: email must be verified before anything else
   if (!emailVerified) {
     return (
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <VerifyStack />
       </NavigationContainer>
     );
@@ -226,7 +242,7 @@ export default function AppNavigator() {
   const hasPhoto = (user?.photos?.length ?? 0) >= 1;
   if (!hasPhoto) {
     return (
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <ProfileSetupStack />
       </NavigationContainer>
     );
@@ -239,14 +255,14 @@ export default function AppNavigator() {
   // Gate 3: profile must be complete
   if (!profileComplete) {
     return (
-      <NavigationContainer theme={navTheme}>
+      <NavigationContainer ref={navigationRef} theme={navTheme}>
         <ProfileSetupStack />
       </NavigationContainer>
     );
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <MainTabs />
     </NavigationContainer>
   );
