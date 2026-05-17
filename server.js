@@ -135,17 +135,23 @@ app.use(helmet({
       defaultSrc:     ["'self'"],
       scriptSrc:      ["'self'", "'unsafe-inline'",    // unsafe-inline required until inline JS is extracted
                        'https://checkout.razorpay.com', // Razorpay Standard Checkout script
-                       'https://cdn.tailwindcss.com'],  // Tailwind CDN used on upgrade page
+                       'https://cdn.tailwindcss.com',   // Tailwind CDN used on upgrade page
+                       'https://www.googletagmanager.com', // Google Analytics / GTM
+                       'https://www.google-analytics.com'], // GA direct
       scriptSrcAttr:  ["'unsafe-inline'"],              // allow onclick/oninput attrs — Helmet sets 'none' by default which blocks all inline handlers
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com',
                        'https://cdnjs.cloudflare.com'], // Font Awesome CSS on upgrade page
       fontSrc:        ["'self'", 'https://fonts.gstatic.com',
                        'https://cdnjs.cloudflare.com'], // Font Awesome webfonts on upgrade page
       imgSrc:         ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.cloudinary.com',
-                       'https://cdn.razorpay.com'],     // Razorpay logo/images inside checkout modal
+                       'https://cdn.razorpay.com',      // Razorpay logo/images inside checkout modal
+                       'https://www.google-analytics.com'], // GA measurement pixel
       connectSrc:     ["'self'",
                        'https://api.razorpay.com',      // Razorpay order/payment API calls
-                       'https://lumberjack.razorpay.com'], // Razorpay internal logging
+                       'https://lumberjack.razorpay.com', // Razorpay internal logging
+                       'https://www.google-analytics.com', // GA data beacons
+                       'https://analytics.google.com',
+                       'https://www.googletagmanager.com'],
       frameSrc:       ['https://api.razorpay.com',      // Razorpay checkout modal iframe
                        'https://checkout.razorpay.com'],
       frameAncestors: ["'none'"],                       // blocks clickjacking — unchanged
@@ -220,6 +226,15 @@ app.use(express.json({
   limit: '1mb',
   verify: (req, _res, buf) => { req.rawBody = buf; },
 }));
+// ── TRAILING SLASH → CANONICAL REDIRECT (prevents duplicate content indexing) ──
+app.use((req, res, next) => {
+  if (req.path !== '/' && req.path.endsWith('/')) {
+    const qs = req.url.includes('?') ? '?' + req.url.split('?').slice(1).join('?') : '';
+    return res.redirect(301, req.path.slice(0, -1) + qs);
+  }
+  next();
+});
+
 // ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
@@ -246,13 +261,13 @@ app.get('/sitemap.xml', (req, res) => {
     ...cityUrls,
     ...intentUrls,
     { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly'  },
-    ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly' })),
+    ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly', lastmod: a.date })),
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
   ];
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + today + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
+    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + (u.lastmod || today) + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
     '\n</urlset>';
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -334,6 +349,7 @@ const seoSignups   = new Map(); // page slug → signup count (resets on deploy)
 // Cache-Control helper for SEO landing pages (1-hour public cache)
 const sendSeoPage = (res, file) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Vary', 'Accept-Encoding');
   const slug = file.replace('.html', '');
   seoPageViews.set(slug, (seoPageViews.get(slug) || 0) + 1);
   res.sendFile(path.join(__dirname, 'public', file));
@@ -501,9 +517,11 @@ function generateCityPage(slug, city, BASE) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F766E">
   <title>${escHtml(title)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.googletagmanager.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="canonical" href="${escHtml(canonical)}">
@@ -706,6 +724,7 @@ function makeCityRoute(pattern, pageViews) {
     seoPageViews.set(pageSlug, (seoPageViews.get(pageSlug) || 0) + 1);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.send(generateCityIntentPage(slug, city, BASE, pattern));
   };
 }
@@ -1042,6 +1061,7 @@ app.get('/networking-in-:city', (req, res) => {
   seoPageViews.set(citySlug, (seoPageViews.get(citySlug) || 0) + 1);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Vary', 'Accept-Encoding');
   res.send(generateCityPage(slug, city, BASE));
 });
 
@@ -1441,7 +1461,9 @@ function blogShell(head, body, BASE) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ${head}
+<meta name="theme-color" content="#0F766E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="/assets/logo.png" type="image/png">
 <style>
@@ -1520,7 +1542,8 @@ h1{font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-.5px;margin-bo
 
   seoPageViews.set('blog', (seoPageViews.get('blog') || 0) + 1);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Cache-Control', 'public, max-age=21600'); // 6h — index refreshes when articles are added
+  res.setHeader('Vary', 'Accept-Encoding');
   res.send(blogShell(head, { html, css }, BASE));
 });
 
@@ -1627,7 +1650,8 @@ ${cityHtml}`;
 
   seoPageViews.set('blog/' + article.slug, (seoPageViews.get('blog/' + article.slug) || 0) + 1);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24h — article content is static
+  res.setHeader('Vary', 'Accept-Encoding');
   res.send(blogShell(head, { html, css }, BASE));
 });
 
@@ -1760,7 +1784,8 @@ footer a{color:var(--primary);text-decoration:none}
 </body></html>`;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.setHeader('Vary', 'Accept-Encoding');
     res.send(html);
   } catch(e) {
     console.error('Public profile page error:', e);
