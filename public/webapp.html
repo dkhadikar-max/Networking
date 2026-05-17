@@ -1283,6 +1283,15 @@ async function api(method, path, body) {
   return data;
 }
 
+// Fire-and-forget event tracking — logs to Railway via /api/events, never blocks UI
+function trackEvent(event, props = {}) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (TOKEN) headers['Authorization'] = 'Bearer ' + TOKEN;
+    fetch('/api/events', { method: 'POST', headers, body: JSON.stringify({ event, props }) });
+  } catch(_) {}
+}
+
 // ════════════════════════════════════════
 // STORAGE
 // ════════════════════════════════════════
@@ -1393,6 +1402,7 @@ function showScreen(s) {
   ['login','signup','otp'].forEach(n =>
     document.getElementById('screen-'+n).classList.toggle('hidden', n !== s));
   if (s === 'signup') {
+    trackEvent('signup_opened');
     _consent = false;
     const cb = q('consent-box'); if (cb) cb.classList.remove('on');
     const sb = q('signup-btn'); if (sb) sb.disabled = true;
@@ -1445,9 +1455,11 @@ async function doSignup() {
   if (pw.length<6) return showE(errEl,'Password must be at least 6 characters');
   if (!_consent)   return showE(errEl,'You must agree to the Terms & Conditions to continue');
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
+  trackEvent('cta_click', { button: 'create_account' });
   try {
     const r = await api('POST', '/api/signup', { name, email, password:pw }); // BUG-FIX: /api/signup not /api/register
     saveAuth(r.token, r.user);
+    trackEvent('signup_completed');
     try { await api('POST', '/api/auth/send-otp', { email }); } catch(_) {} // BUG-FIX: /api/auth/send-otp
     q('otp-hint').textContent = 'We sent a code to ' + email;
     showScreen('otp');
@@ -2776,6 +2788,7 @@ function obDetectLocation() {
 // ════════════════════════════════════════
 async function doUpgrade() {
   try {
+    trackEvent('upgrade_clicked');
     toast('Opening upgrade…');
     const r = await api('POST', '/api/payments/session');
     window.location.href = '/upgrade?s=' + encodeURIComponent(r.payment_token);
@@ -3021,6 +3034,7 @@ async function obSubmitProfile() {
     await api('POST', '/api/onboarding/profile', body);
     ME = await api('GET', '/api/me');
     saveAuth(TOKEN, ME);
+    trackEvent('profile_completed');
     showApp();
     toast('Welcome to BYN! 🎉');
   } catch(e) {

@@ -2295,6 +2295,21 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   }
 });
 
+function normalizeSource(src) {
+  const map = {
+    'LinkedIn':        'linkedin',
+    'Instagram':       'instagram',
+    'Twitter/X':       'twitter',
+    'WhatsApp':        'whatsapp',
+    'Friend/Referral': 'referral',
+    'Google Search':   'google',
+    'Community/Event': 'community',
+    'YouTube':         'youtube',
+    'Other':           'unknown',
+  };
+  return src ? (map[src] || 'unknown') : 'unknown';
+}
+
 app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
   try {
     const now    = Date.now();
@@ -2304,13 +2319,27 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
     const STAGES     = ['acquisition', 'intent', 'profile', 'complete'];
     const PRE_STAGES = ['acquisition', 'intent', 'profile'];
 
-    const [stageCounts, stuck24h, stuck7d, { count: gateFail }] = await Promise.all([
-      // Count of verified users at each stage
+    const [
+      stageCounts,
+      { count: photosCount },
+      stuck24h,
+      stuck7d,
+      { count: gateFail },
+      { data: completedSample },
+      { data: allAcq },
+      { data: completedIds },
+    ] = await Promise.all([
+      // Users at each onboarding stage
       Promise.all(STAGES.map(s =>
         supabase.from('users').select('*', { count: 'exact', head: true })
           .eq('email_verified', true).eq('onboarding_stage', s)
       )),
-      // Stuck >24h at pre-complete stages (likely dropped off)
+      // Users who uploaded at least one photo (verified, any stage)
+      supabase.from('users').select('*', { count: 'exact', head: true })
+        .eq('email_verified', true)
+        .not('photos', 'is', null)
+        .filter('photos', 'neq', '[]'),
+      // Stuck >24h at pre-complete stages
       Promise.all(PRE_STAGES.map(s =>
         supabase.from('users').select('*', { count: 'exact', head: true })
           .eq('email_verified', true).eq('onboarding_stage', s).lt('created_at', ago24h)
@@ -2320,9 +2349,19 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
         supabase.from('users').select('*', { count: 'exact', head: true })
           .eq('email_verified', true).eq('onboarding_stage', s).lt('created_at', ago7d)
       )),
-      // Completed onboarding but still blocked by profile_score < 70 gate
+      // Completed onboarding but blocked by profile_score < 70
       supabase.from('users').select('*', { count: 'exact', head: true })
         .eq('onboarding_stage', 'complete').eq('is_profile_complete', false),
+      // Sample of completed users with timestamps for avg time calculation
+      supabase.from('users')
+        .select('onboarding_completed_at, created_at')
+        .eq('is_profile_complete', true)
+        .not('onboarding_completed_at', 'is', null)
+        .limit(500),
+      // Acquisition source for all users
+      supabase.from('user_acquisition').select('user_id, source'),
+      // IDs of profile-complete users for source attribution
+      supabase.from('users').select('id').eq('is_profile_complete', true),
     ]);
 
     const byStage = {};
@@ -2336,18 +2375,60 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
     });
 
     const totalVerified = STAGES.reduce((n, s) => n + byStage[s], 0);
-    const completed     = byStage['complete'] || 0;
+    const completed     = byStage.complete || 0;
+
+    // Cumulative "reached" counts for 5-stage funnel display
+    const reached = {
+      acquisition: totalVerified,
+      intent:      byStage.intent  + byStage.profile + byStage.complete,
+      profile:     byStage.profile + byStage.complete,
+      photos:      photosCount || 0,
+      complete:    completed,
+    };
+
+    // Avg completion time from onboarding_completed_at (requires migration 001)
+    let avg_completion_seconds = null;
+    if (completedSample && completedSample.length > 0) {
+      const totalMs = completedSample.reduce((sum, u) => {
+        const ms = new Date(u.onboarding_completed_at) - new Date(u.created_at);
+        return sum + (ms > 0 ? ms : 0);
+      }, 0);
+      avg_completion_seconds = Math.round(totalMs / completedSample.length / 1000);
+    }
+
+    // Source attribution breakdown
+    const source_breakdown = {};
+    if (allAcq && completedIds) {
+      const completedSet = new Set(completedIds.map(u => u.id));
+      for (const row of allAcq) {
+        const key = normalizeSource(row.source);
+        if (!source_breakdown[key]) source_breakdown[key] = { total: 0, completed: 0, rate: 0 };
+        source_breakdown[key].total++;
+        if (completedSet.has(row.user_id)) source_breakdown[key].completed++;
+      }
+      for (const v of Object.values(source_breakdown)) {
+        v.rate = v.total ? Math.round(v.completed / v.total * 100) : 0;
+      }
+    }
+
+    // Best converting source (min 3 entries to be statistically meaningful)
+    const best_source = Object.entries(source_breakdown)
+      .filter(([, v]) => v.total >= 3)
+      .sort((a, b) => b[1].rate - a[1].rate)[0]?.[0] || null;
 
     res.json({
-      by_stage:              byStage,
-      stuck_over_24h:        stuckDay,
-      stuck_over_7d:         stuckWeek,
-      gate_failures:         gateFail || 0,
-      total_verified:        totalVerified,
-      drop_before_complete:  totalVerified - completed,
+      reached,
+      by_stage:               byStage,
+      stuck_over_24h:         stuckDay,
+      stuck_over_7d:          stuckWeek,
+      gate_failures:          gateFail || 0,
+      total_verified:         totalVerified,
       funnel_completion_rate: totalVerified
         ? Math.round(completed / totalVerified * 100) + '%'
         : '0%',
+      avg_completion_seconds,
+      source_breakdown,
+      best_source,
     });
   } catch(e) {
     console.error('Onboarding funnel error:', e);
@@ -2675,7 +2756,7 @@ app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res
     if (updateErr) throw new Error(updateErr.message);
 
     const elapsedAcq = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
-    console.log(`[Onboarding] userId=${user.id} acquisition→intent elapsed=${elapsedAcq}s source=${source}`);
+    console.log(`[Onboarding] userId=${user.id} stage=intent elapsed=${elapsedAcq}s source=${source}`);
     res.json({ stage: 'intent' });
   } catch(e) {
     console.error('Onboarding acquisition error:', e);
@@ -2710,7 +2791,7 @@ app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => 
     if (updateErr) throw new Error(updateErr.message);
 
     const elapsedInt = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
-    console.log(`[Onboarding] userId=${user.id} intent→profile elapsed=${elapsedInt}s intents=${deduped.join(',')}`);
+    console.log(`[Onboarding] userId=${user.id} stage=profile elapsed=${elapsedInt}s intents=${deduped.join(',')}`);
     res.json({ stage: 'profile' });
   } catch(e) {
     console.error('Onboarding intent error:', e);
@@ -2746,7 +2827,7 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     if (errors.length) return res.status(400).json({ errors });
 
     // Build user updates
-    const userUpdates = { onboarding_stage: 'complete' };
+    const userUpdates = { onboarding_stage: 'complete', onboarding_completed_at: new Date().toISOString() };
     if (cleanHeadline !== undefined) userUpdates.headline  = sanitize(cleanHeadline);
     if (cleanBio      !== undefined) userUpdates.bio       = sanitize(cleanBio);
     if (profession) userUpdates.profession  = sanitize(String(profession).trim().slice(0, 100));
@@ -2826,7 +2907,7 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     }
 
     const elapsedPro = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
-    console.log(`[Onboarding] userId=${user.id} profile→complete elapsed=${elapsedPro}s score=${userUpdates.profile_score} gate=${userUpdates.is_profile_complete ? 'pass' : 'fail'}`);
+    console.log(`[Onboarding] userId=${user.id} stage=complete elapsed=${elapsedPro}s score=${userUpdates.profile_score} gate=${userUpdates.is_profile_complete ? 'pass' : 'fail'}`);
     res.json({ stage: 'complete', trust_score: userUpdates.trust_score });
   } catch(e) {
     console.error('Onboarding profile error:', e);
@@ -2866,6 +2947,37 @@ async function sendProfileNudges() {
     console.error('[NudgePush] Error:', e.message);
   }
 }
+
+// ── FRONTEND EVENT LOG ──
+// Fire-and-forget from webapp.html. Logs to Railway console — no DB table needed.
+const EVENT_ALLOWLIST = new Set([
+  'cta_click', 'signup_opened', 'signup_completed',
+  'profile_completed', 'upgrade_clicked',
+]);
+app.post('/api/events', (req, res) => {
+  try {
+    const { event, props = {} } = req.body || {};
+    if (!event || !EVENT_ALLOWLIST.has(event)) {
+      return res.status(400).json({ error: 'Unknown event' });
+    }
+    let userId = 'anon';
+    try {
+      const decoded = jwt.verify(
+        (req.headers.authorization || '').replace(/^Bearer\s+/i, ''),
+        JWT_SECRET,
+      );
+      if (decoded?.id) userId = decoded.id;
+    } catch(_) {}
+    const parts = [`[Event] event=${event}`, `userId=${userId}`];
+    if (props.source) parts.push(`source=${String(props.source).slice(0, 50)}`);
+    if (props.button) parts.push(`button=${String(props.button).slice(0, 50)}`);
+    if (props.screen) parts.push(`screen=${String(props.screen).slice(0, 50)}`);
+    console.log(parts.join(' '));
+    res.json({ ok: true });
+  } catch(e) {
+    res.status(500).json({ error: 'Event log failed' });
+  }
+});
 
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

@@ -324,45 +324,81 @@ async function loadFunnel(){
   try{
     const f=await apiCall('GET','/api/admin/onboarding/funnel');
     const total=f.total_verified||1;
-    const s=f.by_stage||{};
+    const r=f.reached||{};
 
-    // Cumulative "reached this stage" counts — stages are sequential so
-    // users at later stages have already passed all earlier ones.
-    const reached={
-      acquisition: total,
-      intent:  (s.intent||0)+(s.profile||0)+(s.complete||0),
-      profile: (s.profile||0)+(s.complete||0),
-      complete: s.complete||0,
-    };
-    const LABELS={acquisition:'How heard',intent:'Intent set',profile:'Profile step',complete:'Complete'};
-    const COLORS={acquisition:'var(--blue)',intent:'var(--teal)',profile:'var(--purple)',complete:'var(--green)'};
-    const STAGES=['acquisition','intent','profile','complete'];
+    const STAGES=[
+      {key:'acquisition',label:'Verified',   color:'var(--blue)'},
+      {key:'intent',     label:'Intent',     color:'var(--teal)'},
+      {key:'profile',    label:'Profile',    color:'var(--purple)'},
+      {key:'photos',     label:'Photos',     color:'var(--amber)'},
+      {key:'complete',   label:'Complete',   color:'var(--green)'},
+    ];
 
     let html='';
-    STAGES.forEach((stage,i)=>{
-      const n=reached[stage];
+    STAGES.forEach((st,i)=>{
+      const n=r[st.key]||0;
       const pct=Math.round(n/total*100);
-      const drop=i<3?reached[stage]-reached[STAGES[i+1]]:0;
+      const next=STAGES[i+1];
+      const drop=next?(n-(r[next.key]||0)):0;
       const dropPct=total?Math.round(drop/total*100):0;
-      const st24=(f.stuck_over_24h||{})[stage]||0;
-      const st7 =(f.stuck_over_7d ||{})[stage]||0;
+      const st24=(f.stuck_over_24h||{})[st.key]||0;
+      const st7 =(f.stuck_over_7d ||{})[st.key]||0;
       html+=`
         <div class="funnel-stage">
-          <div class="funnel-label">${LABELS[stage]}</div>
+          <div class="funnel-label">${st.label}</div>
           <div class="funnel-bar-wrap">
-            <div class="funnel-bar" style="width:${pct}%;background:${COLORS[stage]}">${n} (${pct}%)</div>
+            <div class="funnel-bar" style="width:${pct}%;background:${st.color}">${n} (${pct}%)</div>
           </div>
         </div>`;
-      if(i<3){
+      if(next){
         const stuckNote=st24?` · <span class="funnel-stuck">${st24} stuck &gt;24h${st7?`, ${st7} &gt;7d`:''}</span>`:'';
-        html+=`<div class="funnel-drop">${drop>0?`↓ ${drop} dropped (${dropPct}%)`:''}${stuckNote}</div>`;
+        html+=`<div class="funnel-drop">${drop>0?`↓ ${drop} dropped (${dropPct}%)`:'&nbsp;'}${stuckNote}</div>`;
       }
     });
 
     if(f.gate_failures){
       html+=`<div style="margin-top:14px;padding:12px 14px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;font-size:13px">
-        <span style="color:var(--amber);font-weight:600">⚠ ${f.gate_failures} users</span>
-        <span style="color:var(--muted)"> finished onboarding but are blocked — profile_score &lt; 70</span>
+        <span style="color:var(--amber);font-weight:600">⚠ ${f.gate_failures}</span>
+        <span style="color:var(--muted)"> completed onboarding but blocked — profile_score &lt; 70</span>
+      </div>`;
+    }
+
+    // Avg completion time
+    if(f.avg_completion_seconds!=null){
+      const m=Math.floor(f.avg_completion_seconds/60), s=f.avg_completion_seconds%60;
+      const t=m>0?`${m}m ${s}s`:`${s}s`;
+      html+=`<div style="margin-top:10px;font-size:12px;color:var(--muted)">Avg time to complete: <strong style="color:var(--text)">${t}</strong></div>`;
+    }
+
+    // Source attribution table
+    const sb=f.source_breakdown||{};
+    const srcs=Object.entries(sb).sort((a,b)=>b[1].total-a[1].total);
+    if(srcs.length){
+      const maxTotal=srcs[0]?.[1]?.total||1;
+      let rows='';
+      for(const [src,v] of srcs){
+        const isBest=src===f.best_source;
+        const rateColor=v.rate>=50?'var(--green)':v.rate>=25?'var(--amber)':'#ef4444';
+        rows+=`
+          <div style="color:${isBest?'var(--green)':'var(--text)'};font-weight:${isBest?'600':'400'}">${src}${isBest?' ★':''}</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="flex:1;background:var(--card);border-radius:2px;height:6px;overflow:hidden">
+              <div style="width:${Math.round(v.total/maxTotal*100)}%;height:100%;background:var(--blue);border-radius:2px"></div>
+            </div>
+            <span style="color:var(--muted);font-size:11px">${v.total}</span>
+          </div>
+          <div style="text-align:right;color:var(--muted);font-size:12px">${v.completed}</div>
+          <div style="text-align:right;color:${rateColor};font-weight:600;font-size:12px">${v.rate}%</div>`;
+      }
+      html+=`<div style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);margin-bottom:10px;text-transform:uppercase">Source Attribution</div>
+        <div style="display:grid;grid-template-columns:100px 1fr 60px 48px;gap:6px 8px;font-size:12px;align-items:center">
+          <div style="color:var(--muted);font-weight:600">Source</div>
+          <div style="color:var(--muted);font-weight:600">Reach</div>
+          <div style="text-align:right;color:var(--muted);font-weight:600">Done</div>
+          <div style="text-align:right;color:var(--muted);font-weight:600">CVR</div>
+          ${rows}
+        </div>
       </div>`;
     }
 
