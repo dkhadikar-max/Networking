@@ -229,9 +229,15 @@ app.use(['/api', '/app', '/admin', '/upgrade'], (req, res, next) => {
   next();
 });
 
+// ── PHASE 6 — SEO Measurement: in-memory page view + signup attribution ──────
+const seoPageViews = new Map(); // page slug → view count (resets on deploy)
+const seoSignups   = new Map(); // page slug → signup count (resets on deploy)
+
 // Cache-Control helper for SEO landing pages (1-hour public cache)
 const sendSeoPage = (res, file) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
+  const slug = file.replace('.html', '');
+  seoPageViews.set(slug, (seoPageViews.get(slug) || 0) + 1);
   res.sendFile(path.join(__dirname, 'public', file));
 };
 
@@ -266,6 +272,27 @@ const CITIES = {
   jaipur:     { name: 'Jaipur',       state: 'Rajasthan',       ecosystem: 'travel tech, fashion tech, handicraft e-commerce, and edtech', hubs: 'iStart Rajasthan, IIT Jodhpur, and Jaipur Startup Ecosystem',    excerpt: "Jaipur is India's fastest-growing Tier 2 startup hub with strength in travel tech, fashion tech, and e-commerce for India's craft economy. The iStart Rajasthan program has catalysed hundreds of startups across the state." },
   kochi:      { name: 'Kochi',        state: 'Kerala',          ecosystem: 'tourism tech, sustainability, fintech, and health tech', hubs: 'Kerala Startup Mission (KSUM), Startup Village, and Infopark',       excerpt: "Kochi leads Kerala's startup ecosystem driven by Kerala Startup Mission, one of India's most active state-run startup programs. Strong in sustainability, tourism tech, and fintech with a growing base of climate-tech and health-tech founders." }
 };
+
+// SEO page metadata for /api/admin/seo (defined after CITIES so city pages auto-populate)
+const SEO_PAGES = [
+  { slug: '',                             label: 'Homepage',                   schema: 'WebSite+SoftwareApplication+FAQPage', priority: '1.0' },
+  { slug: 'networking-for-founders',      label: 'Networking for Founders',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'linkedin-alternative',         label: 'LinkedIn Alternative',       schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'networking-for-entrepreneurs', label: 'Networking for Entrepreneurs', schema: 'WebPage+FAQPage+BreadcrumbList',     priority: '0.9' },
+  { slug: 'startup-community-india',      label: 'Startup Community India',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'find-cofounders',              label: 'Find Co-founders',           schema: 'WebPage+HowTo+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'networking-for-creators',      label: 'Networking for Creators',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'networking-for-freelancers',   label: 'Networking for Freelancers', schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'business-networking-app',      label: 'Business Networking App',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'networking-for-investors',     label: 'Networking for Investors',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-founders-india',       label: 'Startup Founders India',     schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  ...Object.keys(CITIES).map(s => ({
+    slug: 'networking-in-' + s,
+    label: 'Networking in ' + CITIES[s].name,
+    schema: 'WebPage+FAQPage+BreadcrumbList',
+    priority: '0.8',
+  })),
+];
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -524,6 +551,8 @@ app.get('/networking-in-:city', (req, res) => {
   const slug = req.params.city.toLowerCase().replace(/[^a-z]/g, '');
   const city = CITIES[slug];
   if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  const citySlug = 'networking-in-' + slug;
+  seoPageViews.set(citySlug, (seoPageViews.get(citySlug) || 0) + 1);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(generateCityPage(slug, city, BASE));
@@ -1213,6 +1242,15 @@ app.post('/api/signup', authLimiter, async (req, res) => {
         } catch(_) {}
       }
     }
+
+    // SEO landing page signup attribution — capture which page drove this signup
+    try {
+      const referer = req.headers['referer'] || req.headers['referrer'] || '';
+      if (referer) {
+        const matched = SEO_PAGES.find(p => p.slug && referer.includes('/' + p.slug));
+        if (matched) seoSignups.set(matched.slug, (seoSignups.get(matched.slug) || 0) + 1);
+      }
+    } catch(_) {}
 
     const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, user: clean(inserted), email_verified: false });
@@ -2846,6 +2884,39 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
 app.get('/api/admin/audit', adminAuth, async (req, res) => {
   // Return in-memory buffer (fast) + optionally fetch from DB for full history
   res.json(adminAuditLog.slice(-200).reverse());
+});
+
+// ── PHASE 6 — SEO Measurement ─────────────────────────────────────────────────
+app.get('/api/admin/seo', adminAuth, (req, res) => {
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
+  const pages = SEO_PAGES.map(p => {
+    const views   = seoPageViews.get(p.slug) || 0;
+    const signups = seoSignups.get(p.slug)   || 0;
+    return {
+      url:      BASE + (p.slug ? '/' + p.slug : '/'),
+      label:    p.label,
+      schema:   p.schema,
+      priority: p.priority,
+      views,
+      signups,
+      cvr: views > 0 ? Math.round(signups / views * 100) + '%' : '—',
+    };
+  }).sort((a, b) => b.views - a.views);
+
+  const totalViews   = pages.reduce((s, p) => s + p.views,   0);
+  const totalSignups = pages.reduce((s, p) => s + p.signups, 0);
+
+  res.json({
+    total_pages:   SEO_PAGES.length,
+    total_views:   totalViews,
+    total_signups: totalSignups,
+    overall_cvr:   totalViews > 0 ? Math.round(totalSignups / totalViews * 100) + '%' : '—',
+    indexnow:      INDEXNOW_KEY ? 'configured ✓' : 'not configured',
+    gsc:           process.env.GSC_VERIFICATION ? 'configured ✓' : 'not configured',
+    bing:          process.env.BING_VERIFICATION ? 'configured ✓' : 'not configured',
+    note:          'Counts reset on each deploy. Use Google Search Console for persistent data.',
+    pages,
+  });
 });
 
 // ── ADMIN BOOTSTRAP ──
