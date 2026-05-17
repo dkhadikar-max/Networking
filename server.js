@@ -248,7 +248,40 @@ app.get('/robots.txt', (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.in';
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
-  res.send('User-agent: *\nAllow: /\nAllow: /terms\nAllow: /privacy\nAllow: /support\nAllow: /sitemap.xml\nDisallow: /api/\nDisallow: /app\nDisallow: /admin\nDisallow: /upgrade\nSitemap: ' + BASE + '/sitemap.xml\n');
+  const txt = [
+    'User-agent: *',
+    'Allow: /',
+    'Allow: /terms',
+    'Allow: /privacy',
+    'Allow: /support',
+    'Allow: /sitemap.xml',
+    'Disallow: /api/',
+    'Disallow: /app',
+    'Disallow: /admin',
+    'Disallow: /upgrade',
+    '',
+    '# AI search crawlers — explicitly allowed for AEO',
+    'User-agent: GPTBot',
+    'Allow: /',
+    '',
+    'User-agent: ChatGPT-User',
+    'Allow: /',
+    '',
+    'User-agent: Claude-Web',
+    'Allow: /',
+    '',
+    'User-agent: PerplexityBot',
+    'Allow: /',
+    '',
+    'User-agent: Google-Extended',
+    'Allow: /',
+    '',
+    'User-agent: Googlebot',
+    'Crawl-delay: 1',
+    '',
+    'Sitemap: ' + BASE + '/sitemap.xml',
+  ].join('\n');
+  res.send(txt);
 });
 
 
