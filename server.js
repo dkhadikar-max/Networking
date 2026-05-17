@@ -276,6 +276,7 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /networking-for-investors',
     'Allow: /find-cofounders',
     'Allow: /startup-founders-india',
+    'Allow: /founders/',
     'Allow: /networking-in-',
     'Allow: /founders-in-',
     'Allow: /startup-founders-',
@@ -1022,6 +1023,143 @@ app.get('/networking-in-:city', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(generateCityPage(slug, city, BASE));
+});
+
+// ── PHASE 5 — Public founder profile pages (crawlable, no auth) ──────────────
+// Safe public fields only — email, lat, lng, password, otp, push_token excluded by select.
+// Quality gate: profile_score >= 60, trust_score >= 10, not banned.
+const PROFILE_PUBLIC_FIELDS = 'id,name,bio,photos,location,intent,interests,skills,currently_exploring,working_on,profile_score,trust_score,is_profile_complete,banned,instagram,linkedin,website,created_at';
+
+app.get('/founders/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    // Validate UUID format to prevent unnecessary DB queries
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
+    const { data: user } = await supabase.from('users')
+      .select(PROFILE_PUBLIC_FIELDS).eq('id', id).maybeSingle();
+    // Quality gate: must exist, not banned, profile complete enough
+    if (!user || user.banned || (user.profile_score || 0) < 60 || (user.trust_score || 0) < 10) {
+      return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
+    const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+    const canonical = BASE + '/founders/' + id;
+    const E = escHtml;
+    const name = E(user.name || 'Founder');
+    const bio  = E((user.bio || '').slice(0, 300));
+    const location = E(user.location || 'India');
+    const intent = E((Array.isArray(user.intent) ? user.intent : [user.intent || '']).filter(Boolean).join(', '));
+    const skills = (user.skills || []).slice(0, 8).map(s => E(s));
+    const interests = (user.interests || []).slice(0, 6).map(i => E(i));
+    const photo = (user.photos || [])[0] || null;
+    const metaTitle = name + (location ? ' — Startup Founder in ' + location : ' — Startup Founder') + ' | Build Your Network';
+    const metaDesc = (user.bio || '').slice(0, 155) || ('Founder profile for ' + (user.name || 'a startup founder') + ' on Build Your Network — the intent-based founder networking platform in India.');
+
+    const personSchema = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Person',
+      'name': user.name,
+      'url': canonical,
+      'description': user.bio || undefined,
+      'jobTitle': intent || 'Startup Founder',
+      'knowsAbout': [...(user.skills || []), ...(user.interests || [])].slice(0, 12),
+      'workLocation': user.location ? { '@type': 'Place', 'name': user.location } : undefined,
+      'memberOf': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
+      ...(photo ? { 'image': photo } : {}),
+      ...(user.linkedin ? { 'sameAs': [user.linkedin] } : {}),
+    });
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${E(metaTitle)}</title>
+<link rel="canonical" href="${canonical}">
+<meta name="description" content="${E(metaDesc)}">
+<meta name="robots" content="index, follow, max-snippet:-1">
+<meta property="og:type" content="profile">
+<meta property="og:url" content="${canonical}">
+<meta property="og:title" content="${E(metaTitle)}">
+<meta property="og:description" content="${E(metaDesc)}">
+${photo ? '<meta property="og:image" content="' + E(photo) + '">' : ''}
+<meta property="og:site_name" content="Build Your Network">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="${photo ? 'summary_large_image' : 'summary'}">
+<meta name="twitter:title" content="${E(metaTitle)}">
+<meta name="twitter:description" content="${E(metaDesc)}">
+${photo ? '<meta name="twitter:image" content="' + E(photo) + '">' : ''}
+<script type="application/ld+json">${personSchema}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<style>
+:root{--bg:#FFF4EC;--bg2:#FDE8D7;--card:#fff;--primary:#0F766E;--hl:#CCFBF1;--text:#1F2937;--muted:#6B7280}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,244,236,.95);backdrop-filter:blur(20px);border-bottom:1px solid rgba(253,232,215,.6)}
+.nav-inner{max-width:900px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:18px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.logo img{width:26px;height:26px;border-radius:6px}
+.nav-cta{background:var(--primary);color:#fff;padding:9px 18px;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none}
+.wrap{max-width:700px;margin:0 auto;padding:100px 24px 80px}
+.bc{font-size:13px;color:var(--muted);margin-bottom:28px}.bc a{color:var(--primary);text-decoration:none}
+.profile-head{display:flex;gap:20px;align-items:flex-start;margin-bottom:32px}
+.avatar{width:80px;height:80px;border-radius:16px;object-fit:cover;background:var(--bg2);flex-shrink:0}
+.avatar-ph{width:80px;height:80px;border-radius:16px;background:var(--hl);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:var(--primary);flex-shrink:0}
+.ph-info h1{font-size:clamp(20px,3.5vw,28px);font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.location{font-size:14px;color:var(--muted);margin-bottom:8px}
+.intent-tag{display:inline-block;background:var(--hl);color:var(--primary);font-size:12px;font-weight:600;padding:3px 10px;border-radius:100px;margin-right:6px;margin-bottom:4px}
+.bio{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:32px}
+.pills-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.pill{background:var(--card);border:1px solid var(--bg2);border-radius:8px;padding:6px 14px;font-size:13px;color:var(--text);font-weight:500}
+.cta-block{background:var(--primary);border-radius:16px;padding:32px 28px;text-align:center;color:#fff;margin-top:40px}
+.cta-block h2{font-size:18px;font-weight:800;margin-bottom:8px}
+.cta-block p{font-size:14px;opacity:.85;margin-bottom:18px}
+.cta-block a{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:#fff;color:var(--primary);text-decoration:none;border-radius:8px;font-weight:700;font-size:14px}
+.links{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+.ext-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--primary);text-decoration:none;font-weight:600;background:var(--card);border:1px solid var(--bg2);border-radius:8px;padding:7px 14px}
+footer{border-top:1px solid var(--bg2);padding:24px;text-align:center;font-size:12px;color:var(--muted)}
+footer a{color:var(--primary);text-decoration:none}
+@media(max-width:480px){.profile-head{flex-direction:column}.wrap{padding:80px 16px 60px}}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner">
+  <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network">BuildYourNetwork</a>
+  <a href="/app" class="nav-cta">Join Free</a>
+</div></nav>
+<div class="wrap">
+  <p class="bc"><a href="/">Home</a> › <a href="/networking-for-founders">Founder Network</a> › ${name}</p>
+  <div class="profile-head" itemscope itemtype="https://schema.org/Person">
+    ${photo ? '<img class="avatar" src="' + E(photo) + '" alt="' + name + '" itemprop="image">' : '<div class="avatar-ph">' + (user.name || 'F').charAt(0).toUpperCase() + '</div>'}
+    <div class="ph-info">
+      <h1 itemprop="name">${name}</h1>
+      ${location ? '<p class="location" itemprop="workLocation">' + location + '</p>' : ''}
+      ${intent ? intent.split(',').map(i => '<span class="intent-tag">' + i.trim() + '</span>').join('') : ''}
+    </div>
+  </div>
+  ${bio ? '<p class="bio">' + bio + '</p>' : ''}
+  ${skills.length ? '<p class="pills-label">Skills</p><div class="pills">' + skills.map(s => '<span class="pill">' + s + '</span>').join('') + '</div>' : ''}
+  ${interests.length ? '<p class="pills-label">Interests</p><div class="pills">' + interests.map(i => '<span class="pill">' + i + '</span>').join('') + '</div>' : ''}
+  ${(user.linkedin || user.website) ? '<div class="links">' + (user.linkedin ? '<a class="ext-link" href="' + E(user.linkedin) + '" rel="noopener" target="_blank">LinkedIn</a>' : '') + (user.website ? '<a class="ext-link" href="' + E(user.website) + '" rel="noopener" target="_blank">Website</a>' : '') + '</div>' : ''}
+  <div class="cta-block">
+    <h2>Connect with ${name} on Build Your Network</h2>
+    <p>Join free to send a connection request. Intent-based matching — no cold DMs.</p>
+    <a href="/app">Join BYN Free &#8594;</a>
+  </div>
+</div>
+<footer><p>&copy; 2025 Build Your Network &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a></p></footer>
+</body></html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.send(html);
+  } catch(e) {
+    console.error('Public profile page error:', e);
+    res.status(500).sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
 // ── PHASE 5 — Webmaster verification + IndexNow ──────────────────────────────
