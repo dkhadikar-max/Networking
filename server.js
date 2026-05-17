@@ -471,6 +471,7 @@ function generateCityPage(slug, city, BASE) {
         'url': canonical,
         'description': metaDesc,
         'inLanguage': 'en-IN',
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.quick-answer', '.lead'] },
         'breadcrumb': {
           '@type': 'BreadcrumbList',
           'itemListElement': [
@@ -539,9 +540,11 @@ function generateCityPage(slug, city, BASE) {
     .tag{display:inline-block;background:var(--highlight);color:var(--primary);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;margin-bottom:16px;letter-spacing:.02em;text-transform:uppercase}
     h1{font-size:clamp(28px,4.5vw,44px);font-weight:800;line-height:1.15;letter-spacing:-1px;margin-bottom:20px}h1 span{color:var(--primary)}
     .lead{font-size:18px;color:var(--text-secondary);line-height:1.7;margin-bottom:36px;max-width:680px}
-    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:64px}
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
     .btn-p{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--primary);color:white;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px}
     .btn-s{display:inline-flex;align-items:center;gap:8px;padding:14px 24px;color:var(--primary);text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;border:2px solid var(--primary)}
+    .quick-answer{background:#f0fdf9;border-left:4px solid var(--primary);border-radius:0 12px 12px 0;padding:16px 20px;margin-bottom:48px;font-size:15px;line-height:1.75;color:var(--text)}
+    .quick-answer strong{color:var(--primary)}
     .know-block{background:var(--card);border-left:4px solid var(--primary);border-radius:0 12px 12px 0;padding:24px 28px;margin-bottom:64px}
     .know-block h2{font-size:18px;font-weight:700;margin-bottom:12px}
     .know-block p{font-size:15px;color:var(--text-secondary);line-height:1.7;margin-bottom:10px}.know-block p:last-child{margin-bottom:0}
@@ -596,6 +599,10 @@ function generateCityPage(slug, city, BASE) {
     </a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
+
+  <section class="quick-answer" aria-label="Quick answer">
+    <p><strong>Build Your Network (BYN)</strong> is the free networking platform for startup founders in ${escHtml(city.name)}, ${escHtml(city.state)}. It matches founders with co-founders, mentors, and investors based on declared intent — with GPS-based discovery across ${escHtml(city.name)}. No app install required.</p>
+  </section>
 
   <div class="know-block">
     <h2>Startup networking in ${escHtml(city.name)} — how it works</h2>
@@ -710,6 +717,7 @@ function cityIntentSchema(title, canonical, BASE, city, faqs, breadLabel, breadP
       {
         '@type': 'WebPage', 'name': title, 'url': canonical,
         'inLanguage': 'en-IN',
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.answer-block', '.lead'] },
         'breadcrumb': {
           '@type': 'BreadcrumbList',
           'itemListElement': [
@@ -1535,10 +1543,14 @@ app.get('/blog/:slug', (req, res) => {
         'url': canonical,
         'datePublished': article.date,
         'dateModified': article.date,
-        'author': { '@type': 'Organization', 'name': 'Build Your Network' },
-        'publisher': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
+        'author': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
+        'publisher': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE, 'logo': { '@type': 'ImageObject', 'url': BASE + '/assets/logo.png', 'width': 512, 'height': 512 } },
+        'image': { '@type': 'ImageObject', 'url': BASE + '/assets/logo.png', 'width': 512, 'height': 512 },
         'inLanguage': 'en-IN',
         'keywords': article.keywords,
+        'about': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.intro', '.takeaways'] },
+        'mainEntityOfPage': { '@type': 'WebPage', '@id': canonical },
       },
       {
         '@type': 'BreadcrumbList',
@@ -1580,7 +1592,10 @@ app.get('/blog/:slug', (req, res) => {
 .cat{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);background:var(--hl);padding:3px 8px;border-radius:4px;margin-bottom:12px}
 h1{font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-.5px;margin-bottom:16px;line-height:1.2}
 .meta{font-size:13px;color:var(--muted);margin-bottom:32px}
-.intro{font-size:17px;color:var(--muted);line-height:1.8;margin-bottom:40px;border-left:3px solid var(--primary);padding-left:16px}
+.intro{font-size:17px;color:var(--muted);line-height:1.8;margin-bottom:24px;border-left:3px solid var(--primary);padding-left:16px}
+.takeaways{background:#f0fdf9;border-left:4px solid var(--primary);border-radius:0 12px 12px 0;padding:16px 20px;margin-bottom:40px}
+.takeaways strong{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);margin-bottom:8px}
+.takeaways ul{margin-left:16px;font-size:14px;line-height:1.8;color:#374151}
 h2{font-size:clamp(18px,3vw,22px);font-weight:700;margin:40px 0 12px;letter-spacing:-.3px}
 .body-text{font-size:15px;line-height:1.8;color:#374151;margin-bottom:24px}
 .body-text p{margin-bottom:14px}
@@ -1593,12 +1608,14 @@ h2{font-size:clamp(18px,3vw,22px);font-weight:700;margin:40px 0 12px;letter-spac
 .related h3,.city-links h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:12px}
 .related a,.city-links a{display:inline-block;background:#fff;color:var(--primary);text-decoration:none;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;margin:3px;border:1px solid rgba(15,118,110,.15)}`;
 
+  const takeawayItems = article.sections.slice(0, 3).map(s => `<li>${E(s.h2)}</li>`).join('');
   const html = `
 <p class="bc"><a href="/">Home</a> › <a href="/blog">Blog</a> › ${E(article.category)}</p>
 <span class="cat">${E(article.category)}</span>
 <h1>${E(article.h1)}</h1>
 <p class="meta"><time datetime="${article.date}">${dateStr}</time></p>
 <p class="intro">${E(article.intro)}</p>
+<div class="takeaways" aria-label="Key takeaways"><strong>Key takeaways</strong><ul>${takeawayItems}</ul></div>
 ${sectionsHtml}
 <div class="cta-inline">
   <h3>${E(article.ctaText)}</h3>
