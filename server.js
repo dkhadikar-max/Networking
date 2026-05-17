@@ -245,6 +245,8 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
     ...cityUrls,
     ...intentUrls,
+    { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly'  },
+    ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly' })),
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
@@ -276,6 +278,7 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /networking-for-investors',
     'Allow: /find-cofounders',
     'Allow: /startup-founders-india',
+    'Allow: /blog',
     'Allow: /founders/',
     'Allow: /networking-in-',
     'Allow: /founders-in-',
@@ -1032,6 +1035,583 @@ app.get('/networking-in-:city', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.send(generateCityPage(slug, city, BASE));
+});
+
+// ── PHASE 7 — Blog content system ────────────────────────────────────────────
+const ARTICLES = [
+  {
+    slug: 'how-to-find-a-cofounder-in-india',
+    title: 'How to Find a Co-Founder in India in 2025',
+    metaDesc: 'A practical guide to finding the right co-founder in India — covering where to look, what to look for, and how to structure the conversation before you commit.',
+    date: '2025-04-10',
+    category: 'Co-founder Search',
+    keywords: 'how to find a cofounder in india, cofounder search india, find technical cofounder, startup cofounder platform india',
+    h1: 'How to Find a Co-Founder in India in 2025',
+    intro: 'Finding a co-founder is one of the most consequential decisions you will make as an early-stage founder. The wrong co-founder is worse than no co-founder — misaligned incentives, equity disputes, and divergent work ethics can destroy a startup faster than a failed product.',
+    sections: [
+      { h2: 'Where most Indian founders look for co-founders (and why it fails)', body: 'Most founders start with LinkedIn — and most get nowhere. LinkedIn has no co-founder intent filter. You are messaging professionals based on job titles, not on whether they are actively looking to start something. The response rate for cold LinkedIn DMs to potential co-founders is consistently under 5%.\n\nThe second most common approach is friends-of-friends — which works occasionally but limits your search to your existing social graph. You end up with someone familiar, not necessarily complementary.\n\nStartup events (Meetup, IIT/IIM entrepreneur fests, T-Hub events) produce occasional matches but are event-gated — your networking window is three hours once a month, and most attendees are there to learn, not to commit to a co-founder relationship.' },
+      { h2: 'What actually works: intent-based co-founder discovery', body: 'The most effective co-founder searches in India now happen through platforms built for that specific use case. Build Your Network (BYN) is the only platform in India where founders explicitly set their intent to "Looking for Co-founder", making their need visible to others who want to partner.\n\nThis shifts the dynamic completely. Instead of cold-messaging someone who might be interested, you are connecting with someone who has already declared that they are actively looking. Response rates are dramatically higher — typically 40-60% on BYN vs under 5% on LinkedIn for the same ask.' },
+      { h2: 'What to look for before you commit to a co-founder', body: 'Before any co-founder conversation becomes a commitment, evaluate four things:\n\n1. **Skill complementarity** — If you are technical, find a business co-founder. If you are business-focused, find a technical co-founder. Two business co-founders without a technical partner is a common early mistake in India.\n\n2. **Work style compatibility** — Are you both full-time? Are you both comfortable with ambiguity? Misaligned commitment levels (one full-time, one consulting) create resentment fast.\n\n3. **Domain fit** — Has your potential co-founder worked in your target domain? Domain knowledge matters less than you think early on, but industry relationships matter a lot.\n\n4. **Equity and legal clarity** — Have the equity, vesting, and IP assignment conversation before you start building anything together.' },
+      { h2: 'The 90-day trial co-founder structure', body: 'The best way to evaluate a potential co-founder in India is a structured 90-day trial before any equity commitment. Agree on a project milestone — build a specific feature, close a specific number of customer conversations, or complete a market research document. Evaluate at the end.\n\nThis is standard practice at top accelerators like Y Combinator and has been adopted by many early-stage founders in India. It removes the pressure of a permanent commitment before you have seen how the person works under real conditions.' },
+    ],
+    relatedSlugs: ['cofounder-equity-split-guide', 'startup-networking-india-guide'],
+    cityLinks: ['/find-cofounders-bengaluru', '/find-cofounders-mumbai', '/find-cofounders-hyderabad'],
+    ctaText: 'Find co-founders on Build Your Network — intent-based, GPS-filtered, free.',
+    ctaBtn: 'Start Co-founder Search',
+  },
+  {
+    slug: 'cofounder-equity-split-guide',
+    title: 'Co-Founder Equity Split: What Indian Startups Get Wrong',
+    metaDesc: 'How to split equity with a co-founder in India — common mistakes, the right frameworks, and why a 50-50 split is often the best starting point.',
+    date: '2025-04-18',
+    category: 'Co-founder Search',
+    keywords: 'cofounder equity split india, startup equity split founders, how to split equity startup india, founder equity agreement',
+    h1: 'Co-Founder Equity Split: What Indian Startups Get Wrong',
+    intro: 'Equity split conversations are avoided by most early-stage founders until they become unavoidable — and by then, the resentment has usually already started. Getting the equity split right at the beginning is not about fairness; it is about alignment.',
+    sections: [
+      { h2: 'The most common mistake: contribution-based early splits', body: 'The most frequent mistake Indian startups make is splitting equity based on early contribution — "you built the MVP, you get 70%; I did the market research, I get 30%." This feels logical but is almost always wrong.\n\nEarly contribution is the least reliable predictor of long-term value. The founder who wrote 10,000 lines of code in the first month may burn out in month four. The founder who spent three months building customer relationships may close the deal that funds the next two years. Early work does not predict future performance.' },
+      { h2: 'Why 50-50 is often the right answer', body: 'For two-founder startups at the pre-product stage, a 50-50 split with vesting is usually the best starting point. Here is why:\n\nIt signals equal commitment. It eliminates one co-founder feeling like an employee. It forces genuine consensus on decisions (no one can override the other without a real conversation). And practically, it is what most top investors in India expect to see in an early-stage startup.\n\nThe risk of 50-50 — "what if we deadlock?" — is real but manageable: build an explicit deadlock resolution process into your founders\' agreement. The risk of an unequal split that creates resentment is far more common and far harder to fix.' },
+      { h2: 'Vesting: the protection mechanism that most Indian startups skip', body: 'Every co-founder agreement in India should have a 4-year vesting schedule with a 1-year cliff. This means:\n\n- No equity vests in the first 12 months (the cliff)\n- After 12 months, 25% vests immediately\n- The remaining 75% vests monthly over the next 36 months\n\nThis protects both founders. If one co-founder leaves in month eight, they take no equity with them. If both stay and build, both get the full allocation.\n\nMost Indian startup failures involving co-founder disputes happen because there was no vesting schedule. One founder leaves early and keeps 40% of the company — making it nearly impossible to raise funding.' },
+      { h2: 'The conversation you must have before signing anything', body: 'Before any equity agreement, have explicit conversations about: full-time vs part-time commitment, salary expectations (especially once you raise), how decisions will be made, what happens if one of you wants to leave, and IP assignment (all code, designs, and IP must be assigned to the company, not held personally).\n\nIn India, the simplest legal vehicle for a startup co-founder agreement is a well-drafted SHA (Shareholders Agreement) drafted by a startup-focused CA or lawyer. Do not use templates — get it done properly once. Costs ₹15,000-40,000 and prevents problems worth crores later.' },
+    ],
+    relatedSlugs: ['how-to-find-a-cofounder-in-india', 'startup-networking-india-guide'],
+    cityLinks: ['/find-cofounders', '/networking-for-founders'],
+    ctaText: 'Find the right co-founder before you worry about the split.',
+    ctaBtn: 'Start Co-founder Search Free',
+  },
+  {
+    slug: 'startup-networking-india-guide',
+    title: 'Startup Networking in India: The Complete Guide for Founders',
+    metaDesc: 'How startup founders in India should build their professional network — which platforms work, what to avoid, and how to convert connections into co-founders, investors, and customers.',
+    date: '2025-04-25',
+    category: 'Founder Growth',
+    keywords: 'startup networking india, how to network as a founder india, founder networking guide, best networking for startups india',
+    h1: 'Startup Networking in India: The Complete Guide for Founders',
+    intro: 'Networking is not optional for startup founders in India — it is infrastructure. Your next co-founder, first investor, or first enterprise customer is almost certainly in someone else\'s network before they are in yours. This guide covers what actually works.',
+    sections: [
+      { h2: 'Why generic networking advice fails Indian founders', body: 'Most networking advice is written for corporate professionals in Western markets. "Attend conferences." "Use LinkedIn Premium." "Build your personal brand." This advice is expensive, slow, and optimized for the wrong outcome for an early-stage Indian founder.\n\nYou do not need 10,000 LinkedIn followers. You need three things: one technical co-founder, two or three early customers who will tell you what to build, and one investor who can write a first check. Networking for founders is about finding those three things — everything else is a distraction.' },
+      { h2: 'The three types of relationships that matter most for Indian founders', body: '**Co-founders and early team**: The relationship that determines whether your startup survives the first year. Found through domain-specific communities, alumni networks, and intent-based platforms like Build Your Network where both parties declare their co-founder search status.\n\n**Peer founders at the same stage**: The most underrated relationship in early-stage startups. Founders at the same stage share information about investors, pilots, government schemes, and co-working spaces. They are your competitive intelligence and emotional support network simultaneously.\n\n**One or two senior advisors**: Experienced operators who have navigated what you are about to navigate. They should own 0.25-1% equity with a 2-year vest. More than two senior advisors is usually a distraction — fewer is usually better.' },
+      { h2: 'Where to build your founder network in India (by effectiveness)', body: 'Ranked by ROI for early-stage founders in India:\n\n1. **Intent-based platforms (Build Your Network)**: Highest signal for co-founder and investor discovery. You see only people who are actively looking for what you offer.\n\n2. **Accelerator programs (Y Combinator, Antler, NASSCOM, TechStars)**: The highest-quality founder networks you can access. Even if you are not selected, the process of applying and doing intros builds relevant connections.\n\n3. **Alumni networks (IIT, IIM, BITS, NIT)**: Still the strongest trust-building shortcut in India. A shared college creates an implicit reference that cold introductions cannot replicate.\n\n4. **Domain Slack and WhatsApp groups**: High noise, occasional signal. Worth joining one or two that are highly specific to your domain.\n\n5. **LinkedIn**: Good for credibility and content. Poor for active co-founder or investor discovery without a structured approach.' },
+      { h2: 'The outreach framework that actually works', body: 'Most founder networking fails because the outreach is too vague. "I would love to connect and learn from your experience" gets ignored. Here is what works:\n\n**For co-founder outreach**: State specifically what you are building, what you have already done (users, revenue, deployed product), and exactly what kind of co-founder you are looking for. Make the mutual benefit clear upfront.\n\n**For investor outreach**: Attach a one-pager. State your traction (even if small), your ask, and why you are reaching out to this specific investor (not just "I think BYN is a good fit for your portfolio"). Specificity signals preparation.\n\n**For advisor outreach**: Be specific about what you need from them. "I need someone who has navigated Series A enterprise sales in India" is easier to say yes to than "I want to learn from your experience."' },
+    ],
+    relatedSlugs: ['how-to-find-a-cofounder-in-india', 'investor-networking-india'],
+    cityLinks: ['/networking-in-bengaluru', '/networking-in-mumbai', '/networking-in-hyderabad'],
+    ctaText: 'Build Your Network connects founders, investors, and mentors across India by intent.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'investor-networking-india',
+    title: 'How to Network with Angel Investors in India as a First-Time Founder',
+    metaDesc: 'How first-time founders in India can build relationships with angel investors — without cold pitching, without a warm intro, and without attending expensive events.',
+    date: '2025-05-02',
+    category: 'Fundraising',
+    keywords: 'angel investor networking india, how to meet angel investors india, startup investor outreach india, first time founder investor networking',
+    h1: 'How to Network with Angel Investors in India as a First-Time Founder',
+    intro: 'Most first-time founders in India treat investor networking like a transaction — pitch deck, cold email, rejection. The founders who successfully raise their first angel round treat it as a relationship-building process that starts 6-12 months before they actually need the money.',
+    sections: [
+      { h2: 'The investor landscape in India that first-time founders miss', body: 'India\'s angel investing landscape is more accessible than most founders believe. There are three tiers:\n\n**Micro-angels (₹5L-₹25L tickets)**: Successful professionals — CA, CXOs, startup employees with ESOPs — who are deploying small personal capital into early-stage startups. Often found on platforms like Build Your Network, LetsVenture, and local angel networks.\n\n**Angel networks (₹25L-₹2Cr tickets)**: Mumbai Angels, Indian Angel Network, Lead Angels, 100X.VC, and regional equivalents. These are organized groups that pool capital and do structured due diligence.\n\n**Institutional pre-seed (₹2Cr-₹10Cr)**: Antler, Kalaari, Blume, 3one4, and similar firms that write first checks into pre-revenue or early-revenue companies.' },
+      { h2: 'How to build investor relationships before you need the money', body: 'The single best time to meet an investor is before you need their money. Here is the specific approach:\n\n1. **Join the platforms they use**: Build Your Network has investors who have declared "Open to Angel Investing" intent. This means they are actively looking — your first message has a completely different reception than a cold email.\n\n2. **Write about what you are building**: Not a pitch — an honest update about what you are learning. Send it to 10 investors monthly as a "build in public" update. Most will not respond, but three or four will. Those become your relationship pipeline.\n\n3. **Ask for feedback, not money**: "I am building X. I would love 20 minutes of your perspective on this market — not a pitch, just genuine feedback." Conversion rate is 5x higher than "would you like to invest?"' },
+      { h2: 'What investors in India actually want to see before writing a first check', body: 'Indian angel investors at the ₹25L-₹2Cr level are primarily evaluating: the founder\'s ability to execute on something specific, evidence that the market problem is real, and some signal that users want this (even if paid or beta users).\n\nThey are not primarily evaluating the size of the market (you can always tell a big market story), the technology (they usually cannot evaluate it anyway), or your projections (no one believes year-3 projections at pre-seed).\n\nThe most compelling pitch deck for an Indian angel investor is: 3-4 slides on the problem (with specific user quotes), 1 slide on what you have already built and shipped, 1 slide on early traction (even 100 users counts), and 1 slide on the ask and use of funds.' },
+      { h2: 'The platforms and communities where Indian angels are actually active', body: 'Beyond cold email:\n\n- **Build Your Network**: Angels declare investment intent and are discoverable by city and stage preference\n- **LetsVenture**: India\'s largest organized angel platform for ticket sizes of ₹25L+\n- **Titan Capital community events**: Access to prominent Indian angel investors through their portfolio company events\n- **YC Alumni India network**: Very high quality, but requires someone in the network to make the introduction\n- **Domain-specific Slack groups** (FinTech, HealthTech, AgriTech): Investors active in specific domains often participate in these groups' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'how-to-find-a-cofounder-in-india'],
+    cityLinks: ['/networking-for-investors', '/founders-in-bengaluru', '/founders-in-mumbai'],
+    ctaText: 'Find angels who are actively looking for startups — on Build Your Network.',
+    ctaBtn: 'Find Investors Free',
+  },
+  {
+    slug: 'bengaluru-startup-ecosystem-guide',
+    title: 'Bengaluru Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'Everything a startup founder needs to know about building a company in Bengaluru — the ecosystem, co-working spaces, investor community, and how to build your network fast.',
+    date: '2025-05-08',
+    category: 'City Guides',
+    keywords: 'bengaluru startup ecosystem, startup founder network bengaluru, co-working spaces bengaluru startups, bangalore angel investors 2025',
+    h1: 'Bengaluru Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Bengaluru is India\'s default location for a reason. The density of technical talent, the highest concentration of VC firms in the country, and a culture of startup-native professionals who understand equity and ambiguity make it uniquely well-suited for technology startups.',
+    sections: [
+      { h2: 'Why Bengaluru remains India\'s #1 startup city', body: 'Three structural advantages explain Bengaluru\'s dominance:\n\n**Engineering talent density**: The concentration of senior engineers from Amazon, Flipkart, Swiggy, PhonePe, and hundreds of product companies creates a pool of potential technical co-founders and early employees unlike any other Indian city. Engineers in Bengaluru are significantly more likely to have worked in a startup than engineers elsewhere.\n\n**VC ecosystem**: Bengaluru is home to the India offices of virtually every major VC fund — Sequoia India, Accel, Matrix, Kalaari, Nexus, and 3one4 are all headquartered or have primary offices in the city.\n\n**Founder culture**: There is a social acceptance of leaving a high-paying job to start a company in Bengaluru that does not exist at the same level in Mumbai, Delhi, or Hyderabad. This makes co-founder recruitment significantly easier.' },
+      { h2: 'Where to build your founder network in Bengaluru', body: 'Specific places where your probability of finding a technical co-founder, investor, or early customer is highest in Bengaluru:\n\n**Indiranagar and Koramangala**: The two highest-density startup neighborhoods. Most accelerator demo days, startup events, and co-founder networking events happen within 5 km of these two areas.\n\n**NASSCOM CoE**: Has regular events specifically for founders at the pre-seed and seed stage.\n\n**IIMB NSRCEL**: Run accelerator programs that attract founders from across India. Excellent for B2B SaaS and deep tech founders.\n\n**Build Your Network**: GPS-filtered discovery lets you find founders and investors within 10 km of your location in Bengaluru. Set your intent and location — the platform surfaces co-founders actively looking in your neighborhood.' },
+      { h2: 'The Bengaluru investor community in 2025', body: 'Angel investors in Bengaluru tend to concentrate in two groups:\n\n**Ex-startup operators**: Former employees of Flipkart, Ola, BYJU\'S, Freshworks, Razorpay who received large ESOP payouts and are now deploying ₹5L-₹50L tickets into early-stage startups. This is the most accessible capital in Bengaluru for first-time founders.\n\n**Institutional pre-seed**: Blume Ventures, 3one4, and Antler all run strong deal flows from Bengaluru and actively look at pre-product teams with strong founding backgrounds.\n\nThe Bengaluru angel community is tightly networked — one warm introduction cascades quickly. Getting your first meeting right matters significantly.' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'investor-networking-india'],
+    cityLinks: ['/networking-in-bengaluru', '/founders-in-bengaluru', '/find-cofounders-bengaluru', '/startup-networking-bengaluru'],
+    ctaText: 'Find co-founders and investors in Bengaluru on Build Your Network.',
+    ctaBtn: 'Join Free in Bengaluru',
+  },
+  {
+    slug: 'mumbai-startup-ecosystem-guide',
+    title: 'Mumbai Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'A founder\'s guide to building a startup in Mumbai — the ecosystem, fintech advantage, investor access, and how to network with other founders in the city.',
+    date: '2025-05-12',
+    category: 'City Guides',
+    keywords: 'mumbai startup ecosystem, startup networking mumbai, fintech startups mumbai, angel investors mumbai 2025',
+    h1: 'Mumbai Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Mumbai is India\'s financial capital and the dominant location for fintech, D2C, and media-tech startups. If your startup touches financial services, consumer brands, or media, Mumbai gives you unmatched access to the customers, distribution partners, and capital you need.',
+    sections: [
+      { h2: 'What Mumbai does uniquely well for startups', body: 'Mumbai\'s advantages are concentrated and specific:\n\n**Capital access**: Mumbai has the highest density of institutional capital in India. HNI investors, family offices, and the city\'s financial ecosystem create a fundraising environment that Bengaluru\'s VC-heavy market cannot replicate for cheque sizes of ₹50L-₹5Cr.\n\n**D2C and consumer brand expertise**: The cluster of advertising agencies, media companies, and distribution networks in Mumbai is unmatched in India for building a consumer brand. If you are building a D2C startup, Mumbai gives you access to brand-building talent that Bengaluru simply does not have.\n\n**Fintech regulatory adjacency**: RBI, SEBI, and NPCI proximity matters for regulated fintech businesses. Mumbai-based founders have meaningfully easier access to regulatory guidance and compliance expertise.' },
+      { h2: 'Where founders network in Mumbai', body: 'Specific locations and communities:\n\n**Bandra-Kurla Complex (BKC)**: The financial and startup hub. Most fintech startups, VC firms, and accelerator offices are in or near BKC.\n\n**Powai**: The tech cluster adjacent to IIT Bombay. Strong for deep tech, edtech, and product-focused founders.\n\n**IIT Bombay STP (Society for Technology and Policies)**: One of the most active founder communities in Mumbai, running regular events and providing incubation support.\n\n**Build Your Network**: GPS discovery within 10 km lets you find co-founders and investors actively looking in your specific area of Mumbai — BKC, Powai, Andheri, or Bandra.' },
+      { h2: 'Mumbai vs Bengaluru for tech startups: the honest comparison', body: 'For most technology startups, Bengaluru wins on engineering talent, technical co-founder availability, and VC access. Mumbai wins on capital access (HNI/family office), distribution and brand-building expertise, financial services ecosystem, and D2C go-to-market.\n\nMany founders run the two cities in parallel — Bengaluru engineering team, Mumbai sales and fundraising. This is more common than it appears, and it is usually the right call for startups with a B2B SaaS or fintech component.' },
+    ],
+    relatedSlugs: ['bengaluru-startup-ecosystem-guide', 'startup-networking-india-guide'],
+    cityLinks: ['/networking-in-mumbai', '/founders-in-mumbai', '/find-cofounders-mumbai'],
+    ctaText: 'Find co-founders and investors in Mumbai on Build Your Network.',
+    ctaBtn: 'Join Free in Mumbai',
+  },
+  {
+    slug: 'technical-cofounder-search-india',
+    title: 'How to Find a Technical Co-Founder in India: The Honest Guide',
+    metaDesc: 'Where to find a technical co-founder in India, what actually works, and how to evaluate a technical partner when you are not technical yourself.',
+    date: '2025-05-16',
+    category: 'Co-founder Search',
+    keywords: 'find technical cofounder india, technical cofounder search, how to find cto cofounder india, non technical founder cofounder',
+    h1: 'How to Find a Technical Co-Founder in India: The Honest Guide',
+    intro: 'Finding a technical co-founder is the most common challenge for non-technical startup founders in India. The standard advice — "post on LinkedIn", "attend hackathons", "ask your engineer friends" — fails most of the time. Here is what actually works.',
+    sections: [
+      { h2: 'Why engineers are reluctant to join early-stage startups in India', body: 'Senior engineers in India have significant opportunity cost. A software engineer with 5 years of experience at a product company in Bengaluru is earning ₹30-50L/year. Joining an early-stage startup for equity requires them to take a 40-70% salary cut and bet on a 5-7 year outcome.\n\nThis means your pitch to a technical co-founder needs to address the financial reality explicitly: What is the path to recovering their income? How much equity makes the risk worthwhile? What is the traction that makes this a credible bet?\n\nFounders who treat technical co-founder recruitment like they are doing the engineer a favor consistently fail to attract strong technical co-founders.' },
+      { h2: 'The three types of technical co-founders available in India', body: '**The corporate engineer looking to build**: The most common profile — a 4-8 year engineering professional who has built significant skills at a product company and wants to apply them to something they own. Usually wants meaningful equity (20-35%), strong co-founder equity, and some path to market salary as the company grows.\n\n**The student / recent graduate**: High ambition, lower opportunity cost, lower immediate salary expectation. The risk is experience — building a startup requires navigating technical decisions that a senior engineer handles automatically.\n\n**The serial founder / ex-CTO**: Rare, expensive (equity-wise), and usually only interested in founders who have strong domain expertise or early traction. Best approached through warm introductions.' },
+      { h2: 'Where to find technical co-founders in India today', body: 'Ranked by effectiveness:\n\n1. **Intent-based platforms (Build Your Network)**: The most direct route — engineers who have declared "Looking for Co-founder" intent are already in search mode. GPS filtering lets you find technical co-founders in your city.\n\n2. **IIT/BITS/NIT alumni networks**: The highest-trust shortcut. A shared institution creates implicit credibility that cold outreach cannot replicate.\n\n3. **Hackathons**: AngelHack India, HackInOut, and university hackathons consistently produce co-founder matches. Spend a weekend building with someone before you commit to a multi-year relationship.\n\n4. **Freelance platforms**: Upwork and Toptal occasionally produce co-founder matches, but the dynamic starts commercially, which makes the transition to equity partnership awkward.\n\n5. **LinkedIn (with a very specific approach)**: Not "would you like to co-found?" but "I am building X, we have [traction], I am looking for a technical co-founder who has done [specific thing] — is that something you are exploring?"' },
+      { h2: 'How to evaluate a technical co-founder when you are not technical', body: 'Four non-technical indicators of a strong technical co-founder:\n\n1. **They ask questions before writing code**: Good engineers spend time understanding the problem. If a potential technical co-founder wants to start building immediately without deeply understanding the customer, that is a red flag.\n\n2. **They have shipped products to real users**: Ask specifically — not "what have you built" but "what products have real users used?" Portfolio that includes production systems beats impressive GitHub repos.\n\n3. **They think about the problem, not just the solution**: The best technical co-founders are interested in understanding why users behave the way they do, not just what feature to build next.\n\n4. **Their references are from people they have built products with**: Not managers. Not colleagues who watched them work. People who built something with them under deadline pressure.' },
+    ],
+    relatedSlugs: ['how-to-find-a-cofounder-in-india', 'cofounder-equity-split-guide'],
+    cityLinks: ['/find-cofounders-bengaluru', '/find-cofounders-hyderabad', '/find-cofounders-mumbai', '/find-cofounders'],
+    ctaText: 'Find technical co-founders by intent on Build Your Network — GPS-filtered by city.',
+    ctaBtn: 'Find Technical Co-founders',
+  },
+  {
+    slug: 'startup-community-india-2025',
+    title: 'The Best Startup Communities in India for Founders in 2025',
+    metaDesc: 'A ranked guide to the best startup communities, networks, and platforms for founders in India in 2025 — from Bengaluru to Delhi, online and in-person.',
+    date: '2025-05-20',
+    category: 'Founder Growth',
+    keywords: 'best startup communities india, startup founder community 2025, online startup community india, founder network india',
+    h1: 'The Best Startup Communities in India for Founders in 2025',
+    intro: 'A founder\'s community determines their ceiling. The right community brings faster fundraising, better co-founder matches, and the operational knowledge that typically takes years to acquire. This is the ranked guide to what actually works in India in 2025.',
+    sections: [
+      { h2: 'What makes a startup community valuable for founders', body: 'Not all startup communities are equal. The most valuable founder communities share four properties:\n\n**High trust signals**: Members are filtered by achievement, not just willingness to pay a membership fee. The value of a community comes from who else is in it.\n\n**Intent transparency**: The best communities make it easy to know what people are looking for — co-founders, funding, partnerships, customers. Communities without this default to noise.\n\n**Operational knowledge sharing**: The communities that accelerate founders most are those where members share what actually happened — failed fundraises, broken co-founder relationships, churn rates — not just wins.\n\n**Local density**: For early-stage founders, in-person relationships in the same city are worth significantly more than distributed online connections. Local community density drives co-founder matches and intro chains.' },
+      { h2: 'Top startup communities in India ranked by founder ROI', body: '**Build Your Network**: India\'s only intent-based founder networking platform. Founders, investors, and mentors declare what they are looking for — enabling direct matches without the noise of general communities. GPS-filtered by city.\n\n**YC Alumni India network**: The highest-quality closed network for founders with YC backing. Not accessible without YC participation, but the warm intro chain from any YC founder is extremely valuable.\n\n**NASSCOM 10000 Startups**: Pan-India reach, government support, good for B2B SaaS and enterprise founders who need procurement introductions.\n\n**Antler India**: Has both a cohort program and an alumni community that is increasingly active. Strong for founders at the ideation stage.\n\n**Operator Angel networks (Mumbai Angels, Indian Angel Network)**: Excellent for relationship-building with angels — but the community is investor-facing, so it requires more work for a first-time founder to break in.' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'investor-networking-india'],
+    cityLinks: ['/startup-community-india', '/networking-for-founders', '/networking-in-bengaluru'],
+    ctaText: 'Join India\'s intent-based founder community — Build Your Network.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'founder-mentor-india',
+    title: 'How to Find a Startup Mentor in India: A Practical Guide',
+    metaDesc: 'Where to find a startup mentor in India, what to ask them, and how to structure a mentor relationship that actually adds value to your startup.',
+    date: '2025-05-24',
+    category: 'Founder Growth',
+    keywords: 'startup mentor india, find mentor startup india, founder advisor india, startup advisor equity india',
+    h1: 'How to Find a Startup Mentor in India: A Practical Guide',
+    intro: 'Most startup advice in India about finding mentors is generic and useless: "attend startup events", "reach out on LinkedIn", "ask for a coffee chat." Here is what actually produces useful mentorship relationships for early-stage founders.',
+    sections: [
+      { h2: 'The difference between a mentor and an advisor (and why it matters)', body: 'A mentor gives you time and perspective for free. An advisor gives you specific, recurring value in exchange for equity (typically 0.1-0.5% with a 1-2 year vest).\n\nMost early-stage founders conflate the two. They try to compensate mentors with equity, which creates awkward obligation. Or they expect advisor-level commitment from someone who agreed to a coffee chat.\n\nBe explicit from the first conversation: "I am looking for mentorship, not an advisory relationship — I am not offering equity at this stage." Most experienced founders will respect this directness. Those who want equity upfront for an initial conversation are not the mentors you want anyway.' },
+      { h2: 'Where to find startup mentors in India in 2025', body: '**Build Your Network**: Experienced founders and operators who have set their intent to "Open to Advising" are discoverable by city. This is the only platform in India where mentorship intent is explicitly declared.\n\n**Accelerator programs**: IIM-A CIIE, NASSCOM CoE, T-Hub, Kerala Startup Mission, and IIMB NSRCEL all have mentor networks accessible to founders in their programs.\n\n**Alumni networks**: An IIT alumnus who has built a startup is usually willing to give 30 minutes to another IIT founder. The shared institution creates implicit obligation that most people honor.\n\n**YC Startup School**: Free program, online, and has a mentor matching component. Good for founders who want domain-specific mentors regardless of geography.' },
+      { h2: 'What to ask a mentor in the first meeting', body: 'The most common mistake is asking too-broad questions. "What should I be focusing on?" puts the burden on the mentor to structure a conversation they have no context for.\n\nBetter approach: give them a specific situation with a specific decision point. "I have two customers willing to pay ₹5000/month each. I also have one customer willing to pay ₹50,000/month but with significant customization. Which do I prioritize?" This is a question a good mentor can answer usefully in 10 minutes.\n\nIn the first meeting, evaluate: Do they ask good questions? Do they give you frameworks, not just answers? Do they push back when your reasoning has gaps? Are they interested in your problem or are they lecturing about their own experience?' },
+    ],
+    relatedSlugs: ['investor-networking-india', 'startup-networking-india-guide'],
+    cityLinks: ['/networking-for-founders', '/networking-in-bengaluru', '/networking-in-mumbai'],
+    ctaText: 'Find mentors who are open to advising on Build Your Network.',
+    ctaBtn: 'Find a Mentor Free',
+  },
+  {
+    slug: 'hyderabad-startup-ecosystem-guide',
+    title: 'Hyderabad Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'A practical guide to building a startup in Hyderabad — T-Hub, the biotech and deep-tech ecosystem, investor access, and how to network with founders in the city.',
+    date: '2025-05-27',
+    category: 'City Guides',
+    keywords: 'hyderabad startup ecosystem, startup networking hyderabad, t-hub startups, hyderabad deep tech startups 2025',
+    h1: 'Hyderabad Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Hyderabad is India\'s fastest-growing startup city after Bengaluru. T-Hub\'s infrastructure, IIT Hyderabad\'s deep-tech research output, and a government that actively courts startups make it an increasingly strong choice for founders — especially in biotech, pharma tech, and enterprise SaaS.',
+    sections: [
+      { h2: 'Hyderabad\'s distinctive advantage for startups', body: 'Three specific advantages that make Hyderabad worth serious consideration:\n\n**T-Hub**: Asia\'s largest startup incubator by physical scale. T-Hub\'s network effect — connecting startups to large corporations (Cyient, Durgam Cheruvu Tech Corridor) — is unique in India. Corporate pilots that take months to arrange in Bengaluru often happen in weeks through T-Hub introductions.\n\n**Lower burn rate**: Office space, engineering talent, and operational costs in Hyderabad run 30-40% below Bengaluru. For pre-seed startups where runway is everything, this extends your runway by several months on the same capital.\n\n**State government support**: Telangana\'s T-IDEA program provides direct grants to startups and has a genuine track record of disbursement — unlike many state startup programs that are more announcement than execution.' },
+      { h2: 'Where to build your network in Hyderabad', body: 'The key founder networking locations in Hyderabad:\n\n**T-Hub (Raidurgam)**: The epicenter. Even if you are not in T-Hub\'s program, their public events are some of the best in the country for enterprise tech and deep-tech founders.\n\n**IIT Hyderabad campus**: Growing fast as a deep-tech and hardware startup ecosystem. Research park events and alumni channels are high-signal.\n\n**NASSCOM Hyderabad**: Regular community events specifically for product companies.\n\n**Build Your Network**: GPS-filtered co-founder and investor discovery within 10 km of your location in Hyderabad. Engineers and founders who have set co-founder search intent are surfaced directly.' },
+      { h2: 'Hyderabad for biotech and deep-tech founders', body: 'Hyderabad\'s strongest vertical is biotech, pharma, and life sciences — driven by the concentration of pharma companies (Dr. Reddy\'s, Aurobindo, Divi\'s) and the Genome Valley biotech cluster. Founders building in computational biology, pharma-tech, or medical devices have access to a co-founder and advisor pool that does not exist at the same quality in any other Indian city.\n\nFor deep-tech more broadly, IIT Hyderabad\'s research output is increasingly commercialization-focused. The Technology Transfer Office has relationships with several Bengaluru VCs who actively look at IIT Hyderabad spin-outs.' },
+    ],
+    relatedSlugs: ['bengaluru-startup-ecosystem-guide', 'startup-networking-india-guide'],
+    cityLinks: ['/networking-in-hyderabad', '/founders-in-hyderabad', '/find-cofounders-hyderabad'],
+    ctaText: 'Find co-founders and investors in Hyderabad on Build Your Network.',
+    ctaBtn: 'Join Free in Hyderabad',
+  },
+  {
+    slug: 'building-startup-team-india',
+    title: 'Building Your First Startup Team in India: What Founders Get Wrong',
+    metaDesc: 'How to build your first startup team in India — when to hire, who to hire first, equity vs salary tradeoffs, and the hiring mistakes that kill early-stage startups.',
+    date: '2025-05-30',
+    category: 'Founder Growth',
+    keywords: 'building startup team india, first startup hire india, startup team equity india, early stage startup hiring india',
+    h1: 'Building Your First Startup Team in India: What Founders Get Wrong',
+    intro: 'Most early-stage Indian startups hire too early and the wrong people. The result is a burn rate that cannot be sustained, equity diluted to people who leave before the vesting cliff, and organizational complexity that slows decision-making. Here is the honest guide to building a startup team in India.',
+    sections: [
+      { h2: 'The right time to hire your first employee in India', body: 'The right time to hire your first non-co-founder employee is when you have product-market fit signal — not before. In practical terms: you have at least 10-20 customers who are paying or deeply engaged, you have found one repeatable acquisition channel, and you and your co-founders are consistently overwhelmed by the same type of work.\n\nHiring before this point is almost always premature. You do not know what you need yet. The person you hire for your hypothesis of the problem will often not be the right hire for the actual problem.' },
+      { h2: 'Who to hire first: the universal mistake', body: 'Most Indian startups make two early hiring mistakes:\n\n**Hiring a business development person before you have product-market fit**: BD before PMF is evangelism for a product that has not proven it can be sold. The BD person will generate meetings and POCs that go nowhere — and you will spend 6 months not learning what the actual problem is.\n\n**Hiring for the org chart you want, not the company you are**: "We need a VP of Engineering" at 5 people means you are hiring for optics, not function. Hire the most senior technical person who will actually write code, not the most impressive title.' },
+      { h2: 'Equity vs salary for early hires in India', body: 'The honest tradeoff table for India:\n\n**Engineer, 3-5 years experience**: ₹25-40L/year market rate. Can you offer ₹18-25L + meaningful equity (0.5-1%)? If yes, you can attract strong engineers. If you cannot offer either, you will get engineers with limited options.\n\n**Product manager, 3-5 years**: ₹20-35L/year market rate. Similar tradeoff — meaningful equity is often more compelling than cash at early stage for PMs who understand startup risk.\n\n**Rule of thumb**: Salary cuts of more than 50% below market rarely work for sustained performance. Equity must be meaningful — 0.5-1% for senior early employees, with proper vesting and an explanation of what it could be worth.' },
+    ],
+    relatedSlugs: ['how-to-find-a-cofounder-in-india', 'cofounder-equity-split-guide'],
+    cityLinks: ['/networking-for-founders', '/find-cofounders', '/startup-community-india'],
+    ctaText: 'Find your first team members and co-founders on Build Your Network.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'linkedin-alternative-founders-india',
+    title: 'Why Startup Founders in India Are Moving Away from LinkedIn',
+    metaDesc: 'LinkedIn is not built for startup founders. Here is why Indian founders are switching to intent-based platforms for co-founder search, investor access, and founder networking.',
+    date: '2025-06-02',
+    category: 'Platform Comparisons',
+    keywords: 'linkedin alternative founders india, why founders leave linkedin, startup networking not linkedin india, build your network vs linkedin',
+    h1: 'Why Startup Founders in India Are Moving Away from LinkedIn',
+    intro: 'LinkedIn\'s user base in India has grown dramatically — but founder satisfaction with LinkedIn for startup-specific networking has not. The problem is structural: LinkedIn is optimized for job-seeking and content engagement. Startup founders need something fundamentally different.',
+    sections: [
+      { h2: 'The specific ways LinkedIn fails startup founders in India', body: 'LinkedIn\'s failures for the startup founder use case are concrete:\n\n**No co-founder intent filter**: You cannot search LinkedIn for "founder actively looking for technical co-founder in Bengaluru within 10 km." You can search by job title, but "Software Engineer at TCS" does not tell you if someone is ready to take the leap.\n\n**Recruiter noise drowns signal**: LinkedIn\'s revenue depends on recruiter subscriptions. The platform is structurally incentivized to deliver recruiting messages to your inbox — which means your actual founder networking messages compete with 20 recruiter InMails for attention.\n\n**Premium cost is prohibitive for early-stage founders**: LinkedIn Premium Career at ₹2,800/month or Sales Navigator at ₹5,500/month is significant burn for a pre-revenue startup. And Premium does not solve the fundamental problem — there is still no intent filter for co-founder search.' },
+      { h2: 'What founders are using instead', body: 'The platforms that are capturing Indian founder networking that LinkedIn cannot:\n\n**Build Your Network**: Intent-based co-founder, investor, and mentor discovery. GPS-filtered to your city. Free with 30 daily connections. The only platform where founders explicitly declare "Looking for Co-founder" or "Open to Angel Investing" — making first messages have immediate context.\n\n**Domain-specific Slack and WhatsApp communities**: High noise but occasionally useful for peer founder connections. Best for getting quick answers from founders in the same domain.\n\n**Accelerator alumni networks**: The highest-quality closed networks for founders, but only accessible after program participation.\n\n**IIT/IIM alumni networks**: The trust shortcut that still works better than any platform for warm founder introductions in India.' },
+      { h2: 'The feature that makes the difference: declared intent', body: 'The fundamental improvement that intent-based platforms provide over LinkedIn is not a better algorithm — it is forcing users to declare what they are actually looking for.\n\nWhen a founder on Build Your Network sets their profile to "Looking for Co-founder — Technical", they are signaling to every other user that a connection request from them is welcome and expected. The first message does not need to spend three sentences establishing context and legitimacy. Both parties already know why the connection is being made.\n\nThis single change — declared intent before connection — produces fundamentally different networking dynamics. Response rates for intentional networking on purpose-built platforms are 5-10x higher than cold outreach on LinkedIn.' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'how-to-find-a-cofounder-in-india'],
+    cityLinks: ['/linkedin-alternative', '/linkedin-vs-byn', '/best-networking-platform-for-founders'],
+    ctaText: 'Try the intent-based alternative to LinkedIn for founders — Build Your Network.',
+    ctaBtn: 'Join BYN Free',
+  },
+  {
+    slug: 'delhi-startup-ecosystem-guide',
+    title: 'Delhi NCR Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'A practical guide to building a startup in Delhi NCR — Gurugram, Noida, and Delhi — covering the ecosystem, investor access, co-working spaces, and founder networking.',
+    date: '2025-06-05',
+    category: 'City Guides',
+    keywords: 'delhi startup ecosystem, gurgaon startup founders, noida startup ecosystem, delhi ncr startups 2025',
+    h1: 'Delhi NCR Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Delhi NCR encompasses three distinct startup zones — Gurugram, Noida, and Delhi proper — each with different strengths. Understanding which zone fits your startup saves months of misaligned effort.',
+    sections: [
+      { h2: 'Gurugram vs Noida vs Delhi: which zone is right for your startup', body: '**Gurugram (Gurgaon)**: India\'s B2B SaaS and enterprise startup hub. The concentration of MNC offices, HR tech companies, and a large population of corporate decision-makers makes Gurugram the best location for enterprise-selling startups. If your customers are large companies with procurement budgets, you want to be here.\n\n**Noida**: The IT services and product startup cluster east of Delhi. Lower real estate costs than Gurugram, strong engineering talent from the Sector 62 tech corridor, and growing clusters in gaming, edtech, and media tech. If you are building in consumer tech or media, Noida\'s talent pool and cost structure work well.\n\n**Delhi proper**: Strong for government-adjacent startups, social enterprises, and logistics companies that need proximity to political and regulatory decision-makers. Less of a pure tech startup hub.' },
+      { h2: 'The Delhi NCR investor landscape', body: 'Delhi NCR\'s investor community is more enterprise-focused than Bengaluru\'s consumer-internet roots:\n\n**Nexus Venture Partners**: Strong presence in Delhi NCR, with a portfolio heavy in enterprise SaaS and B2B.\n\n**WaterBridge Ventures**: Delhi-based, invests in consumer internet and B2B companies across India.\n\n**Elevation Capital (Saif Partners)**: Based in Gurugram, with a strong track record in consumer internet and fintech.\n\n**Angel networks**: Indian Angel Network is headquartered in Delhi and has a particularly strong deal flow for hardware, sustainability, and enterprise software startups.' },
+      { h2: 'Building your founder network in Delhi NCR', body: '**Delhi Startup Hub**: Government-run but genuinely useful — regular events and co-working spaces in central Delhi.\n\n**Nasscom 10000 Startups Delhi chapter**: Strong community events for B2B founders.\n\n**Cyberpark Gurugram**: Hub for enterprise tech startups in Gurugram with regular networking events.\n\n**Build Your Network**: GPS-filtered discovery in Gurugram, Noida, and Delhi lets you find co-founders and investors within 10 km of your workspace. Set your location to your specific zone for the most relevant matches.' },
+    ],
+    relatedSlugs: ['bengaluru-startup-ecosystem-guide', 'startup-networking-india-guide'],
+    cityLinks: ['/networking-in-delhi', '/networking-in-gurgaon', '/networking-in-noida', '/founders-in-delhi'],
+    ctaText: 'Find co-founders and investors in Delhi NCR on Build Your Network.',
+    ctaBtn: 'Join Free in Delhi NCR',
+  },
+  {
+    slug: 'fundraising-india-first-check',
+    title: 'Getting Your First Investment Check in India: A Founder\'s Honest Guide',
+    metaDesc: 'How to get your first investment check in India as an early-stage startup — from the right investors to approach, how to structure the ask, and what actually gets a first meeting.',
+    date: '2025-06-08',
+    category: 'Fundraising',
+    keywords: 'first investment india startup, pre-seed funding india, how to raise first check india, angel investment first time founder india',
+    h1: 'Getting Your First Investment Check in India: An Honest Guide',
+    intro: 'The first check is the hardest check. You have no track record, limited traction, and are asking someone to believe in a future that does not exist yet. Here is what actually works for getting that first commitment.',
+    sections: [
+      { h2: 'Who writes first checks in India (and who does not)', body: '**First check writers in India**:\n- Ex-startup founders who have had an exit (₹5L-₹50L tickets)\n- Ex-senior employees of successful startups with ESOP payouts (₹5L-₹25L)\n- Organized angel networks: Mumbai Angels, Indian Angel Network, Lead Angels (₹25L-₹2Cr)\n- Pre-seed funds: Antler, 100X.VC, Gemba Capital (₹2Cr-₹10Cr)\n\n**Who does not write first checks despite seeming like they might**:\n- Venture capitalists at Sequoia, Accel, Matrix — they do seed (₹10Cr+), not pre-seed\n- Corporate innovation programs — they do pilots, not equity investments\n- Most accelerators — they do small cheques (₹5L-₹25L) but usually want more traction than you have' },
+      { h2: 'The one thing that gets a first meeting with an Indian angel', body: 'A warm introduction from someone the angel trusts. This single fact drives more first-meeting conversion than any other variable.\n\nThe question is how to get that warm introduction without already knowing the angel. The approach that works:\n\n1. Map the angel\'s portfolio companies\n2. Find founders of those portfolio companies who you have a credible connection to (shared institution, shared industry, mutual contact)\n3. Get a coffee meeting with those founders\n4. If the meeting goes well, ask for an introduction: "I respect your investor\'s judgment — would you be willing to make an introduction if you think BYN is relevant to what they invest in?"\n\nThis takes 4-6 weeks but produces warm introductions with 40-60% conversion to a first meeting vs under 5% for cold outreach.' },
+      { h2: 'What to do if you have no network access to angels', body: 'If your network gives you no path to angels, use intent-based platforms:\n\n**Build Your Network**: Investors who have declared "Open to Angel Investing" intent are discoverable by city. This is the most direct route to angels who are actively seeking new investments — the context of your first message is entirely different from a cold email.\n\n**LetsVenture**: India\'s largest angel investment platform. Your startup profile is visible to 5,000+ angels. Not perfect — there is noise — but it is the most accessible structured angel access point in India.\n\n**100X.VC**: Pre-seed focused, no warm intro needed — apply directly. They do 10-15 investments per quarter at ₹50L-₹2Cr.' },
+    ],
+    relatedSlugs: ['investor-networking-india', 'startup-networking-india-guide'],
+    cityLinks: ['/networking-for-investors', '/founders-in-bengaluru', '/founders-in-mumbai'],
+    ctaText: 'Find investors who are actively looking on Build Your Network.',
+    ctaBtn: 'Find Investors Free',
+  },
+  {
+    slug: 'pune-startup-ecosystem-guide',
+    title: 'Pune Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'A practical guide to building a startup in Pune — the manufacturing-tech advantage, proximity to Mumbai, investor access, and how to network with founders in the city.',
+    date: '2025-06-10',
+    category: 'City Guides',
+    keywords: 'pune startup ecosystem, startup networking pune, manufacturing tech startups pune, pune startup founders 2025',
+    h1: 'Pune Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Pune is chronically underrated as a startup location. The combination of top engineering colleges, proximity to Mumbai\'s capital markets, lower costs than Bengaluru, and a growing base of manufacturing-tech and SaaS founders makes it a compelling choice — especially for founders building for industrial or automotive customers.',
+    sections: [
+      { h2: 'Pune\'s unique startup advantages', body: '**Engineering college density**: Pune has one of the highest concentrations of engineering colleges in India — COEP, PICT, VIT Pune, MIT Pune. This creates a large pool of early-career engineers willing to join startups at competitive salaries below Bengaluru market rates.\n\n**Manufacturing proximity**: Pune\'s proximity to India\'s largest automotive and manufacturing clusters (Chakan, Pimpri-Chinchwad) creates direct customer access for industrial IoT, manufacturing SaaS, and supply chain startups. Customers are 30 minutes away, not in a different city.\n\n**Mumbai proximity for capital**: Pune is 3 hours from Mumbai — close enough for regular investor meetings without the Mumbai cost structure. Many Pune founders maintain Bengaluru engineering teams and do Mumbai fundraising trips.' },
+      { h2: 'Where founders network in Pune', body: '**Venture Center (NCL Innovation Park)**: One of India\'s premier deep-tech incubators, adjacent to NCL\'s research labs. Strong for materials science, chemistry-tech, and industrial startups.\n\n**COEP Tech Park**: Increasingly active startup community with government support from the Maharashtra Startup Mission.\n\n**Persistent Systems alumni network**: One of the largest alumni networks in Indian product companies — many senior Persistent alumni are active angel investors and advisors in Pune.\n\n**Build Your Network**: GPS-filtered discovery in Pune lets you find co-founders and investors in your specific part of the city — Koregaon Park, Kothrud, Baner, or Hinjewadi.' },
+    ],
+    relatedSlugs: ['mumbai-startup-ecosystem-guide', 'bengaluru-startup-ecosystem-guide'],
+    cityLinks: ['/networking-in-pune', '/founders-in-pune', '/find-cofounders-pune'],
+    ctaText: 'Find co-founders and investors in Pune on Build Your Network.',
+    ctaBtn: 'Join Free in Pune',
+  },
+  {
+    slug: 'networking-india-tier2-cities',
+    title: 'Startup Networking in Tier 2 Indian Cities: Jaipur, Kochi, Ahmedabad',
+    metaDesc: 'How startup founders in Jaipur, Kochi, and Ahmedabad can build strong networks despite smaller ecosystems — and why Tier 2 city founders have structural advantages.',
+    date: '2025-06-13',
+    category: 'City Guides',
+    keywords: 'startup networking tier 2 india, jaipur startups, kochi startups, ahmedabad startup ecosystem, tier 2 city founder networking',
+    h1: 'Startup Networking in Tier 2 Indian Cities: Jaipur, Kochi, Ahmedabad',
+    intro: 'Tier 2 cities are not second-class startup locations. Jaipur\'s travel-tech and fashion-tech ecosystem, Kochi\'s sustainability and tourism-tech base, and Ahmedabad\'s MSME-tech and fintech cluster each offer advantages that Bengaluru cannot match for founders building for those specific markets.',
+    sections: [
+      { h2: 'Why Tier 2 cities can be the right choice', body: 'Three structural advantages that Tier 2 city founders have:\n\n**Customer proximity**: A fashion-tech startup in Jaipur is walking distance from India\'s largest handicraft supply chain. An agri-tech startup in Ahmedabad is 30 minutes from some of India\'s largest agricultural cooperatives. The gap between founder and customer is meaningfully smaller.\n\n**Lower burn rate**: Engineering talent in Tier 2 cities costs 30-50% less than Bengaluru. For pre-seed startups, this translates directly into runway.\n\n**Government support concentration**: State-level startup programs (iStart Rajasthan, Kerala Startup Mission, GUSEC) have more resources and attention per founder than pan-India programs — because fewer founders compete for them.' },
+      { h2: 'The networking challenge in Tier 2 cities (and how to solve it)', body: 'The primary networking disadvantage in Tier 2 cities is lower density — fewer founders, fewer events, fewer investors with local presence. The practical solutions:\n\n**Digital-first community building**: Build Your Network\'s GPS radius filter can be set to 200 km, connecting you with founders across your broader region. For Tier 2 founders, the national discover mode is especially valuable.\n\n**Deliberate metro trips**: Monthly or quarterly trips to Bengaluru or Mumbai for investor meetings, co-founder search, and community events. Budget ₹20,000-₹40,000 per quarter for this — it is a legitimate business expense with strong ROI.\n\n**State-specific accelerators**: iStart Rajasthan, KSUM (Kerala Startup Mission), and GUSEC have communities and investor networks specifically designed for Tier 2 founders. Leverage them before trying to access metro networks.' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'startup-community-india-2025'],
+    cityLinks: ['/networking-in-jaipur', '/networking-in-kochi', '/networking-in-ahmedabad'],
+    ctaText: 'Find founders and investors in Tier 2 cities on Build Your Network.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'b2b-saas-startup-india',
+    title: 'Building a B2B SaaS Startup in India: The Founder\'s Playbook',
+    metaDesc: 'How to build and sell a B2B SaaS startup in India in 2025 — from finding enterprise customers to hiring your first sales team and building your investor story.',
+    date: '2025-06-16',
+    category: 'Founder Growth',
+    keywords: 'b2b saas india startup, b2b startup india, enterprise saas india founders, how to sell b2b saas india',
+    h1: 'Building a B2B SaaS Startup in India: The Founder\'s Playbook',
+    intro: 'B2B SaaS is India\'s strongest startup vertical in 2025 — driven by digital transformation budgets, GST compliance needs, and global Indian diaspora teams buying Indian SaaS. But building and selling B2B SaaS in India has specific dynamics that founders from consumer internet backgrounds consistently misread.',
+    sections: [
+      { h2: 'The India-specific B2B SaaS pricing reality', body: 'India pricing for B2B SaaS is approximately 20-30% of equivalent US pricing for the same product. This is not a concession — it is a deliberate strategy. The rationale:\n\nYour Indian customers are your fastest route to case studies, feedback, and product refinement. They are geographically proximate, they will answer your WhatsApp messages, and they will tell you exactly what is broken. Use Indian pricing to acquire your first 20 customers fast, build case studies, and use those case studies to go upmarket to global SMBs and enterprises at full pricing.\n\nThe mistake is trying to sell at US pricing in India from day one. You will get long sales cycles, price objections at every stage, and pilot-to-paid conversion rates below 20%.' },
+      { h2: 'How to find your first enterprise customers in India', body: 'The three channels that work for B2B SaaS customer acquisition in India:\n\n**Founder network introductions**: The fastest path to a first customer in India is a warm introduction from a founder who has already sold to that customer. This is why being plugged into the right founder community — Build Your Network, YC alumni India, accelerator cohorts — is directly tied to revenue.\n\n**NASSCOM ecosystem introductions**: For enterprise customers in IT, BFS, and healthcare, NASSCOM\'s enterprise connect programs provide introductions that would otherwise take 6-12 months of cold outreach to arrange.\n\n**Domain-specific communities**: If you are building HR tech, attend HR Conclave India. If you are building fintech, attend FICCI fintech events. The decision-makers at enterprise companies attend these events specifically to find new vendors.' },
+    ],
+    relatedSlugs: ['startup-networking-india-guide', 'building-startup-team-india'],
+    cityLinks: ['/networking-in-bengaluru', '/networking-in-gurgaon', '/startup-community-india'],
+    ctaText: 'Connect with B2B SaaS founders and investors across India on Build Your Network.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'chennai-startup-ecosystem-guide',
+    title: 'Chennai Startup Ecosystem: Guide for Founders in 2025',
+    metaDesc: 'A guide to building a startup in Chennai — IIT Madras Research Park, the hardware and deep-tech ecosystem, investor access, and founder networking in the city.',
+    date: '2025-06-19',
+    category: 'City Guides',
+    keywords: 'chennai startup ecosystem, iit madras startups, hardware startup india, deep tech startups chennai 2025',
+    h1: 'Chennai Startup Ecosystem: A Practical Guide for Founders in 2025',
+    intro: 'Chennai is India\'s premier location for hardware, deep-tech, and automotive-tech startups — anchored by IIT Madras Research Park, one of the most productive startup incubators in Asia. If you are building anything with physical components, Chennai gives you advantages that software-first cities cannot.',
+    sections: [
+      { h2: 'What makes Chennai different from other Indian startup cities', body: '**IIT Madras Research Park**: India\'s most productive deep-tech startup incubator by commercialization rate. Companies like SigTuple, Uniphore, and Mad Street Den originated from this ecosystem. Access to faculty co-founders and research lab partnerships is the defining advantage.\n\n**Hardware expertise concentration**: Chennai\'s manufacturing heritage — automotive (Ford, Hyundai, BMW, Renault-Nissan all manufacture in Chennai) — creates a talent pool of manufacturing, supply chain, and embedded systems engineers that does not exist at the same scale in Bengaluru.\n\n**SIPCOT IT Park and Tidel Park**: Software export hubs that have produced a large pool of senior engineers who are increasingly open to startup equity in the current job market.' },
+      { h2: 'Building your founder network in Chennai', body: '**IIT Madras Research Park events**: The single best networking venue in Chennai for deep-tech and hardware founders. Regular events, high-quality founders, and direct access to the IIT Madras faculty network.\n\n**NASSCOM Chennai chapter**: Strong for software product founders — regular community events and enterprise connect programs.\n\n**TiE Chennai**: One of India\'s most active TiE chapters, with a strong mentor network and organized angel deal flows.\n\n**Build Your Network**: GPS-filtered discovery lets you find co-founders and investors in Chennai — Adyar, Anna Nagar, OMR, or Tidel Park area — within your chosen radius.' },
+    ],
+    relatedSlugs: ['bengaluru-startup-ecosystem-guide', 'hyderabad-startup-ecosystem-guide'],
+    cityLinks: ['/networking-in-chennai', '/founders-in-chennai', '/find-cofounders-chennai'],
+    ctaText: 'Find co-founders and investors in Chennai on Build Your Network.',
+    ctaBtn: 'Join Free in Chennai',
+  },
+  {
+    slug: 'startup-india-scheme-guide',
+    title: 'Startup India Scheme: What Founders Actually Get (and What They Don\'t)',
+    metaDesc: 'An honest guide to the Startup India government scheme — the real benefits, the registration process, tax exemptions, and what founders should use it for.',
+    date: '2025-06-22',
+    category: 'Founder Growth',
+    keywords: 'startup india scheme, dpiit recognition startup india, startup india registration benefits, government startup scheme india',
+    h1: 'Startup India Scheme: What Founders Actually Get (and What They Don\'t)',
+    intro: 'The Startup India scheme is widely discussed and poorly understood. Most founders either dismiss it entirely ("government schemes are useless") or have unrealistic expectations ("you get free money"). The truth is more nuanced — there are real, specific benefits worth getting, and the process is simpler than most founders think.',
+    sections: [
+      { h2: 'The DPIIT recognition: what it actually unlocks', body: 'DPIIT recognition (the formal Startup India registration) is free and takes 2-4 weeks. The actual benefits:\n\n**Tax exemption on profits (Section 80-IAC)**: 100% tax exemption on profits for 3 consecutive years out of the first 10 years. Requires a separate application beyond DPIIT recognition, and applies only if you are profitable — which most startups are not in their first 3 years. Still worth getting when relevant.\n\n**Angel tax exemption (Section 56(2)(viib))**: DPIIT-recognized startups are exempt from angel tax on investment received at above book value. This is the most practically useful benefit — it removes a significant compliance burden when raising angel rounds.\n\n**Fast-track IP filing**: 80% fee reduction on patent, trademark, and design applications. If you have IP worth protecting, this is significant.\n\n**Self-certification for 6 labour and 3 environment laws**: Reduces compliance burden in the first years.' },
+      { h2: 'How to get DPIIT recognition (the actual process)', body: 'The process is:\n\n1. Register your startup as a Private Limited Company, LLP, or Registered Partnership\n2. Go to startupindia.gov.in and create an account\n3. Apply for DPIIT recognition — you need your incorporation certificate, PAN, and a brief description of your innovation\n4. Wait 2-4 weeks for recognition\n\nThe innovation criterion is broadly interpreted — you do not need a patent or research paper. A product that uses technology to solve a problem in a novel way qualifies. Most software startups qualify without any issues.\n\nCost: effectively zero. Your CA will charge ₹3,000-₹10,000 to handle the filing if you prefer not to do it yourself.' },
+      { h2: 'What the scheme does not do', body: 'Common misconceptions:\n\n**It does not give you direct grant money**: The Startup India scheme is a recognition program, not a grant program. Direct grant programs (like TIDE 2.0, MSME Technology Centers, or state-level schemes) exist separately and require separate applications.\n\n**It does not guarantee bank loans**: Banks still evaluate your business on standard credit criteria. Recognition helps marginally with some government-backed schemes but does not replace traction-based lending criteria.\n\n**It does not help with customer acquisition**: Being "DPIIT-recognized" does not automatically open enterprise customer doors. Some procurement teams care; most do not.' },
+    ],
+    relatedSlugs: ['fundraising-india-first-check', 'building-startup-team-india'],
+    cityLinks: ['/startup-community-india', '/networking-for-founders'],
+    ctaText: 'Connect with founders who have navigated Startup India registration on Build Your Network.',
+    ctaBtn: 'Join Free',
+  },
+  {
+    slug: 'cofounder-relationship-management',
+    title: 'Managing Your Co-Founder Relationship: What Breaks Startups',
+    metaDesc: 'The co-founder relationship is the most important factor in startup survival. Here is how to build and maintain a healthy co-founder relationship — and what warning signs to watch for.',
+    date: '2025-06-25',
+    category: 'Co-founder Search',
+    keywords: 'cofounder relationship advice, managing cofounder conflict, startup cofounder problems, cofounder communication startup',
+    h1: 'Managing Your Co-Founder Relationship: What Breaks Startups',
+    intro: 'Co-founder conflicts are the number one reason startups fail after achieving initial product-market fit. The most common story: two founders build something that works, then fall apart over equity, credit, or decision authority just when the company needed stability. This guide covers what actually breaks co-founder relationships and how to prevent it.',
+    sections: [
+      { h2: 'The four conversations co-founders avoid having early', body: '**Equity and dilution expectations**: Most co-founders agree on the initial split but never discuss how they will approach dilution in future rounds, when and whether they might bring on a third co-founder, or what happens to unvested equity if the company pivots.\n\n**Salary and financial expectations**: When does each co-founder expect to return to market salary? What if one co-founder has family obligations that require a specific minimum? These conversations are uncomfortable but critical.\n\n**Role evolution**: The roles that make sense at a 5-person company are usually wrong at a 20-person company. Who leads what as the company grows? Who has final say on product vs. technical decisions?\n\n**Exit preferences**: One co-founder wants to build a generational company. The other wants to sell in 5 years. These preferences will create conflict the moment an acquisition offer arrives — and the conversation is much easier to have before that moment.' },
+      { h2: 'Warning signs of a co-founder relationship in distress', body: 'Four early warning signs:\n\n1. **One co-founder stops sharing bad news**: When a co-founder starts filtering information before sharing it, it usually means they are anticipating negative judgment rather than collaborative problem-solving.\n\n2. **Credit attribution becomes contested**: "I built that" conversations about features, customer relationships, or investor introductions are a leading indicator of equity-related resentment.\n\n3. **Decisions are being made unilaterally**: If one co-founder starts executing on decisions without the other\'s input — and stops in response to feedback — that is a healthy dynamic. If they continue unilaterally, it is not.\n\n4. **Outside relationships become load-bearing**: When co-founders are venting to employees, investors, or spouses about each other, the relationship has already moved into a destructive pattern.' },
+      { h2: 'How to address co-founder conflict before it becomes terminal', body: 'The interventions that work:\n\n**Structured weekly check-ins with a specific agenda**: Not a status meeting — a relationship maintenance meeting. "What is working in how we are collaborating? What is not working? What do you need from me this week that I am not providing?" Takes 30 minutes. Run it every week.\n\n**Bring in a neutral third party before you are in crisis**: An advisor, investor, or startup coach who both co-founders respect can facilitate hard conversations that are impossible to have directly. Waiting until crisis makes this significantly harder.\n\n**Document decisions explicitly**: The most common co-founder conflict source is "we agreed to X" when one person remembers Y. A shared decision log (even a simple Notion doc) removes a large category of conflict.' },
+    ],
+    relatedSlugs: ['how-to-find-a-cofounder-in-india', 'cofounder-equity-split-guide'],
+    cityLinks: ['/find-cofounders', '/networking-for-founders'],
+    ctaText: 'Find the right co-founder with Build Your Network — intent-matched from day one.',
+    ctaBtn: 'Start Co-founder Search',
+  },
+];
+
+// Extend SEO_PAGES with blog entries (must run after ARTICLES is defined)
+SEO_PAGES.push({ slug: 'blog', label: 'Blog Index', schema: 'Blog', priority: '0.8' });
+ARTICLES.forEach(a => SEO_PAGES.push({ slug: 'blog/' + a.slug, label: a.title, schema: 'Article+BreadcrumbList', priority: '0.7' }));
+
+function blogShell(head, body, BASE) {
+  const E = escHtml;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+${head}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/logo.png" type="image/png">
+<style>
+:root{--bg:#FFF4EC;--bg2:#FDE8D7;--card:#fff;--primary:#0F766E;--hl:#CCFBF1;--text:#1F2937;--muted:#6B7280;--border:rgba(253,232,215,.8)}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,244,236,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-inner{max-width:1100px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:18px;color:var(--primary);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.logo img{width:26px;height:26px;border-radius:6px}
+.nav-cta{background:var(--primary);color:#fff;padding:9px 18px;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none}
+.wrap{max-width:820px;margin:0 auto;padding:100px 24px 80px}
+footer{border-top:1px solid var(--bg2);padding:24px;text-align:center;font-size:12px;color:var(--muted)}
+footer a{color:var(--primary);text-decoration:none}
+@media(max-width:640px){.wrap{padding:80px 16px 60px}}
+${body.css || ''}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner">
+  <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network">BuildYourNetwork</a>
+  <a href="/app" class="nav-cta">Join Free</a>
+</div></nav>
+<div class="wrap">${body.html}</div>
+<footer><p>&copy; 2025 Build Your Network &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/blog">Blog</a></p></footer>
+</body></html>`;
+}
+
+app.get('/blog', (req, res) => {
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+  const E = escHtml;
+  const categories = [...new Set(ARTICLES.map(a => a.category))];
+  const head = `
+<title>Startup Networking &amp; Founder Growth Blog | Build Your Network</title>
+<link rel="canonical" href="${BASE}/blog">
+<meta name="description" content="Practical guides for startup founders in India — co-founder search, investor networking, city ecosystem guides, and founder growth strategies.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${BASE}/blog">
+<meta property="og:title" content="Startup Networking &amp; Founder Growth Blog | Build Your Network">
+<meta property="og:description" content="Practical guides for startup founders in India — co-founder search, investor networking, city ecosystem guides, and founder growth strategies.">
+<meta property="og:site_name" content="Build Your Network">
+<script type="application/ld+json">${JSON.stringify({
+    '@context':'https://schema.org',
+    '@type':'Blog',
+    'name':'Build Your Network — Founder Blog',
+    'url': BASE + '/blog',
+    'description':'Practical guides for startup founders in India on co-founder search, investor networking, and founder growth.',
+    'publisher':{'@type':'Organization','name':'Build Your Network','url': BASE},
+  })}</script>`;
+
+  const articleCards = ARTICLES.map(a => `
+<article class="card">
+  <span class="cat">${E(a.category)}</span>
+  <a href="/blog/${E(a.slug)}" class="card-title">${E(a.title)}</a>
+  <p class="card-desc">${E(a.metaDesc)}</p>
+  <div class="card-meta"><time datetime="${E(a.date)}">${new Date(a.date).toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})}</time></div>
+</article>`).join('');
+
+  const css = `.bc{font-size:13px;color:var(--muted);margin-bottom:28px}.bc a{color:var(--primary);text-decoration:none}
+h1{font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-.5px;margin-bottom:12px}
+.lead{font-size:16px;color:var(--muted);margin-bottom:40px;line-height:1.7}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;margin-bottom:48px}
+.card{background:var(--card);border-radius:16px;padding:24px;border:1px solid var(--bg2)}
+.cat{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);background:var(--hl);padding:3px 8px;border-radius:4px;margin-bottom:10px}
+.card-title{display:block;font-size:16px;font-weight:700;color:var(--text);text-decoration:none;margin-bottom:8px;line-height:1.4}
+.card-title:hover{color:var(--primary)}
+.card-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.card-meta{font-size:12px;color:var(--muted)}
+@media(max-width:580px){.grid{grid-template-columns:1fr}}`;
+
+  const html = `
+<p class="bc"><a href="/">Home</a> › Blog</p>
+<h1>Startup Networking &amp; Founder Growth</h1>
+<p class="lead">Practical guides for founders in India — co-founder search, investor networking, city ecosystem deep-dives, and what actually moves the needle.</p>
+<div class="grid">${articleCards}</div>`;
+
+  seoPageViews.set('blog', (seoPageViews.get('blog') || 0) + 1);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(blogShell(head, { html, css }, BASE));
+});
+
+app.get('/blog/:slug', (req, res) => {
+  const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+  const article = ARTICLES.find(a => a.slug === req.params.slug);
+  if (!article) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  const E = escHtml;
+  const canonical = BASE + '/blog/' + article.slug;
+  const related = ARTICLES.filter(a => article.relatedSlugs.includes(a.slug));
+  const dateStr = new Date(article.date).toLocaleDateString('en-IN', { year:'numeric', month:'long', day:'numeric' });
+
+  const jsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Article',
+        'headline': article.title,
+        'description': article.metaDesc,
+        'url': canonical,
+        'datePublished': article.date,
+        'dateModified': article.date,
+        'author': { '@type': 'Organization', 'name': 'Build Your Network' },
+        'publisher': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
+        'inLanguage': 'en-IN',
+        'keywords': article.keywords,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        'itemListElement': [
+          { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': BASE + '/' },
+          { '@type': 'ListItem', 'position': 2, 'name': 'Blog', 'item': BASE + '/blog' },
+          { '@type': 'ListItem', 'position': 3, 'name': article.title, 'item': canonical },
+        ],
+      },
+    ],
+  });
+
+  const head = `
+<title>${E(article.title)} | Build Your Network</title>
+<link rel="canonical" href="${canonical}">
+<meta name="description" content="${E(article.metaDesc)}">
+<meta name="keywords" content="${E(article.keywords)}">
+<meta name="robots" content="index, follow, max-snippet:-1">
+<meta property="og:type" content="article">
+<meta property="og:url" content="${canonical}">
+<meta property="og:title" content="${E(article.title)}">
+<meta property="og:description" content="${E(article.metaDesc)}">
+<meta property="og:site_name" content="Build Your Network">
+<meta property="og:locale" content="en_IN">
+<meta property="article:published_time" content="${article.date}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${E(article.title)}">
+<meta name="twitter:description" content="${E(article.metaDesc)}">
+<script type="application/ld+json">${jsonLd}</script>`;
+
+  const sectionsHtml = article.sections.map(s => `
+<h2>${E(s.h2)}</h2>
+<div class="body-text">${E(s.body).replace(/\n\n/g,'</p><p>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/^/,'<p>').replace(/$/,'</p>').replace(/<\/p><p>(\d+\.\s)/g,'</p><p class="li">$1').replace(/\n- /g,'</li><li>').replace(/\n1\. /g,'<br>')}</div>`).join('');
+
+  const relatedHtml = related.length ? `<div class="related"><h3>Related guides</h3>${related.map(r => `<a href="/blog/${E(r.slug)}">${E(r.title)}</a>`).join('')}</div>` : '';
+  const cityHtml = article.cityLinks.length ? `<div class="city-links"><h3>Explore by city</h3>${article.cityLinks.map(c => `<a href="${E(c)}">${E(c.replace(/^\//, '').replace(/-/g,' ').replace(/\b\w/g, l => l.toUpperCase()))}</a>`).join('')}</div>` : '';
+
+  const css = `.bc{font-size:13px;color:var(--muted);margin-bottom:28px}.bc a{color:var(--primary);text-decoration:none}
+.cat{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--primary);background:var(--hl);padding:3px 8px;border-radius:4px;margin-bottom:12px}
+h1{font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-.5px;margin-bottom:16px;line-height:1.2}
+.meta{font-size:13px;color:var(--muted);margin-bottom:32px}
+.intro{font-size:17px;color:var(--muted);line-height:1.8;margin-bottom:40px;border-left:3px solid var(--primary);padding-left:16px}
+h2{font-size:clamp(18px,3vw,22px);font-weight:700;margin:40px 0 12px;letter-spacing:-.3px}
+.body-text{font-size:15px;line-height:1.8;color:#374151;margin-bottom:24px}
+.body-text p{margin-bottom:14px}
+.body-text strong{color:var(--text)}
+.cta-inline{background:var(--primary);border-radius:16px;padding:32px;text-align:center;color:#fff;margin:48px 0}
+.cta-inline h3{font-size:18px;font-weight:700;margin-bottom:8px}
+.cta-inline p{font-size:14px;opacity:.85;margin-bottom:16px}
+.cta-inline a{display:inline-block;background:#fff;color:var(--primary);text-decoration:none;padding:10px 22px;border-radius:8px;font-weight:700;font-size:14px}
+.related,.city-links{background:var(--bg2);border-radius:14px;padding:24px;margin-bottom:24px}
+.related h3,.city-links h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:12px}
+.related a,.city-links a{display:inline-block;background:#fff;color:var(--primary);text-decoration:none;font-size:13px;font-weight:500;padding:6px 14px;border-radius:7px;margin:3px;border:1px solid rgba(15,118,110,.15)}`;
+
+  const html = `
+<p class="bc"><a href="/">Home</a> › <a href="/blog">Blog</a> › ${E(article.category)}</p>
+<span class="cat">${E(article.category)}</span>
+<h1>${E(article.h1)}</h1>
+<p class="meta"><time datetime="${article.date}">${dateStr}</time></p>
+<p class="intro">${E(article.intro)}</p>
+${sectionsHtml}
+<div class="cta-inline">
+  <h3>${E(article.ctaText)}</h3>
+  <p>Free to join. No install. Works in your browser.</p>
+  <a href="/app">${E(article.ctaBtn)} &#8594;</a>
+</div>
+${relatedHtml}
+${cityHtml}`;
+
+  seoPageViews.set('blog/' + article.slug, (seoPageViews.get('blog/' + article.slug) || 0) + 1);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(blogShell(head, { html, css }, BASE));
 });
 
 // ── PHASE 5 — Public founder profile pages (crawlable, no auth) ──────────────
