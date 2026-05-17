@@ -1241,6 +1241,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 // ════════════════════════════════════════
 let ME = null, TOKEN = null;
 let _tab = 'discover', _prevTab = null;
+let _REF_CODE = '';
 
 // Discover
 let _matches = [], _cardIdx = 0, _currentCard = null;
@@ -1325,6 +1326,17 @@ window.addEventListener('DOMContentLoaded', async () => {
       clearAuth(); showAuth();
     }
   }, 8000);
+
+  // Capture referral code from URL or sessionStorage
+  try {
+    const urlRef = new URLSearchParams(location.search).get('ref');
+    if (urlRef) {
+      const clean = urlRef.replace(/[^a-f0-9]/gi, '').slice(0, 8);
+      if (clean.length >= 6) { sessionStorage.setItem('byn_ref', clean); _REF_CODE = clean; }
+    } else {
+      _REF_CODE = sessionStorage.getItem('byn_ref') || '';
+    }
+  } catch(_) {}
 
   try {
     if (TOKEN && ME) {
@@ -1457,7 +1469,7 @@ async function doSignup() {
   btn.disabled = true; btn.innerHTML = '<div class="spinner"></div>';
   trackEvent('cta_click', { button: 'create_account' });
   try {
-    const r = await api('POST', '/api/signup', { name, email, password:pw }); // BUG-FIX: /api/signup not /api/register
+    const r = await api('POST', '/api/signup', { name, email, password:pw, ref_code: _REF_CODE || undefined }); // BUG-FIX: /api/signup not /api/register
     saveAuth(r.token, r.user);
     trackEvent('signup_completed');
     try { await api('POST', '/api/auth/send-otp', { email }); } catch(_) {} // BUG-FIX: /api/auth/send-otp
@@ -1554,7 +1566,32 @@ function goBack() {
 // ════════════════════════════════════════
 // DISCOVER
 // ════════════════════════════════════════
+function renderScoreGate() {
+  const score = ME?.profile_score || 0;
+  const gap   = Math.max(0, 70 - score);
+  const pct   = Math.min(100, Math.round(score / 70 * 100));
+  const col   = score >= 50 ? '#14b8a6' : '#f59e0b';
+  const items = [];
+  if (!(ME?.photos?.length >= 1)) items.push('Add a photo <span style="color:var(--gold)">+10 pts</span>');
+  if (!ME?.bio)                   items.push('Write a bio <span style="color:var(--gold)">+10 pts</span>');
+  if (!(ME?.interests?.length >= 3)) items.push('Add 3+ interests <span style="color:var(--gold)">+20 pts</span>');
+  if (!ME?.location)              items.push('Add your location <span style="color:var(--gold)">+10 pts</span>');
+  q('disc-content').innerHTML = `
+    <div class="disc-empty" style="max-width:300px;padding:32px 16px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:14px;">🔓</div>
+      <h3 style="font-size:17px;font-weight:700;margin-bottom:6px;">Unlock Discovery</h3>
+      <p style="font-size:13px;color:var(--sub);margin-bottom:18px;">You need <strong style="color:var(--text);">${gap} more pts</strong> to start discovering people.</p>
+      <div style="background:var(--bg2);border-radius:6px;height:9px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:6px;transition:width .4s;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--sub);margin-bottom:18px;">${score} / 70 pts</div>
+      ${items.length ? `<div style="text-align:left;margin-bottom:20px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">${items.map(t=>`<div style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;"><span style="color:#f59e0b;">→</span><span>${t}</span></div>`).join('')}</div>` : ''}
+      <button class="retry-btn" style="background:var(--gold);width:100%;" onclick="switchTab('profile')">Complete My Profile</button>
+    </div>`;
+}
+
 async function loadDiscover() {
+  if (ME && !ME.is_profile_complete) { renderScoreGate(); return; }
   q('disc-content').innerHTML = `<div class="disc-empty"><div class="spinner spinner-dark spinner-xl"></div><p style="color:var(--text-soft);font-size:14px;margin-top:12px;">Finding your matches…</p></div>`;
   try {
     const p = new URLSearchParams();
@@ -2195,11 +2232,17 @@ function renderProfile() {
       <div class="panel-field"><div class="panel-label">WEBSITE</div><input class="panel-input" id="pf-website" value="${escA(p.website||'')}" placeholder="https://…" type="url"></div>
     </div>
 
+    <div class="profile-panel">
+      <div class="panel-title">🎁 Invite Friends</div>
+      <div id="referral-card"><div class="loading-center"><div class="spinner spinner-dark"></div></div></div>
+    </div>
+
     <button class="btn-save" id="save-btn" onclick="saveProfile()">Save Profile</button>
     ${!isPro ? `<button class="btn-upgrade" onclick="doUpgrade()">✦ Upgrade to Premium</button>` : ''}
     <button class="btn-support" onclick="openSupport()">💬 Support &amp; Feedback</button>
     <button class="btn-signout" onclick="doSignOut()">Sign Out</button>
   `;
+  loadReferralCard();
 }
 
 function selectIntent(el, val) {
@@ -3035,6 +3078,8 @@ async function obSubmitProfile() {
     ME = await api('GET', '/api/me');
     saveAuth(TOKEN, ME);
     trackEvent('profile_completed');
+    // Clear stored ref code after successful signup+onboarding
+    try { sessionStorage.removeItem('byn_ref'); } catch(_) {}
     showApp();
     toast('Welcome to BYN! 🎉');
   } catch(e) {
@@ -3042,6 +3087,35 @@ async function obSubmitProfile() {
     errEl.textContent = msg;
     errEl.classList.remove('hidden');
   } finally { btn.disabled = false; btn.innerHTML = 'Complete Setup →'; }
+}
+
+// ════════════════════════════════════════
+// REFERRAL
+// ════════════════════════════════════════
+async function loadReferralCard() {
+  try {
+    const ref = await api('GET', '/api/profile/referral');
+    const el  = q('referral-card');
+    if (!el) return;
+    const countLine = ref.count > 0
+      ? `<div style="font-size:12px;color:var(--sub);margin-top:10px;"><strong style="color:#22c55e;">${ref.count} friend${ref.count>1?'s':''}</strong> joined via your link</div>`
+      : `<div style="font-size:12px;color:var(--sub);margin-top:10px;">Share to invite people — they'll be attributed to you</div>`;
+    el.innerHTML = `
+      <div style="background:var(--bg2);border-radius:10px;padding:12px 14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--sub);text-transform:uppercase;margin-bottom:8px;">Your invite link</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;font-size:12px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--bg);border-radius:6px;padding:7px 10px;border:1px solid var(--border);">${esc(ref.link)}</div>
+          <button onclick="copyReferralLink('${escA(ref.link)}')" style="flex-shrink:0;padding:7px 14px;background:var(--primary);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">Copy</button>
+        </div>
+        ${countLine}
+      </div>`;
+  } catch(_) {
+    const el = q('referral-card');
+    if (el) el.innerHTML = '';
+  }
+}
+function copyReferralLink(link) {
+  navigator.clipboard.writeText(link).then(() => toast('Invite link copied!')).catch(() => toast('Copy failed'));
 }
 </script>
 </body>

@@ -765,7 +765,7 @@ async function sendOtpEmail(toEmail, otp, name) {
 
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, ref_code } = req.body;
     if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
@@ -806,6 +806,24 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
     // Send OTP email (non-blocking — don't fail signup if email fails)
     sendOtpEmail(normalizedEmail, otp, newUser.name).catch(() => {});
+
+    // Referral attribution — look up referrer by 8-char code prefix, best-effort
+    if (ref_code) {
+      const cleanCode = String(ref_code).replace(/[^a-f0-9]/gi, '').slice(0, 8);
+      if (cleanCode.length >= 6) {
+        try {
+          const { data: referrer } = await supabase.from('users')
+            .select('id').ilike('id', `${cleanCode}%`).limit(1).maybeSingle();
+          if (referrer && referrer.id !== id) {
+            await supabase.from('users').update({ referred_by: referrer.id }).eq('id', id);
+            await supabase.from('user_acquisition').upsert(
+              { user_id: id, source: 'Friend/Referral', referral: referrer.id },
+              { onConflict: 'user_id' }
+            );
+          }
+        } catch(_) {}
+      }
+    }
 
     const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, user: clean(inserted), email_verified: false });
@@ -2947,6 +2965,41 @@ async function sendProfileNudges() {
     console.error('[NudgePush] Error:', e.message);
   }
 }
+
+// ── PUBLIC STATS (cached, no auth) ──
+let _pubStats = null, _pubStatsTs = 0;
+app.get('/api/stats/public', async (req, res) => {
+  if (_pubStats && Date.now() - _pubStatsTs < 300_000) return res.json(_pubStats);
+  try {
+    const [{ count: users }, { count: connections }] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true })
+        .eq('is_profile_complete', true),
+      supabase.from('connections').select('*', { count: 'exact', head: true })
+        .eq('status', 'connected'),
+    ]);
+    _pubStats = { users: users || 0, connections: connections || 0 };
+    _pubStatsTs = Date.now();
+    res.json(_pubStats);
+  } catch(_) { res.json({ users: 0, connections: 0 }); }
+});
+
+// ── REFERRAL — short link redirect ──
+app.get('/r/:code', (req, res) => {
+  const code = String(req.params.code).replace(/[^a-f0-9]/gi, '').slice(0, 8);
+  res.redirect(302, `/app?ref=${encodeURIComponent(code)}`);
+});
+
+// ── REFERRAL — user's own link + count ──
+app.get('/api/profile/referral', auth, async (req, res) => {
+  try {
+    const code  = req.user.id.slice(0, 8);
+    const { count } = await supabase.from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('referred_by', req.user.id);
+    const base = (process.env.BASE_URL || 'https://buildyournetwork.online').replace(/\/$/, '');
+    res.json({ code, link: `${base}/r/${code}`, count: count || 0 });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 // ── FRONTEND EVENT LOG ──
 // Fire-and-forget from webapp.html. Logs to Railway console — no DB table needed.

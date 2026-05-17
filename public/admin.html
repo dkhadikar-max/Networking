@@ -402,11 +402,22 @@ async function loadFunnel(){
       </div>`;
     }
 
+    // Diagnostic insight card
+    const drops=STAGES.slice(0,4).map((st,i)=>({
+      label:`${st.label}→${STAGES[i+1].label}`,
+      n:(r[st.key]||0)-(r[STAGES[i+1].key]||0),
+      pct:total?Math.round(((r[st.key]||0)-(r[STAGES[i+1].key]||0))/total*100):0,
+    })).sort((a,b)=>b.n-a.n);
+    let diag='';
+    if(drops[0]&&drops[0].n>0) diag+=`<span style="color:var(--muted)">Biggest drop-off: </span><strong style="color:var(--amber)">${drops[0].label} — ${drops[0].n} users (${drops[0].pct}%)</strong>`;
+    if(f.best_source){const bv=(f.source_breakdown||{})[f.best_source];diag+=`${diag?'<span style="margin:0 12px;color:var(--border)">|</span>':''}` +`<span style="color:var(--muted)">Best source: </span><strong style="color:var(--green)">${f.best_source}${bv?` — ${bv.rate}% CVR`:''}</strong>`;}
+    const diagHtml=diag?`<div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:14px;">${diag}</div>`:'';
+
     wrap.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <span style="font-size:12px;color:var(--muted)">${f.total_verified} verified users</span>
         <span style="font-size:13px;font-weight:700;color:var(--green)">${f.funnel_completion_rate} completed onboarding</span>
-      </div>${html}`;
+      </div>${diagHtml}${html}`;
   }catch(e){wrap.innerHTML=`<div class="empty">Failed: ${e.message}</div>`}
 }
 

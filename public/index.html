@@ -1411,6 +1411,16 @@
             </div>
             <h1 class="animate delay-1">Access the <span>right people</span>. Not more people.</h1>
             <p class="subtitle animate delay-2">An intent-based networking platform built for meaningful connections.</p>
+            <div id="hero-stats" class="hero-badges animate delay-2" style="margin-bottom:24px;display:none;">
+              <span class="badge" id="stat-users-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span id="stat-users">…</span> professionals
+              </span>
+              <span class="badge" id="stat-conn-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="stat-connections">…</span> connections made
+              </span>
+            </div>
             <div class="cta-group animate delay-3">
                 <a href="/app" class="btn-primary">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -1879,6 +1889,25 @@
         // Close menu on scroll
         window.addEventListener('scroll', () => navLinks.classList.remove('open'), { passive: true });
     }
+
+    // Public stats for social proof
+    fetch('/api/stats/public').then(r=>r.json()).then(d=>{
+      if(d.users>0){document.getElementById('stat-users').textContent=d.users;document.getElementById('hero-stats').style.display='';}
+      else document.getElementById('stat-users-badge').style.display='none';
+      if(d.connections>0){document.getElementById('stat-connections').textContent=d.connections;}
+      else document.getElementById('stat-conn-badge').style.display='none';
+    }).catch(()=>{});
+
+    // Referral passthrough — preserve ?ref= through all /app CTA links
+    (function(){
+      const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);
+      if(ref.length>=6){
+        try{sessionStorage.setItem('byn_ref',ref);}catch(_){}
+        document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{
+          const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;
+        });
+      }
+    })();
 
     // Feedback modal
     function openFeedback() {
