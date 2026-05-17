@@ -83,12 +83,17 @@ if (!ADMIN_SECRET) {
 }
 
 // ── SUPABASE CLIENT ──
+// Node 20 lacks native WebSocket — pass the 'ws' package so createClient doesn't throw.
+const ws = optionalRequire('ws', null);
 let supabase;
 try {
   supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
+    {
+      auth: { persistSession: false },
+      ...(ws ? { realtime: { transport: ws } } : {}),
+    }
   );
   console.log('Supabase client initialized');
 } catch (e) {
@@ -835,9 +840,14 @@ app.post('/api/login', authLimiter, async (req, res) => {
         update.lockout_until = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS).toISOString();
         update.failed_login_attempts = 0; // reset so the next window starts clean after lockout expires
       }
-      await supabase.from('users').update(update).eq('id', user.id)
-        .catch(e => console.error('[login] Failed to record failed attempt:', e.message));
-      return res.status(401).json({ error: 'Invalid email or password' });
+      const { error } = await supabase
+  .from('users')
+  .update(update)
+  .eq('id', user.id);
+
+console.log('LOCKOUT UPDATE ERROR:', error);
+console.log('LOCKOUT UPDATE PAYLOAD:', update);
+console.log('USER ID:', user.id);
     }
 
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
