@@ -11,7 +11,7 @@ import os
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException, Header, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 from typing import Any
 
@@ -32,6 +32,9 @@ ALLOWED_TASK_TYPES  = {"seo_audit", "growth_strategy", "research", "qa_review"}
 _GRAPH         = None
 _SB            = None   # supabase_client module
 _STARTUP_ERROR = ""
+
+# ── Task reference set — prevents asyncio.create_task from being GC'd ────────
+_LIVE_TASKS: set = set()
 
 
 @asynccontextmanager
@@ -303,10 +306,9 @@ async def run_workflow(req: RunRequest, x_orchestrator_secret: str = Header(defa
 @app.post("/workflow/async")
 async def run_workflow_async(
     req: RunRequest,
-    background_tasks: BackgroundTasks,
     x_orchestrator_secret: str = Header(default=""),
 ):
-    """Async workflow — returns immediately, runs graph in background."""
+    """Async workflow — returns immediately, runs graph as asyncio task."""
     require_auth(x_orchestrator_secret)
     if req.task_type not in ALLOWED_TASK_TYPES:
         raise HTTPException(400, f"task_type must be one of {sorted(ALLOWED_TASK_TYPES)}")
@@ -314,7 +316,13 @@ async def run_workflow_async(
     _graph()  # fail fast if not ready
     execution_id = str(uuid.uuid4())
     log.info("[%s] async workflow queued task_type=%s", execution_id, req.task_type)
-    background_tasks.add_task(_execute_and_persist, execution_id, req.task_type, req.payload)
+
+    # asyncio.create_task guarantees scheduling in the running event loop.
+    # We keep a reference in _LIVE_TASKS to prevent GC before the task completes.
+    task = asyncio.create_task(_execute_and_persist(execution_id, req.task_type, req.payload))
+    _LIVE_TASKS.add(task)
+    task.add_done_callback(_LIVE_TASKS.discard)
+
     return {"execution_id": execution_id, "status": "queued"}
 
 
@@ -324,8 +332,8 @@ async def run_sync_alias(req: RunRequest, x_orchestrator_secret: str = Header(de
     return await run_workflow(req, x_orchestrator_secret)
 
 @app.post("/run/async")
-async def run_async_alias(req: RunRequest, bg: BackgroundTasks, x_orchestrator_secret: str = Header(default="")):
-    return await run_workflow_async(req, bg, x_orchestrator_secret)
+async def run_async_alias(req: RunRequest, x_orchestrator_secret: str = Header(default="")):
+    return await run_workflow_async(req, x_orchestrator_secret)
 
 
 @app.get("/execution/{execution_id}")
