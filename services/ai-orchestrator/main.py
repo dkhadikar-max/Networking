@@ -144,52 +144,86 @@ async def _heartbeat(execution_id: str, stop_event: asyncio.Event):
             log.info("[%s] heartbeat elapsed=%ds (graph still running)", execution_id, elapsed)
 
 
+def _task_done_callback(execution_id: str, task: asyncio.Task) -> None:
+    """Logs every possible task exit: normal, exception, or cancellation."""
+    if task.cancelled():
+        log.error("[%s] TASK CANCELLED — coroutine was cancelled before completion", execution_id)
+    elif task.exception():
+        import traceback
+        exc = task.exception()
+        tb  = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        log.error("[%s] TASK EXCEPTION (unhandled): %s\n%s", execution_id, exc, tb)
+    else:
+        log.info("[%s] TASK DONE — exited normally", execution_id)
+
+
 async def _execute_and_persist(execution_id: str, task_type: str, payload: dict):
-    sb  = _sb()
-    log.info("[%s] async execution started task_type=%s", execution_id, task_type)
+    import traceback as tb_mod
+
+    # ── STEP 0: coroutine entry ───────────────────────────────────────────────
+    log.info("[%s] LIFECYCLE S0 coroutine entered task_type=%s loop=%s",
+             execution_id, task_type, id(asyncio.get_event_loop()))
+
+    sb = _sb()
+
+    # ── STEP 1: write initial planning row ───────────────────────────────────
+    log.info("[%s] LIFECYCLE S1 writing status=planning", execution_id)
     try:
         await sb.upsert_execution(execution_id, {
             "status":    "planning",
             "task_type": task_type,
             "payload":   payload,
         })
-    except Exception as exc:
-        log.exception("[%s] failed to write initial status: %s", execution_id, exc)
+        log.info("[%s] LIFECYCLE S1 OK", execution_id)
+    except BaseException as exc:
+        log.error("[%s] LIFECYCLE S1 FAILED (%s): %s\n%s",
+                  execution_id, type(exc).__name__, exc, tb_mod.format_exc())
         return
 
-    # Mark running immediately so any hang is distinguishable from "never started"
+    # ── STEP 2: write running ─────────────────────────────────────────────────
+    log.info("[%s] LIFECYCLE S2 writing status=running", execution_id)
     try:
         await sb.upsert_execution(execution_id, {"status": "running"})
-    except Exception as exc:
-        log.warning("[%s] could not write running status: %s", execution_id, exc)
+        log.info("[%s] LIFECYCLE S2 OK", execution_id)
+    except BaseException as exc:
+        log.error("[%s] LIFECYCLE S2 FAILED (%s): %s\n%s",
+                  execution_id, type(exc).__name__, exc, tb_mod.format_exc())
+        # non-fatal — continue
 
+    # ── STEP 3: build graph config ────────────────────────────────────────────
+    log.info("[%s] LIFECYCLE S3 building graph config", execution_id)
     cfg        = {"configurable": {"thread_id": execution_id}}
     step       = 0
     final_state: dict = {}
+
+    # ── STEP 4: call _graph().astream() ──────────────────────────────────────
+    log.info("[%s] LIFECYCLE S4 calling _graph().astream() — about to enter async for", execution_id)
     try:
-        log.info("[%s] graph.astream starting (values mode)", execution_id)
-        # Use default stream_mode ("values") — yields full accumulated state after each superstep.
-        # "updates" mode hangs with MemorySaver in LangGraph 0.2.x.
-        async for state in _graph().astream(
+        astream_gen = _graph().astream(
             _initial_state(execution_id, task_type, payload),
             config=cfg,
-        ):
+        )
+        log.info("[%s] LIFECYCLE S4 generator object created: %r", execution_id, astream_gen)
+
+        # ── STEP 5: first iteration ───────────────────────────────────────────
+        log.info("[%s] LIFECYCLE S5 awaiting first astream event", execution_id)
+        async for state in astream_gen:
             step += 1
             traces    = state.get("traces", [])
             last_node = traces[-1]["node"] if traces else "?"
             cur_stat  = state.get("status", "running")
-            log.info("[%s] SUPERSTEP %d last_node=%s status=%s tokens=%d traces=%d",
+            log.info("[%s] LIFECYCLE S5+ SUPERSTEP %d last_node=%s status=%s tokens=%d traces=%d",
                      execution_id, step, last_node, cur_stat,
                      state.get("tokens_total", 0), len(traces))
             final_state = state
-
-            # Intermediate DB write after each superstep
             try:
                 await sb.upsert_execution(execution_id, {"status": cur_stat})
-            except Exception as se:
-                log.warning("[%s] intermediate status write failed: %s", execution_id, se)
+            except BaseException as se:
+                log.warning("[%s] intermediate DB write failed (%s): %s",
+                            execution_id, type(se).__name__, se)
 
-        log.info("[%s] astream complete after %d supersteps. status=%s score=%.2f tokens=%d",
+        # ── STEP 6: stream exhausted ──────────────────────────────────────────
+        log.info("[%s] LIFECYCLE S6 astream exhausted after %d supersteps status=%s score=%.2f tokens=%d",
                  execution_id, step,
                  final_state.get("status", "?"),
                  final_state.get("critic_score", 0.0),
@@ -205,23 +239,32 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
         for trace in final_state.get("traces", []):
             try:
                 await sb.append_node_trace(execution_id, trace)
-            except Exception as te:
+            except BaseException as te:
                 log.warning("[%s] trace insert failed: %s", execution_id, te)
         try:
             await sb.save_checkpoint(execution_id, step, final_state)
-        except Exception as ce:
+        except BaseException as ce:
             log.warning("[%s] checkpoint save failed: %s", execution_id, ce)
 
-    except Exception as exc:
-        log.exception("[%s] execution failed at superstep %d: %s", execution_id, step, exc)
+    except asyncio.CancelledError:
+        # CancelledError is BaseException — must be caught explicitly
+        log.error("[%s] LIFECYCLE CANCELLED at superstep %d — task was cancelled by event loop",
+                  execution_id, step)
+        raise  # re-raise so asyncio marks the task cancelled
+
+    except BaseException as exc:
+        log.error("[%s] LIFECYCLE EXCEPTION at superstep %d (%s): %s\n%s",
+                  execution_id, step, type(exc).__name__, exc, tb_mod.format_exc())
         try:
             await sb.upsert_execution(execution_id, {
                 "status":       "failed",
                 "error":        str(exc)[:2000],
                 "completed_at": _now(),
             })
-        except Exception as dbe:
+        except BaseException as dbe:
             log.error("[%s] failed to persist error status: %s", execution_id, dbe)
+
+    log.info("[%s] LIFECYCLE END coroutine returning", execution_id)
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -319,9 +362,14 @@ async def run_workflow_async(
 
     # asyncio.create_task guarantees scheduling in the running event loop.
     # We keep a reference in _LIVE_TASKS to prevent GC before the task completes.
-    task = asyncio.create_task(_execute_and_persist(execution_id, req.task_type, req.payload))
+    task = asyncio.create_task(
+        _execute_and_persist(execution_id, req.task_type, req.payload),
+        name=f"exec-{execution_id}",
+    )
     _LIVE_TASKS.add(task)
+    task.add_done_callback(lambda t: _task_done_callback(execution_id, t))
     task.add_done_callback(_LIVE_TASKS.discard)
+    log.info("[%s] task created name=%s tasks_in_flight=%d", execution_id, task.get_name(), len(_LIVE_TASKS))
 
     return {"execution_id": execution_id, "status": "queued"}
 
