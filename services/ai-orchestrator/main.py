@@ -28,15 +28,21 @@ ALLOWED_TASK_TYPES = {"seo_audit", "growth_strategy", "research", "qa_review"}
 _GRAPH = None
 
 
+_STARTUP_ERROR: str = ""
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _GRAPH
-    from config import REQUIRED
-    missing = [k for k in REQUIRED if not os.getenv(k)]
-    if missing:
-        raise RuntimeError(f"Missing required env vars: {missing}")
-    from graph import build_graph
-    _GRAPH = build_graph()
+    global _GRAPH, _STARTUP_ERROR
+    try:
+        from config import REQUIRED
+        missing = [k for k in REQUIRED if not os.getenv(k)]
+        if missing:
+            _STARTUP_ERROR = f"Missing env vars: {missing}"
+        else:
+            from graph import build_graph
+            _GRAPH = build_graph()
+    except Exception as exc:
+        _STARTUP_ERROR = str(exc)
     yield
 
 
@@ -117,6 +123,8 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
 
 @app.get("/health")
 async def health():
+    if _STARTUP_ERROR:
+        return {"status": "degraded", "error": _STARTUP_ERROR, "service": "byn-ai-orchestrator", "version": "1.0.0"}
     return {"status": "ok", "service": "byn-ai-orchestrator", "version": "1.0.0"}
 
 
