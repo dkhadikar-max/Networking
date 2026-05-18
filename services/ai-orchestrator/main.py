@@ -133,11 +133,16 @@ class RunResponse(BaseModel):
 async def _execute_and_persist(execution_id: str, task_type: str, payload: dict):
     sb  = _sb()
     log.info("[%s] async execution started task_type=%s", execution_id, task_type)
-    await sb.upsert_execution(execution_id, {
-        "status":    "planning",
-        "task_type": task_type,
-        "payload":   payload,
-    })
+    try:
+        await sb.upsert_execution(execution_id, {
+            "status":    "planning",
+            "task_type": task_type,
+            "payload":   payload,
+        })
+    except Exception as exc:
+        log.exception("[%s] failed to write initial status: %s", execution_id, exc)
+        return
+
     cfg = {"configurable": {"thread_id": execution_id}}
     try:
         state = await _graph().ainvoke(_initial_state(execution_id, task_type, payload), config=cfg)
@@ -150,15 +155,24 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
             "completed_at": _now(),
         })
         for trace in state.get("traces", []):
-            await sb.append_node_trace(execution_id, trace)
-        await sb.save_checkpoint(execution_id, 999, dict(state))
+            try:
+                await sb.append_node_trace(execution_id, trace)
+            except Exception as te:
+                log.warning("[%s] trace insert failed: %s", execution_id, te)
+        try:
+            await sb.save_checkpoint(execution_id, 999, dict(state))
+        except Exception as ce:
+            log.warning("[%s] checkpoint save failed: %s", execution_id, ce)
     except Exception as exc:
         log.exception("[%s] execution failed: %s", execution_id, exc)
-        await sb.upsert_execution(execution_id, {
-            "status":       "failed",
-            "error":        str(exc),
-            "completed_at": _now(),
-        })
+        try:
+            await sb.upsert_execution(execution_id, {
+                "status":       "failed",
+                "error":        str(exc)[:2000],
+                "completed_at": _now(),
+            })
+        except Exception as dbe:
+            log.error("[%s] failed to persist error status: %s", execution_id, dbe)
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

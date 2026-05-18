@@ -2,6 +2,7 @@
 Supabase client — shared singleton, used by nodes and checkpoint saver.
 """
 from __future__ import annotations
+from datetime import datetime, timezone
 from supabase import create_client, Client
 from config import SUPABASE_URL, SUPABASE_KEY
 
@@ -15,12 +16,16 @@ def get_supabase() -> Client:
     return _client
 
 
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 async def upsert_execution(execution_id: str, data: dict) -> None:
     sb = get_supabase()
     sb.table("langgraph_executions").upsert({
         "id": execution_id,
         **data,
-        "updated_at": "now()",
+        "updated_at": _now(),
     }).execute()
 
 
@@ -36,9 +41,9 @@ async def save_checkpoint(execution_id: str, step: int, state: dict) -> None:
     sb = get_supabase()
     sb.table("langgraph_checkpoints").upsert({
         "execution_id": execution_id,
-        "step": step,
-        "state": state,
-        "saved_at": "now()",
+        "step":         step,
+        "state":        state,
+        "saved_at":     _now(),
     }, on_conflict="execution_id,step").execute()
 
 
