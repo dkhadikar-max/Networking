@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from typing import Any
 
 from config import PORT
-from state import GraphState
 from graph import GRAPH
 from supabase_client import get_supabase, upsert_execution, append_node_trace, save_checkpoint
 

@@ -13,7 +13,6 @@ Topology:
 from __future__ import annotations
 
 from langgraph.graph import StateGraph, END, START
-from langgraph.graph.state import CompiledStateGraph
 
 from state import GraphState
 from config import CRITIC_THRESHOLD, MAX_RETRIES
@@ -55,7 +54,7 @@ def _route_from_retry(state: GraphState) -> list[str]:
     return [f"worker_{a}" for a in agents] if agents else ["critic"]
 
 
-def build_graph() -> CompiledStateGraph:
+def build_graph():
     g = StateGraph(GraphState)
 
     # ── Register nodes ──
@@ -102,4 +101,4 @@ def build_graph() -> CompiledStateGraph:
 
 
 # Module-level singleton — compiled once, reused for all executions
-GRAPH: CompiledStateGraph = build_graph()
+GRAPH = build_graph()
