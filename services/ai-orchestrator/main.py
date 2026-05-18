@@ -190,74 +190,56 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
                   execution_id, type(exc).__name__, exc, tb_mod.format_exc())
         # non-fatal — continue
 
-    # ── STEP 3: build graph config ────────────────────────────────────────────
-    log.info("[%s] LIFECYCLE S3 building graph config", execution_id)
-    cfg        = {"configurable": {"thread_id": execution_id}}
-    step       = 0
-    final_state: dict = {}
-
-    # ── STEP 4: call _graph().astream() ──────────────────────────────────────
-    log.info("[%s] LIFECYCLE S4 calling _graph().astream() — about to enter async for", execution_id)
+    # ── STEP 3: invoke graph (ainvoke awaits all async nodes to completion) ────
+    # astream "values" mode in LangGraph 0.2.x yields routing snapshots, NOT node
+    # outputs — async node coroutines run outside the generator lifetime and are
+    # never awaited. ainvoke correctly awaits every node before returning.
+    log.info("[%s] LIFECYCLE S3 calling ainvoke — awaiting full graph completion", execution_id)
+    cfg = {"configurable": {"thread_id": execution_id}}
     try:
-        astream_gen = _graph().astream(
+        state = await _graph().ainvoke(
             _initial_state(execution_id, task_type, payload),
             config=cfg,
         )
-        log.info("[%s] LIFECYCLE S4 generator object created: %r", execution_id, astream_gen)
+        log.info("[%s] LIFECYCLE S4 ainvoke complete status=%s score=%.2f tokens=%d traces=%d",
+                 execution_id,
+                 state.get("status", "?"),
+                 state.get("critic_score", 0.0),
+                 state.get("tokens_total", 0),
+                 len(state.get("traces", [])))
 
-        # ── STEP 5: first iteration ───────────────────────────────────────────
-        log.info("[%s] LIFECYCLE S5 awaiting first astream event", execution_id)
-        async for state in astream_gen:
-            step += 1
-            traces    = state.get("traces", [])
-            last_node = traces[-1]["node"] if traces else "?"
-            cur_stat  = state.get("status", "running")
-            log.info("[%s] LIFECYCLE S5+ SUPERSTEP %d last_node=%s status=%s tokens=%d traces=%d",
-                     execution_id, step, last_node, cur_stat,
-                     state.get("tokens_total", 0), len(traces))
-            final_state = state
-            try:
-                await sb.upsert_execution(execution_id, {"status": cur_stat})
-            except BaseException as se:
-                log.warning("[%s] intermediate DB write failed (%s): %s",
-                            execution_id, type(se).__name__, se)
-
-        # ── STEP 6: stream exhausted ──────────────────────────────────────────
-        log.info("[%s] LIFECYCLE S6 astream exhausted after %d supersteps status=%s score=%.2f tokens=%d",
-                 execution_id, step,
-                 final_state.get("status", "?"),
-                 final_state.get("critic_score", 0.0),
-                 final_state.get("tokens_total", 0))
-
+        # Always include task_type + payload to satisfy NOT NULL constraints
         await sb.upsert_execution(execution_id, {
-            "status":       final_state.get("status", "completed"),
-            "final_output": final_state.get("final_output", ""),
-            "critic_score": final_state.get("critic_score", 0.0),
-            "tokens_total": final_state.get("tokens_total", 0),
+            "status":       state.get("status", "completed"),
+            "task_type":    task_type,
+            "payload":      payload,
+            "final_output": state.get("final_output", ""),
+            "critic_score": state.get("critic_score", 0.0),
+            "tokens_total": state.get("tokens_total", 0),
             "completed_at": _now(),
         })
-        for trace in final_state.get("traces", []):
+        for trace in state.get("traces", []):
             try:
                 await sb.append_node_trace(execution_id, trace)
             except BaseException as te:
                 log.warning("[%s] trace insert failed: %s", execution_id, te)
         try:
-            await sb.save_checkpoint(execution_id, step, final_state)
+            await sb.save_checkpoint(execution_id, 1, state)
         except BaseException as ce:
             log.warning("[%s] checkpoint save failed: %s", execution_id, ce)
 
     except asyncio.CancelledError:
-        # CancelledError is BaseException — must be caught explicitly
-        log.error("[%s] LIFECYCLE CANCELLED at superstep %d — task was cancelled by event loop",
-                  execution_id, step)
-        raise  # re-raise so asyncio marks the task cancelled
+        log.error("[%s] LIFECYCLE CANCELLED — task was cancelled by event loop", execution_id)
+        raise
 
     except BaseException as exc:
-        log.error("[%s] LIFECYCLE EXCEPTION at superstep %d (%s): %s\n%s",
-                  execution_id, step, type(exc).__name__, exc, tb_mod.format_exc())
+        log.error("[%s] LIFECYCLE EXCEPTION (%s): %s\n%s",
+                  execution_id, type(exc).__name__, exc, tb_mod.format_exc())
         try:
             await sb.upsert_execution(execution_id, {
                 "status":       "failed",
+                "task_type":    task_type,
+                "payload":      payload,
                 "error":        str(exc)[:2000],
                 "completed_at": _now(),
             })
@@ -306,18 +288,16 @@ async def run_workflow(req: RunRequest, x_orchestrator_secret: str = Header(defa
         "task_type": req.task_type,
         "payload":   req.payload,
     })
-    cfg   = {"configurable": {"thread_id": execution_id}}
-    state: dict = {}
+    cfg = {"configurable": {"thread_id": execution_id}}
     try:
-        log.info("[%s] sync workflow astream starting (values mode)", execution_id)
-        async for state in _graph().astream(
+        log.info("[%s] sync workflow ainvoke starting", execution_id)
+        state = await _graph().ainvoke(
             _initial_state(execution_id, req.task_type, req.payload),
             config=cfg,
-        ):
-            traces    = state.get("traces", [])
-            last_node = traces[-1]["node"] if traces else "?"
-            log.info("[%s] sync superstep last_node=%s status=%s tokens=%d",
-                     execution_id, last_node, state.get("status", "?"), state.get("tokens_total", 0))
+        )
+        log.info("[%s] sync workflow ainvoke complete status=%s score=%.2f tokens=%d",
+                 execution_id, state.get("status", "?"),
+                 state.get("critic_score", 0.0), state.get("tokens_total", 0))
     except HTTPException:
         raise
     except Exception as exc:
@@ -328,6 +308,8 @@ async def run_workflow(req: RunRequest, x_orchestrator_secret: str = Header(defa
              execution_id, state.get("critic_score", 0.0), state.get("tokens_total", 0))
     await sb.upsert_execution(execution_id, {
         "status":       state.get("status", "completed"),
+        "task_type":    req.task_type,
+        "payload":      req.payload,
         "final_output": state.get("final_output", ""),
         "critic_score": state.get("critic_score", 0.0),
         "tokens_total": state.get("tokens_total", 0),
