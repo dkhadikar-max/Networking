@@ -1,6 +1,7 @@
 """
 Supabase client — shared singleton, used by nodes and checkpoint saver.
 """
+from __future__ import annotations
 from supabase import create_client, Client
 from config import SUPABASE_URL, SUPABASE_KEY
 
