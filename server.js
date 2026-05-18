@@ -4711,6 +4711,90 @@ app.get('/api/admin/agents/scheduler', adminAuth, (req, res) => {
   res.json(agentScheduler ? agentScheduler.status() : { active: false, reason: 'not initialized' });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// LANGGRAPH ORCHESTRATOR BRIDGE — proxies to services/ai-orchestrator (Python)
+// Falls back gracefully if the LangGraph service is not running.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const LANGGRAPH_URL    = process.env.LANGGRAPH_URL    || 'http://localhost:8000';
+const ORCH_SECRET      = process.env.ORCHESTRATOR_SECRET || '';
+const LANGGRAPH_ENABLED = !!process.env.LANGGRAPH_URL;
+
+async function lgFetch(path, opts = {}) {
+  const { default: nodeFetch } = await import('node-fetch').catch(() => ({ default: null }));
+  const fetchFn = nodeFetch || globalThis.fetch;
+  if (!fetchFn) throw new Error('No fetch available');
+  const r = await fetchFn(LANGGRAPH_URL + path, {
+    ...opts,
+    headers: {
+      'Content-Type':        'application/json',
+      'x-orchestrator-secret': ORCH_SECRET,
+      ...(opts.headers || {}),
+    },
+    signal: AbortSignal.timeout(90_000),
+  });
+  const body = await r.json();
+  if (!r.ok) throw new Error(body?.detail || `LangGraph ${r.status}`);
+  return body;
+}
+
+// LangGraph service status
+app.get('/api/admin/langgraph/status', adminAuth, async (req, res) => {
+  if (!LANGGRAPH_ENABLED) return res.json({ enabled: false, message: 'Set LANGGRAPH_URL to enable' });
+  try {
+    const data = await lgFetch('/health');
+    res.json({ enabled: true, ...data });
+  } catch (e) {
+    res.json({ enabled: true, reachable: false, error: e.message });
+  }
+});
+
+// Graph topology
+app.get('/api/admin/langgraph/topology', adminAuth, async (req, res) => {
+  try { res.json(await lgFetch('/graph/topology')); }
+  catch (e) { res.status(503).json({ error: e.message }); }
+});
+
+// Run workflow (sync)
+app.post('/api/admin/langgraph/run', adminAuth, async (req, res) => {
+  try {
+    const { task_type, payload } = req.body;
+    if (!task_type) return res.status(400).json({ error: 'task_type required' });
+    const data = await lgFetch('/run', {
+      method: 'POST',
+      body: JSON.stringify({ task_type, payload: payload || {} }),
+    });
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Queue async workflow
+app.post('/api/admin/langgraph/run/async', adminAuth, async (req, res) => {
+  try {
+    const { task_type, payload } = req.body;
+    if (!task_type) return res.status(400).json({ error: 'task_type required' });
+    const data = await lgFetch('/run/async', {
+      method: 'POST',
+      body: JSON.stringify({ task_type, payload: payload || {} }),
+    });
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// List executions
+app.get('/api/admin/langgraph/executions', adminAuth, async (req, res) => {
+  try {
+    const qs = new URLSearchParams({ limit: req.query.limit || 50, ...(req.query.status ? { status: req.query.status } : {}) });
+    res.json(await lgFetch(`/executions?${qs}`));
+  } catch (e) { res.status(503).json({ error: e.message }); }
+});
+
+// Get single execution + traces
+app.get('/api/admin/langgraph/execution/:id', adminAuth, async (req, res) => {
+  try { res.json(await lgFetch(`/execution/${req.params.id}`)); }
+  catch (e) { res.status(404).json({ error: e.message }); }
+});
+
 // ── ADMIN BOOTSTRAP ──
 // BUG FIX 2: bootstrapLimiter (10/hr) prevents brute-forcing ADMIN_SECRET
 app.post('/api/admin/bootstrap', bootstrapLimiter, async (req, res) => {
