@@ -11,8 +11,23 @@ from state import GraphState
 
 _client = Anthropic(api_key=ANTHROPIC_API_KEY)
 
-# Resolve path to agents/*.md relative to repo root
-_AGENTS_DIR = Path(__file__).parents[3] / "agents"
+# Resolve agents/*.md: look in service's own agents/ first, then walk up to repo root.
+# The service bundles agents/ at services/ai-orchestrator/agents/ for Railway deployments
+# where only the service subdirectory is copied. Falls back gracefully if neither exists.
+def _find_agents_dir() -> Path:
+    # Primary: agents/ copied alongside this service (works in all Railway configs)
+    svc_root = Path(__file__).parent.parent
+    bundled = svc_root / "agents"
+    if bundled.is_dir():
+        return bundled
+    # Fallback: walk up to find agents/ in a parent (works when running from repo root)
+    for parent in svc_root.parents:
+        candidate = parent / "agents"
+        if candidate.is_dir():
+            return candidate
+    return bundled  # non-existent; _load_prompt handles missing files gracefully
+
+_AGENTS_DIR = _find_agents_dir()
 
 _SYSTEM_PROMPTS: dict[str, str] = {}
 
