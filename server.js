@@ -105,9 +105,24 @@ try {
 // ── AI AGENT ORCHESTRATOR ── (non-blocking; routes return 503 until ready)
 let agentOrchestrator = null;
 let agentMemory       = null;
+let workflowEngine    = null;
+let agentScheduler    = null;
+
 import('./agents/orchestrator.js')
-  .then(m => { agentOrchestrator = new m.AgentOrchestrator(supabase); console.log('AI agents ready ✓'); })
-  .catch(e => console.warn('Agent orchestrator unavailable:', e.message));
+  .then(async m => {
+    agentOrchestrator = new m.AgentOrchestrator(supabase);
+    console.log('AI agents ready ✓');
+    // Chain workflow engine + scheduler — both depend on orchestrator being ready
+    const [wm, sm] = await Promise.all([
+      import('./agents/workflow-engine.js'),
+      import('./agents/scheduler.js'),
+    ]);
+    workflowEngine = new wm.WorkflowEngine(supabase, agentOrchestrator);
+    agentScheduler = new sm.AgentScheduler(supabase, agentOrchestrator);
+    agentScheduler.start();
+    console.log('Workflow engine + scheduler ready ✓');
+  })
+  .catch(e => console.warn('Agent system unavailable:', e.message));
 import('./agents/memory.js')
   .then(m => { agentMemory = new m.AgentMemory(supabase); })
   .catch(e => console.warn('Agent memory unavailable:', e.message));
@@ -4154,7 +4169,7 @@ function requireAgents(res) {
   return true;
 }
 
-// List available agents and their roles
+// List available agents, scheduler status, and workflow templates
 app.get('/api/admin/agents', adminAuth, (req, res) => {
   if (!agentOrchestrator) return res.status(503).json({ error: 'Agent system initializing.' });
   const agents = Object.entries(agentOrchestrator.agents).map(([name, ag]) => ({
@@ -4162,7 +4177,14 @@ app.get('/api/admin/agents', adminAuth, (req, res) => {
     prompt_preview: ag.systemPrompt.slice(0, 200),
     claude_ready: !!ag.client,
   }));
-  res.json({ agents, anthropic_configured: !!process.env.ANTHROPIC_API_KEY });
+  res.json({
+    agents,
+    anthropic_configured: !!process.env.ANTHROPIC_API_KEY,
+    scheduler: agentScheduler ? agentScheduler.status() : null,
+    workflow_templates: workflowEngine
+      ? ['seo_audit', 'content_review', 'security_review', 'founder_acquisition', 'product_review']
+      : [],
+  });
 });
 
 // Create a queued task
@@ -4275,6 +4297,80 @@ app.delete('/api/admin/agents/memory/:id', adminAuth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── WORKFLOW ROUTES ──
+
+function requireWorkflows(res) {
+  if (!workflowEngine) { res.status(503).json({ error: 'Workflow engine initializing.' }); return false; }
+  return true;
+}
+
+// List workflows
+app.get('/api/admin/agents/workflows', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try {
+    const { status, limit } = req.query;
+    const workflows = await workflowEngine.list({ status: status || undefined, limit: Math.min(Number(limit) || 50, 200) });
+    res.json({ workflows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Create and start a workflow from a template
+app.post('/api/admin/agents/workflow', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try {
+    const { template, context } = req.body;
+    if (!template) return res.status(400).json({ error: 'template required' });
+    const wf = await workflowEngine.create({ template, context: context || {}, createdBy: req.user.id });
+    res.json({ ok: true, workflow: wf });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// Get single workflow details
+app.get('/api/admin/agents/workflow/:id', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try {
+    const wf = await workflowEngine.get(req.params.id);
+    res.json(wf);
+  } catch (e) { res.status(404).json({ error: e.message }); }
+});
+
+// Advance one step
+app.post('/api/admin/agents/workflow/:id/advance', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try {
+    const wf = await workflowEngine.advance(req.params.id);
+    res.json({ ok: true, workflow: wf });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Run all remaining steps (sync — may take 30-90s for multi-step workflows)
+app.post('/api/admin/agents/workflow/:id/run-all', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try {
+    const wf = await workflowEngine.runAll(req.params.id);
+    res.json({ ok: true, workflow: wf });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Pause a running workflow
+app.post('/api/admin/agents/workflow/:id/pause', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try { await workflowEngine.pause(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Resume a paused workflow
+app.post('/api/admin/agents/workflow/:id/resume', adminAuth, async (req, res) => {
+  if (!requireWorkflows(res)) return;
+  try { await workflowEngine.resume(req.params.id); res.json({ ok: true }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Scheduler live status
+app.get('/api/admin/agents/scheduler', adminAuth, (req, res) => {
+  res.json(agentScheduler ? agentScheduler.status() : { active: false, reason: 'not initialized' });
 });
 
 // ── ADMIN BOOTSTRAP ──

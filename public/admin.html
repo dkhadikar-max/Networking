@@ -219,11 +219,28 @@ tbody td{padding:11px 14px;vertical-align:middle}
           <tbody id="tasks-tbody"><tr class="lr"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
         </table></div>
       </div>
-      <div>
+      <div style="margin-bottom:28px">
         <div class="sh"><span class="st">Agent Memory</span><button class="btn-rf" onclick="loadAgentMemory()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
         <div class="tw"><table>
           <thead><tr><th>Agent</th><th>Key</th><th>Category</th><th>Value</th><th>Confidence</th><th>Updated</th><th></th></tr></thead>
           <tbody id="memory-tbody"><tr class="lr"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+        </table></div>
+      </div>
+      <div style="margin-bottom:28px">
+        <div class="sh"><span class="st">Scheduler</span><button class="btn-rf" onclick="loadSchedulerStatus()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
+        <div id="scheduler-wrap" class="al" style="padding:16px 20px;font-size:13px;color:var(--muted)"><span class="spinner"></span></div>
+      </div>
+      <div style="margin-bottom:28px">
+        <div class="sh"><span class="st">Workflows</span><button class="btn-rf" onclick="loadWorkflows()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px" id="wf-templates"><div class="stat-card"><div class="lbl">Loading templates…</div></div></div>
+        <div id="wf-context-row" style="display:none;margin-bottom:12px">
+          <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Context (optional JSON)</label>
+          <textarea id="wf-context" rows="2" placeholder='{"topic":"India founder networking"}' style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:monospace"></textarea>
+          <button class="btn-rf" onclick="doStartWorkflow()" style="margin-top:10px;padding:8px 20px">Start Workflow</button>
+        </div>
+        <div class="tw"><table>
+          <thead><tr><th>Name</th><th>Template</th><th>Progress</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+          <tbody id="workflows-tbody"><tr class="lr"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -674,27 +691,6 @@ async function loadSeo(){
 const STATUS_COLORS={pending:'cb',running:'ca',completed:'cg',failed:'cr'};
 const STATUS_LABELS={pending:'⏳ Pending',running:'⚡ Running',completed:'✓ Done',failed:'✗ Failed'};
 
-async function loadAgents(){
-  const reg=document.getElementById('agent-registry');
-  const bar=document.getElementById('agent-status-bar');
-  try{
-    const d=await apiCall('GET','/api/admin/agents');
-    bar.innerHTML=d.anthropic_configured
-      ?'<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--green);margin-bottom:0">Anthropic API configured — agents ready to execute</div>'
-      :'<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--amber);margin-bottom:0">ANTHROPIC_API_KEY not set — set in Railway environment variables to enable agent execution</div>';
-    reg.innerHTML=d.agents.map(a=>`
-      <div class="stat-card">
-        <div class="lbl">${esc(a.name)}</div>
-        <div style="font-size:11px;color:${a.claude_ready?'var(--green)':'var(--muted)'};margin-bottom:8px">${a.claude_ready?'Claude ready':'No API key'}</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;word-break:break-word">${esc(a.prompt_preview)}…</div>
-      </div>`).join('');
-    await Promise.all([loadTaskQueue(),loadAgentMemory()]);
-  }catch(e){
-    reg.innerHTML=`<div class="empty">Agent system not yet available. Run Supabase migration 003_agent_infrastructure.sql first, then deploy.</div>`;
-    bar.innerHTML='';
-  }
-}
-
 async function loadTaskQueue(){
   const tb=document.getElementById('tasks-tbody');
   try{
@@ -805,6 +801,142 @@ async function deleteMemory(id,btn){
     toast('Memory deleted');
     await loadAgentMemory();
   }catch(e){toast(e.message,'err')}finally{btn.disabled=false}
+}
+
+// ── WORKFLOWS
+const WF_LABELS={seo_audit:'SEO Audit',content_review:'Content Review',security_review:'Security Review',founder_acquisition:'Founder Acquisition',product_review:'Product Review'};
+const WF_STATUS_COLOR={running:'ca',completed:'cg',failed:'cr',paused:'cb'};
+let selectedTemplate=null;
+
+async function loadAgents(){
+  const reg=document.getElementById('agent-registry');
+  const bar=document.getElementById('agent-status-bar');
+  try{
+    const d=await apiCall('GET','/api/admin/agents');
+    bar.innerHTML=d.anthropic_configured
+      ?'<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--green);margin-bottom:0">Anthropic API configured — agents ready</div>'
+      :'<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--amber);margin-bottom:0">ANTHROPIC_API_KEY not set — set in Railway environment variables to enable agent execution</div>';
+    reg.innerHTML=d.agents.map(a=>`
+      <div class="stat-card">
+        <div class="lbl">${esc(a.name)}</div>
+        <div style="font-size:11px;color:${a.claude_ready?'var(--green)':'var(--muted)'};margin-bottom:8px">${a.claude_ready?'Ready':'No API key'}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;word-break:break-word">${esc(a.prompt_preview)}…</div>
+      </div>`).join('');
+    // Populate workflow templates
+    const tmplWrap=document.getElementById('wf-templates');
+    if(d.workflow_templates?.length){
+      tmplWrap.innerHTML=d.workflow_templates.map(k=>`
+        <div class="stat-card" style="cursor:pointer;transition:border .2s" id="wft-${k}" onclick="selectTemplate('${k}')">
+          <div class="lbl" style="font-size:10px">${k.replace(/_/g,' ').toUpperCase()}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-top:4px">${esc(WF_LABELS[k]||k)}</div>
+        </div>`).join('');
+    }
+    await Promise.all([loadTaskQueue(),loadAgentMemory(),loadWorkflows(),loadSchedulerStatus()]);
+  }catch(e){
+    reg.innerHTML=`<div class="empty">Agent system not yet available. Run Supabase migration 003 + 004, then deploy.</div>`;
+    bar.innerHTML='';
+  }
+}
+
+function selectTemplate(key){
+  selectedTemplate=key;
+  document.querySelectorAll('[id^="wft-"]').forEach(el=>el.style.borderColor='');
+  const el=document.getElementById('wft-'+key);
+  if(el)el.style.borderColor='var(--teal)';
+  document.getElementById('wf-context-row').style.display='block';
+}
+
+async function doStartWorkflow(){
+  if(!selectedTemplate){toast('Select a workflow template first','err');return}
+  let context={};
+  const ctxRaw=document.getElementById('wf-context').value.trim();
+  if(ctxRaw){try{context=JSON.parse(ctxRaw)}catch{toast('Context must be valid JSON','err');return}}
+  try{
+    const d=await apiCall('POST','/api/admin/agents/workflow',{template:selectedTemplate,context});
+    toast('Workflow started');
+    selectedTemplate=null;
+    document.querySelectorAll('[id^="wft-"]').forEach(el=>el.style.borderColor='');
+    document.getElementById('wf-context-row').style.display='none';
+    document.getElementById('wf-context').value='';
+    await loadWorkflows();
+  }catch(e){toast(e.message,'err')}
+}
+
+async function loadWorkflows(){
+  const tb=document.getElementById('workflows-tbody');
+  try{
+    const d=await apiCall('GET','/api/admin/agents/workflows?limit=50');
+    if(!d.workflows.length){tb.innerHTML='<tr class="lr"><td colspan="6" style="color:var(--muted)">No workflows yet. Select a template above and click Start.</td></tr>';return}
+    tb.innerHTML=d.workflows.map(wf=>{
+      const total=wf.steps?.length||0;
+      const done=Math.min(wf.current_step,total);
+      const pct=total?Math.round(done/total*100):0;
+      return`<tr>
+        <td style="font-size:13px;font-weight:600">${esc(wf.name)}</td>
+        <td><span class="badge ba">${esc(wf.template)}</span></td>
+        <td><div style="display:flex;align-items:center;gap:8px">
+          <div style="width:64px;background:var(--card);border-radius:2px;height:5px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--teal-lt);border-radius:2px"></div></div>
+          <span style="font-size:11px;color:var(--muted)">${done}/${total}</span>
+        </div></td>
+        <td><span class="val ${WF_STATUS_COLOR[wf.status]||'cw'}" style="font-size:12px;font-weight:600">${wf.status}</span></td>
+        <td style="font-size:11px;color:var(--muted)">${timeAgo(wf.updated_at)}</td>
+        <td class="actions">
+          ${wf.status==='running'?`<button class="ab a-ver" onclick="advanceWorkflow('${esc(wf.id)}',this)">Next Step</button><button class="ab a-pre" onclick="runAllWorkflow('${esc(wf.id)}',this)">Run All</button><button class="ab a-ban" onclick="pauseWorkflow('${esc(wf.id)}',this)">Pause</button>`:''}
+          ${wf.status==='paused'?`<button class="ab a-unb" onclick="resumeWorkflow('${esc(wf.id)}',this)">Resume</button>`:''}
+          ${wf.status==='completed'||wf.status==='failed'?`<button class="ab a-ver" onclick="viewWorkflow('${esc(wf.id)}')">View</button>`:''}
+        </td>
+      </tr>`;
+    }).join('');
+  }catch(e){tb.innerHTML=`<tr class="lr"><td colspan="6" style="color:var(--muted)">${esc(e.message)}</td></tr>`}
+}
+
+async function advanceWorkflow(id,btn){
+  btn.disabled=true;btn.textContent='Running…';
+  try{await apiCall('POST',`/api/admin/agents/workflow/${id}/advance`);toast('Step advanced');await loadWorkflows();}
+  catch(e){toast(e.message,'err')}finally{btn.disabled=false;btn.textContent='Next Step'}
+}
+
+async function runAllWorkflow(id,btn){
+  btn.disabled=true;btn.textContent='Running…';
+  toast('Running all steps — this may take 1-2 minutes…');
+  try{const d=await apiCall('POST',`/api/admin/agents/workflow/${id}/run-all`);toast('Workflow '+d.workflow.status);await loadWorkflows();}
+  catch(e){toast(e.message,'err')}finally{btn.disabled=false;btn.textContent='Run All'}
+}
+
+async function pauseWorkflow(id,btn){
+  btn.disabled=true;
+  try{await apiCall('POST',`/api/admin/agents/workflow/${id}/pause`);toast('Paused');await loadWorkflows();}
+  catch(e){toast(e.message,'err')}finally{btn.disabled=false}
+}
+
+async function resumeWorkflow(id,btn){
+  btn.disabled=true;
+  try{await apiCall('POST',`/api/admin/agents/workflow/${id}/resume`);toast('Resumed');await loadWorkflows();}
+  catch(e){toast(e.message,'err')}finally{btn.disabled=false}
+}
+
+async function viewWorkflow(id){
+  try{
+    const wf=await apiCall('GET',`/api/admin/agents/workflow/${id}`);
+    const out=wf.steps.map((s,i)=>`=== Step ${i+1}: ${s.agent}/${s.type} [${s.status}] ===\n${s.output||s.error||'(no output)'}`).join('\n\n');
+    const win=window.open('','_blank');
+    win.document.write(`<pre style="font-family:monospace;padding:24px;background:#0d1117;color:#e6edf3;white-space:pre-wrap;line-height:1.6">${out.replace(/</g,'&lt;')}</pre>`);
+  }catch(e){toast(e.message,'err')}
+}
+
+async function loadSchedulerStatus(){
+  const wrap=document.getElementById('scheduler-wrap');
+  try{
+    const s=await apiCall('GET','/api/admin/agents/scheduler');
+    wrap.innerHTML=`
+      <div style="display:flex;gap:32px;flex-wrap:wrap">
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">STATUS</div><span style="font-weight:600;color:${s.active?'var(--green)':'var(--red)'}">${s.active?'Active':'Stopped'}</span></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">INTERVAL</div><span style="font-weight:600">${s.poll_interval_ms/1000}s</span></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">LAST TICK</div><span style="font-weight:600">${s.last_tick?timeAgo(s.last_tick):'never'}</span></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">TASKS DONE</div><span style="font-weight:600;color:var(--green)">${s.tasks_done||0}</span></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">TASKS FAILED</div><span style="font-weight:600;color:${s.tasks_failed?'var(--red)':'var(--muted)'}">${s.tasks_failed||0}</span></div>
+      </div>`;
+  }catch(e){wrap.innerHTML=`<span style="color:var(--muted)">${esc(e.message)}</span>`}
 }
 
 // ── AUDIT LOG
