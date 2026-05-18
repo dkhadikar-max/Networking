@@ -40,5 +40,5 @@ class GraphState(TypedDict):
     status: Literal["queued", "planning", "running", "blocked", "retrying", "failed", "completed"]
 
     # ── observability  (accumulated across nodes)
-    traces: Annotated[list[NodeTrace], operator.add]
-    tokens_total: int
+    traces:       Annotated[list[NodeTrace], operator.add]
+    tokens_total: Annotated[int, operator.add]
