@@ -12,7 +12,7 @@ from config import ANTHROPIC_API_KEY, MODEL_CRITIC, CRITIC_THRESHOLD
 from state import GraphState
 
 log = logging.getLogger("orchestrator.critic")
-NODE_TIMEOUT = 60
+NODE_TIMEOUT = 120  # raised from 60s — concurrent executions add Claude API latency
 
 _client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
