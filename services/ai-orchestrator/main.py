@@ -5,6 +5,7 @@ Communicates with Service A (main BYN app) only via HTTP.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import uuid
@@ -130,6 +131,16 @@ class RunResponse(BaseModel):
 
 # ── Background runner ─────────────────────────────────────────────────────────
 
+async def _heartbeat(execution_id: str, stop_event: asyncio.Event):
+    """Logs every 5 seconds while a graph execution is in progress."""
+    elapsed = 0
+    while not stop_event.is_set():
+        await asyncio.sleep(5)
+        elapsed += 5
+        if not stop_event.is_set():
+            log.info("[%s] heartbeat elapsed=%ds (graph still running)", execution_id, elapsed)
+
+
 async def _execute_and_persist(execution_id: str, task_type: str, payload: dict):
     sb  = _sb()
     log.info("[%s] async execution started task_type=%s", execution_id, task_type)
@@ -144,6 +155,8 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
         return
 
     cfg = {"configurable": {"thread_id": execution_id}}
+    stop_hb = asyncio.Event()
+    hb_task = asyncio.create_task(_heartbeat(execution_id, stop_hb))
     try:
         state = await _graph().ainvoke(_initial_state(execution_id, task_type, payload), config=cfg)
         log.info("[%s] completed score=%.2f tokens=%d", execution_id, state["critic_score"], state["tokens_total"])
@@ -173,6 +186,13 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
             })
         except Exception as dbe:
             log.error("[%s] failed to persist error status: %s", execution_id, dbe)
+    finally:
+        stop_hb.set()
+        hb_task.cancel()
+        try:
+            await hb_task
+        except asyncio.CancelledError:
+            pass
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -334,6 +354,44 @@ async def graph_topology(x_orchestrator_secret: str = Header(default="")):
             "allowed_task_types": sorted(ALLOWED_TASK_TYPES),
         },
     }
+
+
+@app.post("/test/node/{node_name}")
+async def test_single_node(
+    node_name: str,
+    req: RunRequest,
+    x_orchestrator_secret: str = Header(default=""),
+):
+    """Run a single named node in isolation to verify it resolves without hanging.
+    Supported node_name values: planner, critic, memory_update, worker_<agent>.
+    """
+    require_auth(x_orchestrator_secret)
+
+    execution_id = str(uuid.uuid4())
+    initial = _initial_state(execution_id, req.task_type, req.payload)
+
+    log.info("[%s] single-node test node=%s", execution_id, node_name)
+
+    # Resolve the function
+    graph = _graph()
+    node_fn = graph.nodes.get(node_name)
+    if node_fn is None:
+        available = list(graph.nodes.keys()) if hasattr(graph, "nodes") else []
+        raise HTTPException(404, f"Node '{node_name}' not found. Available: {available}")
+
+    import time
+    t0 = time.perf_counter()
+    try:
+        result = await asyncio.wait_for(node_fn.func(initial) if hasattr(node_fn, "func") else node_fn(initial), timeout=120)
+    except asyncio.TimeoutError:
+        raise HTTPException(504, f"Node '{node_name}' timed out after 120s")
+    except Exception as exc:
+        log.exception("[%s] node test failed: %s", execution_id, exc)
+        raise HTTPException(500, str(exc))
+
+    latency = int((time.perf_counter() - t0) * 1000)
+    log.info("[%s] single-node test completed node=%s latency=%dms", execution_id, node_name, latency)
+    return {"node": node_name, "latency_ms": latency, "result_keys": list(result.keys()), "result": result}
 
 
 if __name__ == "__main__":

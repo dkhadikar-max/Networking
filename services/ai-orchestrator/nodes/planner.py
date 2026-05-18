@@ -2,11 +2,16 @@
 Planner node — analyzes the task and produces an ordered execution plan.
 Decides which agents to invoke and which can run in parallel.
 """
+import asyncio
 import json
+import logging
 import time
 from anthropic import AsyncAnthropic
 from config import ANTHROPIC_API_KEY, MODEL_PLANNER
 from state import GraphState
+
+log = logging.getLogger("orchestrator.planner")
+NODE_TIMEOUT = 60  # seconds per Claude API call
 
 _client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -38,9 +43,12 @@ WORKFLOW_HINTS = {
 
 async def planner_node(state: GraphState) -> dict:
     t0 = time.perf_counter()
+    exec_id   = state.get("execution_id", "?")
     task_type = state["task_type"]
     payload   = state["payload"]
     hint      = WORKFLOW_HINTS.get(task_type, "Create a sensible multi-agent execution plan.")
+
+    log.info("[%s] planner ENTER task_type=%s model=%s", exec_id, task_type, MODEL_PLANNER)
 
     user_msg = f"""Task type: {task_type}
 Hint: {hint}
@@ -48,21 +56,35 @@ Payload: {json.dumps(payload, ensure_ascii=False)[:2000]}
 
 Produce the JSON execution plan."""
 
-    response = await _client.messages.create(
-        model=MODEL_PLANNER,
-        max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_msg}],
-    )
+    try:
+        response = await asyncio.wait_for(
+            _client.messages.create(
+                model=MODEL_PLANNER,
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_msg}],
+            ),
+            timeout=NODE_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        log.error("[%s] planner TIMEOUT after %ds", exec_id, NODE_TIMEOUT)
+        raise RuntimeError(f"planner timed out after {NODE_TIMEOUT}s")
 
     latency = int((time.perf_counter() - t0) * 1000)
+    log.info("[%s] planner Claude response in %dms tokens_in=%d tokens_out=%d",
+             exec_id, latency, response.usage.input_tokens, response.usage.output_tokens)
+
     raw = response.content[0].text.strip()
 
     # Extract JSON array (robust to markdown fences)
     if "```" in raw:
         raw = raw.split("```")[1].lstrip("json").strip()
 
-    plan: list[dict] = json.loads(raw)
+    try:
+        plan: list[dict] = json.loads(raw)
+    except json.JSONDecodeError as e:
+        log.error("[%s] planner JSON parse failed: %s | raw=%r", exec_id, e, raw[:200])
+        raise
 
     # Group by parallel_group for the router
     groups: dict[int, list[str]] = {}
@@ -70,6 +92,8 @@ Produce the JSON execution plan."""
         g = step.get("parallel_group", 1)
         groups.setdefault(g, []).append(step["agent"])
     parallel_groups = [groups[k] for k in sorted(groups)]
+
+    log.info("[%s] planner EXIT plan=%s parallel_groups=%s", exec_id, [s["agent"] for s in plan], parallel_groups)
 
     trace = {
         "node": "planner",
@@ -86,5 +110,5 @@ Produce the JSON execution plan."""
         "parallel_groups": parallel_groups,
         "status": "running",
         "traces": [trace],
-        "tokens_total": state.get("tokens_total", 0) + response.usage.input_tokens + response.usage.output_tokens,
+        "tokens_total": response.usage.input_tokens + response.usage.output_tokens,
     }

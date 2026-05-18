@@ -12,6 +12,8 @@ Topology:
 """
 from __future__ import annotations
 
+import logging
+
 from langgraph.graph import StateGraph, END, START
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -22,6 +24,8 @@ from nodes.workers import WORKER_NODES
 from nodes.critic import critic_node
 from nodes.retry import retry_node
 from nodes.memory_update import memory_update_node
+
+log = logging.getLogger("orchestrator.graph")
 
 
 # ── Router: dispatches to the correct worker nodes based on the plan ──
@@ -98,6 +102,16 @@ def build_graph():
 
     g.add_edge("memory_update", END)
 
-    return g.compile(checkpointer=MemorySaver())
+    compiled = g.compile(checkpointer=MemorySaver())
+
+    # Log compiled graph structure for cycle/topology verification
+    nodes = list(compiled.nodes.keys()) if hasattr(compiled, "nodes") else ["<unavailable>"]
+    log.info("Graph compiled. Nodes: %s", nodes)
+    log.info("Graph topology: START→planner→router→workers(fan-out)→critic→(retry|memory_update)→END")
+    log.info("Conditional routing: critic→retry if score<%.2f and retries<%d, else→memory_update",
+             CRITIC_THRESHOLD, MAX_RETRIES)
+    log.info("Worker set: %s", sorted(WORKER_NODES.keys()))
+
+    return compiled
 
 

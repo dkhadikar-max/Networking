@@ -3,11 +3,16 @@ Critic node — evaluates combined worker outputs.
 Produces a confidence score (0.0-1.0) and actionable feedback.
 Low-confidence outputs are routed back for retry.
 """
+import asyncio
 import json
+import logging
 import time
 from anthropic import AsyncAnthropic
 from config import ANTHROPIC_API_KEY, MODEL_CRITIC, CRITIC_THRESHOLD
 from state import GraphState
+
+log = logging.getLogger("orchestrator.critic")
+NODE_TIMEOUT = 60
 
 _client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -31,9 +36,12 @@ Output strict JSON:
 
 async def critic_node(state: GraphState) -> dict:
     t0 = time.perf_counter()
+    exec_id   = state.get("execution_id", "?")
     outputs   = state.get("worker_outputs", {})
     task_type = state["task_type"]
     payload   = state["payload"]
+
+    log.info("[%s] critic ENTER worker_count=%d model=%s", exec_id, len(outputs), MODEL_CRITIC)
 
     combined = "\n\n".join(f"[{k}]\n{v}" for k, v in outputs.items())
     user_msg = (
@@ -43,22 +51,36 @@ async def critic_node(state: GraphState) -> dict:
         f"Score threshold: {CRITIC_THRESHOLD}"
     )
 
-    response = await _client.messages.create(
-        model=MODEL_CRITIC,
-        max_tokens=512,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_msg}],
-    )
+    try:
+        response = await asyncio.wait_for(
+            _client.messages.create(
+                model=MODEL_CRITIC,
+                max_tokens=512,
+                system=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": user_msg}],
+            ),
+            timeout=NODE_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        log.error("[%s] critic TIMEOUT after %ds", exec_id, NODE_TIMEOUT)
+        raise RuntimeError(f"critic timed out after {NODE_TIMEOUT}s")
 
     latency = int((time.perf_counter() - t0) * 1000)
     raw = response.content[0].text.strip()
     if "```" in raw:
         raw = raw.split("```")[1].lstrip("json").strip()
 
-    result = json.loads(raw)
-    score    = float(result["score"])
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        log.error("[%s] critic JSON parse failed: %s | raw=%r", exec_id, e, raw[:200])
+        result = {"score": 0.5, "feedback": "Parse error — defaulting score"}
+
+    score    = float(result.get("score", 0.5))
     feedback = result.get("feedback", "")
     passed   = score >= CRITIC_THRESHOLD
+
+    log.info("[%s] critic EXIT score=%.2f pass=%s latency=%dms", exec_id, score, passed, latency)
 
     trace = {
         "node": "critic",
@@ -74,5 +96,5 @@ async def critic_node(state: GraphState) -> dict:
         "critic_score":    score,
         "critic_feedback": feedback,
         "traces": [trace],
-        "tokens_total": state.get("tokens_total", 0) + response.usage.input_tokens + response.usage.output_tokens,
+        "tokens_total": response.usage.input_tokens + response.usage.output_tokens,
     }
