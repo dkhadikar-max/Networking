@@ -5,11 +5,11 @@ Low-confidence outputs are routed back for retry.
 """
 import json
 import time
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from config import ANTHROPIC_API_KEY, MODEL_CRITIC, CRITIC_THRESHOLD
 from state import GraphState
 
-_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 SYSTEM_PROMPT = """You are a quality critic for an AI operating system.
 Evaluate the combined output of multiple AI agents against the original task.
@@ -43,7 +43,7 @@ async def critic_node(state: GraphState) -> dict:
         f"Score threshold: {CRITIC_THRESHOLD}"
     )
 
-    response = _client.messages.create(
+    response = await _client.messages.create(
         model=MODEL_CRITIC,
         max_tokens=512,
         system=SYSTEM_PROMPT,

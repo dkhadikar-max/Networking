@@ -67,8 +67,9 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
 
     await upsert_execution(execution_id, {"status": "planning", "task_type": task_type, "payload": payload})
 
+    lg_config = {"configurable": {"thread_id": execution_id}}
     try:
-        final_state: GraphState = await GRAPH.ainvoke(initial)
+        final_state: GraphState = await GRAPH.ainvoke(initial, config=lg_config)
         await upsert_execution(execution_id, {
             "status":       final_state["status"],
             "final_output": final_state["final_output"],
@@ -78,7 +79,6 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
         })
         for trace in final_state.get("traces", []):
             await append_node_trace(execution_id, trace)
-        # Checkpoint final state
         await save_checkpoint(execution_id, 999, dict(final_state))
     except Exception as e:
         await upsert_execution(execution_id, {
@@ -121,8 +121,9 @@ async def run_sync(req: RunRequest, x_orchestrator_secret: str = Header(default=
 
     await upsert_execution(execution_id, {"status": "planning", "task_type": req.task_type, "payload": req.payload})
 
+    lg_config = {"configurable": {"thread_id": execution_id}}
     try:
-        final_state: GraphState = await GRAPH.ainvoke(initial)
+        final_state: GraphState = await GRAPH.ainvoke(initial, config=lg_config)
     except Exception as e:
         raise HTTPException(500, str(e))
 

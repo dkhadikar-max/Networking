@@ -5,11 +5,11 @@ Each reads the agent's system prompt from agents/*.md (loaded once at startup).
 import os
 import time
 from pathlib import Path
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from config import ANTHROPIC_API_KEY, MODEL_WORKER
 from state import GraphState
 
-_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 # Resolve agents/*.md: look in service's own agents/ first, then walk up to repo root.
 # The service bundles agents/ at services/ai-orchestrator/agents/ for Railway deployments
@@ -50,7 +50,7 @@ async def _run_agent(agent: str, task: str, context: dict, previous_outputs: dic
         import json
         parts.append(f"Context: {json.dumps(context, ensure_ascii=False)[:1500]}")
 
-    response = _client.messages.create(
+    response = await _client.messages.create(
         model=MODEL_WORKER,
         max_tokens=2048,
         system=system,

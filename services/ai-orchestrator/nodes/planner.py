@@ -4,11 +4,11 @@ Decides which agents to invoke and which can run in parallel.
 """
 import json
 import time
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from config import ANTHROPIC_API_KEY, MODEL_PLANNER
 from state import GraphState
 
-_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
 SYSTEM_PROMPT = """You are a task planner for an AI operating system. Given a task type and payload,
 output a JSON execution plan specifying which agents to invoke.
@@ -48,7 +48,7 @@ Payload: {json.dumps(payload, ensure_ascii=False)[:2000]}
 
 Produce the JSON execution plan."""
 
-    response = _client.messages.create(
+    response = await _client.messages.create(
         model=MODEL_PLANNER,
         max_tokens=1024,
         system=SYSTEM_PROMPT,

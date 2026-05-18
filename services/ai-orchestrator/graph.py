@@ -13,6 +13,7 @@ Topology:
 from __future__ import annotations
 
 from langgraph.graph import StateGraph, END, START
+from langgraph.checkpoint.memory import MemorySaver
 
 from state import GraphState
 from config import CRITIC_THRESHOLD, MAX_RETRIES
@@ -97,7 +98,7 @@ def build_graph():
 
     g.add_edge("memory_update", END)
 
-    return g.compile()
+    return g.compile(checkpointer=MemorySaver())
 
 
 # Module-level singleton — compiled once, reused for all executions
