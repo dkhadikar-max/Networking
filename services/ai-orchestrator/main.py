@@ -31,6 +31,10 @@ _GRAPH = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _GRAPH
+    from config import REQUIRED
+    missing = [k for k in REQUIRED if not os.getenv(k)]
+    if missing:
+        raise RuntimeError(f"Missing required env vars: {missing}")
     from graph import build_graph
     _GRAPH = build_graph()
     yield
