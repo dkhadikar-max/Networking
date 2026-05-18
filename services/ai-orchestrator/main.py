@@ -154,71 +154,39 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
         log.exception("[%s] failed to write initial status: %s", execution_id, exc)
         return
 
-    cfg = {"configurable": {"thread_id": execution_id}}
-    stop_hb = asyncio.Event()
-    hb_task = asyncio.create_task(_heartbeat(execution_id, stop_hb))
-    step = 0
+    # Mark running immediately so any hang is distinguishable from "never started"
+    try:
+        await sb.upsert_execution(execution_id, {"status": "running"})
+    except Exception as exc:
+        log.warning("[%s] could not write running status: %s", execution_id, exc)
+
+    cfg        = {"configurable": {"thread_id": execution_id}}
+    step       = 0
     final_state: dict = {}
     try:
-        log.info("[%s] graph.astream starting — watching each node event", execution_id)
-        # stream_mode="updates" yields {node_name: state_delta} after each node completes.
-        # This gives per-node visibility and lets us update DB status after each node.
-        async for chunk in _graph().astream(
+        log.info("[%s] graph.astream starting (values mode)", execution_id)
+        # Use default stream_mode ("values") — yields full accumulated state after each superstep.
+        # "updates" mode hangs with MemorySaver in LangGraph 0.2.x.
+        async for state in _graph().astream(
             _initial_state(execution_id, task_type, payload),
             config=cfg,
-            stream_mode="updates",
         ):
             step += 1
-            for node_name, node_update in chunk.items():
-                update_keys = list(node_update.keys()) if isinstance(node_update, dict) else []
-                log.info("[%s] STEP %d node_completed=%s update_keys=%s",
-                         execution_id, step, node_name, update_keys)
+            traces    = state.get("traces", [])
+            last_node = traces[-1]["node"] if traces else "?"
+            cur_stat  = state.get("status", "running")
+            log.info("[%s] SUPERSTEP %d last_node=%s status=%s tokens=%d traces=%d",
+                     execution_id, step, last_node, cur_stat,
+                     state.get("tokens_total", 0), len(traces))
+            final_state = state
 
-                # Determine intermediate status from the node that just completed
-                if node_name == "planner":
-                    mid_status = "running"
-                elif node_name == "router":
-                    mid_status = "running"
-                elif node_name.startswith("worker_"):
-                    mid_status = "running"
-                elif node_name == "critic":
-                    mid_status = "running"
-                elif node_name == "retry":
-                    mid_status = "retrying"
-                elif node_name == "memory_update":
-                    mid_status = "completed"
-                else:
-                    mid_status = "running"
+            # Intermediate DB write after each superstep
+            try:
+                await sb.upsert_execution(execution_id, {"status": cur_stat})
+            except Exception as se:
+                log.warning("[%s] intermediate status write failed: %s", execution_id, se)
 
-                # Persist intermediate status after each node
-                try:
-                    await sb.upsert_execution(execution_id, {"status": mid_status})
-                except Exception as se:
-                    log.warning("[%s] intermediate DB update failed after %s: %s",
-                                execution_id, node_name, se)
-
-                # Print trace preview for planner so we can see what plan was built
-                if node_name == "planner" and isinstance(node_update, dict):
-                    log.info("[%s] planner plan=%s parallel_groups=%s",
-                             execution_id,
-                             node_update.get("plan", []),
-                             node_update.get("parallel_groups", []))
-
-                # Merge into final_state (accumulate all deltas)
-                if isinstance(node_update, dict):
-                    for k, v in node_update.items():
-                        if k == "traces" and isinstance(v, list):
-                            final_state.setdefault("traces", [])
-                            final_state["traces"] = final_state["traces"] + v
-                        elif k == "tokens_total" and isinstance(v, int):
-                            final_state["tokens_total"] = final_state.get("tokens_total", 0) + v
-                        elif k == "worker_outputs" and isinstance(v, dict):
-                            final_state.setdefault("worker_outputs", {})
-                            final_state["worker_outputs"] = {**final_state["worker_outputs"], **v}
-                        else:
-                            final_state[k] = v
-
-        log.info("[%s] astream complete after %d steps. final status=%s score=%.2f tokens=%d",
+        log.info("[%s] astream complete after %d supersteps. status=%s score=%.2f tokens=%d",
                  execution_id, step,
                  final_state.get("status", "?"),
                  final_state.get("critic_score", 0.0),
@@ -242,7 +210,7 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
             log.warning("[%s] checkpoint save failed: %s", execution_id, ce)
 
     except Exception as exc:
-        log.exception("[%s] execution failed at step %d: %s", execution_id, step, exc)
+        log.exception("[%s] execution failed at superstep %d: %s", execution_id, step, exc)
         try:
             await sb.upsert_execution(execution_id, {
                 "status":       "failed",
@@ -251,13 +219,6 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
             })
         except Exception as dbe:
             log.error("[%s] failed to persist error status: %s", execution_id, dbe)
-    finally:
-        stop_hb.set()
-        hb_task.cancel()
-        try:
-            await hb_task
-        except asyncio.CancelledError:
-            pass
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -299,30 +260,18 @@ async def run_workflow(req: RunRequest, x_orchestrator_secret: str = Header(defa
         "task_type": req.task_type,
         "payload":   req.payload,
     })
-    cfg = {"configurable": {"thread_id": execution_id}}
+    cfg   = {"configurable": {"thread_id": execution_id}}
     state: dict = {}
     try:
-        log.info("[%s] sync workflow astream starting", execution_id)
-        async for chunk in _graph().astream(
+        log.info("[%s] sync workflow astream starting (values mode)", execution_id)
+        async for state in _graph().astream(
             _initial_state(execution_id, req.task_type, req.payload),
             config=cfg,
-            stream_mode="updates",
         ):
-            for node_name, node_update in chunk.items():
-                log.info("[%s] sync step node=%s keys=%s", execution_id, node_name,
-                         list(node_update.keys()) if isinstance(node_update, dict) else [])
-                if isinstance(node_update, dict):
-                    for k, v in node_update.items():
-                        if k == "traces" and isinstance(v, list):
-                            state.setdefault("traces", [])
-                            state["traces"] = state["traces"] + v
-                        elif k == "tokens_total" and isinstance(v, int):
-                            state["tokens_total"] = state.get("tokens_total", 0) + v
-                        elif k == "worker_outputs" and isinstance(v, dict):
-                            state.setdefault("worker_outputs", {})
-                            state["worker_outputs"] = {**state["worker_outputs"], **v}
-                        else:
-                            state[k] = v
+            traces    = state.get("traces", [])
+            last_node = traces[-1]["node"] if traces else "?"
+            log.info("[%s] sync superstep last_node=%s status=%s tokens=%d",
+                     execution_id, last_node, state.get("status", "?"), state.get("tokens_total", 0))
     except HTTPException:
         raise
     except Exception as exc:
