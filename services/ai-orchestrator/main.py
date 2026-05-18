@@ -363,26 +363,43 @@ async def test_single_node(
     x_orchestrator_secret: str = Header(default=""),
 ):
     """Run a single named node in isolation to verify it resolves without hanging.
-    Supported node_name values: planner, critic, memory_update, worker_<agent>.
+    Supported: planner, critic, memory_update, retry, worker_<agent>.
     """
     require_auth(x_orchestrator_secret)
 
+    # Direct registry of callable async node functions (bypasses PregelNode wrapper)
+    from nodes.planner import planner_node
+    from nodes.critic import critic_node
+    from nodes.memory_update import memory_update_node
+    from nodes.retry import retry_node
+    from nodes.workers import WORKER_NODES
+
+    NODE_REGISTRY: dict = {
+        "planner":       planner_node,
+        "critic":        critic_node,
+        "memory_update": memory_update_node,
+        "retry":         retry_node,
+        **{f"worker_{k}": v for k, v in WORKER_NODES.items()},
+    }
+
+    node_fn = NODE_REGISTRY.get(node_name)
+    if node_fn is None:
+        raise HTTPException(404, f"Node '{node_name}' not found. Available: {sorted(NODE_REGISTRY)}")
+
     execution_id = str(uuid.uuid4())
     initial = _initial_state(execution_id, req.task_type, req.payload)
+    # Seed minimal state so downstream nodes have something to work with
+    if node_name == "critic":
+        initial["worker_outputs"] = {"research": "Sample research output for critic test."}
+    if node_name == "memory_update":
+        initial["worker_outputs"] = {"research": "Sample research output for memory test."}
 
     log.info("[%s] single-node test node=%s", execution_id, node_name)
-
-    # Resolve the function
-    graph = _graph()
-    node_fn = graph.nodes.get(node_name)
-    if node_fn is None:
-        available = list(graph.nodes.keys()) if hasattr(graph, "nodes") else []
-        raise HTTPException(404, f"Node '{node_name}' not found. Available: {available}")
 
     import time
     t0 = time.perf_counter()
     try:
-        result = await asyncio.wait_for(node_fn.func(initial) if hasattr(node_fn, "func") else node_fn(initial), timeout=120)
+        result = await asyncio.wait_for(node_fn(initial), timeout=120)
     except asyncio.TimeoutError:
         raise HTTPException(504, f"Node '{node_name}' timed out after 120s")
     except Exception as exc:
