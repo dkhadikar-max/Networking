@@ -153,6 +153,7 @@ tbody td{padding:11px 14px;vertical-align:middle}
       <button class="tab" onclick="switchTab('seo',this)">🔍 SEO</button>
       <button class="tab" onclick="switchTab('audit',this)">📋 Audit Log</button>
       <button class="tab" onclick="switchTab('agents',this)">🤖 Agents</button>
+      <button class="tab" onclick="switchTab('langgraph',this)">🧠 LangGraph</button>
     </div>
     <div id="tab-analytics" class="tab-panel active">
       <div class="stat-grid" id="stat-grid"><div class="stat-card"><div class="lbl">Loading…</div><div class="val ct"><span class="spinner"></span></div></div></div>
@@ -242,6 +243,46 @@ tbody td{padding:11px 14px;vertical-align:middle}
           <thead><tr><th>Name</th><th>Template</th><th>Progress</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
           <tbody id="workflows-tbody"><tr class="lr"><td colspan="6"><span class="spinner"></span></td></tr></tbody>
         </table></div>
+      </div>
+    </div>
+    <div id="tab-langgraph" class="tab-panel">
+      <div id="lg-status-bar" style="margin-bottom:20px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+        <div class="al" style="padding:20px">
+          <div class="sh" style="margin-bottom:16px"><span class="st">Run Execution</span></div>
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Task Type</label>
+            <select id="lg-task-type" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;outline:none">
+              <option value="seo_audit">SEO Audit</option>
+              <option value="growth_strategy">Growth Strategy</option>
+              <option value="research">Research</option>
+              <option value="qa_review">QA Review</option>
+            </select>
+          </div>
+          <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Payload (optional JSON)</label>
+            <textarea id="lg-payload" rows="3" placeholder='{"topic":"India founder networking"}' style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:monospace"></textarea>
+          </div>
+          <div style="margin-bottom:14px;display:flex;align-items:center;gap:20px">
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="lg-mode" value="sync" checked> Sync</label>
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="lg-mode" value="async"> Async (background)</label>
+          </div>
+          <button class="btn-rf" id="lg-run-btn" onclick="doLgRun()" style="width:100%;padding:10px">Run Execution</button>
+          <div id="lg-run-result" style="margin-top:14px;display:none;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;max-height:280px;overflow-y:auto;line-height:1.6"></div>
+        </div>
+        <div class="al" style="padding:20px">
+          <div class="sh" style="margin-bottom:16px"><span class="st">Graph Topology</span></div>
+          <div id="lg-topology"><div class="empty"><span class="spinner"></span></div></div>
+        </div>
+      </div>
+      <div style="margin-bottom:28px">
+        <div class="sh"><span class="st">Executions</span><button class="btn-rf" onclick="loadLgExecutions()" style="font-size:12px;padding:5px 12px">Refresh</button></div>
+        <div class="tw"><table>
+          <thead><tr><th>Status</th><th>Type</th><th>Score</th><th>Tokens</th><th>Created</th><th>Completed</th><th>Actions</th></tr></thead>
+          <tbody id="lg-exec-tbody"><tr class="lr"><td colspan="7"><span class="spinner"></span></td></tr></tbody>
+        </table></div>
+      </div>
+      <div id="lg-detail" style="display:none;margin-bottom:28px">
+        <div class="sh"><span class="st" id="lg-detail-title">Execution Detail</span><button class="btn-rf" onclick="document.getElementById('lg-detail').style.display='none'" style="font-size:12px;padding:5px 12px">Close</button></div>
+        <div id="lg-detail-content"></div>
       </div>
     </div>
   </main>
@@ -359,8 +400,9 @@ function switchTab(n,el){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('tab-'+n).classList.add('active');
+  if(n==='langgraph')loadLangGraph();
 }
-function refreshAll(){loadAnalytics();loadUsers();loadAudit();loadSeo();loadAgents();toast('Refreshed')}
+function refreshAll(){loadAnalytics();loadUsers();loadAudit();loadSeo();loadAgents();if(document.getElementById('tab-langgraph').classList.contains('active'))loadLangGraph();toast('Refreshed')}
 // loadFunnel is called by loadAnalytics — no separate call needed here
 
 // ── API HELPER
@@ -937,6 +979,146 @@ async function loadSchedulerStatus(){
         <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">TASKS FAILED</div><span style="font-weight:600;color:${s.tasks_failed?'var(--red)':'var(--muted)'}">${s.tasks_failed||0}</span></div>
       </div>`;
   }catch(e){wrap.innerHTML=`<span style="color:var(--muted)">${esc(e.message)}</span>`}
+}
+
+// ── LANGGRAPH
+const LG_STATUS_COLOR={queued:'cw',planning:'cb',running:'ca',blocked:'cw',retrying:'ca',failed:'cr',completed:'cg'};
+const LG_NODE_TYPE_COLOR={planner:'var(--blue)',router:'var(--purple)',critic:'var(--amber)',retry:'#ef4444',memory:'var(--green)',worker:'var(--teal)'};
+
+function lgNodeColor(node){
+  if(node.startsWith('worker_'))return'var(--teal)';
+  if(node==='memory_update')return'var(--green)';
+  return LG_NODE_TYPE_COLOR[node]||'var(--muted)';
+}
+
+async function loadLangGraph(){
+  await Promise.all([loadLgStatus(),loadLgTopology(),loadLgExecutions()]);
+}
+
+async function loadLgStatus(){
+  const bar=document.getElementById('lg-status-bar');
+  try{
+    const d=await apiCall('GET','/api/admin/langgraph/status');
+    if(!d.enabled){
+      bar.innerHTML='<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--amber)">LangGraph not enabled — set LANGGRAPH_URL in Railway environment to activate</div>';
+    }else if(d.reachable===false){
+      bar.innerHTML=`<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:#ef4444">LangGraph service unreachable${d.error?' — '+esc(d.error):''}</div>`;
+    }else{
+      bar.innerHTML=`<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--green)">LangGraph service connected — ${esc(d.service||'byn-ai-orchestrator')} v${esc(d.version||'1.0.0')}</div>`;
+    }
+  }catch(e){
+    bar.innerHTML=`<div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 16px;font-size:13px;color:var(--amber)">Status check failed: ${esc(e.message)}</div>`;
+  }
+}
+
+async function loadLgTopology(){
+  const el=document.getElementById('lg-topology');
+  try{
+    const d=await apiCall('GET','/api/admin/langgraph/topology');
+    const typeColor={planner:'var(--blue)',router:'var(--purple)',critic:'var(--amber)',retry:'#ef4444',memory:'var(--green)',worker:'var(--teal)'};
+    const nodeHtml=d.nodes.map(n=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="width:9px;height:9px;border-radius:50%;background:${typeColor[n.type]||'var(--muted)'};flex-shrink:0"></div>
+      <span style="font-size:13px;font-weight:600;color:var(--text)">${esc(n.label)}</span>
+      <span style="font-size:11px;color:var(--muted)">${esc(n.type)}</span>
+    </div>`).join('');
+    const cfg=d.config||{};
+    el.innerHTML=nodeHtml+`<div style="margin-top:14px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--muted)">
+      Critic threshold: <strong style="color:var(--text)">${Math.round((cfg.critic_threshold||.75)*100)}%</strong> &middot; Max retries: <strong style="color:var(--text)">${cfg.max_retries??2}</strong> &middot; Task types: <strong style="color:var(--text)">${(cfg.allowed_task_types||[]).join(', ')}</strong>
+    </div>`;
+  }catch(e){el.innerHTML=`<span style="color:var(--muted);font-size:13px">${esc(e.message)}</span>`}
+}
+
+async function loadLgExecutions(){
+  const tb=document.getElementById('lg-exec-tbody');
+  try{
+    const d=await apiCall('GET','/api/admin/langgraph/executions');
+    if(!d.executions||!d.executions.length){tb.innerHTML='<tr class="lr"><td colspan="7" style="color:var(--muted)">No executions yet. Run a workflow above to get started.</td></tr>';return}
+    tb.innerHTML=d.executions.map(ex=>`<tr>
+      <td><span class="val ${LG_STATUS_COLOR[ex.status]||'cw'}" style="font-size:12px;font-weight:600">${esc(ex.status)}</span></td>
+      <td style="font-size:12px">${esc(ex.task_type)}</td>
+      <td>${ex.critic_score!=null?`<span class="val ${ex.critic_score>=.75?'cg':'ca'}" style="font-size:12px;font-weight:600">${Math.round(ex.critic_score*100)}%</span>`:'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${ex.tokens_total!=null?ex.tokens_total.toLocaleString():'—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${timeAgo(ex.created_at)}</td>
+      <td style="font-size:11px;color:var(--muted)">${ex.completed_at?timeAgo(ex.completed_at):'—'}</td>
+      <td class="actions"><button class="ab a-ver" onclick="viewLgExecution('${esc(ex.id)}')">View</button></td>
+    </tr>`).join('');
+  }catch(e){tb.innerHTML=`<tr class="lr"><td colspan="7" style="color:var(--muted)">${esc(e.message)}</td></tr>`}
+}
+
+async function doLgRun(){
+  const taskType=document.getElementById('lg-task-type').value;
+  const payloadRaw=document.getElementById('lg-payload').value.trim();
+  const mode=document.querySelector('input[name="lg-mode"]:checked').value;
+  let payload={};
+  if(payloadRaw){try{payload=JSON.parse(payloadRaw)}catch{toast('Payload must be valid JSON','err');return}}
+  const btn=document.getElementById('lg-run-btn');
+  const out=document.getElementById('lg-run-result');
+  btn.disabled=true;btn.textContent=mode==='sync'?'Running…':'Queuing…';
+  out.style.display='none';
+  try{
+    const endpoint=mode==='sync'?'/api/admin/langgraph/run':'/api/admin/langgraph/run/async';
+    const d=await apiCall('POST',endpoint,{task_type:taskType,payload});
+    if(mode==='async'){
+      out.textContent=`Queued — execution_id: ${d.execution_id}\nRefresh the executions table to monitor progress.`;
+      out.style.color='var(--teal)';
+    }else{
+      out.textContent=d.final_output||JSON.stringify(d,null,2);
+      out.style.color='var(--text)';
+      toast(`Done — score ${Math.round((d.critic_score||0)*100)}% · ${(d.tokens_total||0).toLocaleString()} tokens`);
+    }
+    out.style.display='block';
+    await loadLgExecutions();
+  }catch(e){
+    out.textContent='Error: '+e.message;out.style.display='block';out.style.color='#ef4444';
+    toast(e.message,'err');
+  }finally{btn.disabled=false;btn.textContent='Run Execution'}
+}
+
+async function viewLgExecution(id){
+  const detail=document.getElementById('lg-detail');
+  const content=document.getElementById('lg-detail-content');
+  const title=document.getElementById('lg-detail-title');
+  content.innerHTML='<div class="empty" style="padding:32px"><span class="spinner"></span></div>';
+  detail.style.display='block';
+  detail.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    const ex=await apiCall('GET',`/api/admin/langgraph/execution/${id}`);
+    title.textContent=`${ex.task_type} — ${ex.status}`;
+    const traces=ex.traces||[];
+    const maxLatency=Math.max(...traces.map(t=>t.latency_ms||0),1);
+    const header=`<div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;align-items:center">
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">STATUS</div><span class="val ${LG_STATUS_COLOR[ex.status]||'cw'}" style="font-size:13px;font-weight:700">${esc(ex.status)}</span></div>
+      ${ex.critic_score!=null?`<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">CRITIC SCORE</div><span class="val ${ex.critic_score>=.75?'cg':'ca'}" style="font-size:13px;font-weight:700">${Math.round(ex.critic_score*100)}%</span></div>`:''}
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">TOTAL TOKENS</div><span style="font-weight:600">${(ex.tokens_total||0).toLocaleString()}</span></div>
+      <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">CREATED</div><span style="font-weight:600">${timeAgo(ex.created_at)}</span></div>
+      ${ex.completed_at?`<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">COMPLETED</div><span style="font-weight:600">${timeAgo(ex.completed_at)}</span></div>`:''}
+    </div>`;
+    const traceRows=traces.map(t=>{
+      const pct=Math.round((t.latency_ms||0)/maxLatency*100);
+      const nc=lgNodeColor(t.node);
+      return`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:grid;grid-template-columns:150px 75px 1fr 90px;gap:12px;align-items:center">
+          <div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${nc};flex-shrink:0"></div><span style="font-size:13px;font-weight:600">${esc(t.node)}</span></div>
+          <span class="val ${t.status==='completed'?'cg':'cr'}" style="font-size:11px;font-weight:600">${esc(t.status)}</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;background:var(--card);border-radius:2px;height:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${nc};border-radius:2px;opacity:.8"></div></div>
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:50px;text-align:right">${t.latency_ms||0}ms</span>
+          </div>
+          <span style="font-size:11px;color:var(--muted)">${((t.tokens_in||0)+(t.tokens_out||0)).toLocaleString()} tok</span>
+        </div>
+        ${t.output_preview?`<div style="margin-top:5px;padding-left:22px;font-size:12px;color:var(--muted);line-height:1.5">${esc(t.output_preview)}</div>`:''}
+        ${t.error?`<div style="margin-top:5px;padding-left:22px;font-size:12px;color:#ef4444">${esc(t.error)}</div>`:''}
+      </div>`;
+    }).join('');
+    const traceHtml=traces.length
+      ?`<div style="margin-bottom:20px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Node Traces (${traces.length})</div>${traceRows}</div>`
+      :`<div style="color:var(--muted);font-size:13px;margin-bottom:16px">No traces recorded.</div>`;
+    const outputSection=ex.final_output
+      ?`<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Final Output</div><div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;white-space:pre-wrap;max-height:400px;overflow-y:auto;line-height:1.6">${esc(ex.final_output)}</div></div>`:'';
+    const errorSection=ex.error
+      ?`<div style="padding:12px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;font-size:13px;color:#ef4444">Error: ${esc(ex.error)}</div>`:'';
+    content.innerHTML=header+traceHtml+outputSection+errorSection;
+  }catch(e){content.innerHTML=`<div class="empty">Failed to load: ${esc(e.message)}</div>`}
 }
 
 // ── AUDIT LOG
