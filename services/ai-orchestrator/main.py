@@ -5,23 +5,44 @@ FastAPI app exposing workflow execution + dashboard endpoints.
 All endpoints are called by the Node.js backend (admin routes) or directly from admin.html.
 Auth: shared ORCHESTRATOR_SECRET header (set in Railway environment).
 """
+from __future__ import annotations
+
 import os
 import uuid
-import asyncio
+from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Header, BackgroundTasks
 from pydantic import BaseModel
 from typing import Any
 
 from config import PORT
-from graph import GRAPH
+from state import GraphState
 from supabase_client import get_supabase, upsert_execution, append_node_trace, save_checkpoint
 
 ORCHESTRATOR_SECRET = os.getenv("ORCHESTRATOR_SECRET", "")
 
-app = FastAPI(title="BYN AI Orchestrator", version="1.0.0")
-
 ALLOWED_TASK_TYPES = {"seo_audit", "growth_strategy", "research", "qa_review"}
+
+# Deferred at module level — populated during lifespan startup so uvicorn binds
+# immediately and Railway's health check hits /health before graph compilation.
+_GRAPH = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _GRAPH
+    from graph import build_graph
+    _GRAPH = build_graph()
+    yield
+
+
+app = FastAPI(title="BYN AI Orchestrator", version="1.0.0", lifespan=lifespan)
+
+
+def _graph():
+    if _GRAPH is None:
+        raise HTTPException(503, "Graph not ready — service is still starting up")
+    return _GRAPH
 
 
 # ── Auth dependency ──
@@ -69,7 +90,7 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
 
     lg_config = {"configurable": {"thread_id": execution_id}}
     try:
-        final_state: GraphState = await GRAPH.ainvoke(initial, config=lg_config)
+        final_state: GraphState = await _graph().ainvoke(initial, config=lg_config)
         await upsert_execution(execution_id, {
             "status":       final_state["status"],
             "final_output": final_state["final_output"],
@@ -123,7 +144,9 @@ async def run_sync(req: RunRequest, x_orchestrator_secret: str = Header(default=
 
     lg_config = {"configurable": {"thread_id": execution_id}}
     try:
-        final_state: GraphState = await GRAPH.ainvoke(initial, config=lg_config)
+        final_state: GraphState = await _graph().ainvoke(initial, config=lg_config)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -154,6 +177,7 @@ async def run_async(req: RunRequest, background_tasks: BackgroundTasks, x_orches
     if req.task_type not in ALLOWED_TASK_TYPES:
         raise HTTPException(400, f"task_type must be one of {sorted(ALLOWED_TASK_TYPES)}")
 
+    _graph()  # fail fast if not ready
     execution_id = str(uuid.uuid4())
     background_tasks.add_task(_execute_and_persist, execution_id, req.task_type, req.payload)
     return {"execution_id": execution_id, "status": "queued"}

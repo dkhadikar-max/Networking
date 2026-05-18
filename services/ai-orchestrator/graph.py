@@ -101,5 +101,3 @@ def build_graph():
     return g.compile(checkpointer=MemorySaver())
 
 
-# Module-level singleton — compiled once, reused for all executions
-GRAPH = build_graph()
