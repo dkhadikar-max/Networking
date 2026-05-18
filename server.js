@@ -268,6 +268,7 @@ app.get('/sitemap.xml', (req, res) => {
   const cityUrls = citySlugs.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
   const intentPatterns = ['founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-'];
   const intentUrls = intentPatterns.flatMap(p => citySlugs.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
+  const categoryUrls = CATEGORY_SLUGS.flatMap(cat => citySlugs.map(slug => ({ loc: BASE + '/' + cat + '-' + slug, priority: '0.7', freq: 'monthly' })));
   const urls = [
     { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
@@ -285,6 +286,7 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
     ...cityUrls,
     ...intentUrls,
+    ...categoryUrls,
     { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly'  },
     ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly', lastmod: a.date })),
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
@@ -414,7 +416,38 @@ const CITIES = {
   jaipur:     { name: 'Jaipur',       state: 'Rajasthan',       ecosystem: 'travel tech, fashion tech, handicraft e-commerce, and edtech', hubs: 'iStart Rajasthan, IIT Jodhpur, and Jaipur Startup Ecosystem',    excerpt: "Jaipur is India's fastest-growing Tier 2 startup hub with strength in travel tech, fashion tech, and e-commerce for India's craft economy. The iStart Rajasthan program has catalysed hundreds of startups across the state." },
   kochi:      { name: 'Kochi',        state: 'Kerala',          ecosystem: 'tourism tech, sustainability, fintech, and health tech', hubs: 'Kerala Startup Mission (KSUM), Startup Village, and Infopark',       excerpt: "Kochi leads Kerala's startup ecosystem driven by Kerala Startup Mission, one of India's most active state-run startup programs. Strong in sustainability, tourism tech, and fintech with a growing base of climate-tech and health-tech founders." },
   gurgaon:    { name: 'Gurgaon',      state: 'Haryana',         ecosystem: 'fintech, edtech, enterprise SaaS, HR tech, and mobility',hubs: 'Awfis, WeWork Gurgaon, and the Cyber City startup corridor',          excerpt: "Gurgaon (Gurugram) is the corporate and startup spine of Delhi NCR. Home to the India offices of hundreds of global tech companies and a dense network of angel investors, it is the go-to city for B2B SaaS, HR tech, and enterprise founders seeking enterprise sales access." },
-  noida:      { name: 'Noida',        state: 'Uttar Pradesh',   ecosystem: 'IT services, gaming, edtech, e-commerce, and media tech', hubs: 'STPI Noida, Amity University, and the Sector 62 tech corridor',       excerpt: "Noida is the technology backbone of Delhi NCR, anchored by a dense IT services cluster and a fast-growing startup scene in gaming, edtech, and media tech. Lower real estate costs and proximity to Delhi make it attractive for early-stage and bootstrapped founders." }
+  noida:          { name: 'Noida',             state: 'Uttar Pradesh',   ecosystem: 'IT services, gaming, edtech, e-commerce, and media tech',               hubs: 'STPI Noida, Amity University, and the Sector 62 tech corridor',                    excerpt: "Noida is the technology backbone of Delhi NCR, anchored by a dense IT services cluster and a fast-growing startup scene in gaming, edtech, and media tech. Lower real estate costs and proximity to Delhi make it attractive for early-stage and bootstrapped founders." },
+  lucknow:        { name: 'Lucknow',           state: 'Uttar Pradesh',   ecosystem: 'edtech, agritech, fintech, and government-tech',                          hubs: 'Startup Incubation Centre LNMIIT, IIM Lucknow, and Lucknow Startup Hub',           excerpt: "Lucknow is Uttar Pradesh's rising startup hub, with a fast-growing community of edtech, agritech, and fintech founders. The state government's startup policy and access to Tier 3 markets make it strategic for founders building for Bharat." },
+  chandigarh:     { name: 'Chandigarh',        state: 'Punjab',          ecosystem: 'IT services, health tech, agritech, and clean energy',                   hubs: 'PEC University Startup Hub, IT Park Chandigarh, and STPI Chandigarh',              excerpt: "Chandigarh anchors the Punjab-Haryana startup corridor with a strong IT services base and growing clusters in health tech and agritech. Its planned city infrastructure and high quality of life make it popular with founders building remote-friendly startups." },
+  bhopal:         { name: 'Bhopal',            state: 'Madhya Pradesh',  ecosystem: 'agritech, manufacturing tech, smart city solutions, and edtech',         hubs: 'MANIT Bhopal Tech Hub, MP Startup Policy Centre, and IIT Indore satellite',        excerpt: "Bhopal is Madhya Pradesh's startup gateway, with government backing through the MP Startup Policy and a growing agritech ecosystem serving India's largest wheat-producing state. The city's low cost of operations makes it attractive for hardware and deep-tech founders." },
+  indore:         { name: 'Indore',            state: 'Madhya Pradesh',  ecosystem: 'manufacturing tech, fintech, MSME digitisation, and agritech',           hubs: 'IIT Indore, Indore Smart City Lab, and NASSCOM Indore Chapter',                    excerpt: "Indore is emerging as central India's startup capital — consistently ranked India's cleanest city and home to a thriving MSME ecosystem ripe for digitisation. Founders building for small-business India and supply-chain tech find strong product-market fit here." },
+  nagpur:         { name: 'Nagpur',            state: 'Maharashtra',     ecosystem: 'agritech, logistics, clean energy, and orange economy',                  hubs: 'VNIT Nagpur Incubation Centre, MIHAN Special Economic Zone, and Nagpur Startup Hub', excerpt: "Nagpur sits at India's geographic center and is a critical logistics node. The city is building a strong agritech ecosystem leveraging Maharashtra's orange and cotton belts, while MIHAN SEZ attracts aerospace and logistics tech startups." },
+  coimbatore:     { name: 'Coimbatore',        state: 'Tamil Nadu',      ecosystem: 'manufacturing tech, textiles, engineering, and IoT',                     hubs: 'PSG-STEP, CODISSIA, and Amrita School of Business',                                excerpt: "Coimbatore is Tamil Nadu's industrial powerhouse — home to thousands of engineering MSMEs and a fast-growing startup ecosystem in manufacturing tech, IoT, and textiles. The city's strong engineering talent base and manufacturing roots create a unique environment for hardware and deep-tech founders." },
+  visakhapatnam:  { name: 'Visakhapatnam',     state: 'Andhra Pradesh',  ecosystem: 'pharma, IT services, blue economy, and logistics',                       hubs: 'Andhra University Tech Park, Vizag Fintech Valley, and GITAM Incubation',          excerpt: "Visakhapatnam (Vizag) is Andhra Pradesh's technology gateway, anchored by Fintech Valley and a large pharma cluster. The city's deep-water port, naval presence, and growing IT sector create opportunities for blue economy, logistics, and pharma-tech founders." },
+  patna:          { name: 'Patna',             state: 'Bihar',           ecosystem: 'edtech, agritech, fintech, and rural tech',                              hubs: 'Startup Bihar, IIT Patna Incubation Centre, and Bihar Innovation Lab',             excerpt: "Patna is Bihar's startup launchpad, with a rapidly growing community building for India's next 300 million internet users. Edtech, agritech, and fintech startups targeting Tier 3 and rural markets find strong product-market fit here, with the state government providing active support." },
+  surat:          { name: 'Surat',             state: 'Gujarat',         ecosystem: 'diamond tech, textile fintech, MSME digitisation, and logistics',        hubs: 'SVNIT Surat Incubation, Southern Gujarat Chamber of Commerce, and Surat Diamond Bourse', excerpt: "Surat is India's diamond and textile trading capital, generating $30B+ in annual trade. The city's massive MSME base and the new Surat Diamond Bourse are driving demand for fintech, trade tech, and supply-chain digitisation startups." },
+  vadodara:       { name: 'Vadodara',          state: 'Gujarat',         ecosystem: 'chemicals, manufacturing tech, industrial IoT, and engineering',         hubs: 'M S University of Baroda Incubation, GIDC Vadodara, and Baroda Startup Hub',       excerpt: "Vadodara is Gujarat's industrial heart — home to India's largest petrochemicals cluster and a strong manufacturing base. The city's engineering talent and established industry make it ideal for founders in industrial IoT, chemicals tech, and B2B manufacturing solutions." },
+  nashik:         { name: 'Nashik',            state: 'Maharashtra',     ecosystem: 'agritech, wine and food tech, manufacturing, and engineering',            hubs: 'Nashik Engineering Cluster, Malegaon Startup Centre, and YCMOU Incubation',        excerpt: "Nashik is Maharashtra's agritech frontier — one of India's largest grape and onion producing regions with a growing wine industry. Founders building farm-to-market platforms, agri-fintech, and food-tech products find a natural testing ground here." },
+  guwahati:       { name: 'Guwahati',          state: 'Assam',           ecosystem: 'agritech, bamboo tech, tourism tech, and fintech',                       hubs: 'IIT Guwahati TIC, ASTEC Assam, and North East Venture Fund',                      excerpt: "Guwahati is Northeast India's startup hub — strategically located at the gateway to eight states and Southeast Asia. Founders building in agritech (tea, bamboo, silk), tourism tech, and solutions for Northeast India's underserved markets are establishing a first-mover advantage." },
+  bhubaneswar:    { name: 'Bhubaneswar',       state: 'Odisha',          ecosystem: 'IT services, mining tech, edtech, and tourism tech',                     hubs: 'iHub Odisha, KIIT TBI, and Startup Odisha',                                        excerpt: "Bhubaneswar is Odisha's rapidly expanding IT hub, home to a large IT services cluster and a government-backed startup ecosystem through Startup Odisha. The city's mining economy, tourism assets, and large student population drive demand for deep-tech and edtech startups." },
+  thiruvananthapuram: { name: 'Thiruvananthapuram', state: 'Kerala',    ecosystem: 'space tech, IT services, health tech, and clean energy',                  hubs: 'Kerala Startup Mission, Technopark, and Indian Space Science and Technology Institute', excerpt: "Thiruvananthapuram (Trivandrum) is home to ISRO and Technopark — creating a unique ecosystem of space tech, IT services, and high-science startups. The Kerala Startup Mission provides strong government support, making it one of India's most startup-friendly cities." },
+  mysuru:         { name: 'Mysuru',            state: 'Karnataka',       ecosystem: 'IT services, tourism tech, heritage tech, and health tech',               hubs: 'KITS Mysuru, University of Mysore Incubation, and Mysuru Startup Hub',             excerpt: "Mysuru combines a large IT services workforce with a growing startup ecosystem in tourism tech and cultural heritage digitisation. The city's lower costs than Bengaluru and its UNESCO-recognized heritage make it ideal for founders building at the intersection of tech and India's tourism economy." },
+  ranchi:         { name: 'Ranchi',            state: 'Jharkhand',       ecosystem: 'mining tech, agritech, tribal economy tech, and edtech',                 hubs: 'IIT ISM Dhanbad, Startup Jharkhand, and XLRI Jamshedpur',                         excerpt: "Ranchi is Jharkhand's startup capital, with an emerging ecosystem building technology for the mining industry, tribal economy, and a large unbanked population. The state's mineral wealth and underserved Tier 3 markets create strong opportunities for impact-tech and fintech founders." },
+  kanpur:         { name: 'Kanpur',            state: 'Uttar Pradesh',   ecosystem: 'leather tech, manufacturing, chemical engineering, and MSME digitisation', hubs: 'IIT Kanpur Startup Incubation, HBTU, and UP Startup Hub',                          excerpt: "Kanpur is one of India's oldest industrial cities — home to a massive leather and textile industry now embracing technology. IIT Kanpur's strong research output and the city's MSME base create opportunities for founders in leather tech, manufacturing 4.0, and B2B supply-chain software." },
+  amritsar:       { name: 'Amritsar',          state: 'Punjab',          ecosystem: 'tourism tech, agritech, food tech, and cross-border trade',               hubs: 'Guru Nanak Dev University Incubation, Amritsar Smart City Hub, and Punjab Agri Export',  excerpt: "Amritsar is Punjab's spiritual and cultural capital — home to the Golden Temple and a massive domestic and international tourism economy. Founders building in tourism tech, halal food-tech, agri-exports, and border trade technology find a unique market here." },
+  ludhiana:       { name: 'Ludhiana',          state: 'Punjab',          ecosystem: 'textile tech, bicycle manufacturing, MSME digitisation, and agritech',   hubs: 'Punjab Agricultural University, FICCI Ludhiana, and Ludhiana Smart City Hub',     excerpt: "Ludhiana is India's largest industrial city in Punjab — producing 95% of India's bicycles and a dominant share of its hosiery. The city's massive MSME base in textiles, engineering goods, and manufacturing is being digitised by a new generation of B2B founders." },
+  jodhpur:        { name: 'Jodhpur',           state: 'Rajasthan',       ecosystem: 'handicraft e-commerce, solar energy, tourism tech, and MSME tech',       hubs: 'IIT Jodhpur Incubation, Rajasthan iStart Jodhpur, and MSME Service Institute',    excerpt: "Jodhpur is Rajasthan's Blue City and a hub for handicraft e-commerce, solar energy, and tourism tech. IIT Jodhpur's research output in clean energy and materials science is building a deep-tech cluster, while the city's artisan economy is being digitised by a new wave of e-commerce founders." },
+  dehradun:       { name: 'Dehradun',          state: 'Uttarakhand',     ecosystem: 'edtech, tourism tech, sustainability, and defence tech',                  hubs: 'IIT Roorkee (nearby), Doon School Ecosystem, and Uttarakhand Startup Policy Hub',  excerpt: "Dehradun is emerging as a startup hub in the Himalayan foothills, with strength in edtech (driven by premier boarding schools), eco-tourism tech, and defence tech near the Dehradun cantonment. The city attracts founders seeking lower costs and high quality of life." },
+  rajkot:         { name: 'Rajkot',            state: 'Gujarat',         ecosystem: 'precision engineering, auto components, MSME tech, and clean energy',     hubs: 'Rajkot Startup Hub, IIIT Vadodara (nearby), and GCCI Rajkot Chapter',             excerpt: "Rajkot is Gujarat's precision engineering capital — producing auto components, machine tools, and castings for global markets. The city's engineering MSME base is creating strong demand for Industry 4.0, quality management, and export-tech startups." },
+  udaipur:        { name: 'Udaipur',           state: 'Rajasthan',       ecosystem: 'tourism tech, marble and mining, zinc industry, and handicraft',          hubs: 'Maharana Pratap University Incubation, iStart Udaipur, and Zinc City Startup Hub',  excerpt: "Udaipur — the City of Lakes — sits at the intersection of Rajasthan's zinc mining industry (Hindustan Zinc headquarters) and a thriving luxury tourism economy. Founders building in tourism tech, mining digitisation, and handicraft e-commerce find natural product-market fit here." },
+  kota:           { name: 'Kota',              state: 'Rajasthan',       ecosystem: 'edtech, coaching tech, fintech for students, and e-learning',             hubs: 'IIT Bombay Extension Centre, Allen Career Institute, and iStart Kota',             excerpt: "Kota is India's coaching capital — educating over 200,000 students annually for JEE and NEET. This creates a massive edtech and student-fintech opportunity. Founders building edtech platforms, mental health tools for students, and coaching-tech solutions have a natural testing ground here." },
+  madurai:        { name: 'Madurai',           state: 'Tamil Nadu',      ecosystem: 'textile tech, agritech, tourism tech, and manufacturing',                 hubs: 'NIT Tiruchirappalli (nearby), Madurai Kamaraj University Incubation, and TIDCO',   excerpt: "Madurai is Tamil Nadu's cultural capital and a significant manufacturing and agricultural hub. The city's textile industry, jasmine economy, and proximity to agriculture create strong opportunities for founders building in agri-fintech, textile tech, and religious tourism technology." },
+  vijayawada:     { name: 'Vijayawada',        state: 'Andhra Pradesh',  ecosystem: 'logistics, agritech, fintech, and MSME tech',                            hubs: 'Andhra Pradesh Innovation Society, SRM University AP, and APSSDC Innovation',     excerpt: "Vijayawada is Andhra Pradesh's commercial capital, positioned at the heart of the state's agricultural and logistics corridor. The city's APSSDC innovation ecosystem and access to AP's massive agricultural output create strong opportunities for agri-fintech, cold chain, and logistics tech founders." },
+  mangaluru:      { name: 'Mangaluru',         state: 'Karnataka',       ecosystem: 'banking tech, cashew and seafood export, IT services, and port logistics', hubs: 'NITK Surathkal, Manipal Academy of Higher Education, and Mangaluru Startup Hub',  excerpt: "Mangaluru is the banking tech capital of coastal Karnataka — home to headquarters of major cooperative banks and the financial services sector. The city's strong engineering colleges (NITK, Manipal), seafood and cashew export economy, and port infrastructure create unique opportunities for founders in fintech and trade tech." },
+  agra:           { name: 'Agra',              state: 'Uttar Pradesh',   ecosystem: 'tourism tech, leather goods, handicraft e-commerce, and cultural heritage', hubs: 'Agra Smart City Hub, FICCI UP Agra Chapter, and Dr. Bhimrao Ambedkar University', excerpt: "Agra is India's most visited city — home to the Taj Mahal and a massive handicraft and leather economy. Founders building in tourism tech, handicraft e-commerce, and heritage preservation technology find a natural laboratory here, serving 7+ million annual visitors." },
+  varanasi:       { name: 'Varanasi',          state: 'Uttar Pradesh',   ecosystem: 'religious tourism tech, handicraft e-commerce, edtech, and silk industry', hubs: 'IIT BHU, Banaras Hindu University Incubation, and UP Startup Hub Varanasi',       excerpt: "Varanasi is one of the world's oldest living cities — attracting 8+ million pilgrims annually and home to a rich silk weaving tradition. IIT BHU's strong research output and the city's unique position at the intersection of spirituality, culture, and commerce create distinct startup opportunities." },
+  raipur:         { name: 'Raipur',            state: 'Chhattisgarh',    ecosystem: 'mining tech, agritech, steel industry tech, and tribal economy',          hubs: 'IIT Bhilai, NIT Raipur Incubation, and Chhattisgarh Startup Mission',            excerpt: "Raipur is the steel capital of India's heartland — anchored by a massive steel and mining industry alongside one of India's most tribal-community-rich states. Founders building in industrial IoT, mining tech, tribal economy digitisation, and agritech serving Chhattisgarh's rice bowl find strong local demand." },
+  trichy:         { name: 'Tiruchirappalli',   state: 'Tamil Nadu',      ecosystem: 'aerospace and defence, manufacturing, engineering, and religious tourism', hubs: 'NIT Tiruchirappalli, Anna University Regional Campus, and BHEL Trichy Incubation', excerpt: "Tiruchirappalli (Trichy) is Tamil Nadu's aerospace and manufacturing hub — home to BHEL's largest plant and NIT Trichy, one of India's top engineering colleges. The city's aerospace ecosystem, strong engineering talent, and role as a major religious tourism destination (Srirangam) create opportunities across deep-tech and tourism sectors." }
 };
 
 // SEO page metadata for /api/admin/seo (defined after CITIES so city pages auto-populate)
@@ -1070,6 +1103,298 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
   return cityPageShell(head, body, BASE);
 }
 
+// ── 300 PROGRAMMATIC SEO PAGES ── 7 categories × 43 cities
+// AI-overview-optimised: quick-answer box, FAQPage schema, SpeakableSpecification, internal linking
+
+const CATEGORY_INTENTS = {
+  'founder-networking': {
+    slug:    'founder-networking',
+    title:   (c) => `Founder Networking in ${c.name} — Connect with Startups | BYN`,
+    metaDesc:(c) => `Connect with startup founders in ${c.name} on Build Your Network. Free intent-based networking platform for early-stage founders in ${c.name}, ${c.state} — find co-founders, mentors, and investors.`,
+    h1:      (c) => `Founder Networking in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is the free networking platform for startup founders in ${c.name}. It matches founders based on declared intent — whether you're looking for a co-founder, mentor, or investor — using GPS-based discovery across ${c.name}, ${c.state}.`,
+    lead:    (c) => `${c.excerpt} BYN connects you with the right founders in ${c.name} — no cold outreach, no noise. Just intent-matched introductions.`,
+    sections: [
+      { h2: 'Why Founder Networking Requires Intent',        p: (c) => `Traditional platforms optimize for connections. BYN optimizes for outcomes. Founders in ${c.name} declare what they're building and who they need — making every introduction purposeful.` },
+      { h2: 'How BYN Works for Founders',                   p: (c) => `Create a free profile, add your startup and intent, and BYN surfaces relevant founders in ${c.name}. GPS-based discovery means you connect with people building near you.` },
+      { h2: `Founder Community in ${c.name}`,               p: (c) => `${c.name}'s startup ecosystem — anchored by ${c.hubs} — is built on ${c.ecosystem}. BYN gives you direct access to this community.` },
+    ],
+    faqs: (c) => [
+      { q:`How do startup founders network in ${c.name}?`,        a:`Founders in ${c.name} network through events at ${c.hubs} and intent-based platforms like BYN — which matches you by what you're building and what you need, not just who you know.` },
+      { q:`Is BYN free for founders in ${c.name}?`,               a:`Yes. BYN is completely free for founders in ${c.name}. Create a profile, declare your intent, and start connecting today.` },
+      { q:`Can I find a co-founder through founder networking in ${c.name}?`, a:`Yes. BYN's founder networking in ${c.name} is built for co-founder search — filter by skills, commitment level, and domain to find your match.` },
+      { q:`What startups are based in ${c.name}?`,                a:`${c.name} has a strong ${c.ecosystem} ecosystem. BYN helps you discover active founders building in these sectors.` },
+    ],
+    related: ['startup-ecosystem', 'cofounder-matching', 'entrepreneur-networking'],
+  },
+  'entrepreneur-networking': {
+    slug:    'entrepreneur-networking',
+    title:   (c) => `Entrepreneur Networking in ${c.name} | BYN — Free Platform`,
+    metaDesc:(c) => `Join ${c.name}'s entrepreneur networking community on BYN. Connect with business owners, MSME founders, and investors in ${c.name}, ${c.state} — free and intent-based.`,
+    h1:      (c) => `Entrepreneur Networking in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is India's free entrepreneur networking platform for ${c.name}. Connect with fellow entrepreneurs, find business partners, and get introductions to mentors and investors — based on your declared business intent.`,
+    lead:    (c) => `Entrepreneur networking in ${c.name} is more than exchanging business cards — it's about finding people who understand the founder journey. BYN connects ${c.name}'s entrepreneurial community based on what they're building.`,
+    sections: [
+      { h2: 'Entrepreneur vs Business Networking',              p: (c) => `Business networking is transactional. Entrepreneur networking is about finding people to build with. BYN's ${c.name} community is for builders, not networkers.` },
+      { h2: 'Finding Business Partners in ${c.name}',           p: (c) => `BYN's intent-based matching helps entrepreneurs in ${c.name} find co-founders, advisors, and early collaborators with aligned goals.` },
+      { h2: `Entrepreneurship in ${c.name}`,                    p: (c) => `${c.excerpt} BYN makes it easy to tap into ${c.name}'s entrepreneurial energy wherever you are in your journey.` },
+    ],
+    faqs: (c) => [
+      { q:`How do entrepreneurs network in ${c.name}?`,          a:`Entrepreneurs in ${c.name} network at events at ${c.hubs} and online platforms like BYN — which matches you based on business intent, not social connections.` },
+      { q:`Is BYN for MSME and SMB entrepreneurs in ${c.name}?`, a:`Yes. BYN welcomes founders at all stages — from early-stage startups to MSME owners building in ${c.name}.` },
+      { q:`How is BYN different from LinkedIn for entrepreneurs?`,a:`LinkedIn optimises for career connections. BYN is built for entrepreneurs — you declare what you're building and what you need, and BYN surfaces relevant people in ${c.name}.` },
+      { q:`What business communities exist in ${c.name}?`,       a:`${c.name} has an active ${c.ecosystem} business community anchored by ${c.hubs}. BYN extends this community digitally.` },
+    ],
+    related: ['founder-networking', 'startup-ecosystem', 'investor-networking'],
+  },
+  'cofounder-matching': {
+    slug:    'cofounder-matching',
+    title:   (c) => `Co-founder Matching in ${c.name} — Find Your Co-founder | BYN`,
+    metaDesc:(c) => `Find a co-founder in ${c.name} with BYN's free matching platform. Filter by skills, commitment, and domain. GPS-based discovery across ${c.name}'s startup ecosystem.`,
+    h1:      (c) => `Co-founder Matching in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is a free co-founder matching platform for ${c.name}. Declare your skills and what you're building — BYN matches you with complementary co-founders in ${c.name} based on intent and skill-fit.`,
+    lead:    (c) => `Finding the right co-founder is the most important early decision a startup founder makes. BYN's co-founder matching in ${c.name} removes the noise — surfacing founders with complementary skills who are ready to build.`,
+    sections: [
+      { h2: 'Technical vs Business Co-founder in ${c.name}',    p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates demand for both technical and business co-founders. BYN lets you filter by background and find the exact co-founder type your startup needs.` },
+      { h2: 'How Co-founder Matching Works on BYN',             p: (c) => `Declare what you're building and what kind of co-founder you need. BYN surfaces founders in ${c.name} with the complementary profile. No cold messages to random profiles.` },
+      { h2: `Co-founder Ecosystem in ${c.name}`,                p: (c) => `${c.excerpt} BYN connects you with co-founders embedded in ${c.name}'s startup community and ready to build.` },
+    ],
+    faqs: (c) => [
+      { q:`How do I find a co-founder in ${c.name}?`,            a:`Join BYN free, describe your startup idea and what skills you're looking for. BYN surfaces co-founders in ${c.name} with complementary profiles — filter by technical/business background, domain, and commitment level.` },
+      { q:`What should I look for in a co-founder in ${c.name}?`,a:`Look for complementary skills, shared commitment, aligned vision, and someone you can disagree with productively. BYN's profile system in ${c.name} lets you filter for these attributes before you connect.` },
+      { q:`Where do founders meet co-founders in ${c.name}?`,    a:`Founders in ${c.name} find co-founders at hackathons, events at ${c.hubs}, and intent-based platforms like BYN where people explicitly declare their co-founder availability.` },
+      { q:`Is BYN free for co-founder matching in ${c.name}?`,   a:`Yes. BYN's co-founder matching is completely free in ${c.name}. Create a profile and start connecting today.` },
+    ],
+    related: ['founder-networking', 'startup-ecosystem', 'entrepreneur-networking'],
+  },
+  'freelancer-networking': {
+    slug:    'freelancer-networking',
+    title:   (c) => `Freelancer Networking in ${c.name} | Join BYN — Free Platform`,
+    metaDesc:(c) => `Freelancers in ${c.name}: grow your professional network on BYN. Connect with startup founders, find contract projects, and build your reputation in ${c.name}'s startup ecosystem — free.`,
+    h1:      (c) => `Freelancer Networking in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is a free networking platform for freelancers in ${c.name}. Connect with startup founders looking for contract talent, find collaborative projects, and build your reputation in ${c.name}'s startup community — no app install required.`,
+    lead:    (c) => `The startup ecosystem in ${c.name} runs on freelance talent. BYN connects independent professionals with founders who need exactly their skills — turning networking into real opportunities.`,
+    sections: [
+      { h2: 'Freelancers and the Startup Economy in ${c.name}',  p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates constant demand for freelance talent in design, development, marketing, and operations. BYN gives you direct access to these founders.` },
+      { h2: 'How BYN Helps Freelancers Find Startup Clients',    p: (c) => `Create a BYN profile, declare your skills and what type of work you're open to, and connect with founders in ${c.name} who need your specific expertise.` },
+      { h2: `Freelance Opportunities in ${c.name}'s Startup Scene`, p: (c) => `${c.excerpt} This growing ecosystem means growing demand for freelance talent. BYN gives you direct access to ${c.name}'s startup founders.` },
+    ],
+    faqs: (c) => [
+      { q:`How do freelancers grow their network in ${c.name}?`,  a:`Freelancers in ${c.name} build their network through startup events, communities at ${c.hubs}, and BYN — where founders actively look for contract talent.` },
+      { q:`Can freelancers join startup communities in ${c.name}?`,a:`Yes. BYN welcomes freelancers and contractors. Many founders in ${c.name} are actively looking for freelance collaborators in design, development, and marketing.` },
+      { q:`What types of freelancers find work through BYN in ${c.name}?`, a:`Developers, designers, marketers, writers, financial advisors, and legal consultants in ${c.name} use BYN to connect with startup founders who need contract or part-time help.` },
+      { q:`Is BYN free for freelancers in ${c.name}?`,            a:`Yes. BYN is completely free. Declare your skills and what you're looking for, and start connecting with founders in ${c.name} immediately.` },
+    ],
+    related: ['creator-networking', 'founder-networking', 'startup-ecosystem'],
+  },
+  'creator-networking': {
+    slug:    'creator-networking',
+    title:   (c) => `Creator Networking in ${c.name} | BYN — Connect with Founders`,
+    metaDesc:(c) => `Creators and indie makers in ${c.name}: connect with founders, brands, and collaborators on BYN. Build your professional network in ${c.name}'s startup community — free.`,
+    h1:      (c) => `Creator Networking in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is a free platform for creators in ${c.name} to connect with startup founders, brand collaborators, and fellow builders. Declare your niche and intent — BYN surfaces the right connections in ${c.name}.`,
+    lead:    (c) => `The creator economy is converging with the startup ecosystem in ${c.name}. BYN bridges these worlds — connecting creators with founders who need their audience, skills, and content expertise.`,
+    sections: [
+      { h2: 'Creator Economy Meets Startup Ecosystem in ${c.name}', p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates opportunities for creators who understand the startup world. BYN's intent-based networking lets you declare exactly who you want to meet.` },
+      { h2: 'How Creators Use BYN to Find Collaborators',          p: (c) => `Create a BYN profile, describe your content niche and what you're building or looking for, and connect with founders and creators in ${c.name} who share your goals.` },
+      { h2: `Content Creation and Startups in ${c.name}`,          p: (c) => `${c.excerpt} BYN gives creators in ${c.name} direct access to the founders and brands building in this ecosystem.` },
+    ],
+    faqs: (c) => [
+      { q:`How do creators build professional networks in ${c.name}?`, a:`Creators in ${c.name} build professional networks through startup events, creator meetups at ${c.hubs}, and BYN — where you connect with founders and brands who need your content expertise.` },
+      { q:`Can creators collaborate with startups in ${c.name}?`,  a:`Yes. Many founders in ${c.name} look for creator partners for content marketing, brand building, and distribution. BYN connects you directly based on mutual intent.` },
+      { q:`What kinds of creators use BYN in ${c.name}?`,          a:`Content creators, YouTubers, podcasters, writers, designers, indie app makers, and community builders in ${c.name} use BYN to find startup collaborators and brand partnerships.` },
+      { q:`Is BYN free for content creators in ${c.name}?`,        a:`Yes. BYN is completely free for creators in ${c.name}. Join, declare your niche, and start networking with the startup community immediately.` },
+    ],
+    related: ['freelancer-networking', 'founder-networking', 'entrepreneur-networking'],
+  },
+  'investor-networking': {
+    slug:    'investor-networking',
+    title:   (c) => `Investor Networking in ${c.name} — Discover Founders | BYN`,
+    metaDesc:(c) => `Angel investors and VCs in ${c.name}: discover early-stage founders on BYN. Connect with vetted startups in ${c.name}'s ecosystem — free, intent-based networking platform.`,
+    h1:      (c) => `Investor Networking in ${c.name}`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> helps investors in ${c.name} discover early-stage founders actively raising. Founders on BYN declare their funding stage and intent — making it easy for angels and VCs to find relevant startups in ${c.name}.`,
+    lead:    (c) => `Finding early-stage deal flow in ${c.name} requires being where founders are. BYN's intent-based platform surfaces founders who are actively raising — giving investors a direct pipeline to ${c.name}'s startup ecosystem.`,
+    sections: [
+      { h2: 'Angel Investing and Deal Flow in ${c.name}',      p: (c) => `${c.name}'s ${c.ecosystem} ecosystem is active for early-stage investment. BYN gives investors direct access to founders declaring their fundraising intent.` },
+      { h2: 'How BYN Works for Investors',                     p: (c) => `Create an investor profile on BYN, declare your investment focus and stage preference, and start connecting with founders in ${c.name} who match your thesis. No intermediaries.` },
+      { h2: `Investment Landscape in ${c.name}`,               p: (c) => `${c.excerpt} BYN gives investors a direct channel to the most ambitious founders building in ${c.name} today.` },
+    ],
+    faqs: (c) => [
+      { q:`How do angel investors find startups in ${c.name}?`,  a:`Angel investors in ${c.name} find startups at pitch events at ${c.hubs} and intent-based platforms like BYN — where founders explicitly declare their fundraising stage and goals.` },
+      { q:`Is BYN useful for investors looking for deal flow in ${c.name}?`, a:`Yes. BYN's founder profiles include startup stage, sector, and fundraising intent — making it easy to identify relevant deal flow in ${c.name}.` },
+      { q:`What sectors are investors most active in ${c.name}?`, a:`${c.name}'s ${c.ecosystem} ecosystem drives investor interest. BYN lets you filter founders by sector and stage to find deal flow matching your thesis.` },
+      { q:`How do investors connect with founders on BYN in ${c.name}?`, a:`Create a BYN investor profile with your focus areas and connect directly with founders in ${c.name} who are raising at your preferred stage.` },
+    ],
+    related: ['founder-networking', 'startup-ecosystem', 'entrepreneur-networking'],
+  },
+  'startup-ecosystem': {
+    slug:    'startup-ecosystem',
+    title:   (c) => `Startup Ecosystem in ${c.name} — Network with BYN`,
+    metaDesc:(c) => `Explore ${c.name}'s startup ecosystem on BYN. Connect with founders, co-founders, and investors in ${c.name}'s tech and startup community — free, GPS-based networking platform.`,
+    h1:      (c) => `${c.name} Startup Ecosystem — Connect with BYN`,
+    answer:  (c) => `<strong>Build Your Network (BYN)</strong> is the networking layer for ${c.name}'s startup ecosystem. Founders, investors, mentors, and operators in ${c.name} use BYN to connect based on declared intent — cutting through noise to find the right people.`,
+    lead:    (c) => `${c.excerpt} BYN adds a persistent digital layer to ${c.name}'s startup ecosystem — keeping every founder, investor, and operator connected beyond events and introductions.`,
+    sections: [
+      { h2: `${c.name}'s Key Startup Sectors`,                 p: (c) => `The ${c.name} startup ecosystem is built on ${c.ecosystem}. BYN connects founders in these sectors with the co-founders, mentors, and investors they need.` },
+      { h2: 'Networking Infrastructure for the Startup Ecosystem', p: (c) => `BYN provides the networking layer ${c.name}'s startup community was missing — intent-based, GPS-enabled, and free. No apps, no LinkedIn spam, just relevant connections.` },
+      { h2: `Growing ${c.name}'s Startup Community`,           p: (c) => `${c.hubs} are doing tremendous work to grow ${c.name}'s startup ecosystem. BYN extends this work online — keeping the community connected between events and introductions.` },
+    ],
+    faqs: (c) => [
+      { q:`What is the startup ecosystem like in ${c.name}?`,    a:`${c.name} has a strong ${c.ecosystem} ecosystem anchored by ${c.hubs}. ${c.excerpt}` },
+      { q:`How do I tap into ${c.name}'s startup community?`,    a:`Join BYN free, declare what you're building and who you're looking for, and instantly connect with active founders, mentors, and investors in ${c.name}.` },
+      { q:`What startup hubs are in ${c.name}?`,                 a:`The key startup institutions in ${c.name} include ${c.hubs}. BYN complements these in-person hubs with year-round digital connectivity.` },
+      { q:`Is BYN available in ${c.name}?`,                      a:`Yes. BYN uses GPS-based discovery to surface founders and builders in ${c.name}. It's free to join and works without a mobile app install.` },
+    ],
+    related: ['founder-networking', 'cofounder-matching', 'investor-networking'],
+  },
+};
+
+const CATEGORY_SLUGS = Object.keys(CATEGORY_INTENTS);
+
+function generateCategoryPage(citySlug, city, BASE, catKey) {
+  const E = escHtml;
+  const cat = CATEGORY_INTENTS[catKey];
+  if (!cat) return '<h1>Not found</h1>';
+
+  const canonical = `${BASE}/${catKey}-${citySlug}`;
+  const title    = cat.title(city);
+  const metaDesc = cat.metaDesc(city);
+  const h1text   = cat.h1(city);
+  const answer   = cat.answer(city);
+  const lead     = cat.lead(city);
+  const faqs     = cat.faqs(city);
+
+  // Related city links (up to 8 other cities, same category)
+  const otherCities = Object.keys(CITIES).filter(k => k !== citySlug).slice(0, 8)
+    .map(k => `<a href="/${catKey}-${k}">${E(CITIES[k].name)}</a>`).join('\n        ');
+
+  // Related category links (same city)
+  const relatedCategoryLinks = cat.related
+    .map(r => `<a href="/${r}-${citySlug}">${E(CATEGORY_INTENTS[r]?.h1(city) || r)}</a>`).join('\n        ');
+
+  const faqJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  });
+
+  const webpageJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: title,
+    description: metaDesc,
+    url: canonical,
+    inLanguage: 'en-IN',
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.quick-answer', '.lead'] },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: BASE + '/' },
+        { '@type': 'ListItem', position: 2, name: h1text, item: canonical },
+      ],
+    },
+    isPartOf: { '@type': 'WebSite', name: 'Build Your Network', url: BASE },
+  });
+
+  const faqHtml = faqs.map(f => `
+    <details class="faq-item" itemscope itemtype="https://schema.org/Question">
+      <summary itemprop="name">${E(f.q)}</summary>
+      <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+        <p itemprop="text">${E(f.a)}</p>
+      </div>
+    </details>`).join('');
+
+  const sectionsHtml = cat.sections.map(s => `
+    <div class="know-block">
+      <h2>${E(s.h2.replace('${c.name}', city.name))}</h2>
+      <p>${E(s.p(city))}</p>
+    </div>`).join('');
+
+  const head = `
+  <title>${E(title)}</title>
+  <meta name="description" content="${E(metaDesc)}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="${canonical}">
+  <meta property="og:title" content="${E(title)}">
+  <meta property="og:description" content="${E(metaDesc)}">
+  <meta property="og:url" content="${canonical}">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0F766E">
+  <script type="application/ld+json">${webpageJsonLd}</script>
+  <script type="application/ld+json">${faqJsonLd}</script>`;
+
+  const body = `
+<div class="city-hero">
+  <div class="city-hero-inner">
+    <div class="city-tag">${E(city.name)} · ${E(city.state)}</div>
+    <h1>${E(h1text)}</h1>
+    <p class="lead">${E(lead)}</p>
+    <div class="cta-row">
+      <a href="/app" class="btn">Join Free — No App Required</a>
+      <a href="/networking-in-${citySlug}" class="btn-sec">All ${E(city.name)} Networking</a>
+    </div>
+    <section class="quick-answer" aria-label="Quick answer">
+      <p>${answer}</p>
+    </section>
+  </div>
+</div>
+<div class="city-body">
+  ${sectionsHtml}
+  <div class="know-block">
+    <h2>Related Networking in ${E(city.name)}</h2>
+    <div class="pill-row">
+        ${relatedCategoryLinks}
+    </div>
+  </div>
+  <div class="know-block">
+    <h2>Explore Other Cities</h2>
+    <div class="pill-row">
+        ${otherCities}
+    </div>
+  </div>
+  <div class="faq-block">
+    <h2>Frequently Asked Questions</h2>
+    ${faqHtml}
+  </div>
+  <div class="cta-block">
+    <h2>Start Networking in ${E(city.name)} — Free</h2>
+    <p>Join Build Your Network and connect with the right people in ${E(city.name)} based on what you're building and who you need.</p>
+    <a href="/app" class="btn">Get Started — Free</a>
+  </div>
+</div>`;
+
+  return cityPageShell(head, body, BASE);
+}
+
+// Route maker for 7 new category patterns
+function makeCategoryRoute(catKey) {
+  return (req, res) => {
+    const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+    const slug = req.params.city.toLowerCase().replace(/[^a-z]/g, '');
+    const city = CITIES[slug];
+    if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    const pageKey = catKey + '-' + slug;
+    seoPageViews.set(pageKey, (seoPageViews.get(pageKey) || 0) + 1);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Vary', 'Accept-Encoding');
+    res.send(generateCategoryPage(slug, city, BASE, catKey));
+  };
+}
+
+// Register 7 category routes × 43 cities = 301 programmatic pages
+app.get('/founder-networking-:city',     makeCategoryRoute('founder-networking'));
+app.get('/entrepreneur-networking-:city',makeCategoryRoute('entrepreneur-networking'));
+app.get('/cofounder-matching-:city',     makeCategoryRoute('cofounder-matching'));
+app.get('/freelancer-networking-:city',  makeCategoryRoute('freelancer-networking'));
+app.get('/creator-networking-:city',     makeCategoryRoute('creator-networking'));
+app.get('/investor-networking-:city',    makeCategoryRoute('investor-networking'));
+app.get('/startup-ecosystem-:city',      makeCategoryRoute('startup-ecosystem'));
+
 // Register 4 new intent-pattern routes + Programmatic city route
 app.get('/founders-in-:city',       makeCityRoute('founders-in-',       seoPageViews));
 app.get('/startup-founders-:city',  makeCityRoute('startup-founders-',  seoPageViews));
@@ -1477,6 +1802,19 @@ const ARTICLES = [
 // Extend SEO_PAGES with blog entries (must run after ARTICLES is defined)
 SEO_PAGES.push({ slug: 'blog', label: 'Blog Index', schema: 'Blog', priority: '0.8' });
 ARTICLES.forEach(a => SEO_PAGES.push({ slug: 'blog/' + a.slug, label: a.title, schema: 'Article+BreadcrumbList', priority: '0.7' }));
+
+// Extend SEO_PAGES with 301 new category pages (7 categories × 43 cities)
+CATEGORY_SLUGS.forEach(cat => {
+  Object.keys(CITIES).forEach(citySlug => {
+    const city = CITIES[citySlug];
+    SEO_PAGES.push({
+      slug:  cat + '-' + citySlug,
+      label: CATEGORY_INTENTS[cat].h1(city),
+      schema:'WebPage+FAQPage+BreadcrumbList',
+      priority: '0.7',
+    });
+  });
+});
 
 function blogShell(head, body, BASE) {
   const E = escHtml;
