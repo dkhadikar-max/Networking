@@ -4720,22 +4720,33 @@ const LANGGRAPH_URL    = process.env.LANGGRAPH_URL    || 'http://localhost:8000'
 const ORCH_SECRET      = process.env.ORCHESTRATOR_SECRET || '';
 const LANGGRAPH_ENABLED = !!process.env.LANGGRAPH_URL;
 
-async function lgFetch(path, opts = {}) {
+async function lgFetch(path, opts = {}, { retries = 2, timeoutMs = 90_000 } = {}) {
   const { default: nodeFetch } = await import('node-fetch').catch(() => ({ default: null }));
   const fetchFn = nodeFetch || globalThis.fetch;
   if (!fetchFn) throw new Error('No fetch available');
-  const r = await fetchFn(LANGGRAPH_URL + path, {
-    ...opts,
-    headers: {
-      'Content-Type':        'application/json',
-      'x-orchestrator-secret': ORCH_SECRET,
-      ...(opts.headers || {}),
-    },
-    signal: AbortSignal.timeout(90_000),
-  });
-  const body = await r.json();
-  if (!r.ok) throw new Error(body?.detail || `LangGraph ${r.status}`);
-  return body;
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetchFn(LANGGRAPH_URL + path, {
+        ...opts,
+        headers: {
+          'Content-Type':          'application/json',
+          'x-orchestrator-secret': ORCH_SECRET,
+          ...(opts.headers || {}),
+        },
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body?.detail || `Orchestrator ${r.status}`);
+      return body;
+    } catch (err) {
+      lastErr = err;
+      // Don't retry on auth or bad-request errors
+      if (err.message?.includes('401') || err.message?.includes('400')) throw err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
 }
 
 // LangGraph service status
