@@ -1117,7 +1117,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Why Founder Networking Requires Intent',        p: (c) => `Traditional platforms optimize for connections. BYN optimizes for outcomes. Founders in ${c.name} declare what they're building and who they need — making every introduction purposeful.` },
       { h2: 'How BYN Works for Founders',                   p: (c) => `Create a free profile, add your startup and intent, and BYN surfaces relevant founders in ${c.name}. GPS-based discovery means you connect with people building near you.` },
-      { h2: `Founder Community in ${c.name}`,               p: (c) => `${c.name}'s startup ecosystem — anchored by ${c.hubs} — is built on ${c.ecosystem}. BYN gives you direct access to this community.` },
+      { h2: 'Founder Community in ${c.name}',               p: (c) => `${c.name}'s startup ecosystem — anchored by ${c.hubs} — is built on ${c.ecosystem}. BYN gives you direct access to this community.` },
     ],
     faqs: (c) => [
       { q:`How do startup founders network in ${c.name}?`,        a:`Founders in ${c.name} network through events at ${c.hubs} and intent-based platforms like BYN — which matches you by what you're building and what you need, not just who you know.` },
@@ -1137,7 +1137,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Entrepreneur vs Business Networking',              p: (c) => `Business networking is transactional. Entrepreneur networking is about finding people to build with. BYN's ${c.name} community is for builders, not networkers.` },
       { h2: 'Finding Business Partners in ${c.name}',           p: (c) => `BYN's intent-based matching helps entrepreneurs in ${c.name} find co-founders, advisors, and early collaborators with aligned goals.` },
-      { h2: `Entrepreneurship in ${c.name}`,                    p: (c) => `${c.excerpt} BYN makes it easy to tap into ${c.name}'s entrepreneurial energy wherever you are in your journey.` },
+      { h2: 'Entrepreneurship in ${c.name}',                    p: (c) => `${c.excerpt} BYN makes it easy to tap into ${c.name}'s entrepreneurial energy wherever you are in your journey.` },
     ],
     faqs: (c) => [
       { q:`How do entrepreneurs network in ${c.name}?`,          a:`Entrepreneurs in ${c.name} network at events at ${c.hubs} and online platforms like BYN — which matches you based on business intent, not social connections.` },
@@ -1157,7 +1157,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Technical vs Business Co-founder in ${c.name}',    p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates demand for both technical and business co-founders. BYN lets you filter by background and find the exact co-founder type your startup needs.` },
       { h2: 'How Co-founder Matching Works on BYN',             p: (c) => `Declare what you're building and what kind of co-founder you need. BYN surfaces founders in ${c.name} with the complementary profile. No cold messages to random profiles.` },
-      { h2: `Co-founder Ecosystem in ${c.name}`,                p: (c) => `${c.excerpt} BYN connects you with co-founders embedded in ${c.name}'s startup community and ready to build.` },
+      { h2: 'Co-founder Ecosystem in ${c.name}',                p: (c) => `${c.excerpt} BYN connects you with co-founders embedded in ${c.name}'s startup community and ready to build.` },
     ],
     faqs: (c) => [
       { q:`How do I find a co-founder in ${c.name}?`,            a:`Join BYN free, describe your startup idea and what skills you're looking for. BYN surfaces co-founders in ${c.name} with complementary profiles — filter by technical/business background, domain, and commitment level.` },
@@ -1177,7 +1177,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Freelancers and the Startup Economy in ${c.name}',  p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates constant demand for freelance talent in design, development, marketing, and operations. BYN gives you direct access to these founders.` },
       { h2: 'How BYN Helps Freelancers Find Startup Clients',    p: (c) => `Create a BYN profile, declare your skills and what type of work you're open to, and connect with founders in ${c.name} who need your specific expertise.` },
-      { h2: `Freelance Opportunities in ${c.name}'s Startup Scene`, p: (c) => `${c.excerpt} This growing ecosystem means growing demand for freelance talent. BYN gives you direct access to ${c.name}'s startup founders.` },
+      { h2: "Freelance Opportunities in ${c.name}'s Startup Scene", p: (c) => `${c.excerpt} This growing ecosystem means growing demand for freelance talent. BYN gives you direct access to ${c.name}'s startup founders.` },
     ],
     faqs: (c) => [
       { q:`How do freelancers grow their network in ${c.name}?`,  a:`Freelancers in ${c.name} build their network through startup events, communities at ${c.hubs}, and BYN — where founders actively look for contract talent.` },
@@ -1197,7 +1197,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Creator Economy Meets Startup Ecosystem in ${c.name}', p: (c) => `${c.name}'s ${c.ecosystem} ecosystem creates opportunities for creators who understand the startup world. BYN's intent-based networking lets you declare exactly who you want to meet.` },
       { h2: 'How Creators Use BYN to Find Collaborators',          p: (c) => `Create a BYN profile, describe your content niche and what you're building or looking for, and connect with founders and creators in ${c.name} who share your goals.` },
-      { h2: `Content Creation and Startups in ${c.name}`,          p: (c) => `${c.excerpt} BYN gives creators in ${c.name} direct access to the founders and brands building in this ecosystem.` },
+      { h2: 'Content Creation and Startups in ${c.name}',          p: (c) => `${c.excerpt} BYN gives creators in ${c.name} direct access to the founders and brands building in this ecosystem.` },
     ],
     faqs: (c) => [
       { q:`How do creators build professional networks in ${c.name}?`, a:`Creators in ${c.name} build professional networks through startup events, creator meetups at ${c.hubs}, and BYN — where you connect with founders and brands who need your content expertise.` },
@@ -1217,7 +1217,7 @@ const CATEGORY_INTENTS = {
     sections: [
       { h2: 'Angel Investing and Deal Flow in ${c.name}',      p: (c) => `${c.name}'s ${c.ecosystem} ecosystem is active for early-stage investment. BYN gives investors direct access to founders declaring their fundraising intent.` },
       { h2: 'How BYN Works for Investors',                     p: (c) => `Create an investor profile on BYN, declare your investment focus and stage preference, and start connecting with founders in ${c.name} who match your thesis. No intermediaries.` },
-      { h2: `Investment Landscape in ${c.name}`,               p: (c) => `${c.excerpt} BYN gives investors a direct channel to the most ambitious founders building in ${c.name} today.` },
+      { h2: 'Investment Landscape in ${c.name}',               p: (c) => `${c.excerpt} BYN gives investors a direct channel to the most ambitious founders building in ${c.name} today.` },
     ],
     faqs: (c) => [
       { q:`How do angel investors find startups in ${c.name}?`,  a:`Angel investors in ${c.name} find startups at pitch events at ${c.hubs} and intent-based platforms like BYN — where founders explicitly declare their fundraising stage and goals.` },
@@ -1235,9 +1235,9 @@ const CATEGORY_INTENTS = {
     answer:  (c) => `<strong>Build Your Network (BYN)</strong> is the networking layer for ${c.name}'s startup ecosystem. Founders, investors, mentors, and operators in ${c.name} use BYN to connect based on declared intent — cutting through noise to find the right people.`,
     lead:    (c) => `${c.excerpt} BYN adds a persistent digital layer to ${c.name}'s startup ecosystem — keeping every founder, investor, and operator connected beyond events and introductions.`,
     sections: [
-      { h2: `${c.name}'s Key Startup Sectors`,                 p: (c) => `The ${c.name} startup ecosystem is built on ${c.ecosystem}. BYN connects founders in these sectors with the co-founders, mentors, and investors they need.` },
+      { h2: "${c.name}'s Key Startup Sectors",                 p: (c) => `The ${c.name} startup ecosystem is built on ${c.ecosystem}. BYN connects founders in these sectors with the co-founders, mentors, and investors they need.` },
       { h2: 'Networking Infrastructure for the Startup Ecosystem', p: (c) => `BYN provides the networking layer ${c.name}'s startup community was missing — intent-based, GPS-enabled, and free. No apps, no LinkedIn spam, just relevant connections.` },
-      { h2: `Growing ${c.name}'s Startup Community`,           p: (c) => `${c.hubs} are doing tremendous work to grow ${c.name}'s startup ecosystem. BYN extends this work online — keeping the community connected between events and introductions.` },
+      { h2: "Growing ${c.name}'s Startup Community",           p: (c) => `${c.hubs} are doing tremendous work to grow ${c.name}'s startup ecosystem. BYN extends this work online — keeping the community connected between events and introductions.` },
     ],
     faqs: (c) => [
       { q:`What is the startup ecosystem like in ${c.name}?`,    a:`${c.name} has a strong ${c.ecosystem} ecosystem anchored by ${c.hubs}. ${c.excerpt}` },
