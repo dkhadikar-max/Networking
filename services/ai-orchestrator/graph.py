@@ -32,31 +32,49 @@ log = logging.getLogger("orchestrator.graph")
 
 async def router_node(state: GraphState) -> dict:
     """No-op router — routing is handled by the conditional edges below."""
+    exec_id = state.get("execution_id", "?")
+    groups  = state.get("parallel_groups", [])
+    log.info("[%s] router_node: parallel_groups=%s plan_agents=%s",
+             exec_id, groups, [s["agent"] for s in state.get("plan", [])])
     return {}
 
 
 def _route_from_router(state: GraphState) -> list[str]:
     """After router, fan out to all agents in the FIRST parallel group."""
-    groups = state.get("parallel_groups", [])
+    exec_id = state.get("execution_id", "?")
+    groups  = state.get("parallel_groups", [])
     if not groups:
+        log.info("[%s] _route_from_router: no groups — routing direct to critic", exec_id)
         return ["critic"]
     first_group = groups[0]
-    return [f"worker_{a}" for a in first_group if a in WORKER_NODES]
+    targets = [f"worker_{a}" for a in first_group if a in WORKER_NODES]
+    skipped = [a for a in first_group if a not in WORKER_NODES]
+    log.info("[%s] _route_from_router: first_group=%s → targets=%s skipped=%s",
+             exec_id, first_group, targets, skipped)
+    if not targets:
+        log.warning("[%s] _route_from_router: first_group has no valid workers — routing to critic", exec_id)
+        return ["critic"]
+    return targets
 
 
 def _route_from_critic(state: GraphState) -> str:
+    exec_id  = state.get("execution_id", "?")
     score    = state.get("critic_score", 0.0)
     retries  = state.get("retry_count", 0)
-    if score < CRITIC_THRESHOLD and retries < MAX_RETRIES:
-        return "retry"
-    return "memory_update"
+    decision = "retry" if score < CRITIC_THRESHOLD and retries < MAX_RETRIES else "memory_update"
+    log.info("[%s] _route_from_critic: score=%.2f threshold=%.2f retries=%d → %s",
+             exec_id, score, CRITIC_THRESHOLD, retries, decision)
+    return decision
 
 
 def _route_from_retry(state: GraphState) -> list[str]:
     """After retry, re-run all workers in the plan."""
-    plan = state.get("plan", [])
-    agents = [s["agent"] for s in plan if s["agent"] in WORKER_NODES]
-    return [f"worker_{a}" for a in agents] if agents else ["critic"]
+    exec_id = state.get("execution_id", "?")
+    plan    = state.get("plan", [])
+    agents  = [s["agent"] for s in plan if s["agent"] in WORKER_NODES]
+    targets = [f"worker_{a}" for a in agents] if agents else ["critic"]
+    log.info("[%s] _route_from_retry: plan_agents=%s → targets=%s", exec_id, agents, targets)
+    return targets
 
 
 def build_graph():
