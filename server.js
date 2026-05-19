@@ -222,7 +222,15 @@ const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeade
   message: { error: 'Too many requests, slow down' } });
 const authLimiter       = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
-const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' } });
+const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' },
+  keyGenerator: (req) => {
+    try {
+      const token = (req.headers.authorization || '').split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      return `verify:${decoded.id}`;
+    } catch { return req.ip; }
+  }
+});
 const msgLimiter        = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Message rate limit reached' } });
 // BUG FIX 2: Bootstrap brute-force — strict limiter, independent of auth limiter
 const bootstrapLimiter  = rateLimit({ windowMs: 60*60*1000, max: 10, message: { error: 'Too many bootstrap attempts' } });
