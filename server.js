@@ -2758,6 +2758,21 @@ app.post('/api/signup', authLimiter, async (req, res) => {
               { user_id: id, source: 'Friend/Referral', referral: referrer.id },
               { onConflict: 'user_id' }
             );
+            // Referral reward: 10 successful referrals → 1 month Premium free
+            const { count: refCount } = await supabase.from('users')
+              .select('*', { count: 'exact', head: true })
+              .eq('referred_by', referrer.id);
+            if (refCount >= 10) {
+              const { data: ref } = await supabase.from('users')
+                .select('premium_expires_at').eq('id', referrer.id).single();
+              const base = ref?.premium_expires_at && new Date(ref.premium_expires_at) > new Date()
+                ? new Date(ref.premium_expires_at)
+                : new Date();
+              base.setMonth(base.getMonth() + 1);
+              await supabase.from('users')
+                .update({ premium_expires_at: base.toISOString(), is_premium: true })
+                .eq('id', referrer.id);
+            }
           }
         } catch(_) {}
       }
