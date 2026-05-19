@@ -656,7 +656,27 @@ textarea.panel-input { resize:vertical; min-height:80px; }
   /* App shell: sidebar + content side-by-side */
   #app-wrap { flex-direction:row; }
   #bottom-nav { display:none !important; }
-  #app-views { flex:1; min-width:0; }
+
+  /*
+   * FIX: On desktop, swap .app-view from position:absolute stacking to a
+   * proper flex-column layout. position:absolute+inset:0 relies on the
+   * parent's height being resolvable — in a row-flex container that height
+   * can be 0 in some browsers, making all views blank.
+   * Using flex layout eliminates the dependency entirely.
+   */
+  #app-views {
+    flex:1; min-width:0;
+    position:static;          /* remove positioning context — not needed */
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .app-view {
+    position:static;          /* override mobile's position:absolute */
+    flex:1; min-height:0;     /* fill #app-views; min-height:0 allows shrink */
+    display:none;             /* hidden by default; shown below */
+    width:100%;
+  }
+  .app-view:not(.hidden) { display:flex; } /* shown when not hidden */
 
   /* Sidebar nav */
   #desktop-nav {
@@ -683,7 +703,7 @@ textarea.panel-input { resize:vertical; min-height:80px; }
   .desk-nav-btn .desk-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
   .desk-nav-sep { height:1px; background:rgba(226,232,240,.6); margin:8px 2px; }
 
-  /* Discover: 2-column grid — :not(.hidden) avoids ID vs class specificity battle */
+  /* Discover: 2-column grid */
   #view-discover:not(.hidden) {
     display:grid;
     grid-template-columns:480px 1fr;
