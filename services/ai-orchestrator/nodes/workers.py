@@ -12,7 +12,7 @@ from config import ANTHROPIC_API_KEY, MODEL_WORKER
 from state import GraphState
 
 log = logging.getLogger("orchestrator.workers")
-NODE_TIMEOUT = 90  # workers allowed more time — 2048 max_tokens
+NODE_TIMEOUT = 120  # raised from 90s — 4096 max_tokens needs more generation time
 
 _client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -60,7 +60,7 @@ async def _run_agent(agent: str, task: str, context: dict, previous_outputs: dic
         response = await asyncio.wait_for(
             _client.messages.create(
                 model=MODEL_WORKER,
-                max_tokens=2048,
+                max_tokens=4096,
                 system=system,
                 messages=[{"role": "user", "content": "\n\n".join(parts)}],
             ),
