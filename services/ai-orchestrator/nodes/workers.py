@@ -60,7 +60,7 @@ async def _run_agent(agent: str, task: str, context: dict, previous_outputs: dic
         response = await asyncio.wait_for(
             _client.messages.create(
                 model=MODEL_WORKER,
-                max_tokens=4096,
+                max_tokens=8192,
                 system=system,
                 messages=[{"role": "user", "content": "\n\n".join(parts)}],
             ),
