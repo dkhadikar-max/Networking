@@ -1346,7 +1346,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (meResp._token) { TOKEN = meResp._token; delete meResp._token; }
         ME = meResp;
         saveAuth(TOKEN, ME);
-        if (ME.onboarding_stage !== 'complete') {
+        if (!ME.email_verified) {
+          try { await api('POST', '/api/auth/send-otp', {}); } catch(_) {}
+          q('otp-hint').textContent = 'We sent a code to ' + (ME.email || 'your email');
+          showScreen('otp');
+        } else if (ME.onboarding_stage !== 'complete') {
           showOnboarding(ME.onboarding_stage || 'acquisition');
         } else {
           showApp();
@@ -1411,6 +1415,11 @@ function showApp() {
 // AUTH SCREENS
 // ════════════════════════════════════════
 function showScreen(s) {
+  // Always ensure auth-wrap is visible and competing wraps are hidden
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('auth-wrap').classList.remove('hidden');
+  document.getElementById('app-wrap').classList.add('hidden');
+  document.getElementById('onboarding-wrap').classList.add('hidden');
   ['login','signup','otp'].forEach(n =>
     document.getElementById('screen-'+n).classList.toggle('hidden', n !== s));
   if (s === 'signup') {
@@ -1433,7 +1442,11 @@ async function doLogin() {
   try {
     const r = await api('POST', '/api/login', { email, password:pw });
     saveAuth(r.token, r.user);
-    if (r.user.onboarding_stage !== 'complete') {
+    if (!r.user.email_verified) {
+      try { await api('POST', '/api/auth/send-otp', {}); } catch(_) {}
+      q('otp-hint').textContent = 'We sent a code to ' + email;
+      showScreen('otp');
+    } else if (r.user.onboarding_stage !== 'complete') {
       showOnboarding(r.user.onboarding_stage || 'acquisition');
     } else {
       showApp();
