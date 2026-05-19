@@ -1130,10 +1130,12 @@ textarea.panel-input { resize:vertical; min-height:80px; }
         <div class="chat-detail-wrap">
           <div class="chat-detail-header">
             <span class="chat-back" onclick="goBack()">‹</span>
-            <div class="chat-detail-av" id="chat-detail-av"></div>
-            <div style="flex:1;">
-              <div class="chat-detail-name" id="chat-detail-name">—</div>
-              <div class="chat-detail-loc"  id="chat-detail-loc"></div>
+            <div onclick="openChatParticipantProfile()" style="display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;min-width:0;" aria-label="View profile" role="button" tabindex="0">
+              <div class="chat-detail-av" id="chat-detail-av"></div>
+              <div style="min-width:0;">
+                <div class="chat-detail-name" id="chat-detail-name">—</div>
+                <div class="chat-detail-loc"  id="chat-detail-loc"></div>
+              </div>
             </div>
             <button onclick="openReview()" aria-label="Review Connection" style="width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--sur2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:6px;">★</button>
             <button onclick="openPrioritySend()" aria-label="Send Priority Message" style="width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:var(--sur2);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">⚡</button>
@@ -3086,9 +3088,27 @@ async function sendPriorityMessage() {
 }
 
 // ════════════════════════════════════════
+// OPEN CHAT PARTICIPANT PROFILE
+// ════════════════════════════════════════
+async function openChatParticipantProfile() {
+  const u = _activeChatUser;
+  if (!u || !u.id) { toast('Profile not available'); return; }
+  try {
+    const data = await api('GET', `/api/profiles/${u.id}`);
+    if (data && (data.id || data.user)) {
+      openProfileDetail(data, true);
+    } else {
+      openProfileDetail(u, true);
+    }
+  } catch(e) {
+    openProfileDetail(u, true);
+  }
+}
+
+// ════════════════════════════════════════
 // FULL PROFILE DETAIL (tap on card)
 // ════════════════════════════════════════
-function openProfileDetail(profile) {
+function openProfileDetail(profile, fromChat = false) {
   const u      = profile.user || profile;
   const name   = u.name || 'Unknown';
   const photos = u.photos || [];
@@ -3140,12 +3160,21 @@ function openProfileDetail(profile) {
     </div>`;
 
   // ── Sticky actions ─────────────────────
-  q('profile-detail-actions').innerHTML = `
-    <div style="display:flex;gap:10px;">
-      <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
-      <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
-    </div>
-    <div onclick="openPriorityFromProfile(${JSON.stringify(uid).replace(/"/g,'&quot;')},${JSON.stringify(u.name||'').replace(/"/g,'&quot;')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
+  if (fromChat) {
+    q('profile-detail-actions').innerHTML = `
+      <div style="display:flex;gap:10px;">
+        <button class="action-btn" onclick="closeProfileDetail()" style="flex:1;background:var(--sur2);color:var(--text);border:1.5px solid var(--border);">✕ Close</button>
+        <button class="action-btn action-connect" onclick="closeProfileDetail();switchTab('chats')" style="flex:1;">✉ Back to Chat</button>
+      </div>
+      <div onclick="openPriorityFromProfile(${JSON.stringify(uid).replace(/"/g,'&quot;')},${JSON.stringify(u.name||'').replace(/"/g,'&quot;')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
+  } else {
+    q('profile-detail-actions').innerHTML = `
+      <div style="display:flex;gap:10px;">
+        <button class="action-btn action-skip"    onclick="closeProfileDetail();doSwipe('skip')"    style="flex:1;">✕ Skip</button>
+        <button class="action-btn action-connect" onclick="closeProfileDetail();doSwipe('connect')" style="flex:1;">✦ Connect</button>
+      </div>
+      <div onclick="openPriorityFromProfile(${JSON.stringify(uid).replace(/"/g,'&quot;')},${JSON.stringify(u.name||'').replace(/"/g,'&quot;')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
+  }
 
   // ── Photo dot indicator update on scroll ─
   if (photos.length > 1) {
