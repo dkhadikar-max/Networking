@@ -683,9 +683,9 @@ textarea.panel-input { resize:vertical; min-height:80px; }
   .desk-nav-btn .desk-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
   .desk-nav-sep { height:1px; background:rgba(226,232,240,.6); margin:8px 2px; }
 
-  /* Discover: 2-column grid */
-  #view-discover {
-    display:grid !important;
+  /* Discover: 2-column grid — :not(.hidden) avoids ID vs class specificity battle */
+  #view-discover:not(.hidden) {
+    display:grid;
     grid-template-columns:480px 1fr;
     grid-template-rows:auto auto 1fr;
     overflow:hidden;
@@ -1670,6 +1670,7 @@ function goBack() {
   ['discover','likes','chats','profile'].forEach(t => {
     q('nav-'+t)?.classList.toggle('active', t === 'chats');
     q('nav-'+t)?.setAttribute('aria-selected', t === 'chats' ? 'true' : 'false');
+    q('desk-nav-'+t)?.classList.toggle('active', t === 'chats');
   });
   loadChats();
 }
@@ -3164,7 +3165,7 @@ function openProfileDetail(profile, fromChat = false) {
     q('profile-detail-actions').innerHTML = `
       <div style="display:flex;gap:10px;">
         <button class="action-btn" onclick="closeProfileDetail()" style="flex:1;background:var(--sur2);color:var(--text);border:1.5px solid var(--border);">✕ Close</button>
-        <button class="action-btn action-connect" onclick="closeProfileDetail();switchTab('chats')" style="flex:1;">✉ Back to Chat</button>
+        <button class="action-btn action-connect" onclick="closeProfileDetail()" style="flex:1;">✉ Back to Chat</button>
       </div>
       <div onclick="openPriorityFromProfile(${JSON.stringify(uid).replace(/"/g,'&quot;')},${JSON.stringify(u.name||'').replace(/"/g,'&quot;')})" style="width:100%;margin-top:4px;padding:13px 16px;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:14px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 20px rgba(217,119,6,.35);letter-spacing:.3px;"><span style="font-size:16px;">⚡</span> Send Priority Message <span style="font-size:10px;padding:2px 7px;background:rgba(255,255,255,.25);border-radius:10px;font-weight:700;letter-spacing:.5px;">PREMIUM</span></div>`;
   } else {
