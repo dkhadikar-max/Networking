@@ -14,7 +14,26 @@
       "Bash(curl -s http://localhost:3000/)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -sI https://buildyournetwork.online/robots.txt)",
+      "Bash(curl -s https://buildyournetwork.online/robots.txt)",
+      "Bash(node *)",
+      "Bash(git commit *)",
+      "Bash(railway logs *)",
+      "Bash(curl *)",
+      "Bash(railway status *)",
+      "Bash(railway service *)",
+      "Bash(railway variables *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('RAILWAY_SERVICE_NAME',''\\)\\)\")",
+      "Bash(railway whoami *)",
+      "Bash(grep -n 'p: `\\\\|h1: `\\\\|title: `\\\\|desc: `\\\\|excerpt: `' /c/Networking/server.js)",
+      "Bash(grep -v '=> `')",
+      "Bash(git checkout *)",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --yes)",
+      "Bash(mkdir -p \"app/\\(seo\\)/professionals/[slug]\" \"app/\\(seo\\)/cities/[city]\" \"app/\\(seo\\)/industries/[industry]\" \"app/\\(seo\\)/roles/[role]\")",
+      "Bash(touch 'app/\\(seo\\)/professionals/[slug]/page.tsx' 'app/\\(seo\\)/cities/[city]/page.tsx' 'app/\\(seo\\)/industries/[industry]/page.tsx' 'app/\\(seo\\)/roles/[role]/page.tsx')",
+      "Bash(npx tsc *)",
+      "Bash(dir C:Networking *)"
     ]
   }
 }
