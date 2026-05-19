@@ -641,24 +641,83 @@ textarea.panel-input { resize:vertical; min-height:80px; }
   padding-bottom:calc(100px + env(safe-area-inset-bottom,0px));
 }
 
-/* ── DESKTOP CENTERED LAYOUT ─────────────────────────── */
+/* ── TABLET: centered phone-shell (768–1023px) ──────── */
 @media (min-width: 768px) {
-  html, body {
-    display:flex;
-    align-items:stretch;
-    justify-content:center;
+  html, body { display:flex; align-items:stretch; justify-content:center; overflow:hidden; }
+  #root { width:480px; min-width:480px; max-width:480px; height:100%; border-radius:0; overflow:hidden; box-shadow:1px 0 0 var(--border),-1px 0 0 var(--border); }
+  #desktop-nav { display:none !important; }
+}
+
+/* ── DESKTOP: sidebar nav + 2-column layouts (≥1024px) ─ */
+@media (min-width: 1024px) {
+  html, body { display:flex; align-items:stretch; justify-content:center; overflow:hidden; background:#F0F2F5; }
+  #root { width:100%; max-width:1400px; min-width:0; height:100%; border-radius:12px; overflow:hidden; box-shadow:0 0 0 1px var(--border),0 8px 40px rgba(15,23,42,.10); }
+
+  /* App shell: sidebar + content side-by-side */
+  #app-wrap { flex-direction:row; }
+  #bottom-nav { display:none !important; }
+  #app-views { flex:1; min-width:0; }
+
+  /* Sidebar nav */
+  #desktop-nav {
+    display:flex !important; flex-direction:column; flex-shrink:0;
+    width:220px; padding:20px 10px; gap:2px;
+    border-right:1px solid rgba(226,232,240,.7);
+    background:rgba(255,255,255,.97); backdrop-filter:blur(12px);
+    overflow-y:auto;
+  }
+  .desk-brand {
+    display:flex; align-items:center; gap:10px;
+    padding:6px 12px 20px; font-size:15px; font-weight:800;
+    color:var(--text); letter-spacing:-0.03em; flex-shrink:0;
+  }
+  .desk-nav-btn {
+    display:flex; align-items:center; gap:11px;
+    padding:12px 14px; border-radius:14px; border:none; background:none;
+    font-size:14px; font-weight:600; color:var(--sub);
+    cursor:pointer; width:100%; text-align:left;
+    transition:background .15s,color .15s;
+  }
+  .desk-nav-btn:hover { background:var(--sur2); color:var(--text); }
+  .desk-nav-btn.active { background:var(--light); color:var(--primary); }
+  .desk-nav-btn .desk-icon { width:20px; height:20px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .desk-nav-sep { height:1px; background:rgba(226,232,240,.6); margin:8px 2px; }
+
+  /* Discover: 2-column grid */
+  #view-discover {
+    display:grid !important;
+    grid-template-columns:480px 1fr;
+    grid-template-rows:auto auto 1fr;
     overflow:hidden;
   }
-  #root {
-    width:480px;
-    min-width:480px;
-    max-width:480px;
-    height:100%;
-    min-height:unset;
-    border-radius:0;
-    overflow:hidden;
-    box-shadow:1px 0 0 var(--border), -1px 0 0 var(--border);
+  #view-discover > .disc-header  { grid-column:1; grid-row:1; border-right:1px solid rgba(226,232,240,.6); }
+  #view-discover > #trust-banner { grid-column:1; grid-row:2; border-right:1px solid rgba(226,232,240,.6); margin:0; border-radius:0; }
+  #view-discover > #disc-content { grid-column:1; grid-row:3; border-right:1px solid rgba(226,232,240,.6); overflow:hidden; }
+  #disc-right { display:flex !important; grid-column:2; grid-row:1/4; flex-direction:column; overflow-y:auto; background:var(--bg); }
+
+  /* Card sizing on desktop */
+  .swipe-card { max-width:416px; }
+  .card-photo { height:460px; max-height:460px; }
+  .card-actions { max-width:416px; }
+
+  /* Profile detail: slide in from right as a panel */
+  #profile-detail-modal:not(.hidden) { flex-direction:row; justify-content:flex-end; }
+  #profile-detail-modal > div:last-child {
+    width:500px; height:100%; max-height:100vh;
+    border-radius:0; border-left:1px solid var(--border);
+    box-shadow:-8px 0 40px rgba(15,23,42,.12);
   }
+  /* Hide drag handle on desktop panel */
+  #profile-detail-modal > div:last-child > div:first-child { display:none; }
+}
+
+/* ── LARGE DESKTOP (≥1440px): wider card column ───────── */
+@media (min-width: 1440px) {
+  #root { max-width:1440px; }
+  #view-discover { grid-template-columns:520px 1fr; }
+  .swipe-card { max-width:456px; }
+  .card-photo { height:500px; max-height:500px; }
+  .card-actions { max-width:456px; }
 }
 
 /* ── DISCOVER: keep card actions centred inside flex column ── */
@@ -986,6 +1045,40 @@ textarea.panel-input { resize:vertical; min-height:80px; }
 
   <!-- ══ APP ═══════════════════════════════════════════ -->
   <div id="app-wrap" class="hidden">
+
+    <!-- Desktop sidebar nav (hidden on mobile/tablet via CSS) -->
+    <nav id="desktop-nav">
+      <div class="desk-brand">
+        <div class="byn-logo-box-sm">
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+            <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+            <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+            <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+            <line x1="34" y1="30" x2="62" y2="44" stroke="white" stroke-width="7" stroke-linecap="round"/>
+            <line x1="25" y1="35" x2="25" y2="64" stroke="white" stroke-width="7" stroke-linecap="round"/>
+            <line x1="34" y1="70" x2="62" y2="56" stroke="white" stroke-width="7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span>BYN</span>
+      </div>
+      <button class="desk-nav-btn active" id="desk-nav-discover" onclick="switchTab('discover')" aria-label="Discover">
+        <span class="desk-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+        <span>Discover</span>
+      </button>
+      <button class="desk-nav-btn" id="desk-nav-likes" onclick="switchTab('likes')" aria-label="Likes">
+        <span class="desk-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+        <span>Likes</span>
+      </button>
+      <button class="desk-nav-btn" id="desk-nav-chats" onclick="switchTab('chats')" aria-label="Chat">
+        <span class="desk-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <span>Chat</span>
+      </button>
+      <button class="desk-nav-btn" id="desk-nav-profile" onclick="switchTab('profile')" aria-label="Profile">
+        <span class="desk-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        <span>Profile</span>
+      </button>
+    </nav>
+
     <div id="app-views">
 
       <!-- DISCOVER -->
@@ -1010,6 +1103,8 @@ textarea.panel-input { resize:vertical; min-height:80px; }
         </div>
         <div id="trust-banner" class="hidden" style="margin:0 14px 8px;padding:12px 16px;background:linear-gradient(135deg,#FFF4E7,#FFF0D6);border:1.5px solid #F4C27A;border-radius:14px;font-size:13px;color:#92600A;line-height:1.5;cursor:pointer;" onclick="switchTab('profile')"></div>
         <div id="disc-content" style="flex:1;display:flex;flex-direction:column;align-items:center;overflow:hidden;"></div>
+        <!-- Desktop right panel: shows current profile details -->
+        <div id="disc-right" style="display:none;"></div>
       </div>
 
       <!-- LIKES -->
@@ -1552,6 +1647,7 @@ function switchTab(tab) {
       const btn = q('nav-'+t);
       btn?.classList.toggle('active', t===tab);
       btn?.setAttribute('aria-selected', t===tab ? 'true' : 'false');
+      q('desk-nav-'+t)?.classList.toggle('active', t===tab);
       q('view-'+t)?.classList.toggle('hidden', t!==tab);
     });
     q('view-chat').classList.add('hidden');
@@ -1667,6 +1763,56 @@ function renderCards() {
     ${connId ? `<button class="action-btn action-message" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>` : ''}
     <button class="action-btn action-connect" onclick="doSwipe('connect')">✦ Connect</button>`;
   el.appendChild(actions);
+
+  // Populate desktop right detail panel
+  updateDiscPanel(top);
+}
+
+function updateDiscPanel(m) {
+  const panel = q('disc-right');
+  if (!panel) return;
+  if (!m) {
+    panel.innerHTML = `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:48px 32px;text-align:center;color:var(--sub);"><div style="font-size:52px;">👥</div><h3 style="font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.3px;">Your next connection is here</h3><p style="font-size:14px;line-height:1.6;max-width:260px;">Swipe through profiles on the left. Full details appear here.</p></div>`;
+    return;
+  }
+  const u = m.user || m;
+  const photos = u.photos || [];
+  const name   = u.name || 'Unknown';
+  const role   = u.current_role || u.role || '';
+  const loc    = u.location || '';
+  const bio    = u.bio || u.currently_exploring || '';
+  const interests = (u.interests || []).slice(0, 8);
+  const skills    = (u.skills    || []).slice(0, 6);
+  const intent    = u.intent || '';
+  const score     = m.match_score || m.matchScore || 0;
+  const verified  = u.verified || false;
+  const connId    = m.connection?.id || '';
+
+  panel.innerHTML = `
+    <div style="flex-shrink:0;height:340px;position:relative;overflow:hidden;background:linear-gradient(135deg,#D8FAF2,#FEE9D1);">
+      ${photos[0] ? `<img src="${esc(photos[0])}" alt="${esc(name)}" style="width:100%;height:100%;object-fit:cover;display:block;">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:800;color:#157A6E;">${esc(initials(name))}</div>`}
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,18,35,.75) 0%,transparent 55%);"></div>
+      <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 24px;">
+        <div style="font-size:26px;font-weight:800;color:#fff;letter-spacing:-0.05em;display:flex;align-items:center;gap:10px;">
+          ${esc(name)}
+          ${verified ? `<span style="font-size:11px;font-weight:700;background:rgba(255,255,255,.18);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:4px 10px;color:#fff;">✓ Verified</span>` : ''}
+        </div>
+        ${role || loc ? `<div style="font-size:14px;color:rgba(255,255,255,.8);margin-top:5px;">${role ? esc(role) : ''}${role && loc ? ' · ' : ''}${loc ? `📍 ${esc(loc)}` : ''}</div>` : ''}
+      </div>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:18px;flex:1;">
+      ${score ? `<div style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#D5F5EE,#BBF0E7);border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;color:var(--primary);align-self:flex-start;"><span>✦</span><span>${score}% match</span></div>` : ''}
+      ${bio ? `<div><div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;">About</div><div style="font-size:14px;color:var(--text);line-height:1.7;">${esc(bio)}</div></div>` : ''}
+      ${interests.length ? `<div><div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;">Interests</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${interests.map(t=>`<span style="padding:6px 13px;border-radius:999px;background:#EBF9F5;color:var(--primary);font-size:12px;font-weight:700;">${esc(t)}</span>`).join('')}</div></div>` : ''}
+      ${skills.length ? `<div><div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;">Skills</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${skills.map(t=>`<span style="padding:6px 13px;border-radius:999px;background:#FFF4E7;color:var(--accent);font-size:12px;font-weight:700;">${esc(t)}</span>`).join('')}</div></div>` : ''}
+      ${intent ? `<div style="display:flex;align-items:center;gap:8px;"><div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.6px;text-transform:uppercase;">Looking for</div><span style="font-size:13px;font-weight:600;color:var(--primary);background:var(--light);padding:4px 12px;border-radius:999px;">${esc(intent)}</span></div>` : ''}
+      ${photos.length > 1 ? `<div><div style="font-size:11px;font-weight:700;color:var(--sub);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;">Photos</div><div style="display:flex;gap:8px;flex-wrap:wrap;">${photos.slice(1,5).map(p=>`<img src="${esc(p)}" style="width:70px;height:70px;border-radius:10px;object-fit:cover;border:1px solid var(--border);">`).join('')}</div></div>` : ''}
+    </div>
+    <div style="flex-shrink:0;padding:16px 24px 24px;border-top:1px solid var(--border);display:flex;gap:10px;background:rgba(255,255,255,.96);">
+      <button class="action-btn action-skip"    style="flex:1;padding:14px;" onclick="doSwipe('skip')">✕ Skip</button>
+      ${connId ? `<button class="action-btn action-message" style="flex:1;padding:14px;" onclick="openChatFromCard('${esc(String(connId))}')">✉ Message</button>` : ''}
+      <button class="action-btn action-connect" style="flex:1;padding:14px;" onclick="doSwipe('connect')">✦ Connect</button>
+    </div>`;
 }
 
 function buildCard(m) {
