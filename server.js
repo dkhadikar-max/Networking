@@ -99,7 +99,14 @@ try {
   console.log('Supabase client initialized');
 } catch (e) {
   console.error('Failed to initialize Supabase:', e.message);
-  supabase = { from: () => ({ select: () => Promise.resolve({ data: null, error: e }) }) };
+  // Proxy that returns { data: null, error } for every query method chain so callers
+  // receive a well-formed error instead of a TypeError from missing .eq/.maybeSingle etc.
+  const stubResult = Promise.resolve({ data: null, count: null, error: e });
+  const stubChain = () => {
+    const handler = { get: (_, prop) => prop === 'then' || prop === 'catch' || prop === 'finally' ? stubResult[prop].bind(stubResult) : () => new Proxy(stubResult, handler) };
+    return new Proxy(stubResult, handler);
+  };
+  supabase = { from: () => ({ select: stubChain, insert: stubChain, update: stubChain, upsert: stubChain, delete: stubChain }) };
 }
 
 // ── AI AGENT ORCHESTRATOR ── (non-blocking; routes return 503 until ready)
@@ -2797,18 +2804,34 @@ app.post('/api/signup', authLimiter, async (req, res) => {
 
 // ── LOGIN ──
 app.post('/api/login', authLimiter, async (req, res) => {
+  const tag = `[login][${Date.now()}]`;
   try {
+    // Step 1: parse body
+    if (!req.body || typeof req.body !== 'object') {
+      console.error(`${tag} step1 FAIL — req.body is ${typeof req.body}`);
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
     let { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' });
     email = String(email).trim().toLowerCase();
+    console.log(`${tag} step1 OK — email=${email}`);
 
-    const { data: user } = await supabase.from('users')
+    // Step 2: fetch user from Supabase
+    const { data: user, error: fetchErr } = await supabase.from('users')
       .select('*').eq('email', email).maybeSingle();
+    if (fetchErr) console.error(`${tag} step2 Supabase error — ${fetchErr.message}`);
+    console.log(`${tag} step2 — user found=${!!user}, hasPassword=${!!user?.password}`);
 
     // Timing-safe rejection — always run bcrypt so response time doesn't
     // reveal whether the email exists in the database.
     if (!user) {
       await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Step 3: guard — user.password must be a non-empty bcrypt hash
+    if (!user.password || typeof user.password !== 'string' || !user.password.startsWith('$2')) {
+      console.error(`${tag} step3 FAIL — user ${user.id} has invalid password hash: ${String(user.password).slice(0, 10)}...`);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -2820,33 +2843,25 @@ app.post('/api/login', authLimiter, async (req, res) => {
       });
     }
 
+    // Step 4: password comparison
     const passwordOk = await bcrypt.compare(password, user.password);
+    console.log(`${tag} step4 — passwordOk=${passwordOk}`);
 
     if (!passwordOk) {
       const attempts = (user.failed_login_attempts || 0) + 1;
       const update = { failed_login_attempts: attempts };
       if (attempts >= LOGIN_LOCKOUT_THRESHOLD) {
         update.lockout_until = new Date(Date.now() + LOGIN_LOCKOUT_DURATION_MS).toISOString();
-        update.failed_login_attempts = 0; // reset so the next window starts clean after lockout expires
-
-      
+        update.failed_login_attempts = 0;
       }
-      const { error } = await supabase
-  .from('users')
-  .update(update)
-  .eq('id', user.id);
-
-console.log('LOCKOUT UPDATE ERROR:', error);
-console.log('LOCKOUT UPDATE PAYLOAD:', update);
-console.log('USER ID:', user.id);
-return res.status(401).json({
-  error: 'Invalid email or password'
-});
+      const { error: updateErr } = await supabase.from('users').update(update).eq('id', user.id);
+      if (updateErr) console.warn(`${tag} lockout update error — ${updateErr.message}`);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
-    // Successful authentication — reset lockout state
+    // Step 5: successful auth — reset lockout state + refresh scores
     const updates = { failed_login_attempts: 0, lockout_until: null };
 
     // Auto-grant admin if in ADMIN_EMAILS list (survives DB resets)
@@ -2855,16 +2870,18 @@ return res.status(401).json({
       user.role = 'admin';
     }
 
-    // Refresh scores
     const ps = calcProfileScore(user);
     updates.profile_score       = ps;
     updates.is_profile_complete = ps >= 70;
     updates.trust_score         = calcTrust(user);
 
-    await supabase.from('users').update(updates).eq('id', user.id);
+    const { error: updateSuccessErr } = await supabase.from('users').update(updates).eq('id', user.id);
+    if (updateSuccessErr) console.warn(`${tag} step5 update error — ${updateSuccessErr.message}`);
     Object.assign(user, updates);
 
+    // Step 6: sign JWT and respond
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    console.log(`${tag} step6 OK — login successful for ${email}`);
     // NOTE: OTP is NOT auto-sent on login. The client calls /api/auth/send-otp
     // explicitly when it detects email_verified === false, so the user sees a
     // proper "Sending code…" state rather than a silent background fire-and-forget.
