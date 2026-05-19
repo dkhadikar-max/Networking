@@ -235,7 +235,15 @@ const msgLimiter        = rateLimit({ windowMs: 60*1000, max: 30, message: { err
 // BUG FIX 2: Bootstrap brute-force — strict limiter, independent of auth limiter
 const bootstrapLimiter  = rateLimit({ windowMs: 60*60*1000, max: 10, message: { error: 'Too many bootstrap attempts' } });
 // BUG FIX 4: OTP send — own strict limiter so it can't share quota with login
-const otpSendLimiter    = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many OTP requests — wait 15 minutes' } });
+const otpSendLimiter    = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many OTP requests — wait 15 minutes' },
+  keyGenerator: (req) => {
+    try {
+      const token = (req.headers.authorization || '').split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+      return `otp-send:${decoded.id}`;
+    } catch { return req.ip; }
+  }
+});
 // BUG FIX 3: Works creation — prevent spam
 const worksLimiter      = rateLimit({ windowMs: 60*1000, max: 5, message: { error: 'Works creation rate limit reached' } });
 // BUG FIX 9: Public profile scraping — per-IP cap
