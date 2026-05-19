@@ -12,7 +12,7 @@ from config import ANTHROPIC_API_KEY, MODEL_WORKER
 from state import GraphState
 
 log = logging.getLogger("orchestrator.workers")
-NODE_TIMEOUT = 120  # raised from 90s — 4096 max_tokens needs more generation time
+NODE_TIMEOUT = 180  # raised from 120s — 8192 max_tokens needs ~150s generation time
 
 _client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
