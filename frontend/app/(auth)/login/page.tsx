@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { apiPost } from '@/lib/api';
 import Button from '@/components/ui/Button';
 
 export default function LoginPage() {
@@ -19,7 +20,11 @@ export default function LoginPage() {
     setError(''); setLoading(true);
     try {
       const { user } = await login(email, password);
-      if (!user.email_verified) { router.replace('/verify'); return; }
+      if (!user.email_verified) {
+        apiPost('/api/auth/send-otp', {}).catch(() => {});
+        router.replace('/verify');
+        return;
+      }
       if (user.onboarding_stage !== 'complete') { router.replace('/onboarding'); return; }
       router.replace('/discover');
     } catch (err) {

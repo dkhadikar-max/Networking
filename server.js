@@ -197,12 +197,14 @@ app.use(helmet({
 const ALLOWED_ORIGINS = [
   'https://buildyournetwork.online',
   'https://www.buildyournetwork.online',
+  'https://app.buildyournetwork.online',
   'https://urnetwork.online',
   'https://www.urnetwork.online',
   // Expo / Metro dev origins
   'http://localhost:8081',
   'http://localhost:19000',
   'http://localhost:19006',
+  'http://localhost:3000',
 ];
 const corsOptions = {
   origin: (origin, cb) => {

@@ -14,12 +14,13 @@ export default function VerifyPage() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState('');
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      await apiPost('/api/auth/verify-otp', { otp });
+      await apiPost('/api/auth/verify-otp', { code: otp });
       await refreshUser();
       router.replace('/onboarding');
     } catch (err) {
@@ -28,12 +29,12 @@ export default function VerifyPage() {
   }
 
   async function handleResend() {
-    setResending(true); setResent(false);
+    setResending(true); setResent(false); setResendError('');
     try {
       await apiPost('/api/auth/send-otp', {});
       setResent(true);
-    } catch {
-      // silent
+    } catch (err) {
+      setResendError(err instanceof Error ? err.message : 'Failed to send code');
     } finally { setResending(false); }
   }
 
@@ -49,6 +50,9 @@ export default function VerifyPage() {
       )}
       {resent && (
         <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">Code resent — check your inbox.</div>
+      )}
+      {resendError && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm">{resendError}</div>
       )}
 
       <form onSubmit={handleVerify} className="space-y-4">
