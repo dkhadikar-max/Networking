@@ -283,6 +283,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── API DOMAIN GATE: only /api/* and /uploads/* are served ──────────────────
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
+  return res.status(404).json({ error: 'Not found' });
+});
+
 // ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
@@ -384,7 +390,6 @@ app.get('/robots.txt', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-app.get('/', (req, res) => res.json({ status: 'ok', service: 'BYN API' }));
 
 // ── PHASE 5 — Crawl budget: X-Robots-Tag on private routes ──────────────────
 app.use(['/api', '/app', '/admin', '/upgrade'], (req, res, next) => {
