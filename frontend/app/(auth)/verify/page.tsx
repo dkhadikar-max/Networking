@@ -21,8 +21,12 @@ export default function VerifyPage() {
     setError(''); setLoading(true);
     try {
       await apiPost('/api/auth/verify-otp', { code: otp });
-      await refreshUser();
-      router.replace('/onboarding');
+      const updated = await refreshUser();
+      if (updated?.onboarding_stage === 'complete') {
+        router.replace('/discover');
+      } else {
+        router.replace('/onboarding');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid code');
     } finally { setLoading(false); }

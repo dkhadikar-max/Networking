@@ -10,7 +10,7 @@ type AuthCtx = {
   login: (email: string, password: string) => Promise<{ user: User; token: string }>;
   signup: (name: string, email: string, password: string) => Promise<{ user: User; token: string }>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<User | undefined>;
   setUser: (u: User | null) => void;
 };
 
@@ -22,8 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const data = await apiGet<User>('/api/me');
+      const data = await apiGet<User & { _token?: string }>('/api/me');
+      if (data._token) setToken(data._token);
       setUser(data);
+      return data as User;
     } catch {
       clearToken();
       setUser(null);
@@ -33,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = getToken();
     if (!token) return;
-    apiGet<User>('/api/me')
-      .then(data => setUser(data))
+    apiGet<User & { _token?: string }>('/api/me')
+      .then(data => { if (data._token) setToken(data._token); setUser(data); })
       .catch(() => { clearToken(); })
       .finally(() => setLoading(false));
   }, []);

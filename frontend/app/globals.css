@@ -1,93 +1,166 @@
 @import "tailwindcss";
 
-/* ── Design Tokens ───────────────────────────────── */
+/* ════════════════════════════════════════════════════════════
+   BUILD YOUR NETWORK — Global Stylesheet v2.1
+   Merged: production globals + Kimi v2.1 improvements
+   Scope: tokens, base, scrollbar, animations, accessibility
+   Component classes: managed in app/(app)/app.css
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Design Tokens ───────────────────────────────────────── */
 :root {
   /* Brand */
-  --primary:       #157A6E;
-  --primary-dark:  #0d5f58;
-  --primary-2:     #1DB7A6;
-  --accent:        #F4A259;
-  --accent-lt:     #FFF4E7;
+  --primary:         #157A6E;
+  --primary-dark:    #0d5f58;
+  --primary-2:       #1DB7A6;
+  --primary-light:   #CCFBF1;
+  --primary-glow:    rgba(21,122,110,0.15);
 
-  /* Surface */
-  --bg:            #F6F8FA;
-  --card:          #FFFFFF;
-  --sur2:          #F8FAFC;
-  --light:         #ECFDF5;
-  --highlight:     #CCFBF1;
+  /* Accent */
+  --accent:          #F4A259;
+  --accent-light:    #FFF4E7;
+  --accent-glow:     rgba(244,162,89,0.2);
+  --accent-lt:       var(--accent-light); /* compat — used in likes/page.tsx */
+
+  /* Surfaces */
+  --bg:              #F6F8FA;
+  --bg-elevated:     #FFFFFF;
+  --bg-subtle:       #F8FAFC;
+  --bg-glass:        rgba(255,255,255,0.72);
+  --bg-glass-strong: rgba(255,255,255,0.92);
+  --card:            #FFFFFF;
+  --card-hover:      #FAFBFC;
+  --sur2:            #F8FAFC;
+  --light:           #ECFDF5;
+  --soft:            #99F6E4;
+  --highlight:       #CCFBF1;
 
   /* Text */
-  --text:          #0F172A;
-  --text-soft:     #64748B;
-  --muted:         #94A3B8;
-  --sub:           #64748B;
-  --dim:           #94A3B8;
+  --text:            #0F172A;
+  --text-soft:       #64748B;
+  --text-muted:      #94A3B8;
+  --text-inverse:    #FFFFFF;
+  --sub:             var(--text-soft);
+  --dim:             var(--text-muted);
+  --muted:           var(--text-muted);
 
   /* Border */
-  --border:        #E2E8F0;
-  --border2:       #E2E8F0;
+  --border:          #E2E8F0;
+  --border2:         #E2E8F0;            /* compat alias */
+  --border-subtle:   rgba(226,232,240,0.6);
+  --border-strong:   rgba(226,232,240,0.9);
 
   /* State */
-  --danger:        #EF4444;
-  --green:         #22C55E;
-  --gold:          #F4A259;
-  --goldlt:        #FFF4E7;
+  --danger:          #EF4444;
+  --danger-soft:     rgba(239,68,68,0.08);
+  --green:           #22C55E;
+  --green-soft:      rgba(34,197,94,0.1);
+  --gold:            #F4A259;
+  --gold-soft:       #FFF4E7;
+  --gold-glow:       rgba(244,162,89,0.25);
+  --goldlt:          var(--gold-soft);   /* compat alias */
 
   /* Radius */
-  --r-xl:          34px;
-  --r-lg:          24px;
-  --r-md:          16px;
-  --r-sm:          12px;
+  --r-xs:            8px;
+  --r-sm:            12px;
+  --r-md:            16px;
+  --r-lg:            24px;
+  --r-xl:            34px;
+  --r-full:          999px;
 
-  /* Shadow */
-  --shadow-sm:     0 4px 12px rgba(15,23,42,.06);
-  --shadow-md:     0 12px 36px rgba(15,23,42,.09);
-  --shadow-lg:     0 24px 64px rgba(15,23,42,.13);
+  /* Shadows — layered for depth */
+  --shadow-xs:       0 1px 3px rgba(15,23,42,0.04);
+  --shadow-sm:       0 4px 12px rgba(15,23,42,0.06);
+  --shadow-md:       0 8px 24px rgba(15,23,42,0.08), 0 2px 6px rgba(15,23,42,0.04);
+  --shadow-lg:       0 16px 48px rgba(15,23,42,0.10), 0 4px 12px rgba(15,23,42,0.05);
+  --shadow-xl:       0 24px 64px rgba(15,23,42,0.13), 0 8px 24px rgba(15,23,42,0.06);
+  --shadow-gold:     0 8px 24px rgba(244,162,89,0.28);
+  --shadow-primary:  0 8px 24px rgba(21,122,110,0.28);
+
+  /* Glass */
+  --glass-border:    rgba(255,255,255,0.5);
+  --glass-blur:      blur(20px) saturate(180%);
+  --glass-blur-sm:   blur(12px) saturate(160%);
+
+  /* Typography */
+  --font-sans:       var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Easing curves */
+  --ease-spring:     cubic-bezier(0.22,1,0.36,1);
+  --ease-bounce:     cubic-bezier(0.34,1.56,0.64,1);
+  --ease-smooth:     cubic-bezier(0.4,0,0.2,1);
+  --ease-out:        cubic-bezier(0,0,0.2,1);
+
+  /* Durations */
+  --duration-fast:   150ms;
+  --duration-normal: 200ms;
+  --duration-slow:   300ms;
+  --duration-slower: 400ms;
 }
 
 @theme inline {
-  --color-background:   var(--bg);
-  --color-foreground:   var(--text);
-  --color-primary:      var(--primary);
-  --color-accent:       var(--accent);
-  --font-sans:          var(--font-geist-sans), system-ui, sans-serif;
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-primary:    var(--primary);
+  --color-accent:     var(--accent);
+  --font-sans:        var(--font-sans);
 }
 
-/* ── Base ────────────────────────────────────────── */
+/* ── Reset & Base ────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Prevent pull-to-refresh while keeping scrollable content */
+body {
+  height: 100%;
+  background:
+    radial-gradient(ellipse at 0% 0%, #D8FAF2 0%, transparent 45%),
+    radial-gradient(ellipse at 100% 100%, #FEE9D1 0%, transparent 40%),
+    var(--bg);
+  font-family: var(--font-sans);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  text-rendering: optimizeLegibility;
+}
+
 #__next, main { height: 100%; }
 
-/* ── Scrollbar ───────────────────────────────────── */
+/* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ── Landing page animations ─────────────────────── */
+/* ── Keyframe Animations ─────────────────────────────────── */
 @keyframes logoPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(15,118,110,0.3); }
-  70%  { box-shadow: 0 0 0 7px rgba(15,118,110,0); }
-  100% { box-shadow: 0 0 0 0 rgba(15,118,110,0); }
+  0%   { box-shadow: 0 0 0 0   rgba(15,118,110,0.35); }
+  50%  { box-shadow: 0 0 0 10px rgba(15,118,110,0); }
+  100% { box-shadow: 0 0 0 0   rgba(15,118,110,0); }
 }
-.logo-pulse { animation: logoPulse 2.4s ease-in-out infinite; }
+@keyframes spin       { to { transform: rotate(360deg); } }
+@keyframes fadeInUp   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn     { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn    { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideUp    { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
+@keyframes shimmer    { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+@keyframes float      { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 
-/* ── Feedback tab — mobile repositions to bottom-center ── */
+.logo-pulse { animation: logoPulse 2.4s var(--ease-smooth) infinite; }
+
+/* ── Feedback tab — mobile reposition ───────────────────── */
 @media (max-width: 600px) {
   .feedback-tab-mobile {
-    right: auto !important;
-    left: 50% !important;
-    top: auto !important;
-    bottom: 0 !important;
+    right: auto !important; left: 50% !important;
+    top: auto !important; bottom: 0 !important;
     transform: translateX(-50%) translateY(2px) !important;
     border-radius: 12px 12px 0 0 !important;
     padding: 10px 20px !important;
@@ -96,9 +169,16 @@ html, body {
     text-orientation: mixed !important;
     box-shadow: 0 -4px 20px rgba(15,118,110,0.3) !important;
   }
-  .feedback-tab-mobile:hover {
-    transform: translateX(-50%) translateY(0) !important;
-  }
-  .feedback-tab-mobile svg { transform: none !important; }
+  .feedback-tab-mobile:hover { transform: translateX(-50%) translateY(0) !important; }
+  .feedback-tab-mobile svg  { transform: none !important; }
   .feedback-tab-mobile span { transform: none !important; }
+}
+
+/* ── Reduced motion (accessibility) ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:        0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:       0.01ms !important;
+  }
 }
