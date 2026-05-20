@@ -72,3 +72,33 @@ html, body {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Landing page animations ─────────────────────── */
+@keyframes logoPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(15,118,110,0.3); }
+  70%  { box-shadow: 0 0 0 7px rgba(15,118,110,0); }
+  100% { box-shadow: 0 0 0 0 rgba(15,118,110,0); }
+}
+.logo-pulse { animation: logoPulse 2.4s ease-in-out infinite; }
+
+/* ── Feedback tab — mobile repositions to bottom-center ── */
+@media (max-width: 600px) {
+  .feedback-tab-mobile {
+    right: auto !important;
+    left: 50% !important;
+    top: auto !important;
+    bottom: 0 !important;
+    transform: translateX(-50%) translateY(2px) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 10px 20px !important;
+    flex-direction: row !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    box-shadow: 0 -4px 20px rgba(15,118,110,0.3) !important;
+  }
+  .feedback-tab-mobile:hover {
+    transform: translateX(-50%) translateY(0) !important;
+  }
+  .feedback-tab-mobile svg { transform: none !important; }
+  .feedback-tab-mobile span { transform: none !important; }
+}

@@ -21,7 +21,7 @@ function NavBar({ menuOpen, onToggle }: { menuOpen: boolean; onToggle: () => voi
     >
       <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between">
         <a href="#" className="font-extrabold text-xl text-[#0F766E] no-underline flex items-center gap-2 tracking-tight">
-          <Image src="/assets/logo.png" alt="Build Your Network" width={28} height={28} className="rounded-[7px]" />
+          <Image src="/assets/logo.png" alt="Build Your Network" width={28} height={28} className="rounded-[7px] logo-pulse" />
           BuildYourNetwork
         </a>
 
@@ -129,10 +129,10 @@ function HeroSection({ stats }: { stats: Stats }) {
             </div>
           )}
 
-          <div className="flex gap-4 items-center flex-wrap" data-animate="" data-delay="300">
+          <div className="flex gap-4 items-center flex-wrap max-[600px]:flex-col max-[600px]:w-full" data-animate="" data-delay="300">
             <a
               href="/signup"
-              className="inline-flex items-center gap-2.5 px-8 py-4 bg-[#0F766E] text-white rounded-xl font-semibold text-[15px] transition-all hover:bg-[#0d5f58] hover:-translate-y-0.5 no-underline"
+              className="inline-flex items-center gap-2.5 px-8 py-4 bg-[#0F766E] text-white rounded-xl font-semibold text-[15px] transition-all hover:bg-[#0d5f58] hover:-translate-y-0.5 no-underline max-[600px]:w-full max-[600px]:justify-center"
               style={{ boxShadow: "0 4px 16px rgba(15,118,110,0.25)" }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
@@ -141,7 +141,7 @@ function HeroSection({ stats }: { stats: Stats }) {
               </svg>
               Open Web App — Free
             </a>
-            <a href="#how" className="inline-flex items-center gap-2 px-7 py-4 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-semibold text-[15px] transition-all hover:bg-[#CCFBF1] hover:-translate-y-0.5 no-underline">
+            <a href="#how" className="inline-flex items-center gap-2 px-7 py-4 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-semibold text-[15px] transition-all hover:bg-[#CCFBF1] hover:-translate-y-0.5 no-underline max-[600px]:w-full max-[600px]:justify-center">
               See how it works
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
             </a>
@@ -151,7 +151,7 @@ function HeroSection({ stats }: { stats: Stats }) {
         {/* Right: phone mockup */}
         <div className="flex justify-center -order-1 min-[900px]:order-none" data-animate="" data-delay="200">
           <div
-            className="w-[280px] h-[560px] min-[900px]:w-[280px] w-[240px] min-[900px]:h-[560px] h-[480px] bg-white rounded-[36px] relative overflow-hidden transition-transform duration-[400ms]"
+            className="w-[240px] h-[480px] min-[900px]:w-[280px] min-[900px]:h-[560px] bg-white rounded-[36px] relative overflow-hidden transition-transform duration-[400ms]"
             style={{
               boxShadow: "0 12px 40px rgba(31,41,55,0.1), 0 0 0 12px #FDE8D7",
               transform: phoneHovered ? "rotate(0deg) scale(1.02)" : "rotate(-3deg)",
@@ -225,17 +225,17 @@ function TrustSection() {
     <section className="py-[100px] px-6 bg-[#FDE8D7]" id="trust">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Trust &amp; Transparency</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           Safe to install. Built for serious users.
         </h2>
         <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
           We believe trust is earned, not claimed. Here&apos;s exactly what you get — and what you don&apos;t.
         </p>
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 min-[900px]:grid-cols-4 gap-6">
+        <div className="mt-12 grid grid-cols-2 max-[600px]:grid-cols-1 min-[900px]:grid-cols-4 gap-6">
           {TRUST_CARDS.map((c, i) => (
             <div
               key={c.title}
-              className="bg-white p-8 rounded-2xl text-center border border-[rgba(253,232,215,0.5)] transition-all hover:-translate-y-1"
+              className="bg-white px-6 py-8 rounded-2xl text-center border border-[rgba(253,232,215,0.5)] transition-all hover:-translate-y-1"
               style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }}
               data-animate=""
               data-delay={String(i * 100)}
@@ -265,7 +265,7 @@ function FeaturesSection() {
     <section className="py-[100px] px-6 bg-[#FFF4EC]" id="features">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">What It Does</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           Connect with intent. Find relevant people.
         </h2>
         <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
@@ -303,7 +303,7 @@ function HowItWorksSection() {
     <section className="py-[100px] px-6 bg-[#FDE8D7]" id="how">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">How It Works</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           Three steps to the right connection.
         </h2>
         <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
@@ -355,7 +355,7 @@ function AppPreviewSection() {
     <section className="py-[100px] px-6 bg-[#FFF4EC]" id="preview">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">App Preview</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           Built for clarity. Designed for trust.
         </h2>
         <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
@@ -450,7 +450,7 @@ function DifferentiationSection() {
     <section className="py-[100px] px-6 bg-[#FDE8D7]" id="differentiation">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Why This Is Different</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           A new category of networking.
         </h2>
         <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
@@ -485,7 +485,7 @@ function ComingSoonSection() {
     <section className="py-[100px] px-6 bg-[#FFF4EC]" id="coming-soon">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">On The Horizon</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-8 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           What&apos;s Next
         </h2>
         <div
@@ -513,14 +513,14 @@ function DownloadSection() {
     >
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#CCFBF1] mb-4" data-animate="">Get Started</p>
-        <h2 className="font-extrabold tracking-tight text-white mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-white mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           Start in seconds — no install required
         </h2>
         <p className="text-[17px] text-white/80 max-w-[600px] mx-auto leading-[1.7]" data-animate="" data-delay="200">
           The full BuildYourNetwork experience runs directly in your browser. Sign up and start discovering in under a minute.
         </p>
         <div
-          className="mt-12 rounded-3xl p-12 border border-white/15"
+          className="mt-12 rounded-3xl px-6 py-8 min-[601px]:p-12 border border-white/15"
           style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}
           data-animate=""
           data-delay="300"
@@ -592,7 +592,7 @@ function AboutBYNSection() {
     <section className="py-[80px] px-6 bg-[#FDE8D7]" id="about-byn">
       <div className="max-w-[1100px] mx-auto">
         <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Knowledge Base</p>
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-6 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
           What is Build Your Network?
         </h2>
         <div className="max-w-[760px] mx-auto">
@@ -663,7 +663,7 @@ function FinalCTASection() {
   return (
     <section className="text-center py-[120px] px-6 bg-[#FFF4EC]">
       <div className="max-w-[1100px] mx-auto">
-        <h2 className="font-extrabold tracking-tight text-[#1F2937] mb-5" style={{ fontSize: "clamp(32px, 4vw, 48px)" }} data-animate="">
+        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5" style={{ fontSize: "clamp(32px, 4vw, 48px)" }} data-animate="">
           Your network defines your trajectory.
         </h2>
         <p className="text-lg text-[#6B7280] mb-10" data-animate="" data-delay="100">
@@ -691,7 +691,7 @@ function FinalCTASection() {
 function FooterSection() {
   return (
     <footer className="bg-[#1F2937] text-white pt-[60px] px-6 pb-10">
-      <div className="max-w-[1100px] mx-auto grid grid-cols-1 sm:grid-cols-2 min-[900px]:grid-cols-[2fr_1fr_1fr_1fr] gap-12">
+      <div className="max-w-[1100px] mx-auto grid grid-cols-2 max-[600px]:grid-cols-1 min-[900px]:grid-cols-[2fr_1fr_1fr_1fr] gap-12">
         <div>
           <div className="text-xl font-extrabold text-[#CCFBF1] mb-3 flex items-center gap-2">
             <Image src="/assets/logo.png" alt="Build Your Network" width={26} height={26} className="rounded-[6px]" />
@@ -891,7 +891,7 @@ export default function HomePage() {
       {/* Feedback tab */}
       <button
         onClick={() => setFeedbackOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 translate-x-0.5 bg-[#0F766E] text-white py-3.5 px-2.5 rounded-l-xl cursor-pointer z-[99] flex flex-col items-center gap-1.5 border-0 transition-all hover:bg-[#0d5f58] hover:translate-x-0"
+        className="feedback-tab-mobile fixed right-0 top-1/2 -translate-y-1/2 translate-x-0.5 bg-[#0F766E] text-white py-3.5 px-2.5 rounded-l-xl cursor-pointer z-[99] flex flex-col items-center gap-1.5 border-0 transition-all hover:bg-[#0d5f58] hover:translate-x-0"
         style={{ boxShadow: "-4px 4px 20px rgba(15,118,110,0.3)", writingMode: "vertical-rl", textOrientation: "mixed" }}
         aria-label="Open feedback"
       >
