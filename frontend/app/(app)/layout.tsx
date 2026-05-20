@@ -3,11 +3,25 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { ProfileDrawerProvider, useProfileDrawer } from '@/context/ProfileDrawerContext';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import { ToastProvider } from '@/components/ui/Toast';
+import ProfileDrawer from '@/components/ui/ProfileDrawer';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function ShellDrawer() {
+  const { drawerState, closeProfile } = useProfileDrawer();
+  return (
+    <ProfileDrawer
+      profile={drawerState?.profile ?? null}
+      onClose={closeProfile}
+      onConnect={drawerState?.options.onConnect}
+      onSkip={drawerState?.options.onSkip}
+    />
+  );
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const path = usePathname();
@@ -39,14 +53,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ToastProvider>
-      <div className="flex h-full overflow-hidden">
-        {isDesktop === true && <Sidebar />}
-        <main className={`flex-1 flex flex-col min-w-0 overflow-hidden${isDesktop === false ? ' pb-16' : ''}`}>
-          {children}
-        </main>
-      </div>
+    <div className="flex h-full overflow-hidden">
+      {isDesktop === true && <Sidebar />}
+      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden relative${isDesktop === false ? ' pb-16' : ''}`}>
+        {children}
+        <ShellDrawer />
+      </main>
       {isDesktop === false && <BottomNav />}
+    </div>
+  );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ToastProvider>
+      <ProfileDrawerProvider>
+        <AppShell>{children}</AppShell>
+      </ProfileDrawerProvider>
     </ToastProvider>
   );
 }

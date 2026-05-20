@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
+import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import Avatar from '@/components/ui/Avatar';
-import ProfileDrawer from '@/components/ui/ProfileDrawer';
 import type { Connection, Message } from '@/lib/types';
 
 type Props = { connectionId: string };
@@ -14,12 +14,12 @@ type Props = { connectionId: string };
 export default function ChatWindow({ connectionId }: Props) {
   const { user } = useAuth();
   const toast = useToast();
+  const { openProfile } = useProfileDrawer();
   const [connection, setConnection] = useState<Connection | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [profileOpen, setProfileOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -100,7 +100,7 @@ export default function ChatWindow({ connectionId }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white shrink-0">
         <Link href="/chat" className="p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors">
@@ -109,7 +109,7 @@ export default function ChatWindow({ connectionId }: Props) {
           </svg>
         </Link>
         <button
-          onClick={() => setProfileOpen(true)}
+          onClick={() => openProfile(other)}
           className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
         >
           <Avatar src={other.photos?.[0]} name={other.name} size={40} online={other.is_online} />
@@ -179,12 +179,6 @@ export default function ChatWindow({ connectionId }: Props) {
           )}
         </button>
       </form>
-
-      {/* Right-side contextual drawer — anchored inside this container */}
-      <ProfileDrawer
-        profile={profileOpen ? other : null}
-        onClose={() => setProfileOpen(false)}
-      />
     </div>
   );
 }

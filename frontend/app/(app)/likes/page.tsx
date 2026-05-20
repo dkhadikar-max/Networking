@@ -4,20 +4,18 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
-import ProfileDrawer, { type DrawerProfile } from '@/components/ui/ProfileDrawer';
-import type { LikedMeResponse, User } from '@/lib/types';
-
-type LikedProfile = User & { matchScore?: number };
+import type { LikedMeResponse } from '@/lib/types';
 
 export default function LikesPage() {
   const toast = useToast();
   const router = useRouter();
+  const { openProfile, closeProfile } = useProfileDrawer();
   const [data, setData] = useState<LikedMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
-  const [selected, setSelected] = useState<LikedProfile | null>(null);
 
   useEffect(() => {
     apiGet<LikedMeResponse>('/api/liked-me')
@@ -36,27 +34,24 @@ export default function LikesPage() {
         profiles: prev.profiles?.filter(p => p.id !== uid),
         count: (prev.count ?? 1) - 1,
       } : prev);
-      setSelected(prev => prev?.id === uid ? null : prev);
+      closeProfile();
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
     } finally { setConnecting(null); }
   }
 
-  const profiles: LikedProfile[] = data?.profiles ?? [];
+  const profiles = data?.profiles ?? [];
 
-  // ONE stable outer container for all states — loading / premium / empty / list.
   return (
-    <div className="flex flex-1 min-h-0 relative overflow-hidden">
+    <div className="flex flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto flex flex-col">
 
-        {/* Loading */}
         {loading && (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
           </div>
         )}
 
-        {/* Premium gate */}
         {!loading && data?.premium_required && (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="max-w-sm space-y-4">
@@ -87,7 +82,6 @@ export default function LikesPage() {
           </div>
         )}
 
-        {/* Empty */}
         {!loading && !data?.premium_required && profiles.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-center p-8">
             <div>
@@ -102,7 +96,6 @@ export default function LikesPage() {
           </div>
         )}
 
-        {/* Profile list */}
         {!loading && !data?.premium_required && profiles.length > 0 && (
           <div className="max-w-2xl mx-auto px-4 py-6 w-full">
             <h1 className="text-xl font-bold text-[var(--text)] mb-1">People who liked you</h1>
@@ -114,7 +107,9 @@ export default function LikesPage() {
                 <div
                   key={profile.id}
                   className="flex items-center gap-4 bg-white rounded-xl border border-[var(--border)] p-4 shadow-[var(--shadow-sm)] hover:border-[var(--primary)] transition-colors cursor-pointer"
-                  onClick={() => setSelected(profile)}
+                  onClick={() => openProfile(profile, {
+                    onConnect: async () => { await handleConnect(profile.id); },
+                  })}
                 >
                   <Avatar src={profile.photos?.[0]} name={profile.name} size={52} online={profile.is_online} />
                   <div className="flex-1 min-w-0">
@@ -138,13 +133,6 @@ export default function LikesPage() {
         )}
 
       </div>
-
-      {/* Right-side contextual drawer */}
-      <ProfileDrawer
-        profile={selected as DrawerProfile | null}
-        onClose={() => setSelected(null)}
-        onConnect={selected ? async () => handleConnect(selected.id) : undefined}
-      />
     </div>
   );
 }

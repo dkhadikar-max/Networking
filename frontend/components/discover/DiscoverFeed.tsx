@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import SwipeCard from './SwipeCard';
-import ProfileDrawer from '@/components/ui/ProfileDrawer';
 import type { DiscoverProfile } from '@/lib/types';
 
 type ApiResponse = { profiles: DiscoverProfile[] };
@@ -16,8 +16,8 @@ function getUid(p: DiscoverProfile): string {
 
 export default function DiscoverFeed() {
   const toast = useToast();
+  const { openProfile, updateDrawerProfile } = useProfileDrawer();
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
-  const [selected, setSelected] = useState<DiscoverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [exhausted, setExhausted] = useState(false);
@@ -45,13 +45,9 @@ export default function DiscoverFeed() {
     if (!uid) return;
     try {
       await apiPost('/api/connect', { userId: uid });
-      setProfiles(prev => prev.map(p =>
-        getUid(p) === uid ? { ...p, connection: { id: 'pending' } } : p
-      ));
-      setSelected(prev => prev && getUid(prev) === uid
-        ? { ...prev, connection: { id: 'pending' } }
-        : prev
-      );
+      const updated = { ...profile, connection: { id: 'pending' } };
+      setProfiles(prev => prev.map(p => getUid(p) === uid ? updated : p));
+      updateDrawerProfile(updated);
       toast('Connection request sent!', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to connect', 'error');
@@ -61,23 +57,18 @@ export default function DiscoverFeed() {
   function handleSkip(profile: DiscoverProfile) {
     const uid = getUid(profile);
     setProfiles(prev => prev.filter(p => getUid(p) !== uid));
-    setSelected(prev => (prev && getUid(prev) === uid) ? null : prev);
   }
 
-  // ONE stable outer container — loading / empty / cards all render inside it.
-  // The shell never resizes regardless of inner state.
   return (
-    <div className="flex flex-1 min-h-0 relative overflow-hidden">
+    <div className="flex flex-1 min-h-0">
       <div className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col">
 
-        {/* Initial load spinner */}
         {loading && profiles.length === 0 && (
           <div className="flex-1 flex items-center justify-center">
             <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
           </div>
         )}
 
-        {/* Empty state — inherits same container width as card grid */}
         {!loading && profiles.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-center">
             <div>
@@ -92,7 +83,6 @@ export default function DiscoverFeed() {
           </div>
         )}
 
-        {/* Card grid */}
         {profiles.length > 0 && (
           <div className="max-w-2xl mx-auto w-full">
             <h1 className="text-xl font-bold text-[var(--text)] mb-4">Discover</h1>
@@ -106,7 +96,10 @@ export default function DiscoverFeed() {
                       profile={profile}
                       onConnect={() => handleConnect(profile)}
                       onSkip={() => handleSkip(profile)}
-                      onSelect={() => setSelected(profile)}
+                      onSelect={() => openProfile(profile, {
+                        onConnect: () => handleConnect(profile),
+                        onSkip: () => handleSkip(profile),
+                      })}
                     />
                   );
                 })}
@@ -130,14 +123,6 @@ export default function DiscoverFeed() {
         )}
 
       </div>
-
-      {/* Right-side contextual drawer — anchored inside this container */}
-      <ProfileDrawer
-        profile={selected}
-        onClose={() => setSelected(null)}
-        onConnect={() => selected ? handleConnect(selected) : Promise.resolve()}
-        onSkip={() => { if (selected) handleSkip(selected); }}
-      />
     </div>
   );
 }
