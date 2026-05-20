@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
 import AuthCard from '@/components/AuthCard';
+import CookieBanner from '@/components/ui/CookieBanner';
 import Vignette from '@/components/Vignette';
 
 export default function LoginPage() {
@@ -64,12 +65,13 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} noValidate>
           {/* Email */}
           <div className="mb-5">
-            <label htmlFor="login-email" className="block text-[13px] font-semibold text-gray-700 mb-2 tracking-wide">
+            <label htmlFor="email" className="block text-[13px] font-semibold text-gray-700 mb-2 tracking-wide">
               Email
             </label>
             <input
               type="email"
-              id="login-email"
+              id="email"
+              name="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -115,6 +117,7 @@ export default function LoginPage() {
           </button>
         </form>
       </AuthCard>
+      <CookieBanner />
     </main>
   );
 }

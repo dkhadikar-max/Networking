@@ -2848,7 +2848,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    if (user.banned) return res.status(403).json({ error: 'Account restricted' });
+    if (user.banned && user.role !== 'admin') return res.status(403).json({ error: 'Account restricted' });
 
     // Per-account lockout check (defense against distributed password spraying)
     if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
