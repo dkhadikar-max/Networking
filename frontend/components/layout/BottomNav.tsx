@@ -47,7 +47,7 @@ export default function BottomNav() {
   const path = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[var(--border)] safe-area-pb">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[var(--border)] safe-area-pb">
       <div className="flex items-stretch h-16">
         {TABS.map(tab => {
           const active = path.startsWith(tab.href);

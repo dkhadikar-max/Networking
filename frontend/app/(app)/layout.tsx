@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Sidebar from '@/components/layout/Sidebar';
@@ -11,6 +11,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const path = usePathname();
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -32,12 +41,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
       <div className="flex h-full overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {isDesktop === true && <Sidebar />}
+        <main className={`flex-1 flex flex-col min-w-0 overflow-hidden${isDesktop === false ? ' pb-16' : ''}`}>
           {children}
         </main>
       </div>
-      <BottomNav />
+      {isDesktop === false && <BottomNav />}
     </ToastProvider>
   );
 }

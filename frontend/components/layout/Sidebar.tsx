@@ -60,7 +60,7 @@ export default function Sidebar() {
   const { logout } = useAuth();
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 shrink-0 h-full border-r border-[var(--border)] bg-white/97 backdrop-blur overflow-y-auto">
+    <aside className="flex flex-col w-56 shrink-0 h-full border-r border-[var(--border)] bg-white/97 backdrop-blur overflow-y-auto">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 pt-6 pb-5 border-b border-[var(--border)]">
         {BYN_LOGO}
