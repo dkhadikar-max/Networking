@@ -61,7 +61,6 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
     try { await onConnect(); } finally { setConnecting(false); }
   }
 
-  // Shared panel body — rendered in both mobile sheet and desktop drawer
   const panelBody = profile ? (
     <>
       {/* Toolbar */}
@@ -187,7 +186,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
         </div>
       </div>
 
-      {/* Action bar — only when connect/skip provided (discover/likes context) */}
+      {/* Action bar */}
       {(onConnect || onSkip) && (
         <div
           className="flex gap-3 p-4 border-t border-[var(--border)] bg-white shrink-0"
@@ -215,48 +214,25 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
     <AnimatePresence>
       {profile && (
         <>
-          {/* ── Desktop: subtle backdrop inside content area ── */}
+          {/* Backdrop */}
           <motion.div
-            key="drawer-desktop-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="hidden lg:block absolute inset-0 z-10 bg-black/20"
-            onClick={onClose}
-          />
-
-          {/* ── Desktop: right-side drawer, anchored inside relative parent ── */}
-          <motion.div
-            key="drawer-desktop-panel"
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 32, stiffness: 300 }}
-            className="hidden lg:flex absolute inset-y-0 right-0 w-[440px] bg-white border-l border-[var(--border)] flex-col z-20 shadow-[-6px_0_24px_rgba(15,23,42,0.10)]"
-          >
-            {panelBody}
-          </motion.div>
-
-          {/* ── Mobile: full-viewport backdrop ── */}
-          <motion.div
-            key="drawer-mobile-backdrop"
+            key="drawer-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="lg:hidden fixed inset-0 z-[500] bg-black/60"
+            className="fixed inset-0 z-[500] bg-black/60"
             onClick={onClose}
           />
 
-          {/* ── Mobile: bottom sheet ── */}
+          {/* Bottom sheet — all screen sizes */}
           <motion.div
-            key="drawer-mobile-panel"
+            key="drawer-panel"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 300 }}
-            className="lg:hidden fixed inset-x-0 bottom-0 z-[500] bg-white rounded-t-3xl max-h-[92vh] flex flex-col overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-[500] bg-white rounded-t-3xl max-h-[92vh] flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-center pt-3 pb-1 shrink-0">

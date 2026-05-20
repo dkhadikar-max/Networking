@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ProfileDrawerProvider, useProfileDrawer } from '@/context/ProfileDrawerContext';
-import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
 import { ToastProvider } from '@/components/ui/Toast';
 import ProfileDrawer from '@/components/ui/ProfileDrawer';
@@ -25,15 +24,6 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const path = usePathname();
-  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    setIsDesktop(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -54,12 +44,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-full overflow-hidden">
-      {isDesktop === true && <Sidebar />}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden relative${isDesktop === false ? ' pb-16' : ''}`}>
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16">
         {children}
-        <ShellDrawer />
       </main>
-      {isDesktop === false && <BottomNav />}
+      <BottomNav />
+      <ShellDrawer />
     </div>
   );
 }
