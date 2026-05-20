@@ -384,7 +384,7 @@ app.get('/robots.txt', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => res.json({ status: 'ok', service: 'BYN API' }));
 
 // ── PHASE 5 — Crawl budget: X-Robots-Tag on private routes ──────────────────
 app.use(['/api', '/app', '/admin', '/upgrade'], (req, res, next) => {
@@ -405,10 +405,6 @@ const sendSeoPage = (res, file) => {
   res.sendFile(path.join(__dirname, 'public', file));
 };
 
-// Named HTML routes (express.static only serves /upgrade.html, not /upgrade)
-app.get('/upgrade', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade.html')));
-app.get('/admin',   (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/app',     (req, res) => res.sendFile(path.join(__dirname, 'public', 'webapp.html')));
 
 // AEO + search-intent landing pages
 app.get('/networking-for-founders',               (req, res) => sendSeoPage(res, 'networking-for-founders.html'));
@@ -800,7 +796,7 @@ function makeCityRoute(pattern, pageViews) {
     const raw  = req.params.city || '';
     const slug = raw.toLowerCase().replace(/[^a-z]/g, '');
     const city = CITIES[slug];
-    if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    if (!city) return res.status(404).json({ error: 'Not found' });
     const pageSlug = pattern + slug;
     seoPageViews.set(pageSlug, (seoPageViews.get(pageSlug) || 0) + 1);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1399,7 +1395,7 @@ function makeCategoryRoute(catKey) {
     const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
     const slug = req.params.city.toLowerCase().replace(/[^a-z]/g, '');
     const city = CITIES[slug];
-    if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+    if (!city) return res.status(404).json({ error: 'Not found' });
     const pageKey = catKey + '-' + slug;
     seoPageViews.set(pageKey, (seoPageViews.get(pageKey) || 0) + 1);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1429,7 +1425,7 @@ app.get('/networking-in-:city', (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   const slug = req.params.city.toLowerCase().replace(/[^a-z]/g, '');
   const city = CITIES[slug];
-  if (!city) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  if (!city) return res.status(404).json({ error: 'Not found' });
   const citySlug = 'networking-in-' + slug;
   seoPageViews.set(citySlug, (seoPageViews.get(citySlug) || 0) + 1);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -1936,7 +1932,7 @@ h1{font-size:clamp(24px,4vw,36px);font-weight:800;letter-spacing:-.5px;margin-bo
 app.get('/blog/:slug', (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   const article = ARTICLES.find(a => a.slug === req.params.slug);
-  if (!article) return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+  if (!article) return res.status(404).json({ error: 'Not found' });
   const E = escHtml;
   const canonical = BASE + '/blog/' + article.slug;
   const related = ARTICLES.filter(a => article.relatedSlugs.includes(a.slug));
@@ -2051,13 +2047,13 @@ app.get('/founders/:id', async (req, res) => {
     const id = req.params.id;
     // Validate UUID format to prevent unnecessary DB queries
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-      return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+      return res.status(404).json({ error: 'Not found' });
     }
     const { data: user } = await supabase.from('users')
       .select(PROFILE_PUBLIC_FIELDS).eq('id', id).maybeSingle();
     // Quality gate: must exist, not banned, profile complete enough
     if (!user || user.banned || (user.profile_score || 0) < 60 || (user.trust_score || 0) < 10) {
-      return res.status(404).sendFile(path.join(__dirname, 'public', 'index.html'));
+      return res.status(404).json({ error: 'Not found' });
     }
     const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
     const canonical = BASE + '/founders/' + id;
@@ -2175,7 +2171,7 @@ footer a{color:var(--primary);text-decoration:none}
     res.send(html);
   } catch(e) {
     console.error('Public profile page error:', e);
-    res.status(500).sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5433,7 +5429,7 @@ app.post('/api/events', (req, res) => {
 
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ── START SERVER ──
 app.listen(PORT, () => {
