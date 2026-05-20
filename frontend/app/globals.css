@@ -1,30 +1,74 @@
 @import "tailwindcss";
 
+/* ── Design Tokens ───────────────────────────────── */
 :root {
-  --bg: #FFF4EC;
-  --bg-secondary: #FDE8D7;
-  --card: #FFFFFF;
-  --primary: #0F766E;
-  --primary-dark: #0d5f58;
-  --teal: #14B8A6;
-  --highlight: #CCFBF1;
-  --accent: #F4A261;
-  --text: #1F2937;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --border: #E5E7EB;
+  /* Brand */
+  --primary:       #157A6E;
+  --primary-dark:  #0d5f58;
+  --primary-2:     #1DB7A6;
+  --accent:        #F4A259;
+  --accent-lt:     #FFF4E7;
+
+  /* Surface */
+  --bg:            #F6F8FA;
+  --card:          #FFFFFF;
+  --sur2:          #F8FAFC;
+  --light:         #ECFDF5;
+  --highlight:     #CCFBF1;
+
+  /* Text */
+  --text:          #0F172A;
+  --text-soft:     #64748B;
+  --muted:         #94A3B8;
+  --sub:           #64748B;
+  --dim:           #94A3B8;
+
+  /* Border */
+  --border:        #E2E8F0;
+  --border2:       #E2E8F0;
+
+  /* State */
+  --danger:        #EF4444;
+  --green:         #22C55E;
+  --gold:          #F4A259;
+  --goldlt:        #FFF4E7;
+
+  /* Radius */
+  --r-xl:          34px;
+  --r-lg:          24px;
+  --r-md:          16px;
+  --r-sm:          12px;
+
+  /* Shadow */
+  --shadow-sm:     0 4px 12px rgba(15,23,42,.06);
+  --shadow-md:     0 12px 36px rgba(15,23,42,.09);
+  --shadow-lg:     0 24px 64px rgba(15,23,42,.13);
 }
 
 @theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-primary: var(--primary);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --color-background:   var(--bg);
+  --color-foreground:   var(--text);
+  --color-primary:      var(--primary);
+  --color-accent:       var(--accent);
+  --font-sans:          var(--font-geist-sans), system-ui, sans-serif;
 }
 
-body {
+/* ── Base ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
+
+/* Prevent pull-to-refresh while keeping scrollable content */
+#__next, main { height: 100%; }
+
+/* ── Scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }

@@ -46,7 +46,7 @@ export default function OnboardingPage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!getToken()) { window.location.href = '/'; return; }
+    if (!getToken()) { window.location.href = '/login'; return; }
     apiGet<{ stage: Stage }>('/api/onboarding/stage')
       .then(r => setStage(r.stage))
       .catch(() => setStage('acquisition'));
@@ -201,7 +201,7 @@ export default function OnboardingPage() {
                 <SuggestedConnections
                   profiles={suggestions}
                   userInterests={userInterests}
-                  onDone={() => { window.location.href = 'https://buildyournetwork.online/webapp.html'; }}
+                  onDone={() => { window.location.href = '/discover'; }}
                 />
               )}
             </motion.div>
