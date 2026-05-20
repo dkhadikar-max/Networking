@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Avatar from '@/components/ui/Avatar';
+import ProfileModal from '@/components/ui/ProfileModal';
 import type { Connection, Message } from '@/lib/types';
 
 type Props = { connectionId: string };
@@ -18,6 +19,7 @@ export default function ChatWindow({ connectionId }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [profileOpen, setProfileOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -106,13 +108,16 @@ export default function ChatWindow({ connectionId }: Props) {
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </Link>
-        <Link href={`/profile/${other.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+        <button
+          onClick={() => setProfileOpen(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
+        >
           <Avatar src={other.photos?.[0]} name={other.name} size={40} online={other.is_online} />
           <div className="min-w-0">
-            <p className="font-semibold text-sm text-[var(--text)] truncate group-hover:text-[var(--primary)] transition-colors">{other.name}</p>
+            <p className="font-semibold text-sm text-[var(--text)] truncate">{other.name}</p>
             {other.headline && <p className="text-xs text-[var(--sub)] truncate">{other.headline}</p>}
           </div>
-        </Link>
+        </button>
         {connection.hoursLeft != null && connection.hoursLeft <= 24 && (
           <span className="text-xs text-[var(--accent)] font-semibold shrink-0">⏱ {connection.hoursLeft}h left</span>
         )}
@@ -174,6 +179,12 @@ export default function ChatWindow({ connectionId }: Props) {
           )}
         </button>
       </form>
+
+      {/* Profile overlay — opens above chat, preserves conversation state underneath */}
+      <ProfileModal
+        profile={profileOpen ? other : null}
+        onClose={() => setProfileOpen(false)}
+      />
     </div>
   );
 }

@@ -5,10 +5,14 @@ import { AnimatePresence } from 'framer-motion';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import SwipeCard from './SwipeCard';
-import ProfilePanel from './ProfilePanel';
+import ProfileModal from '@/components/ui/ProfileModal';
 import type { DiscoverProfile } from '@/lib/types';
 
 type ApiResponse = { profiles: DiscoverProfile[] };
+
+function getUid(p: DiscoverProfile): string {
+  return (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id ?? '';
+}
 
 export default function DiscoverFeed() {
   const toast = useToast();
@@ -37,18 +41,19 @@ export default function DiscoverFeed() {
   useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleConnect(profile: DiscoverProfile) {
-    const uid = (profile.user as { id?: string } | undefined)?.id ?? (profile as { id?: string }).id;
+    const uid = getUid(profile);
     if (!uid) return;
     try {
       await apiPost('/api/connect', { userId: uid });
-      setProfiles(prev => prev.map(p => {
-        const pid = (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id;
-        return pid === uid ? { ...p, connection: { id: 'pending' } } : p;
-      }));
-      if (selected) {
-        const sid = (selected.user as { id?: string } | undefined)?.id ?? (selected as { id?: string }).id;
-        if (sid === uid) setSelected(prev => prev ? { ...prev, connection: { id: 'pending' } } : prev);
-      }
+      // Update connection state in list
+      setProfiles(prev => prev.map(p =>
+        getUid(p) === uid ? { ...p, connection: { id: 'pending' } } : p
+      ));
+      // Update selected so modal button reflects new state
+      setSelected(prev => prev && getUid(prev) === uid
+        ? { ...prev, connection: { id: 'pending' } }
+        : prev
+      );
       toast('Connection request sent!', 'success');
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to connect', 'error');
@@ -56,15 +61,9 @@ export default function DiscoverFeed() {
   }
 
   function handleSkip(profile: DiscoverProfile) {
-    const uid = (profile.user as { id?: string } | undefined)?.id ?? (profile as { id?: string }).id;
-    setProfiles(prev => prev.filter(p => {
-      const pid = (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id;
-      return pid !== uid;
-    }));
-    if (selected) {
-      const sid = (selected.user as { id?: string } | undefined)?.id ?? (selected as { id?: string }).id;
-      if (sid === uid) setSelected(null);
-    }
+    const uid = getUid(profile);
+    setProfiles(prev => prev.filter(p => getUid(p) !== uid));
+    setSelected(prev => (prev && getUid(prev) === uid) ? null : prev);
   }
 
   if (loading && profiles.length === 0) {
@@ -92,15 +91,14 @@ export default function DiscoverFeed() {
   }
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Card list */}
+    <>
       <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-        <div className="max-w-2xl mx-auto lg:mx-0">
+        <div className="max-w-2xl mx-auto">
           <h1 className="text-xl font-bold text-[var(--text)] mb-4">Discover</h1>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <AnimatePresence>
               {profiles.map(profile => {
-                const uid = (profile.user as { id?: string } | undefined)?.id ?? (profile as { id?: string }).id ?? '';
+                const uid = getUid(profile);
                 return (
                   <SwipeCard
                     key={uid}
@@ -130,15 +128,13 @@ export default function DiscoverFeed() {
         </div>
       </div>
 
-      {/* Desktop detail panel */}
-      <div className="hidden lg:flex w-80 xl:w-96 border-l border-[var(--border)] bg-white shrink-0 flex-col">
-        <ProfilePanel
-          profile={selected}
-          onConnect={() => selected ? handleConnect(selected) : Promise.resolve()}
-          onSkip={() => selected && handleSkip(selected)}
-          onClose={() => setSelected(null)}
-        />
-      </div>
-    </div>
+      {/* Profile overlay — renders above discover, preserves card stack underneath */}
+      <ProfileModal
+        profile={selected}
+        onClose={() => setSelected(null)}
+        onConnect={() => selected ? handleConnect(selected) : Promise.resolve()}
+        onSkip={() => { if (selected) handleSkip(selected); }}
+      />
+    </>
   );
 }
