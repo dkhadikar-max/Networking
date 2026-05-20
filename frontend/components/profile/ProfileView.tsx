@@ -181,11 +181,9 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
 
         {/* Open chat button for non-self connected profiles */}
         {!isSelf && connected && (
-          <div className="pb-24 lg:pb-0">
-            <Link href="/chat" className="w-full">
-              <Button fullWidth variant="secondary">Open chat</Button>
-            </Link>
-          </div>
+          <Link href="/chat" className="w-full">
+            <Button fullWidth variant="secondary">Open chat</Button>
+          </Link>
         )}
       </div>
     </div>

@@ -33,7 +33,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
         <ConversationList connections={connections} activeId={activeId} />
       </div>
 
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 min-h-0">
         {children}
       </div>
     </div>

@@ -189,7 +189,7 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           </div>
         </div>
 
-        <div className="pb-24 lg:pb-4">
+        <div className="pb-4">
           <Button type="submit" loading={saving} fullWidth>Save changes</Button>
         </div>
       </form>

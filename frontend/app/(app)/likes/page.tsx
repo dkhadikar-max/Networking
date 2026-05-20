@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
+import ProfileModal, { type ModalProfile } from '@/components/ui/ProfileModal';
 import type { LikedMeResponse, User } from '@/lib/types';
 
 type LikedProfile = User & { matchScore?: number };
@@ -16,6 +17,7 @@ export default function LikesPage() {
   const [data, setData] = useState<LikedMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [selected, setSelected] = useState<LikedProfile | null>(null);
 
   useEffect(() => {
     apiGet<LikedMeResponse>('/api/liked-me')
@@ -34,6 +36,7 @@ export default function LikesPage() {
         profiles: prev.profiles?.filter(p => p.id !== uid),
         count: (prev.count ?? 1) - 1,
       } : prev);
+      setSelected(prev => prev?.id === uid ? null : prev);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed', 'error');
     } finally { setConnecting(null); }
@@ -102,37 +105,45 @@ export default function LikesPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-[var(--text)] mb-1">People who liked you</h1>
-        <p className="text-sm text-[var(--sub)] mb-5">{profiles.length} {profiles.length === 1 ? 'person' : 'people'} want to connect</p>
+    <>
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <h1 className="text-xl font-bold text-[var(--text)] mb-1">People who liked you</h1>
+          <p className="text-sm text-[var(--sub)] mb-5">{profiles.length} {profiles.length === 1 ? 'person' : 'people'} want to connect</p>
 
-        <div className="space-y-3">
-          {profiles.map(profile => (
-            <div
-              key={profile.id}
-              className="flex items-center gap-4 bg-white rounded-xl border border-[var(--border)] p-4 shadow-[var(--shadow-sm)] hover:border-[var(--primary)] transition-colors cursor-pointer"
-              onClick={() => router.push(`/profile/${profile.id}`)}
-            >
-              <Avatar src={profile.photos?.[0]} name={profile.name} size={52} online={profile.is_online} />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-[var(--text)] truncate">{profile.name}</p>
-                {profile.headline && <p className="text-xs text-[var(--sub)] truncate mt-0.5">{profile.headline}</p>}
-                {profile.matchScore != null && (
-                  <p className="text-xs text-[var(--primary)] font-semibold mt-1">{profile.matchScore}% match</p>
-                )}
-              </div>
-              <Button
-                onClick={e => { e.stopPropagation(); handleConnect(profile.id); }}
-                loading={connecting === profile.id}
-                className="shrink-0"
+          <div className="space-y-3">
+            {profiles.map(profile => (
+              <div
+                key={profile.id}
+                className="flex items-center gap-4 bg-white rounded-xl border border-[var(--border)] p-4 shadow-[var(--shadow-sm)] hover:border-[var(--primary)] transition-colors cursor-pointer"
+                onClick={() => setSelected(profile)}
               >
-                Connect
-              </Button>
-            </div>
-          ))}
+                <Avatar src={profile.photos?.[0]} name={profile.name} size={52} online={profile.is_online} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm text-[var(--text)] truncate">{profile.name}</p>
+                  {profile.headline && <p className="text-xs text-[var(--sub)] truncate mt-0.5">{profile.headline}</p>}
+                  {profile.matchScore != null && (
+                    <p className="text-xs text-[var(--primary)] font-semibold mt-1">{profile.matchScore}% match</p>
+                  )}
+                </div>
+                <Button
+                  onClick={e => { e.stopPropagation(); handleConnect(profile.id); }}
+                  loading={connecting === profile.id}
+                  className="shrink-0"
+                >
+                  Connect
+                </Button>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+
+      <ProfileModal
+        profile={selected as ModalProfile | null}
+        onClose={() => setSelected(null)}
+        onConnect={selected ? async () => handleConnect(selected.id) : undefined}
+      />
+    </>
   );
 }

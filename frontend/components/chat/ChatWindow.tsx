@@ -100,7 +100,7 @@ export default function ChatWindow({ connectionId }: Props) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white shrink-0">
         <Link href="/chat" className="lg:hidden p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors">
