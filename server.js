@@ -2994,8 +2994,10 @@ app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) =>
 
       // Send email (non-blocking — don't fail the request if email fails)
       if (ResendClient) {
+        const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
+        console.log(`[Reset] Sending from="${FROM}" to="${user.email}"`);
         ResendClient.emails.send({
-          from:    process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
+          from:    FROM,
           to:      user.email,
           subject: `${rawCode} is your BYN password reset code`,
           html: `
@@ -3013,7 +3015,9 @@ app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) =>
               <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
             </div>
           `,
-        }).catch(e => console.error('[Reset] Email send failed:', e.message));
+        }).catch(e => console.error('[Reset] Email send failed:', e.message, e.statusCode ?? '', JSON.stringify(e.response ?? {})));
+      } else {
+        console.error('[Reset] Resend client not initialised — RESEND_API_KEY missing');
       }
     }
 
