@@ -205,6 +205,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:19000',
   'http://localhost:19006',
   'http://localhost:3000',
+  // Read additional origins from CORS_ORIGINS env var (comma-separated)
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()).filter(Boolean) : []),
 ];
 const corsOptions = {
   origin: (origin, cb) => {
