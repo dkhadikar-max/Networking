@@ -731,22 +731,23 @@ function FooterSection() {
 function FeedbackModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    if (!open) setSubmitted(false);
-  }, [open]);
+  function handleClose() {
+    setSubmitted(false);
+    onClose();
+  }
 
   if (!open) return null;
 
   return (
     <>
-      <div className="fixed inset-0 bg-[rgba(31,41,55,0.4)] z-[200]" style={{ backdropFilter: "blur(8px)" }} onClick={onClose} />
+      <div className="fixed inset-0 bg-[rgba(31,41,55,0.4)] z-[200]" style={{ backdropFilter: "blur(8px)" }} onClick={handleClose} />
       <div
         className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[480px] bg-white rounded-[20px] z-[201] overflow-hidden mx-4"
         style={{ boxShadow: "0 24px 64px rgba(31,41,55,0.2)" }}
       >
         <div className="flex justify-between items-center px-7 pt-6">
           <h3 className="text-xl font-bold text-[#1F2937]">Share Your Thoughts</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-[#9CA3AF] hover:bg-[#FFF4EC] hover:text-[#1F2937] transition-colors border-0 bg-transparent cursor-pointer">
+          <button onClick={handleClose} className="p-1.5 rounded-lg text-[#9CA3AF] hover:bg-[#FFF4EC] hover:text-[#1F2937] transition-colors border-0 bg-transparent cursor-pointer">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -762,7 +763,7 @@ function FeedbackModal({ open, onClose }: { open: boolean; onClose: () => void }
               </div>
               <h4 className="text-lg font-bold mb-2 text-[#1F2937]">Thank You</h4>
               <p className="text-sm text-[#6B7280] mb-6 leading-[1.6]">Your feedback has been received. We review every submission personally.</p>
-              <button onClick={onClose} className="px-8 py-3 bg-[#FFF4EC] text-[#1F2937] border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm font-semibold cursor-pointer hover:bg-[#FDE8D7] transition-colors">
+              <button onClick={handleClose} className="px-8 py-3 bg-[#FFF4EC] text-[#1F2937] border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm font-semibold cursor-pointer hover:bg-[#FDE8D7] transition-colors">
                 Close
               </button>
             </div>
