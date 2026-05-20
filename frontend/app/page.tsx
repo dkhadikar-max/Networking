@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 const APP_URL = "https://buildyournetwork.online";
 const SIGNUP_URL = `${APP_URL}/app`;
@@ -28,8 +30,16 @@ const SOCIAL_PROOF = [
 ];
 
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [statsLoaded, setStatsLoaded] = useState(false);
   const [stats, setStats] = useState({ users: 12000, connections: 95000 });
+
+  useEffect(() => {
+    if (!loading && user?.email_verified && user.onboarding_stage === 'complete') {
+      router.replace('/discover');
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     fetch(`${APP_URL}/api/stats/public`)
