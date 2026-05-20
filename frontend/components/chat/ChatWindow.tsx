@@ -6,7 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import Avatar from '@/components/ui/Avatar';
-import ProfileModal from '@/components/ui/ProfileModal';
+import ProfileDrawer from '@/components/ui/ProfileDrawer';
 import type { Connection, Message } from '@/lib/types';
 
 type Props = { connectionId: string };
@@ -100,7 +100,7 @@ export default function ChatWindow({ connectionId }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white shrink-0">
         <Link href="/chat" className="lg:hidden p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors">
@@ -180,8 +180,8 @@ export default function ChatWindow({ connectionId }: Props) {
         </button>
       </form>
 
-      {/* Profile overlay — opens above chat, preserves conversation state underneath */}
-      <ProfileModal
+      {/* Right-side contextual drawer — anchored inside this container */}
+      <ProfileDrawer
         profile={profileOpen ? other : null}
         onClose={() => setProfileOpen(false)}
       />
