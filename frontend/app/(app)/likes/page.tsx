@@ -36,7 +36,17 @@ export default function LikesPage() {
       } : prev);
       closeProfile();
     } catch (e) {
-      toast(e instanceof Error ? e.message : 'Failed', 'error');
+      const err = e as { message?: string; status?: number };
+      const msg = err.message ?? '';
+      if (err.status === 403 && msg.includes('PROFILE_INCOMPLETE')) {
+        toast('Complete your profile to send connection requests', 'error');
+        router.push('/profile');
+      } else if (err.status === 403 && msg.includes('TRUST_TOO_LOW')) {
+        toast('Add more profile details to unlock connections', 'error');
+        router.push('/profile');
+      } else {
+        toast(msg || 'Failed to connect', 'error');
+      }
     } finally { setConnecting(null); }
   }
 

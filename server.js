@@ -2782,7 +2782,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
             const { count: refCount } = await supabase.from('users')
               .select('*', { count: 'exact', head: true })
               .eq('referred_by', referrer.id);
-            if (refCount >= 10) {
+            if (refCount === 10) {
               const { data: ref } = await supabase.from('users')
                 .select('premium_expires_at').eq('id', referrer.id).single();
               const base = ref?.premium_expires_at && new Date(ref.premium_expires_at) > new Date()
@@ -2848,6 +2848,8 @@ app.post('/api/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    if (user.banned) return res.status(403).json({ error: 'Account restricted' });
+
     // Per-account lockout check (defense against distributed password spraying)
     if (user.lockout_until && new Date(user.lockout_until) > new Date()) {
       return res.status(429).json({
@@ -2871,8 +2873,6 @@ app.post('/api/login', authLimiter, async (req, res) => {
       if (updateErr) console.warn(`${tag} lockout update error — ${updateErr.message}`);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-
-    if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
     // Step 5: successful auth — reset lockout state + refresh scores
     const updates = { failed_login_attempts: 0, lockout_until: null };
@@ -3074,6 +3074,8 @@ app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
       reset_token_expires_at:  null,
       reset_token_attempts:    null,
       password_changed_at:     new Date().toISOString(),
+      otp_code:                null,
+      otp_expires_at:          null,
       // Clear lockout — a successful password reset proves identity
       failed_login_attempts:   0,
       lockout_until:           null,
@@ -3125,6 +3127,11 @@ app.get('/api/me', auth, async (req, res) => {
 app.delete('/api/me', auth, async (req, res) => {
   try {
     const id = req.user.id;
+    const { data: selfConns } = await supabase.from('connections').select('id').or(`user1.eq.${id},user2.eq.${id}`);
+    const selfConnIds = (selfConns || []).map(c => c.id);
+    if (selfConnIds.length > 0) {
+      await supabase.from('messages').delete().in('connection_id', selfConnIds);
+    }
     await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -3147,22 +3154,27 @@ app.delete('/api/me', auth, async (req, res) => {
 app.get('/api/me/export', auth, async (req, res) => {
   try {
     const id = req.user.id;
+    const { data: user } = await supabase.from('users').select('*').eq('id', id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'Not found' });
+
+    const { data: conns } = await supabase.from('connections').select('*').or(`user1.eq.${id},user2.eq.${id}`);
+    const exportConnIds = (conns || []).map(c => c.id);
+
     const [
-      { data: user },
-      { data: conns },
-      { data: msgs },
+      { data: sentMsgs },
+      { data: receivedMsgs },
       { data: intents },
       { data: acquisition },
       { data: works },
     ] = await Promise.all([
-      supabase.from('users').select('*').eq('id', id).maybeSingle(),
-      supabase.from('connections').select('*').or(`user1.eq.${id},user2.eq.${id}`),
       supabase.from('messages').select('id,text,created_at,connection_id').eq('sender_id', id).order('created_at'),
+      exportConnIds.length > 0
+        ? supabase.from('messages').select('id,text,created_at,connection_id,sender_id').neq('sender_id', id).in('connection_id', exportConnIds).order('created_at')
+        : Promise.resolve({ data: [] }),
       supabase.from('user_intents').select('intent,created_at').eq('user_id', id),
       supabase.from('user_acquisition').select('source,referral,created_at').eq('user_id', id).maybeSingle(),
       supabase.from('works').select('title,description,url,created_at').eq('user_id', id),
     ]);
-    if (!user) return res.status(404).json({ error: 'Not found' });
 
     const payload = {
       exported_at: new Date().toISOString(),
@@ -3192,7 +3204,8 @@ app.get('/api/me/export', auth, async (req, res) => {
       intents: intents || [],
       acquisition: acquisition || null,
       connections: (conns || []).map(c => ({ id: c.id, created_at: c.created_at, status: c.status })),
-      messages_sent: msgs || [],
+      messages_sent: sentMsgs || [],
+      messages_received: receivedMsgs || [],
       works: works || [],
     };
 
@@ -3747,7 +3760,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
           expires_at: new Date(now.getTime() + 5*24*3600000).toISOString(),
           first_response_deadline: new Date(now.getTime() + 48*3600000).toISOString(),
           user1_responded: false, user2_responded: false,
-          active: false, status: 'active'
+          active: false, status: 'pending'
         });
         if (connErr) throw connErr;
         match = true;
@@ -3788,7 +3801,14 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
     if ((todayCount || 0) >= SWIPE_LIMIT)
       return res.status(429).json({ error: 'Daily connection limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
 
-    // Check if already swiped / connected
+    // Check if already connected
+    const { data: existingConn } = await supabase.from('connections')
+      .select('id')
+      .or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
+      .maybeSingle();
+    if (existingConn) return res.json({ ok: true, match: true, connectionId: existingConn.id, duplicate: true });
+
+    // Check if already swiped
     const { data: dupSwipe } = await supabase.from('swipes')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
     if (dupSwipe) return res.json({ ok: true, match: false, duplicate: true });
@@ -3814,7 +3834,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
         expires_at: new Date(now.getTime() + 5 * 24 * 3600000).toISOString(),
         first_response_deadline: new Date(now.getTime() + 48 * 3600000).toISOString(),
         user1_responded: false, user2_responded: false,
-        active: false, status: 'active',
+        active: false, status: 'pending',
       });
       if (connErr) throw connErr;
       match = true;
@@ -3858,25 +3878,23 @@ app.get('/api/connections', auth, async (req, res) => {
     const lastMsgMap  = {};
     const msgCountMap = {};
     if (connIds.length > 0) {
-      // Get last message per connection — order DESC, limit 1 per group via in-memory grouping
-      const { data: recentMsgs } = await supabase.from('messages')
-        .select('*').in('connection_id', connIds)
-        .order('created_at', { ascending: false })
-        .limit(connIds.length * 2); // at most 2 per conn to reliably get last; much less than all
+      const [{ data: recentMsgs }, ...countResults] = await Promise.all([
+        supabase.from('messages')
+          .select('*').in('connection_id', connIds)
+          .order('created_at', { ascending: false })
+          .limit(connIds.length * 10),
+        ...connIds.map(cid =>
+          supabase.from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('connection_id', cid)
+        ),
+      ]);
 
-      const { data: msgCounts } = await supabase.from('messages')
-        .select('connection_id', { count: 'exact' })
-        .in('connection_id', connIds);
-
-      // Build last-message map (first occurrence of each connId = most recent)
       (recentMsgs || []).forEach(m => {
         if (!lastMsgMap[m.connection_id]) lastMsgMap[m.connection_id] = m;
       });
-      // Build count map
-      const seenIds = new Set();
-      (recentMsgs || []).forEach(m => {
-        msgCountMap[m.connection_id] = (msgCountMap[m.connection_id] || 0) + 1;
-        seenIds.add(m.connection_id);
+      connIds.forEach((cid, i) => {
+        msgCountMap[cid] = countResults[i]?.count || 0;
       });
     }
 
@@ -5718,6 +5736,11 @@ app.listen(PORT, () => {
 
       for (const u of (toDelete || [])) {
         const id = u.id;
+        const { data: retConns } = await supabase.from('connections').select('id').or(`user1.eq.${id},user2.eq.${id}`);
+        const retConnIds = (retConns || []).map(c => c.id);
+        if (retConnIds.length > 0) {
+          await supabase.from('messages').delete().in('connection_id', retConnIds);
+        }
         await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
         await supabase.from('messages').delete().eq('sender_id', id);
         await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -5738,6 +5761,7 @@ app.listen(PORT, () => {
       console.error('[Retention] Cycle error:', e.message);
     }
   }
+  runRetentionCycle();
   setInterval(runRetentionCycle, 24 * 60 * 60 * 1000);
 
   // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
