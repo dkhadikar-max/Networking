@@ -1,907 +1,697 @@
-"use client";
+/* eslint-disable @next/next/no-img-element */
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import Script from "next/script";
-import Image from "next/image";
-import { Inter } from "next/font/google";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import Script from 'next/script';
+import { Inter } from 'next/font/google';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] });
 
-type Stats = { users: number; connections: number } | null;
-
-// ─── Navbar ──────────────────────────────────────────────────────────────────
-function NavBar({ menuOpen, onToggle }: { menuOpen: boolean; onToggle: () => void }) {
-  return (
-    <nav
-      id="main-nav"
-      className="fixed top-0 left-0 right-0 z-[100] border-b border-[rgba(253,232,215,0.6)]"
-      style={{ background: "rgba(255,244,236,0.92)", backdropFilter: "blur(20px)" }}
-    >
-      <div className="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between">
-        <a href="#" className="font-extrabold text-xl text-[#0F766E] no-underline flex items-center gap-2 tracking-tight">
-          <Image src="/assets/logo.png" alt="Build Your Network" width={28} height={28} className="rounded-[7px] logo-pulse" />
-          BuildYourNetwork
-        </a>
-
-        {/* Desktop nav */}
-        <div className="hidden min-[900px]:flex items-center gap-8">
-          <a href="#trust" className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] transition-colors no-underline">Trust</a>
-          <a href="#features" className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] transition-colors no-underline">Features</a>
-          <a href="#how" className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] transition-colors no-underline">How It Works</a>
-          <a href="/signup" className="bg-[#0F766E] text-white px-5 py-[10px] rounded-lg text-[13px] font-semibold hover:bg-[#0d5f58] hover:-translate-y-px transition-all no-underline">
-            Open Web App
-          </a>
-          <a href="#download" className="border-2 border-[#0F766E] text-[#0F766E] px-5 py-[10px] rounded-lg text-[13px] font-semibold hover:bg-[#CCFBF1] transition-all no-underline">
-            Download APK
-          </a>
-        </div>
-
-        {/* Mobile menu button */}
-        <button
-          onClick={onToggle}
-          className="min-[900px]:hidden bg-transparent border-0 cursor-pointer p-2"
-          aria-label="Menu"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div
-          className="min-[900px]:hidden flex flex-col px-6 pb-5 pt-4 gap-[18px] border-t border-[rgba(253,232,215,0.8)] z-[999]"
-          style={{ background: "rgba(255,244,236,0.98)", backdropFilter: "blur(20px)", boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}
-        >
-          <a href="#trust" onClick={onToggle} className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] no-underline">Trust</a>
-          <a href="#features" onClick={onToggle} className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] no-underline">Features</a>
-          <a href="#how" onClick={onToggle} className="text-[#6B7280] text-sm font-medium hover:text-[#0F766E] no-underline">How It Works</a>
-          <a href="/signup" className="bg-[#0F766E] text-white px-5 py-[10px] rounded-lg text-[13px] font-semibold text-center no-underline">Open Web App</a>
-          <a href="#download" onClick={onToggle} className="border-2 border-[#0F766E] text-[#0F766E] px-5 py-[10px] rounded-lg text-[13px] font-semibold text-center no-underline">Download APK</a>
-        </div>
-      )}
-    </nav>
-  );
-}
-
-// ─── Hero ────────────────────────────────────────────────────────────────────
-function HeroSection({ stats }: { stats: Stats }) {
-  const [phoneHovered, setPhoneHovered] = useState(false);
-
-  return (
-    <section className="min-h-screen flex items-center px-6 pt-[120px] pb-[80px] bg-[#FFF4EC] relative overflow-hidden" id="hero">
-      <div
-        className="absolute pointer-events-none rounded-full opacity-50"
-        style={{ top: "-20%", right: "-10%", width: 600, height: 600, background: "radial-gradient(circle, #CCFBF1 0%, transparent 70%)" }}
-      />
-      <div className="max-w-[1200px] mx-auto w-full grid min-[900px]:grid-cols-2 gap-12 min-[900px]:gap-[80px] items-center">
-
-        {/* Left: content */}
-        <div>
-          <div className="flex gap-3 mb-8 flex-wrap" data-animate="">
-            {[
-              { icon: <><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></>, label: "Works in browser" },
-              { icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, label: "No install needed" },
-              { icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, label: "Early Access" },
-            ].map((b) => (
-              <span key={b.label} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#FDE8D7] rounded-full text-xs font-medium text-[#6B7280]">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">{b.icon}</svg>
-                {b.label}
-              </span>
-            ))}
-          </div>
-
-          <h1
-            className="font-extrabold leading-[1.1] tracking-[-1.5px] mb-6 text-[#1F2937]"
-            style={{ fontSize: "clamp(36px, 5vw, 56px)" }}
-            data-animate=""
-            data-delay="100"
-          >
-            Find <span className="text-[#0F766E]">Co-Founders, Mentors &amp; Collaborators</span> — Free
-          </h1>
-
-          <p className="text-lg text-[#6B7280] max-w-[480px] mb-10 leading-[1.7]" data-animate="" data-delay="200">
-            The networking platform built for founders and entrepreneurs in India. Connect based on intent, skills, and goals — not job titles.
-          </p>
-
-          {stats && (
-            <div className="flex gap-3 mb-6 flex-wrap" data-animate="" data-delay="200">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#FDE8D7] rounded-full text-xs font-medium text-[#6B7280]">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-                {stats.users.toLocaleString()} professionals
-              </span>
-              {stats.connections > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#FDE8D7] rounded-full text-xs font-medium text-[#6B7280]">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {stats.connections.toLocaleString()} connections made
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="flex gap-4 items-center flex-wrap max-[600px]:flex-col max-[600px]:w-full" data-animate="" data-delay="300">
-            <a
-              href="/signup"
-              className="inline-flex items-center gap-2.5 px-8 py-4 bg-[#0F766E] text-white rounded-xl font-semibold text-[15px] transition-all hover:bg-[#0d5f58] hover:-translate-y-0.5 no-underline max-[600px]:w-full max-[600px]:justify-center"
-              style={{ boxShadow: "0 4px 16px rgba(15,118,110,0.25)" }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
-                <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              Open Web App — Free
-            </a>
-            <a href="#how" className="inline-flex items-center gap-2 px-7 py-4 border-2 border-[#0F766E] text-[#0F766E] rounded-xl font-semibold text-[15px] transition-all hover:bg-[#CCFBF1] hover:-translate-y-0.5 no-underline max-[600px]:w-full max-[600px]:justify-center">
-              See how it works
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg>
-            </a>
-          </div>
-        </div>
-
-        {/* Right: phone mockup */}
-        <div className="flex justify-center -order-1 min-[900px]:order-none" data-animate="" data-delay="200">
-          <div
-            className="w-[240px] h-[480px] min-[900px]:w-[280px] min-[900px]:h-[560px] bg-white rounded-[36px] relative overflow-hidden transition-transform duration-[400ms]"
-            style={{
-              boxShadow: "0 12px 40px rgba(31,41,55,0.1), 0 0 0 12px #FDE8D7",
-              transform: phoneHovered ? "rotate(0deg) scale(1.02)" : "rotate(-3deg)",
-            }}
-            onMouseEnter={() => setPhoneHovered(true)}
-            onMouseLeave={() => setPhoneHovered(false)}
-          >
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-7 bg-[#1F2937] rounded-b-2xl z-10" />
-            <div className="px-5 pt-12 pb-5 h-full overflow-y-auto">
-              <div className="flex justify-between items-center mb-5">
-                <span className="font-bold text-xl text-[#1F2937]">Discover</span>
-                <span className="px-3.5 py-1.5 bg-[#CCFBF1] rounded-full text-[11px] font-semibold text-[#0F766E]">Intent: Founder</span>
-              </div>
-              {[
-                { initials: "SK", name: "Sarah Kim", role: "Building a climate tech startup", intent: "Looking for: Co-founder", score: 94 },
-                { initials: "JM", name: "James Miller", role: "Product lead at Series B fintech", intent: "Looking for: Advisors", score: 88 },
-                { initials: "AL", name: "Aisha Lopez", role: "Ex-Google PM, now indie hacker", intent: "Looking for: Beta testers", score: 91 },
-              ].map((p) => (
-                <div key={p.initials} className="bg-[#FFF4EC] rounded-2xl p-4 mb-3 flex gap-3 items-center">
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0"
-                    style={{ background: "linear-gradient(135deg, #14B8A6, #0F766E)" }}
-                  >
-                    {p.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold mb-0.5 text-[#1F2937]">{p.name}</h4>
-                    <p className="text-[11px] text-[#6B7280]">{p.role}</p>
-                    <span className="inline-block mt-1 px-2.5 py-[3px] bg-[#CCFBF1] text-[#0F766E] rounded-xl text-[10px] font-semibold">{p.intent}</span>
-                  </div>
-                  <div className="text-center shrink-0">
-                    <div className="text-lg font-extrabold text-[#0F766E]">{p.score}</div>
-                    <div className="text-[9px] text-[#9CA3AF] uppercase tracking-wide">Trust</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Trust ───────────────────────────────────────────────────────────────────
-const TRUST_CARDS = [
-  {
-    icon: <><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></>,
-    title: "No Spam",
-    body: "No bulk messages. No random outreach. Only intentional, relevant connection requests.",
-  },
-  {
-    icon: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="9" x2="15" y2="15" /><line x1="15" y1="9" x2="9" y2="15" /></>,
-    title: "No Ads",
-    body: "Zero advertising. Your attention is not our product. We don't sell impressions.",
-  },
-  {
-    icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M12 8v4" /><path d="M12 16h.01" /></>,
-    title: "No Data Selling",
-    body: "Your profile data stays yours. We never share, sell, or monetize your personal information.",
-  },
-  {
-    icon: <><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></>,
-    title: "Early Access",
-    body: "This is a live, working product in active development. Your feedback shapes what comes next.",
-  },
-];
-
-function TrustSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FDE8D7]" id="trust">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Trust &amp; Transparency</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          Safe to install. Built for serious users.
-        </h2>
-        <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
-          We believe trust is earned, not claimed. Here&apos;s exactly what you get — and what you don&apos;t.
-        </p>
-        <div className="mt-12 grid grid-cols-2 max-[600px]:grid-cols-1 min-[900px]:grid-cols-4 gap-6">
-          {TRUST_CARDS.map((c, i) => (
-            <div
-              key={c.title}
-              className="bg-white px-6 py-8 rounded-2xl text-center border border-[rgba(253,232,215,0.5)] transition-all hover:-translate-y-1"
-              style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }}
-              data-animate=""
-              data-delay={String(i * 100)}
-            >
-              <div className="w-12 h-12 bg-[#CCFBF1] rounded-[14px] flex items-center justify-center mx-auto mb-4">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" className="w-6 h-6">{c.icon}</svg>
-              </div>
-              <h3 className="text-base font-bold mb-2 text-[#1F2937]">{c.title}</h3>
-              <p className="text-[13px] text-[#6B7280] leading-[1.6]">{c.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Features ────────────────────────────────────────────────────────────────
-const FEATURES = [
-  { n: 1, title: "Discover by Intent", body: "See people who are actively looking for the same things you are — co-founders, mentors, collaborators, or peers." },
-  { n: 2, title: "Filter by Goals", body: "Narrow your search by industry, role, stage, or specific intent. No noise, only relevance." },
-  { n: 3, title: "Build Meaningful Connections", body: "Every interaction is grounded in shared purpose. Start conversations that actually matter." },
-];
-
-function FeaturesSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FFF4EC]" id="features">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">What It Does</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          Connect with intent. Find relevant people.
-        </h2>
-        <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
-          BuildYourNetwork replaces random networking with purposeful discovery. Every connection starts with a clear reason.
-        </p>
-        <div className="mt-14 grid grid-cols-1 min-[900px]:grid-cols-3 gap-8">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.n}
-              className="bg-white p-10 rounded-[20px] border border-[rgba(253,232,215,0.4)] transition-all hover:-translate-y-1.5"
-              style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }}
-              data-animate=""
-              data-delay={String(i * 100)}
-            >
-              <div className="w-10 h-10 bg-[#0F766E] text-white rounded-xl flex items-center justify-center font-bold text-base mb-5">{f.n}</div>
-              <h3 className="text-xl font-bold mb-3 text-[#1F2937]">{f.title}</h3>
-              <p className="text-[15px] text-[#6B7280] leading-[1.7]">{f.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── How It Works ────────────────────────────────────────────────────────────
-const STEPS = [
-  { n: 1, title: "Define Your Intent", body: "Tell the platform what you're looking for — a co-founder, advisor, collaborator, or peer. Be specific. The clearer your intent, the better your matches." },
-  { n: 2, title: "Discover Relevant People", body: "Browse profiles filtered by your goals. See trust scores, background context, and exactly what each person is looking for." },
-  { n: 3, title: "Start a Connection", body: "Send a purposeful connection request. When accepted, start a focused conversation built on mutual intent." },
-];
-
-function HowItWorksSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FDE8D7]" id="how">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">How It Works</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          Three steps to the right connection.
-        </h2>
-        <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
-          No complex onboarding. No endless scrolling. Just clarity, relevance, and action.
-        </p>
-        <div className="mt-14 grid grid-cols-1 min-[900px]:grid-cols-3 gap-10 relative">
-          {/* Connector line — desktop only */}
-          <div
-            className="hidden min-[900px]:block absolute top-10 left-[16.66%] right-[16.66%] h-0.5 opacity-20"
-            style={{ background: "linear-gradient(to right, #0F766E, #14B8A6)" }}
-          />
-          {STEPS.map((s, i) => (
-            <div key={s.n} className="text-center relative z-10" data-animate="" data-delay={String(i * 100)}>
-              <div
-                className="w-20 h-20 bg-white border-[3px] border-[#0F766E] rounded-full flex items-center justify-center text-[28px] font-extrabold text-[#0F766E] mx-auto mb-6"
-                style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }}
-              >
-                {s.n}
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-[#1F2937]">{s.title}</h3>
-              <p className="text-[15px] text-[#6B7280] leading-[1.7]">{s.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── App Preview ─────────────────────────────────────────────────────────────
-function MiniPhone({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="max-w-[240px] mx-auto bg-[#1F2937] rounded-3xl p-3 pb-4" style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }}>
-      <div className="bg-[#FFF4EC] rounded-2xl p-4 min-h-[320px]">{children}</div>
-    </div>
-  );
-}
-
-function MiniDots() {
-  return (
-    <div className="flex gap-1">
-      {[0, 1, 2].map((d) => <span key={d} className="w-1.5 h-1.5 bg-[#9CA3AF] rounded-full" />)}
-    </div>
-  );
-}
-
-function AppPreviewSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FFF4EC]" id="preview">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">App Preview</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          Built for clarity. Designed for trust.
-        </h2>
-        <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
-          Every screen is designed to reduce friction and build confidence — from discovery to your first message.
-        </p>
-        <div className="mt-14 grid grid-cols-1 min-[900px]:grid-cols-3 gap-8">
-
-          {/* Discover */}
-          <div className="bg-white rounded-3xl p-6 border border-[rgba(253,232,215,0.4)] transition-all hover:-translate-y-2" style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }} data-animate="">
-            <p className="text-xs font-bold uppercase tracking-[1.5px] text-[#0F766E] mb-4 text-center">Discover Screen</p>
-            <MiniPhone>
-              <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold text-[#1F2937]">Discover</h4><MiniDots /></div>
-              {[
-                { n: "MC", name: "Marcus Chen", role: "AI researcher · Looking for: PM" },
-                { n: "ER", name: "Elena Rossi", role: "Designer · Looking for: Dev" },
-                { n: "DP", name: "David Park", role: "Founder · Looking for: Advisor" },
-              ].map((p) => (
-                <div key={p.n} className="bg-white rounded-xl p-3 mb-2.5 flex gap-2.5 items-center">
-                  <div className="w-9 h-9 rounded-full shrink-0" style={{ background: "linear-gradient(135deg, #14B8A6, #0F766E)" }} />
-                  <div><h5 className="text-xs font-semibold text-[#1F2937]">{p.name}</h5><p className="text-[10px] text-[#6B7280]">{p.role}</p></div>
-                </div>
-              ))}
-            </MiniPhone>
-          </div>
-
-          {/* Profile */}
-          <div className="bg-white rounded-3xl p-6 border border-[rgba(253,232,215,0.4)] transition-all hover:-translate-y-2" style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }} data-animate="" data-delay="100">
-            <p className="text-xs font-bold uppercase tracking-[1.5px] text-[#0F766E] mb-4 text-center">Profile Screen</p>
-            <MiniPhone>
-              <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold text-[#1F2937]">Profile</h4><MiniDots /></div>
-              <div className="text-center py-5">
-                <div className="w-16 h-16 rounded-full mx-auto mb-3" style={{ background: "linear-gradient(135deg, #14B8A6, #0F766E)" }} />
-                <h4 className="text-base font-bold mb-1 text-[#1F2937]">Alex Morgan</h4>
-                <p className="text-xs text-[#6B7280]">Building in fintech · Series A</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2 mt-4">
-                {[{ n: "96", l: "Trust" }, { n: "12", l: "Connections" }, { n: "3", l: "Intents" }].map((s) => (
-                  <div key={s.l} className="bg-white p-2.5 rounded-xl text-center">
-                    <div className="text-base font-extrabold text-[#0F766E]">{s.n}</div>
-                    <div className="text-[9px] text-[#9CA3AF] uppercase">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            </MiniPhone>
-          </div>
-
-          {/* Chat */}
-          <div className="bg-white rounded-3xl p-6 border border-[rgba(253,232,215,0.4)] transition-all hover:-translate-y-2" style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }} data-animate="" data-delay="200">
-            <p className="text-xs font-bold uppercase tracking-[1.5px] text-[#0F766E] mb-4 text-center">Chat Screen</p>
-            <MiniPhone>
-              <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold text-[#1F2937]">Alex Morgan</h4><MiniDots /></div>
-              <div className="flex flex-col gap-2.5">
-                <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-white border border-[#FDE8D7] text-[#1F2937] text-xs max-w-[80%] self-start leading-relaxed">
-                  Hi! I saw you&apos;re looking for a technical co-founder. I&apos;m building something similar in the climate space.
-                </div>
-                <div className="px-3.5 py-2.5 rounded-2xl rounded-br-sm bg-[#0F766E] text-white text-xs max-w-[80%] self-end leading-relaxed">
-                  Hey Alex — yes, exactly. Would love to hear more about your background.
-                </div>
-                <div className="px-3.5 py-2.5 rounded-2xl rounded-bl-sm bg-white border border-[#FDE8D7] text-[#1F2937] text-xs max-w-[80%] self-start leading-relaxed">
-                  Sure. Ex-Stripe engineer, 6 years in infra. Looking for someone with GTM experience.
-                </div>
-              </div>
-            </MiniPhone>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Differentiation ─────────────────────────────────────────────────────────
-const DIFF_CARDS = [
-  {
-    icon: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>,
-    title: "Intent-Based Discovery",
-    body: "Traditional networks show you who people are. We show you what they want. You discover based on shared purpose, not shared connections.",
-  },
-  {
-    icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
-    title: "Trust Score",
-    body: "Every profile carries a transparent trust score based on verification depth, connection quality, and community feedback. No guesswork.",
-  },
-  {
-    icon: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-    title: "Relevance Over Volume",
-    body: "We optimize for quality of connection, not quantity. A single relevant conversation is worth more than a hundred random contacts.",
-  },
-];
-
-function DifferentiationSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FDE8D7]" id="differentiation">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Why This Is Different</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          A new category of networking.
-        </h2>
-        <p className="text-[17px] text-[#6B7280] max-w-[600px] leading-[1.7]" data-animate="" data-delay="200">
-          We didn&apos;t improve existing networking. We rebuilt it from first principles — starting with intent, not identity.
-        </p>
-        <div className="mt-14 grid grid-cols-1 min-[900px]:grid-cols-3 gap-8">
-          {DIFF_CARDS.map((c, i) => (
-            <div
-              key={c.title}
-              className="bg-white p-10 rounded-[20px] border border-[rgba(253,232,215,0.4)] relative overflow-hidden transition-all hover:-translate-y-1.5"
-              style={{ boxShadow: "0 4px 24px rgba(31,41,55,0.06)" }}
-              data-animate=""
-              data-delay={String(i * 100)}
-            >
-              <div className="absolute top-0 left-0 right-0 h-1" style={{ background: "linear-gradient(to right, #0F766E, #14B8A6)" }} />
-              <div className="w-[52px] h-[52px] bg-[#CCFBF1] rounded-2xl flex items-center justify-center mb-5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2" className="w-[26px] h-[26px]">{c.icon}</svg>
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-[#1F2937]">{c.title}</h3>
-              <p className="text-[15px] text-[#6B7280] leading-[1.7]">{c.body}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Coming Soon ─────────────────────────────────────────────────────────────
-function ComingSoonSection() {
-  return (
-    <section className="py-[100px] px-6 bg-[#FFF4EC]" id="coming-soon">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">On The Horizon</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          What&apos;s Next
-        </h2>
-        <div
-          className="mt-12 bg-[#f8f9fa] border-2 border-dashed border-[#9CA3AF] rounded-[20px] px-8 py-12 text-center cursor-default opacity-85"
-          onClick={() => alert("Launching soon")}
-          data-animate=""
-          data-delay="200"
-        >
-          <span className="inline-block px-4 py-1.5 bg-[#9CA3AF] text-white rounded-full text-[11px] font-bold uppercase tracking-wide mb-4">Coming Soon</span>
-          <h3 className="text-[22px] font-bold text-[#6B7280] mb-2">Intent Circles</h3>
-          <p className="text-[15px] text-[#9CA3AF]">Join focused circles based on intent — launching soon.</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Download / Get Started ───────────────────────────────────────────────────
-function DownloadSection() {
-  return (
-    <section
-      className="py-[100px] px-6 text-center"
-      id="download"
-      style={{ background: "linear-gradient(135deg, #0F766E, #0d5f58)" }}
-    >
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#CCFBF1] mb-4" data-animate="">Get Started</p>
-        <h2 className="font-extrabold tracking-[-1px] text-white mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          Start in seconds — no install required
-        </h2>
-        <p className="text-[17px] text-white/80 max-w-[600px] mx-auto leading-[1.7]" data-animate="" data-delay="200">
-          The full BuildYourNetwork experience runs directly in your browser. Sign up and start discovering in under a minute.
-        </p>
-        <div
-          className="mt-12 rounded-3xl px-6 py-8 min-[601px]:p-12 border border-white/15"
-          style={{ background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)" }}
-          data-animate=""
-          data-delay="300"
-        >
-          <a
-            href="/signup"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-white text-[#0F766E] rounded-2xl font-bold text-[17px] transition-all hover:-translate-y-0.5 no-underline"
-            style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6">
-              <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            Open Web App — Free
-          </a>
-          <div className="flex justify-center gap-8 mt-6 flex-wrap">
-            {["Works on all devices", "No download needed", "Instant access"].map((m) => (
-              <span key={m} className="text-[13px] text-white/70 flex items-center gap-1.5">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><polyline points="20 6 9 17 4 12" /></svg>
-                {m}
-              </span>
-            ))}
-          </div>
-          <div className="mt-10 grid grid-cols-1 min-[900px]:grid-cols-3 gap-6 text-left">
-            {[
-              { n: 1, title: "Open in browser", body: "Click the button above. Works on Chrome, Safari, Firefox — desktop or mobile." },
-              { n: 2, title: "Sign up free", body: "Create your account and set your networking intent. Takes under 60 seconds." },
-              { n: 3, title: "Start discovering", body: "Browse relevant profiles, connect with intent, and have real conversations." },
-            ].map((s) => (
-              <div key={s.n} className="p-6 rounded-2xl border border-white/10" style={{ background: "rgba(255,255,255,0.08)" }}>
-                <div className="w-9 h-9 bg-[#F4A261] text-white rounded-[10px] flex items-center justify-center font-bold text-base mb-3">{s.n}</div>
-                <h4 className="text-[15px] font-semibold text-white mb-1.5">{s.title}</h4>
-                <p className="text-[13px] text-white/70 leading-[1.6]">{s.body}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-8 pt-7 border-t border-white/15 text-center">
-            <p className="text-[13px] text-white/60 mb-3.5">Prefer the native app? Android APK also available.</p>
-            <a
-              href="/download/android"
-              className="inline-flex items-center gap-2 text-white/75 text-[13px] font-semibold border border-white/25 rounded-lg px-5 py-2.5 transition-colors hover:text-white hover:border-white/50 no-underline"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Download Android APK (v1.0.2)
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── About BYN ───────────────────────────────────────────────────────────────
-const SEO_LINKS = [
-  { href: "/networking-for-founders", label: "Networking for Founders" },
-  { href: "/linkedin-alternative", label: "BYN vs LinkedIn" },
-  { href: "/networking-for-entrepreneurs", label: "For Entrepreneurs" },
-  { href: "/networking-for-creators", label: "For Creators" },
-  { href: "/networking-for-freelancers", label: "For Freelancers" },
-  { href: "/startup-community-india", label: "Startup Community India" },
-  { href: "/business-networking-app", label: "Business Networking App" },
-  { href: "/networking-for-investors", label: "For Investors" },
-];
-
-function AboutBYNSection() {
-  return (
-    <section className="py-[80px] px-6 bg-[#FDE8D7]" id="about-byn">
-      <div className="max-w-[1100px] mx-auto">
-        <p className="text-xs font-bold uppercase tracking-[2px] text-[#0F766E] mb-4" data-animate="">Knowledge Base</p>
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5 leading-[1.2]" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="" data-delay="100">
-          What is Build Your Network?
-        </h2>
-        <div className="max-w-[760px] mx-auto">
-          <p className="text-[17px] text-[#6B7280] leading-[1.75] mb-5" data-animate="" data-delay="200">
-            <strong className="text-[#1F2937]">Build Your Network (BYN)</strong> is a free professional networking platform for founders, entrepreneurs, and creators in India. It connects you with co-founders, mentors, investors, and collaborators based on your goals and stated intent — not job titles or follower counts.
-          </p>
-          <p className="text-base text-[#6B7280] leading-[1.75] mb-5" data-animate="" data-delay="200">
-            Every user on BYN declares what they are actively looking for — a co-founder, a technical partner, a mentor, an investor, or a collaborator. This intent-first approach means every discovery result is someone actively seeking the same kind of relationship. No recruiter spam. No feed noise. Just relevant connections.
-          </p>
-          <p className="text-base text-[#6B7280] leading-[1.75] mb-9" data-animate="" data-delay="300">
-            BYN uses GPS-based location matching — discover founders within 10 km for in-person collaboration or search nationwide for remote co-founders. It runs entirely in your browser. No app install required. Available across India: Hyderabad, Bengaluru, Mumbai, Delhi, Pune, Chennai, and every other city.
-          </p>
-          <div className="flex flex-wrap gap-2.5" data-animate="" data-delay="300">
-            {SEO_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="text-[#0F766E] font-semibold text-[13px] no-underline inline-flex items-center bg-white px-3 py-1.5 rounded-lg border border-[rgba(15,118,110,0.15)] hover:bg-[#CCFBF1] transition-colors">
-                {l.label}
-              </a>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── FAQ ─────────────────────────────────────────────────────────────────────
-const FAQS = [
-  { q: "What is Build Your Network?", a: "Build Your Network (BYN) is a free professional networking platform for founders, entrepreneurs, and creators in India. It connects you with co-founders, mentors, investors, and collaborators based on your goals and stated intent — not job titles or work history. BYN uses GPS-based location matching and runs entirely in your browser — no install required." },
-  { q: "How is Build Your Network different from LinkedIn?", a: "LinkedIn is built for job-seekers and recruiters. Build Your Network is built for founders and entrepreneurs who want co-founders, mentors, advisors, and investors — matched by intent and skills. On BYN: no recruiter spam, no feed noise, no vanity metrics. Every person you see has declared what they are actively looking for, making first messages contextual and response rates far higher." },
-  { q: "How do I find a co-founder on Build Your Network?", a: 'Create a free profile, set your intent to "Looking for Co-founder", add your skills and startup description, and enable location discovery. BYN surfaces founders with complementary skills within your chosen radius. You can filter by city (Hyderabad, Bengaluru, Mumbai, etc.) or search Remote/Worldwide for technical co-founders anywhere in India.' },
-  { q: "Is Build Your Network free?", a: "Yes — BYN is free with 30 daily connection requests. No install, no credit card. Premium plans unlock unlimited connections, priority discovery, exact location filters (10/25/50 km), and profile boosting for founders who want faster results." },
-  { q: "Is Build Your Network available across India?", a: "Yes. Build Your Network supports founders and entrepreneurs in every major Indian city — Hyderabad, Bengaluru, Mumbai, Delhi, Pune, Chennai, Kolkata, Ahmedabad, Jaipur, and more. GPS-based filters let you discover connections within 10 km, 50 km, 200 km, or search nationwide and worldwide." },
-  { q: "Who uses Build Your Network?", a: "Build Your Network is used by startup founders, solo entrepreneurs, freelancers, creators, product managers, designers, developers, angel investors, and mentors — anyone who wants meaningful professional connections based on intent and goals." },
-  { q: "How does the location filter work?", a: "BYN uses GPS to show you professionals within 200 km by default. Premium users can tighten that to 10, 25, or 50 km for hyper-local co-founder discovery. You can also set Remote-only or Worldwide to find collaborators anywhere without location constraints." },
-  { q: "Is my data safe on Build Your Network?", a: "Yes. Your email is never shared with other users. Exact GPS coordinates are only used to compute distance — never exposed to other profiles. All data is stored securely on Supabase with Row-Level Security policies enforced. BYN has no ads and does not sell user data." },
-];
-
-function FAQSection() {
-  return (
-    <section className="py-[80px] px-6 bg-white" id="faq">
-      <div className="max-w-[1100px] mx-auto">
-        <h2 className="font-extrabold text-[#1F2937] text-center mb-2" style={{ fontSize: "clamp(28px, 3.5vw, 40px)" }} data-animate="">
-          Frequently Asked Questions
-        </h2>
-        <p className="text-center text-[#6B7280] mb-12" data-animate="" data-delay="100">
-          Everything you need to know about Build Your Network
-        </p>
-        <div className="max-w-[720px] mx-auto">
-          {FAQS.map((f, i) => (
-            <details key={i} className="border-b border-[#FDE8D7] group" data-animate="" data-delay={String(i * 50)}>
-              <summary className="cursor-pointer py-5 text-base font-semibold text-[#1F2937] flex justify-between items-center gap-4 [list-style:none] [&::-webkit-details-marker]:hidden">
-                {f.q}
-                <span className="text-[22px] text-[#0F766E] shrink-0 transition-transform duration-200 group-open:rotate-45">+</span>
-              </summary>
-              <div className="pb-5">
-                <p className="text-[#6B7280] leading-[1.7] text-[15px]">{f.a}</p>
-              </div>
-            </details>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Final CTA ────────────────────────────────────────────────────────────────
-function FinalCTASection() {
-  return (
-    <section className="text-center py-[120px] px-6 bg-[#FFF4EC]">
-      <div className="max-w-[1100px] mx-auto">
-        <h2 className="font-extrabold tracking-[-1px] text-[#1F2937] mb-5" style={{ fontSize: "clamp(32px, 4vw, 48px)" }} data-animate="">
-          Your network defines your trajectory.
-        </h2>
-        <p className="text-lg text-[#6B7280] mb-10" data-animate="" data-delay="100">
-          Stop collecting contacts. Start building connections that matter.
-        </p>
-        <div data-animate="" data-delay="200">
-          <a
-            href="/signup"
-            className="inline-flex items-center gap-2.5 px-10 py-[18px] bg-[#0F766E] text-white rounded-xl font-semibold text-[17px] transition-all hover:bg-[#0d5f58] hover:-translate-y-0.5 no-underline"
-            style={{ boxShadow: "0 4px 16px rgba(15,118,110,0.25)" }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-[22px] h-[22px]">
-              <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            Open Web App — Free
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Footer ───────────────────────────────────────────────────────────────────
-function FooterSection() {
-  return (
-    <footer className="bg-[#1F2937] text-white pt-[60px] px-6 pb-10">
-      <div className="max-w-[1100px] mx-auto grid grid-cols-2 max-[600px]:grid-cols-1 min-[900px]:grid-cols-[2fr_1fr_1fr_1fr] gap-12">
-        <div>
-          <div className="text-xl font-extrabold text-[#CCFBF1] mb-3 flex items-center gap-2">
-            <Image src="/assets/logo.png" alt="Build Your Network" width={26} height={26} className="rounded-[6px]" />
-            BuildYourNetwork
-          </div>
-          <p className="text-sm text-[#9CA3AF] leading-[1.7]">
-            An intent-based networking platform for professionals who value relevance over volume.
-          </p>
-        </div>
-        <div>
-          <h4 className="text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF] mb-5">Legal</h4>
-          <a href="/privacy" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">Privacy Policy</a>
-          <a href="/terms" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">Terms of Service</a>
-        </div>
-        <div>
-          <h4 className="text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF] mb-5">Product</h4>
-          <a href="#features" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">Features</a>
-          <a href="#how" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">How It Works</a>
-          <a href="#faq" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">FAQ</a>
-          <a href="/signup" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">Open Web App</a>
-        </div>
-        <div>
-          <h4 className="text-[13px] font-bold uppercase tracking-wide text-[#9CA3AF] mb-5">Support</h4>
-          <a href="mailto:support@buildyournetwork.online" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">support@buildyournetwork.online</a>
-          <a href="/download/android" className="block text-white/70 text-sm mb-3 hover:text-white transition-colors no-underline">Download APK</a>
-        </div>
-      </div>
-      <div className="max-w-[1100px] mx-auto mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 text-[13px] text-[#9CA3AF] text-center">
-        <span>&copy; 2026 BuildYourNetwork. All rights reserved.</span>
-        <span>Early Access Product</span>
-      </div>
-    </footer>
-  );
-}
-
-// ─── Feedback Modal ───────────────────────────────────────────────────────────
-function FeedbackModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleClose() {
-    setSubmitted(false);
-    onClose();
+const LANDING_CSS = `
+  :root {
+    --bg: #FFF4EC;
+    --bg-secondary: #FDE8D7;
+    --card: #FFFFFF;
+    --primary: #0F766E;
+    --teal: #14B8A6;
+    --highlight: #CCFBF1;
+    --accent: #F4A261;
+    --text: #1F2937;
+    --text-secondary: #6B7280;
+    --text-muted: #9CA3AF;
+    --shadow-soft: 0 4px 24px rgba(31,41,55,0.06);
+    --shadow-hover: 0 12px 40px rgba(31,41,55,0.1);
   }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate { opacity: 0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+  @keyframes logoPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(15,118,110,0.3); }
+    70%  { box-shadow: 0 0 0 7px rgba(15,118,110,0); }
+    100% { box-shadow: 0 0 0 0 rgba(15,118,110,0); }
+  }
+  .logo-img { width:28px; height:28px; border-radius:7px; flex-shrink:0; animation:logoPulse 2.4s ease-in-out infinite; }
+  .logo-img-footer { width:26px; height:26px; border-radius:6px; flex-shrink:0; }
 
-  if (!open) return null;
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    background:rgba(255,244,236,0.92); backdrop-filter:blur(20px);
+    border-bottom:1px solid rgba(253,232,215,0.6);
+  }
+  .nav-inner { max-width:1200px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-weight:800; font-size:20px; color:var(--primary); letter-spacing:-0.5px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; }
+  .nav-links { display:flex; gap:32px; align-items:center; }
+  .nav-links a { text-decoration:none; color:var(--text-secondary); font-weight:500; font-size:14px; transition:color 0.2s; }
+  .nav-links a:hover { color:var(--primary); }
+  .nav-cta { background:var(--primary); color:white !important; padding:10px 20px; border-radius:8px; font-weight:600; font-size:13px; transition:all 0.2s; }
+  .nav-cta:hover { background:#0d5f58; transform:translateY(-1px); }
+  .mobile-menu-btn { display:none; background:none; border:none; cursor:pointer; padding:8px; }
 
-  return (
-    <>
-      <div className="fixed inset-0 bg-[rgba(31,41,55,0.4)] z-[200]" style={{ backdropFilter: "blur(8px)" }} onClick={handleClose} />
-      <div
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[480px] bg-white rounded-[20px] z-[201] overflow-hidden mx-4"
-        style={{ boxShadow: "0 24px 64px rgba(31,41,55,0.2)" }}
-      >
-        <div className="flex justify-between items-center px-7 pt-6">
-          <h3 className="text-xl font-bold text-[#1F2937]">Share Your Thoughts</h3>
-          <button onClick={handleClose} className="p-1.5 rounded-lg text-[#9CA3AF] hover:bg-[#FFF4EC] hover:text-[#1F2937] transition-colors border-0 bg-transparent cursor-pointer">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-        <div className="px-7 pb-7 pt-5">
-          {submitted ? (
-            <div className="text-center py-5">
-              <div className="w-16 h-16 bg-[#CCFBF1] rounded-full flex items-center justify-center mx-auto mb-4 text-[#0F766E]">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </div>
-              <h4 className="text-lg font-bold mb-2 text-[#1F2937]">Thank You</h4>
-              <p className="text-sm text-[#6B7280] mb-6 leading-[1.6]">Your feedback has been received. We review every submission personally.</p>
-              <button onClick={handleClose} className="px-8 py-3 bg-[#FFF4EC] text-[#1F2937] border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm font-semibold cursor-pointer hover:bg-[#FDE8D7] transition-colors">
-                Close
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }}>
-              <p className="text-sm text-[#6B7280] mb-5 leading-[1.6]">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
-              <div className="mb-4">
-                <label className="block text-[13px] font-semibold text-[#1F2937] mb-1.5">What is this about?</label>
-                <select defaultValue="" required className="w-full px-3.5 py-3 border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm text-[#1F2937] bg-[#FFF4EC] focus:outline-none focus:border-[#0F766E]">
-                  <option value="" disabled>Select a topic</option>
-                  <option value="bug">Bug or issue</option>
-                  <option value="feature">Feature request</option>
-                  <option value="ux">User experience</option>
-                  <option value="install">Installation problem</option>
-                  <option value="other">Something else</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-[13px] font-semibold text-[#1F2937] mb-1.5">Your feedback</label>
-                <textarea rows={5} required placeholder="Describe what you experienced, what you expected, and what happened instead..." className="w-full px-3.5 py-3 border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm text-[#1F2937] bg-[#FFF4EC] focus:outline-none focus:border-[#0F766E] resize-y" />
-              </div>
-              <div className="mb-5">
-                <label className="block text-[13px] font-semibold text-[#1F2937] mb-1.5">Email (optional)</label>
-                <input type="email" placeholder="you@example.com" className="w-full px-3.5 py-3 border-[1.5px] border-[#FDE8D7] rounded-[10px] text-sm text-[#1F2937] bg-[#FFF4EC] focus:outline-none focus:border-[#0F766E]" />
-                <span className="block text-[12px] text-[#9CA3AF] mt-1">Only if you&apos;d like us to follow up</span>
-              </div>
-              <button type="submit" className="w-full py-3.5 bg-[#0F766E] text-white border-0 rounded-[10px] text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer hover:bg-[#0d5f58] transition-colors">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-                Send Feedback
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
+  .hero { min-height:100vh; display:flex; align-items:center; padding:120px 24px 80px; position:relative; overflow:hidden; background:var(--bg); }
+  .hero-bg { position:absolute; top:-20%; right:-10%; width:600px; height:600px; background:radial-gradient(circle,var(--highlight) 0%,transparent 70%); opacity:0.5; pointer-events:none; }
+  .hero-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; width:100%; }
+  .hero-content h1 { font-size:clamp(36px,5vw,56px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:24px; color:var(--text); }
+  .hero-content h1 span { color:var(--primary); }
+  .hero-content .subtitle { font-size:18px; color:var(--text-secondary); max-width:480px; margin-bottom:40px; line-height:1.7; }
+  .hero-badges { display:flex; gap:12px; margin-bottom:32px; flex-wrap:wrap; }
+  .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:var(--card); border:1px solid var(--bg-secondary); border-radius:100px; font-size:12px; font-weight:500; color:var(--text-secondary); }
+  .badge svg { width:14px; height:14px; }
+  .cta-group { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .btn-primary { display:inline-flex; align-items:center; gap:10px; padding:16px 32px; background:var(--primary); color:white; text-decoration:none; border-radius:12px; font-weight:600; font-size:15px; transition:all 0.25s cubic-bezier(0.22,1,0.36,1); border:none; cursor:pointer; box-shadow:0 4px 16px rgba(15,118,110,0.25); }
+  .btn-primary:hover { background:#0d5f58; transform:translateY(-2px); box-shadow:0 8px 24px rgba(15,118,110,0.35); }
+  .btn-primary svg { width:20px; height:20px; }
+  .btn-secondary { display:inline-flex; align-items:center; gap:8px; padding:16px 28px; background:transparent; color:var(--primary); text-decoration:none; border-radius:12px; font-weight:600; font-size:15px; border:2px solid var(--primary); transition:all 0.25s; }
+  .btn-secondary:hover { background:var(--highlight); transform:translateY(-2px); }
+  .hero-visual { position:relative; display:flex; justify-content:center; }
+  .phone-mockup { width:280px; height:560px; background:var(--card); border-radius:36px; box-shadow:var(--shadow-hover),0 0 0 12px var(--bg-secondary); overflow:hidden; position:relative; transform:rotate(-3deg); transition:transform 0.4s; }
+  .phone-mockup:hover { transform:rotate(0deg) scale(1.02); }
+  .phone-notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:120px; height:28px; background:var(--text); border-radius:0 0 16px 16px; z-index:10; }
+  .phone-screen { padding:48px 20px 20px; height:100%; overflow-y:auto; }
+  .screen-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .screen-title { font-weight:700; font-size:20px; }
+  .filter-pill { padding:6px 14px; background:var(--highlight); border-radius:20px; font-size:11px; font-weight:600; color:var(--primary); }
+  .profile-card { background:var(--bg); border-radius:16px; padding:16px; margin-bottom:12px; display:flex; gap:12px; align-items:center; }
+  .profile-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; flex-shrink:0; }
+  .profile-info h4 { font-size:14px; font-weight:600; margin-bottom:2px; }
+  .profile-info p { font-size:11px; color:var(--text-secondary); }
+  .intent-tag { display:inline-block; padding:3px 10px; background:var(--highlight); color:var(--primary); border-radius:12px; font-size:10px; font-weight:600; margin-top:4px; }
+  .trust-score { margin-left:auto; text-align:center; }
+  .trust-score .score { font-size:18px; font-weight:800; color:var(--primary); }
+  .trust-score .label { font-size:9px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+  section { padding:100px 24px; position:relative; }
+  .section-inner { max-width:1100px; margin:0 auto; }
+  .section-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--primary); margin-bottom:16px; }
+  .section-title { font-size:clamp(28px,3.5vw,40px); font-weight:800; letter-spacing:-1px; margin-bottom:20px; line-height:1.2; }
+  .section-desc { font-size:17px; color:var(--text-secondary); max-width:600px; line-height:1.7; }
+
+  .trust-section { background:var(--bg-secondary); }
+  .trust-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-top:48px; }
+  .trust-card { background:var(--card); padding:32px 24px; border-radius:16px; text-align:center; box-shadow:var(--shadow-soft); transition:all 0.3s; border:1px solid rgba(253,232,215,0.5); }
+  .trust-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-hover); }
+  .trust-icon { width:48px; height:48px; background:var(--highlight); border-radius:14px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; }
+  .trust-icon svg { width:24px; height:24px; color:var(--primary); }
+  .trust-card h3 { font-size:16px; font-weight:700; margin-bottom:8px; }
+  .trust-card p { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+
+  .features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:56px; }
+  .feature-card { background:var(--card); padding:40px 32px; border-radius:20px; box-shadow:var(--shadow-soft); transition:all 0.3s; border:1px solid rgba(253,232,215,0.4); }
+  .feature-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-hover); }
+  .feature-num { width:40px; height:40px; background:var(--primary); color:white; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:20px; }
+  .feature-card h3 { font-size:20px; font-weight:700; margin-bottom:12px; }
+  .feature-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
+
+  .steps-section { background:var(--bg-secondary); }
+  .steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:40px; margin-top:56px; position:relative; }
+  .steps-grid::before { content:''; position:absolute; top:40px; left:16.66%; right:16.66%; height:2px; background:linear-gradient(to right,var(--primary),var(--teal)); opacity:0.2; }
+  .step-card { text-align:center; position:relative; z-index:1; }
+  .step-num { width:80px; height:80px; background:var(--card); border:3px solid var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:800; color:var(--primary); margin:0 auto 24px; box-shadow:var(--shadow-soft); }
+  .step-card h3 { font-size:20px; font-weight:700; margin-bottom:12px; }
+  .step-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
+
+  .preview-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:56px; }
+  .preview-card { background:var(--card); border-radius:24px; padding:24px; box-shadow:var(--shadow-soft); transition:all 0.3s; border:1px solid rgba(253,232,215,0.4); }
+  .preview-card:hover { transform:translateY(-8px); box-shadow:var(--shadow-hover); }
+  .preview-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:var(--primary); margin-bottom:16px; text-align:center; }
+  .mini-phone { width:100%; max-width:240px; margin:0 auto; background:var(--text); border-radius:24px; padding:12px 12px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+  .mini-screen { background:var(--bg); border-radius:16px; padding:16px; min-height:320px; }
+  .mini-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .mini-header h4 { font-size:14px; font-weight:700; }
+  .mini-header .dots { display:flex; gap:4px; }
+  .mini-header .dots span { width:6px; height:6px; background:var(--text-muted); border-radius:50%; }
+  .mini-profile { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:center; }
+  .mini-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); flex-shrink:0; }
+  .mini-info h5 { font-size:12px; font-weight:600; }
+  .mini-info p { font-size:10px; color:var(--text-secondary); }
+  .mini-chat { display:flex; flex-direction:column; gap:10px; }
+  .chat-bubble { padding:10px 14px; border-radius:14px; font-size:12px; max-width:80%; }
+  .chat-bubble.sent { background:var(--primary); color:white; align-self:flex-end; border-bottom-right-radius:4px; }
+  .chat-bubble.received { background:var(--card); color:var(--text); align-self:flex-start; border-bottom-left-radius:4px; }
+  .profile-detail { text-align:center; padding:20px 0; }
+  .profile-detail .big-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); margin:0 auto 12px; }
+  .profile-detail h4 { font-size:16px; font-weight:700; margin-bottom:4px; }
+  .profile-detail p { font-size:12px; color:var(--text-secondary); }
+  .profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
+  .stat-box { background:var(--card); padding:10px; border-radius:10px; text-align:center; }
+  .stat-box .num { font-size:16px; font-weight:800; color:var(--primary); }
+  .stat-box .lbl { font-size:9px; color:var(--text-muted); text-transform:uppercase; }
+
+  .diff-section { background:var(--bg-secondary); }
+  .diff-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:56px; }
+  .diff-card { background:var(--card); padding:40px 32px; border-radius:20px; box-shadow:var(--shadow-soft); transition:all 0.3s; border:1px solid rgba(253,232,215,0.4); position:relative; overflow:hidden; }
+  .diff-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(to right,var(--primary),var(--teal)); }
+  .diff-card:hover { transform:translateY(-6px); box-shadow:var(--shadow-hover); }
+  .diff-icon { width:52px; height:52px; background:var(--highlight); border-radius:16px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
+  .diff-icon svg { width:26px; height:26px; color:var(--primary); }
+  .diff-card h3 { font-size:20px; font-weight:700; margin-bottom:12px; }
+  .diff-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
+
+  .coming-soon-card { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border:2px dashed var(--text-muted); border-radius:20px; padding:48px 32px; text-align:center; margin-top:48px; cursor:default; position:relative; opacity:0.85; }
+  .coming-soon-card .cs-badge { display:inline-block; padding:6px 16px; background:var(--text-muted); color:white; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:16px; }
+  .coming-soon-card h3 { font-size:22px; font-weight:700; color:var(--text-secondary); margin-bottom:8px; }
+  .coming-soon-card p { font-size:15px; color:var(--text-muted); }
+
+  .download-section { background:linear-gradient(135deg,var(--primary),#0d5f58); color:white; text-align:center; }
+  .download-section .section-label { color:var(--highlight); }
+  .download-section .section-title { color:white; }
+  .download-section .section-desc { color:rgba(255,255,255,0.8); }
+  .download-box { background:rgba(255,255,255,0.1); backdrop-filter:blur(10px); border-radius:24px; padding:48px; margin-top:48px; border:1px solid rgba(255,255,255,0.15); }
+  .download-btn { display:inline-flex; align-items:center; gap:12px; padding:20px 40px; background:white; color:var(--primary); text-decoration:none; border-radius:14px; font-weight:700; font-size:17px; transition:all 0.25s; box-shadow:0 8px 24px rgba(0,0,0,0.2); }
+  .download-btn:hover { transform:translateY(-3px); box-shadow:0 12px 32px rgba(0,0,0,0.3); }
+  .download-meta { display:flex; justify-content:center; gap:32px; margin-top:24px; flex-wrap:wrap; }
+  .download-meta span { font-size:13px; color:rgba(255,255,255,0.7); display:flex; align-items:center; gap:6px; }
+  .download-meta svg { width:16px; height:16px; }
+  .install-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:40px; text-align:left; }
+  .install-step { background:rgba(255,255,255,0.08); padding:24px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); }
+  .install-step .num { width:36px; height:36px; background:var(--accent); color:white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:12px; }
+  .install-step h4 { font-size:15px; font-weight:600; margin-bottom:6px; color:white; }
+  .install-step p { font-size:13px; color:rgba(255,255,255,0.7); line-height:1.6; }
+
+  .final-cta { text-align:center; padding:120px 24px; }
+  .final-cta h2 { font-size:clamp(32px,4vw,48px); font-weight:800; letter-spacing:-1px; margin-bottom:20px; }
+  .final-cta p { font-size:18px; color:var(--text-secondary); margin-bottom:40px; }
+
+  footer { background:var(--text); color:white; padding:60px 24px 40px; }
+  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; }
+  .footer-brand { font-size:20px; font-weight:800; color:var(--highlight); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .footer-desc { font-size:14px; color:var(--text-muted); line-height:1.7; }
+  .footer-col h4 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:20px; }
+  .footer-col a { display:block; color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; margin-bottom:12px; transition:color 0.2s; }
+  .footer-col a:hover { color:white; }
+  .footer-bottom { max-width:1100px; margin:40px auto 0; padding-top:24px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted); }
+
+  .feedback-tab { position:fixed; right:0; top:50%; transform:translateY(-50%) translateX(2px); background:var(--primary); color:white; padding:14px 10px 14px 14px; border-radius:12px 0 0 12px; cursor:pointer; z-index:99; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; box-shadow:-4px 4px 20px rgba(15,118,110,0.3); transition:all 0.3s cubic-bezier(0.22,1,0.36,1); writing-mode:vertical-rl; text-orientation:mixed; line-height:1; border:none; }
+  .feedback-tab svg { transform:rotate(-90deg); flex-shrink:0; }
+  .feedback-tab:hover { transform:translateY(-50%) translateX(0); background:#0d5f58; box-shadow:-6px 6px 28px rgba(15,118,110,0.4); }
+  .feedback-tab span { transform:rotate(180deg); }
+  .feedback-overlay { position:fixed; inset:0; background:rgba(31,41,55,0.4); backdrop-filter:blur(8px); z-index:200; }
+  .feedback-modal { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; max-width:480px; background:var(--card); border-radius:20px; box-shadow:0 24px 64px rgba(31,41,55,0.2); z-index:201; overflow:hidden; margin:0 16px; }
+  .feedback-header { display:flex; justify-content:space-between; align-items:center; padding:24px 28px 0; }
+  .feedback-header h3 { font-size:20px; font-weight:700; color:var(--text); }
+  .feedback-close { background:none; border:none; cursor:pointer; padding:6px; border-radius:8px; color:var(--text-muted); transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+  .feedback-close:hover { background:var(--bg); color:var(--text); }
+  .feedback-body { padding:20px 28px 28px; }
+  .feedback-intro { font-size:14px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6; }
+  .feedback-field { margin-bottom:18px; }
+  .feedback-field label { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; }
+  .feedback-field input, .feedback-field select, .feedback-field textarea { width:100%; padding:12px 14px; border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; color:var(--text); background:var(--bg); transition:all 0.2s; outline:none; resize:vertical; }
+  .feedback-field input:focus, .feedback-field select:focus, .feedback-field textarea:focus { border-color:var(--primary); background:var(--card); box-shadow:0 0 0 3px rgba(15,118,110,0.08); }
+  .feedback-submit { width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.25s; margin-top:8px; }
+  .feedback-submit:hover { background:#0d5f58; transform:translateY(-1px); }
+  .field-hint { display:block; font-size:12px; color:var(--text-muted); margin-top:4px; }
+  .feedback-done { padding:12px 32px; background:var(--bg); color:var(--text); border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .feedback-done:hover { background:var(--bg-secondary); }
+  .success-icon { width:64px; height:64px; background:var(--highlight); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; color:var(--primary); }
+  .faq-item { border-bottom:1px solid var(--bg-secondary); }
+  .faq-item summary { cursor:pointer; padding:20px 0; font-size:16px; font-weight:600; color:var(--text); list-style:none; display:flex; justify-content:space-between; align-items:center; gap:16px; user-select:none; }
+  .faq-item summary::-webkit-details-marker { display:none; }
+  .faq-item summary::after { content:'+'; font-size:22px; color:var(--primary); flex-shrink:0; transition:transform .25s; }
+  .faq-item[open] summary::after { transform:rotate(45deg); }
+  .faq-item div { padding:0 0 20px; }
+  .faq-item div p { color:var(--text-secondary); line-height:1.7; font-size:15px; }
+
+  @media (max-width:900px) {
+    .hero-inner { grid-template-columns:1fr; gap:48px; }
+    .hero-visual { order:-1; }
+    .phone-mockup { width:240px; height:480px; }
+    .trust-grid { grid-template-columns:repeat(2,1fr); }
+    .features-grid { grid-template-columns:1fr; }
+    .steps-grid { grid-template-columns:1fr; }
+    .steps-grid::before { display:none; }
+    .preview-grid { grid-template-columns:1fr; }
+    .diff-grid { grid-template-columns:1fr; }
+    .install-steps { grid-template-columns:1fr; }
+    .footer-inner { grid-template-columns:1fr 1fr; }
+    .nav-links { display:none; }
+    .nav-links.open { display:flex; flex-direction:column; position:absolute; top:100%; left:0; right:0; background:rgba(255,244,236,0.98); backdrop-filter:blur(20px); border-top:1px solid rgba(253,232,215,0.8); padding:16px 24px 20px; gap:18px; box-shadow:0 8px 24px rgba(0,0,0,0.08); z-index:999; }
+    .mobile-menu-btn { display:block; }
+  }
+  @media (max-width:600px) {
+    .trust-grid { grid-template-columns:1fr; }
+    .footer-inner { grid-template-columns:1fr; }
+    .footer-bottom { flex-direction:column; gap:12px; text-align:center; }
+    .cta-group { flex-direction:column; width:100%; }
+    .cta-group a { width:100%; justify-content:center; }
+    .download-box { padding:32px 24px; }
+    .feedback-tab { right:auto; left:50%; top:auto; bottom:0; transform:translateX(-50%) translateY(2px); border-radius:12px 12px 0 0; padding:10px 20px; flex-direction:row; writing-mode:horizontal-tb; text-orientation:mixed; box-shadow:0 -4px 20px rgba(15,118,110,0.3); }
+    .feedback-tab svg { transform:none; }
+    .feedback-tab span { transform:none; }
+    .feedback-tab:hover { transform:translateX(-50%) translateY(0); }
+  }
+`;
+
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [stats, setStats] = useState<Stats>(null);
+  const [stats, setStats] = useState<{ users: number; connections: number } | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
 
   useEffect(() => {
-    if (!loading && user?.email_verified && user.onboarding_stage === "complete") {
-      router.replace("/discover");
+    if (!loading && user?.email_verified && user.onboarding_stage === 'complete') {
+      router.replace('/discover');
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    fetch("/api/stats/public")
-      .then((r) => r.json())
-      .then((d) => { if (d.users > 0) setStats(d); })
-      .catch(() => {});
+    fetch('/api/stats/public').then(r => r.json()).then(d => { if (d.users > 0) setStats(d); }).catch(() => {});
   }, []);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            const el = e.target as HTMLElement;
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-          }
-        });
-      },
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) {
+          const el = e.target as HTMLElement;
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        }
+      }),
       { threshold: 0.1 }
     );
-
-    document.querySelectorAll("[data-animate]").forEach((el) => {
+    document.querySelectorAll('.animate').forEach(el => {
       const h = el as HTMLElement;
-      const delay = h.dataset.delay ?? "0";
-      h.style.opacity = "0";
-      h.style.transform = "translateY(24px)";
-      h.style.transition = `opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms, transform 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}ms`;
+      h.style.opacity = '0';
+      h.style.transform = 'translateY(24px)';
+      const delay = h.classList.contains('delay-4') ? '400ms'
+                  : h.classList.contains('delay-3') ? '300ms'
+                  : h.classList.contains('delay-2') ? '200ms'
+                  : h.classList.contains('delay-1') ? '100ms' : '0ms';
+      h.style.transition = `opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay},transform 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}`;
       obs.observe(el);
     });
-
-    const handleScroll = () => {
-      const nav = document.getElementById("main-nav");
-      if (nav) nav.style.boxShadow = window.scrollY > 50 ? "0 1px 20px rgba(0,0,0,0.05)" : "none";
-      if (menuOpen) setMenuOpen(false);
+    const onScroll = () => {
+      const nav = document.querySelector('nav') as HTMLElement | null;
+      if (nav) nav.style.boxShadow = window.scrollY > 50 ? '0 1px 20px rgba(0,0,0,0.05)' : 'none';
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    const handleHashClick = (e: MouseEvent) => {
+    const onHashClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest('a[href^="#"]') as HTMLAnchorElement | null;
       if (!a) return;
-      const href = a.getAttribute("href");
-      if (!href) return;
-      const target = document.querySelector(href);
-      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: "smooth", block: "start" }); }
+      const t = document.querySelector(a.getAttribute('href') ?? '');
+      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     };
-    document.addEventListener("click", handleHashClick);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('click', onHashClick);
+    return () => { obs.disconnect(); window.removeEventListener('scroll', onScroll); document.removeEventListener('click', onHashClick); };
+  }, []);
 
-    return () => {
-      obs.disconnect();
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("click", handleHashClick);
-    };
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener('scroll', close, { passive: true });
+    return () => window.removeEventListener('scroll', close);
   }, [menuOpen]);
 
+  function closeFeedback() { setFeedbackOpen(false); setFeedbackDone(false); }
+
   return (
-    <div className={inter.className} style={{ background: "#FFF4EC" }}>
-      <NavBar menuOpen={menuOpen} onToggle={() => setMenuOpen((o) => !o)} />
-      <HeroSection stats={stats} />
-      <TrustSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <AppPreviewSection />
-      <DifferentiationSection />
-      <ComingSoonSection />
-      <DownloadSection />
-      <AboutBYNSection />
-      <FAQSection />
-      <FinalCTASection />
-      <FooterSection />
+    <div className={inter.className}>
+      <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />
+
+      {/* Nav */}
+      <nav>
+        <div className="nav-inner">
+          <a href="#" className="logo">
+            <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" />
+            BuildYourNetwork
+          </a>
+          <div className={`nav-links${menuOpen ? ' open' : ''}`}>
+            <a href="#trust" onClick={() => setMenuOpen(false)}>Trust</a>
+            <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
+            <a href="#how" onClick={() => setMenuOpen(false)}>How It Works</a>
+            <a href="/signup" className="nav-cta">Open Web App</a>
+            <a href="#download" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ marginLeft: '8px', background: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)', boxShadow: 'none' }}>Download APK</a>
+          </div>
+          <button className="mobile-menu-btn" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="hero" id="hero">
+        <div className="hero-bg" />
+        <div className="hero-inner">
+          <div className="hero-content">
+            <div className="hero-badges animate">
+              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Works in browser</span>
+              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>No install needed</span>
+              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>Early Access</span>
+            </div>
+            <h1 className="animate delay-1">Find <span>Co-Founders, Mentors &amp; Collaborators</span> — Free</h1>
+            <p className="subtitle animate delay-2">The networking platform built for founders and entrepreneurs in India. Connect based on intent, skills, and goals — not job titles.</p>
+            {stats && (
+              <div className="hero-badges animate delay-2" style={{ marginBottom: '24px' }}>
+                <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>{stats.users.toLocaleString()} professionals</span>
+                {stats.connections > 0 && <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{stats.connections.toLocaleString()} connections made</span>}
+              </div>
+            )}
+            <div className="cta-group animate delay-3">
+              <a href="/signup" className="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Open Web App — Free</a>
+              <a href="#how" className="btn-secondary">See how it works<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg></a>
+            </div>
+          </div>
+          <div className="hero-visual animate delay-2">
+            <div className="phone-mockup">
+              <div className="phone-notch" />
+              <div className="phone-screen">
+                <div className="screen-header"><span className="screen-title">Discover</span><span className="filter-pill">Intent: Founder</span></div>
+                {[{ i: 'SK', n: 'Sarah Kim', r: 'Building a climate tech startup', t: 'Looking for: Co-founder', s: 94 }, { i: 'JM', n: 'James Miller', r: 'Product lead at Series B fintech', t: 'Looking for: Advisors', s: 88 }, { i: 'AL', n: 'Aisha Lopez', r: 'Ex-Google PM, now indie hacker', t: 'Looking for: Beta testers', s: 91 }].map(p => (
+                  <div key={p.i} className="profile-card">
+                    <div className="profile-avatar">{p.i}</div>
+                    <div className="profile-info"><h4>{p.n}</h4><p>{p.r}</p><span className="intent-tag">{p.t}</span></div>
+                    <div className="trust-score"><div className="score">{p.s}</div><div className="label">Trust</div></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust */}
+      <section className="trust-section" id="trust">
+        <div className="section-inner">
+          <p className="section-label animate">Trust &amp; Transparency</p>
+          <h2 className="section-title animate delay-1">Safe to install. Built for serious users.</h2>
+          <p className="section-desc animate delay-2">We believe trust is earned, not claimed. Here&apos;s exactly what you get — and what you don&apos;t.</p>
+          <div className="trust-grid">
+            {[
+              { icon: <><circle cx="12" cy="12" r="10" /><line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></>, title: 'No Spam', body: 'No bulk messages. No random outreach. Only intentional, relevant connection requests.', d: '' },
+              { icon: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="9" x2="15" y2="15" /><line x1="15" y1="9" x2="9" y2="15" /></>, title: 'No Ads', body: "Zero advertising. Your attention is not our product. We don't sell impressions.", d: 'delay-1' },
+              { icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M12 8v4" /><path d="M12 16h.01" /></>, title: 'No Data Selling', body: 'Your profile data stays yours. We never share, sell, or monetize your personal information.', d: 'delay-2' },
+              { icon: <><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></>, title: 'Early Access', body: 'This is a live, working product in active development. Your feedback shapes what comes next.', d: 'delay-3' },
+            ].map(c => (
+              <div key={c.title} className={`trust-card animate ${c.d}`}>
+                <div className="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{c.icon}</svg></div>
+                <h3>{c.title}</h3><p>{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features">
+        <div className="section-inner">
+          <p className="section-label animate">What It Does</p>
+          <h2 className="section-title animate delay-1">Connect with intent. Find relevant people.</h2>
+          <p className="section-desc animate delay-2">BuildYourNetwork replaces random networking with purposeful discovery. Every connection starts with a clear reason.</p>
+          <div className="features-grid">
+            {[
+              { n: 1, title: 'Discover by Intent', body: 'See people who are actively looking for the same things you are — co-founders, mentors, collaborators, or peers.', d: '' },
+              { n: 2, title: 'Filter by Goals', body: 'Narrow your search by industry, role, stage, or specific intent. No noise, only relevance.', d: 'delay-1' },
+              { n: 3, title: 'Build Meaningful Connections', body: 'Every interaction is grounded in shared purpose. Start conversations that actually matter.', d: 'delay-2' },
+            ].map(f => (
+              <div key={f.n} className={`feature-card animate ${f.d}`}>
+                <div className="feature-num">{f.n}</div><h3>{f.title}</h3><p>{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="steps-section" id="how">
+        <div className="section-inner">
+          <p className="section-label animate">How It Works</p>
+          <h2 className="section-title animate delay-1">Three steps to the right connection.</h2>
+          <p className="section-desc animate delay-2">No complex onboarding. No endless scrolling. Just clarity, relevance, and action.</p>
+          <div className="steps-grid">
+            {[
+              { n: 1, title: 'Define Your Intent', body: "Tell the platform what you're looking for — a co-founder, advisor, collaborator, or peer. Be specific. The clearer your intent, the better your matches.", d: '' },
+              { n: 2, title: 'Discover Relevant People', body: 'Browse profiles filtered by your goals. See trust scores, background context, and exactly what each person is looking for.', d: 'delay-1' },
+              { n: 3, title: 'Start a Connection', body: 'Send a purposeful connection request. When accepted, start a focused conversation built on mutual intent.', d: 'delay-2' },
+            ].map(s => (
+              <div key={s.n} className={`step-card animate ${s.d}`}>
+                <div className="step-num">{s.n}</div><h3>{s.title}</h3><p>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* App Preview */}
+      <section id="preview">
+        <div className="section-inner">
+          <p className="section-label animate">App Preview</p>
+          <h2 className="section-title animate delay-1">Built for clarity. Designed for trust.</h2>
+          <p className="section-desc animate delay-2">Every screen is designed to reduce friction and build confidence — from discovery to your first message.</p>
+          <div className="preview-grid">
+            <div className="preview-card animate">
+              <p className="preview-label">Discover Screen</p>
+              <div className="mini-phone"><div className="mini-screen">
+                <div className="mini-header"><h4>Discover</h4><div className="dots"><span /><span /><span /></div></div>
+                {[{ n: 'MC', name: 'Marcus Chen', role: 'AI researcher · Looking for: PM' }, { n: 'ER', name: 'Elena Rossi', role: 'Designer · Looking for: Dev' }, { n: 'DP', name: 'David Park', role: 'Founder · Looking for: Advisor' }].map(p => (
+                  <div key={p.n} className="mini-profile"><div className="mini-avatar" /><div className="mini-info"><h5>{p.name}</h5><p>{p.role}</p></div></div>
+                ))}
+              </div></div>
+            </div>
+            <div className="preview-card animate delay-1">
+              <p className="preview-label">Profile Screen</p>
+              <div className="mini-phone"><div className="mini-screen">
+                <div className="mini-header"><h4>Profile</h4><div className="dots"><span /><span /><span /></div></div>
+                <div className="profile-detail"><div className="big-avatar" /><h4>Alex Morgan</h4><p>Building in fintech · Series A</p></div>
+                <div className="profile-stats">
+                  {[{ n: '96', l: 'Trust' }, { n: '12', l: 'Connections' }, { n: '3', l: 'Intents' }].map(s => <div key={s.l} className="stat-box"><div className="num">{s.n}</div><div className="lbl">{s.l}</div></div>)}
+                </div>
+              </div></div>
+            </div>
+            <div className="preview-card animate delay-2">
+              <p className="preview-label">Chat Screen</p>
+              <div className="mini-phone"><div className="mini-screen">
+                <div className="mini-header"><h4>Alex Morgan</h4><div className="dots"><span /><span /><span /></div></div>
+                <div className="mini-chat">
+                  <div className="chat-bubble received">Hi! I saw you&apos;re looking for a technical co-founder. I&apos;m building something similar in the climate space.</div>
+                  <div className="chat-bubble sent">Hey Alex — yes, exactly. Would love to hear more about your background.</div>
+                  <div className="chat-bubble received">Sure. Ex-Stripe engineer, 6 years in infra. Looking for someone with GTM experience.</div>
+                </div>
+              </div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Differentiation */}
+      <section className="diff-section" id="differentiation">
+        <div className="section-inner">
+          <p className="section-label animate">Why This Is Different</p>
+          <h2 className="section-title animate delay-1">A new category of networking.</h2>
+          <p className="section-desc animate delay-2">We didn&apos;t improve existing networking. We rebuilt it from first principles — starting with intent, not identity.</p>
+          <div className="diff-grid">
+            {[
+              { icon: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>, title: 'Intent-Based Discovery', body: 'Traditional networks show you who people are. We show you what they want. You discover based on shared purpose, not shared connections.', d: '' },
+              { icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, title: 'Trust Score', body: 'Every profile carries a transparent trust score based on verification depth, connection quality, and community feedback. No guesswork.', d: 'delay-1' },
+              { icon: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>, title: 'Relevance Over Volume', body: 'We optimize for quality of connection, not quantity. A single relevant conversation is worth more than a hundred random contacts.', d: 'delay-2' },
+            ].map(c => (
+              <div key={c.title} className={`diff-card animate ${c.d}`}>
+                <div className="diff-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{c.icon}</svg></div>
+                <h3>{c.title}</h3><p>{c.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Coming Soon */}
+      <section id="coming-soon">
+        <div className="section-inner">
+          <p className="section-label animate">On The Horizon</p>
+          <h2 className="section-title animate delay-1">What&apos;s Next</h2>
+          <div className="coming-soon-card animate delay-2" onClick={() => alert('Launching soon')}>
+            <span className="cs-badge">Coming Soon</span>
+            <h3>Intent Circles</h3>
+            <p>Join focused circles based on intent — launching soon.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Download */}
+      <section className="download-section" id="download">
+        <div className="section-inner">
+          <p className="section-label animate">Get Started</p>
+          <h2 className="section-title animate delay-1">Start in seconds — no install required</h2>
+          <p className="section-desc animate delay-2">The full BuildYourNetwork experience runs directly in your browser. Sign up and start discovering in under a minute.</p>
+          <div className="download-box animate delay-3">
+            <a href="/signup" className="download-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              Open Web App — Free
+            </a>
+            <div className="download-meta">
+              {['Works on all devices', 'No download needed', 'Instant access'].map(m => (
+                <span key={m}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{m}</span>
+              ))}
+            </div>
+            <div className="install-steps">
+              {[{ n: 1, title: 'Open in browser', body: 'Click the button above. Works on Chrome, Safari, Firefox — desktop or mobile.' }, { n: 2, title: 'Sign up free', body: 'Create your account and set your networking intent. Takes under 60 seconds.' }, { n: 3, title: 'Start discovering', body: 'Browse relevant profiles, connect with intent, and have real conversations.' }].map(s => (
+                <div key={s.n} className="install-step"><div className="num">{s.n}</div><h4>{s.title}</h4><p>{s.body}</p></div>
+              ))}
+            </div>
+            <div style={{ marginTop: '32px', paddingTop: '28px', borderTop: '1px solid rgba(255,255,255,0.15)', textAlign: 'center' }}>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '14px' }}>Prefer the native app? Android APK also available.</p>
+              <a href="/download/android" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: '600', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '8px', padding: '10px 20px' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                Download Android APK (v1.0.2)
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* About BYN */}
+      <section id="about-byn" style={{ background: 'var(--bg-secondary)', padding: '80px 0' }}>
+        <div className="section-inner">
+          <p className="section-label animate">Knowledge Base</p>
+          <h2 className="section-title animate delay-1">What is Build Your Network?</h2>
+          <div style={{ maxWidth: '760px', margin: '0 auto' }}>
+            <p className="animate delay-2" style={{ fontSize: '17px', color: 'var(--text-secondary)', lineHeight: '1.75', marginBottom: '20px' }}>
+              <strong style={{ color: 'var(--text)' }}>Build Your Network (BYN)</strong> is a free professional networking platform for founders, entrepreneurs, and creators in India. It connects you with co-founders, mentors, investors, and collaborators based on your goals and stated intent — not job titles or follower counts.
+            </p>
+            <p className="animate delay-2" style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.75', marginBottom: '20px' }}>
+              Every user on BYN declares what they are actively looking for — a co-founder, a technical partner, a mentor, an investor, or a collaborator. This intent-first approach means every discovery result is someone actively seeking the same kind of relationship. No recruiter spam. No feed noise. Just relevant connections.
+            </p>
+            <p className="animate delay-3" style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: '1.75', marginBottom: '36px' }}>
+              BYN uses GPS-based location matching — discover founders within 10 km for in-person collaboration or search nationwide for remote co-founders. It runs entirely in your browser. No app install required. Available across India: Hyderabad, Bengaluru, Mumbai, Delhi, Pune, Chennai, and every other city.
+            </p>
+            <div className="animate delay-3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {[{ href: '/networking-for-founders', label: 'Networking for Founders' }, { href: '/linkedin-alternative', label: 'BYN vs LinkedIn' }, { href: '/networking-for-entrepreneurs', label: 'For Entrepreneurs' }, { href: '/networking-for-creators', label: 'For Creators' }, { href: '/networking-for-freelancers', label: 'For Freelancers' }, { href: '/startup-community-india', label: 'Startup Community India' }, { href: '/business-networking-app', label: 'Business Networking App' }, { href: '/networking-for-investors', label: 'For Investors' }].map(l => (
+                <a key={l.href} href={l.href} style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '13px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', background: 'var(--card)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(15,118,110,.15)' }}>{l.label}</a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" style={{ background: 'var(--card)', padding: '80px 0' }}>
+        <div className="section-inner">
+          <h2 className="animate" style={{ textAlign: 'center', marginBottom: '8px', fontSize: 'clamp(28px,3.5vw,40px)', fontWeight: '800', letterSpacing: '-1px' }}>Frequently Asked Questions</h2>
+          <p className="animate delay-1" style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '48px' }}>Everything you need to know about Build Your Network</p>
+          <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+            {[
+              { q: 'What is Build Your Network?', a: 'Build Your Network (BYN) is a free professional networking platform for founders, entrepreneurs, and creators in India. It connects you with co-founders, mentors, investors, and collaborators based on your goals and stated intent — not job titles or work history. BYN uses GPS-based location matching and runs entirely in your browser — no install required.', d: 'delay-1' },
+              { q: 'How is Build Your Network different from LinkedIn?', a: 'LinkedIn is built for job-seekers and recruiters. Build Your Network is built for founders and entrepreneurs who want co-founders, mentors, advisors, and investors — matched by intent and skills. On BYN: no recruiter spam, no feed noise, no vanity metrics. Every person you see has declared what they are actively looking for, making first messages contextual and response rates far higher.', d: 'delay-2' },
+              { q: 'How do I find a co-founder on Build Your Network?', a: 'Create a free profile, set your intent to "Looking for Co-founder", add your skills and startup description, and enable location discovery. BYN surfaces founders with complementary skills within your chosen radius. You can filter by city (Hyderabad, Bengaluru, Mumbai, etc.) or search Remote/Worldwide for technical co-founders anywhere in India.', d: 'delay-3' },
+              { q: 'Is Build Your Network free?', a: 'Yes — BYN is free with 30 daily connection requests. No install, no credit card. Premium plans unlock unlimited connections, priority discovery, exact location filters (10/25/50 km), and profile boosting for founders who want faster results.', d: 'delay-4' },
+              { q: 'Is Build Your Network available across India?', a: 'Yes. Build Your Network supports founders and entrepreneurs in every major Indian city — Hyderabad, Bengaluru, Mumbai, Delhi, Pune, Chennai, Kolkata, Ahmedabad, Jaipur, and more. GPS-based filters let you discover connections within 10 km, 50 km, 200 km, or search nationwide and worldwide.', d: 'delay-1' },
+              { q: 'Who uses Build Your Network?', a: 'Build Your Network is used by startup founders, solo entrepreneurs, freelancers, creators, product managers, designers, developers, angel investors, and mentors — anyone who wants meaningful professional connections based on intent and goals.', d: 'delay-2' },
+              { q: 'How does the location filter work?', a: 'BYN uses GPS to show you professionals within 200 km by default. Premium users can tighten that to 10, 25, or 50 km for hyper-local co-founder discovery. You can also set Remote-only or Worldwide to find collaborators anywhere without location constraints.', d: 'delay-3' },
+              { q: 'Is my data safe on Build Your Network?', a: 'Yes. Your email is never shared with other users. Exact GPS coordinates are only used to compute distance — never exposed to other profiles. All data is stored securely on Supabase with Row-Level Security policies enforced. BYN has no ads and does not sell user data.', d: 'delay-4' },
+            ].map((f, i) => (
+              <details key={i} className={`faq-item animate ${f.d}`}>
+                <summary>{f.q}</summary>
+                <div><p>{f.a}</p></div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="final-cta">
+        <div className="section-inner">
+          <h2 className="animate">Your network defines your trajectory.</h2>
+          <p className="animate delay-1">Stop collecting contacts. Start building connections that matter.</p>
+          <div className="animate delay-2">
+            <a href="/signup" className="btn-primary" style={{ fontSize: '17px', padding: '18px 40px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              Open Web App — Free
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer>
+        <div className="footer-inner">
+          <div>
+            <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" />BuildYourNetwork</div>
+            <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
+          </div>
+          <div className="footer-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
+          <div className="footer-col"><h4>Product</h4><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
+          <div className="footer-col"><h4>Support</h4><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a><a href="/download/android">Download APK</a></div>
+        </div>
+        <div className="footer-bottom"><span>&copy; 2026 BuildYourNetwork. All rights reserved.</span><span>Early Access Product</span></div>
+      </footer>
 
       {/* Feedback tab */}
-      <button
-        onClick={() => setFeedbackOpen(true)}
-        className="feedback-tab-mobile fixed right-0 top-1/2 -translate-y-1/2 translate-x-0.5 bg-[#0F766E] text-white py-3.5 px-2.5 rounded-l-xl cursor-pointer z-[99] flex flex-col items-center gap-1.5 border-0 transition-all hover:bg-[#0d5f58] hover:translate-x-0"
-        style={{ boxShadow: "-4px 4px 20px rgba(15,118,110,0.3)", writingMode: "vertical-rl", textOrientation: "mixed" }}
-        aria-label="Open feedback"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(-90deg)" }}>
-          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-        </svg>
-        <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ transform: "rotate(180deg)" }}>Feedback</span>
+      <button className="feedback-tab" onClick={() => setFeedbackOpen(true)}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+        <span>Feedback</span>
       </button>
 
-      <FeedbackModal open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      {/* Feedback modal */}
+      {feedbackOpen && (
+        <>
+          <div className="feedback-overlay" onClick={closeFeedback} />
+          <div className="feedback-modal">
+            <div className="feedback-header">
+              <h3>Share Your Thoughts</h3>
+              <button className="feedback-close" onClick={closeFeedback}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            <div className="feedback-body">
+              {feedbackDone ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div className="success-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></div>
+                  <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'var(--text)' }}>Thank You</h4>
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>Your feedback has been received. We review every submission personally.</p>
+                  <button className="feedback-done" onClick={closeFeedback}>Close</button>
+                </div>
+              ) : (
+                <form onSubmit={e => { e.preventDefault(); setFeedbackDone(true); }}>
+                  <p className="feedback-intro">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
+                  <div className="feedback-field">
+                    <label>What is this about?</label>
+                    <select defaultValue="" required>
+                      <option value="" disabled>Select a topic</option>
+                      <option value="bug">Bug or issue</option>
+                      <option value="feature">Feature request</option>
+                      <option value="ux">User experience</option>
+                      <option value="install">Installation problem</option>
+                      <option value="other">Something else</option>
+                    </select>
+                  </div>
+                  <div className="feedback-field">
+                    <label>Your feedback</label>
+                    <textarea rows={5} required placeholder="Describe what you experienced, what you expected, and what happened instead..." />
+                  </div>
+                  <div className="feedback-field">
+                    <label>Email (optional)</label>
+                    <input type="email" placeholder="you@example.com" />
+                    <span className="field-hint">Only if you&apos;d like us to follow up</span>
+                  </div>
+                  <button type="submit" className="feedback-submit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
+                    Send Feedback
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       <Script strategy="afterInteractive" src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ" />
       <Script id="ga-init" strategy="afterInteractive">{`
