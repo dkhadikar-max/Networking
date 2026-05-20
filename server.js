@@ -2226,15 +2226,7 @@ app.get('/download/android', (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
     return res.sendFile(APK_FILE);
   }
-  res.status(404).send(`
-    <!DOCTYPE html><html><head><title>Coming Soon</title>
-    <style>body{font-family:Arial,sans-serif;text-align:center;padding:80px;background:#f9f9f9}
-    h2{color:#0F766E}p{color:#555}</style></head><body>
-    <h2>Android APK — Coming Soon</h2>
-    <p>The app is being prepared for download. Check back shortly.</p>
-    <a href="/" style="color:#0F766E">Back to home</a>
-    </body></html>
-  `);
+  res.status(404).json({ error: 'APK not available yet. Check back shortly.' });
 });
 app.get('/apk/:filename', (req, res) => res.redirect(302, '/download/android'));
 
