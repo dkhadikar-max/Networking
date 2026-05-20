@@ -8,7 +8,7 @@ type AuthCtx = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  signup: (name: string, email: string, password: string) => Promise<{ user: User; token: string }>;
+  signup: (name: string, email: string, password: string, extra?: Record<string, unknown>) => Promise<{ user: User; token: string }>;
   logout: () => void;
   refreshUser: () => Promise<User | undefined>;
   setUser: (u: User | null) => void;
@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return r;
   }
 
-  async function signup(name: string, email: string, password: string) {
-    const r = await apiPost<{ token: string; user: User }>('/api/signup', { name, email, password });
+  async function signup(name: string, email: string, password: string, extra?: Record<string, unknown>) {
+    const r = await apiPost<{ token: string; user: User }>('/api/signup', { name, email, password, ...extra });
     setToken(r.token);
     setUser(r.user);
     return r;

@@ -74,6 +74,7 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         </Field>
         <Field label="Location" error={errors.location?.message}>
           <input {...register('location')} placeholder="e.g. Mumbai, India" className={inputClass} />
+          <p className="text-xs text-[var(--muted)] mt-1">Your city is shown on your profile. GPS-based proximity discovery uses your approximate location only when you are active.</p>
         </Field>
       </div>
 

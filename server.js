@@ -223,6 +223,7 @@ app.options('*', cors(corsOptions));
 const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests, slow down' } });
 const authLimiter       = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
+const adminLimiter      = rateLimit({ windowMs: 15*60*1000, max: 60, message: { error: 'Too many requests' } });
 const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
 const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' },
   keyGenerator: (req) => {
@@ -781,8 +782,7 @@ function generateCityPage(slug, city, BASE) {
 </div>
 
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
 <script>(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()</script>
 </body>
 </html>`;
@@ -916,8 +916,7 @@ function cityPageShell(head, body, BASE) {
 </div></nav>
 ${body}
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
 <script>
 (function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();
 </script>
@@ -2721,8 +2720,9 @@ async function sendOtpEmail(toEmail, otp, name) {
 
 app.post('/api/signup', authLimiter, async (req, res) => {
   try {
-    const { email, password, name, ref_code } = req.body;
+    const { email, password, name, ref_code, age_confirmed } = req.body;
     if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
+    if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
     if (password.length < 6) return res.status(400).json({ error: 'Password min 6 chars' });
@@ -2735,7 +2735,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     const id   = uuidv4();
     const role = ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'user';
     const newUser = {
-      id, email: normalizedEmail, password: await bcrypt.hash(password, 12), name: sanitize(name).slice(0, 120),
+      id, email: normalizedEmail, password: await bcrypt.hash(password.slice(0, 72), 12), name: sanitize(name).slice(0, 120),
       bio: '', photos: [], instagram: '', linkedin: '', website: '',
       location: '', lat: null, lng: null, remote: false,
       skills: [], interests: [],
@@ -2743,7 +2743,9 @@ app.post('/api/signup', authLimiter, async (req, res) => {
       intent: 'explore-network', role, premium: false,
       trust_score: 0, profile_score: 0, is_profile_complete: false,
       verification: { status: 'none', confidence: 0 },
-      banned: false, created_at: new Date().toISOString()
+      banned: false, created_at: new Date().toISOString(),
+      consent_given_at: new Date().toISOString(), consent_version: 'v1.0',
+      do_not_sell: false,
     };
 
     newUser.trust_score         = calcTrust(newUser);
@@ -3119,6 +3121,103 @@ app.get('/api/me', auth, async (req, res) => {
   }
 });
 
+// ── DELETE MY ACCOUNT (GDPR Art. 17 right to erasure) ──
+app.delete('/api/me', auth, async (req, res) => {
+  try {
+    const id = req.user.id;
+    await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
+    await supabase.from('messages').delete().eq('sender_id', id);
+    await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
+    await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+    await supabase.from('works').delete().eq('user_id', id);
+    await supabase.from('user_intents').delete().eq('user_id', id);
+    await supabase.from('user_acquisition').delete().eq('user_id', id);
+    await supabase.from('users').delete().eq('id', id);
+    await auditLog(id, 'self_delete', id);
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Self-delete error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── EXPORT MY DATA (GDPR Art. 20 data portability) ──
+app.get('/api/me/export', auth, async (req, res) => {
+  try {
+    const id = req.user.id;
+    const [
+      { data: user },
+      { data: conns },
+      { data: msgs },
+      { data: intents },
+      { data: acquisition },
+      { data: works },
+    ] = await Promise.all([
+      supabase.from('users').select('*').eq('id', id).maybeSingle(),
+      supabase.from('connections').select('*').or(`user1.eq.${id},user2.eq.${id}`),
+      supabase.from('messages').select('id,text,created_at,connection_id').eq('sender_id', id).order('created_at'),
+      supabase.from('user_intents').select('intent,created_at').eq('user_id', id),
+      supabase.from('user_acquisition').select('source,referral,created_at').eq('user_id', id).maybeSingle(),
+      supabase.from('works').select('title,description,url,created_at').eq('user_id', id),
+    ]);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+
+    const payload = {
+      exported_at: new Date().toISOString(),
+      profile: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        bio: user.bio,
+        headline: user.headline,
+        location: user.location,
+        profession: user.profession,
+        industry: user.industry,
+        skills: user.skills,
+        interests: user.interests,
+        intent: user.intent,
+        working_on: user.working_on,
+        currently_exploring: user.currently_exploring,
+        linkedin: user.linkedin,
+        instagram: user.instagram,
+        website: user.website,
+        premium: user.premium,
+        created_at: user.created_at,
+        consent_given_at: user.consent_given_at,
+        consent_version: user.consent_version,
+        do_not_sell: user.do_not_sell,
+      },
+      intents: intents || [],
+      acquisition: acquisition || null,
+      connections: (conns || []).map(c => ({ id: c.id, created_at: c.created_at, status: c.status })),
+      messages_sent: msgs || [],
+      works: works || [],
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="byn-data-export.json"');
+    res.json(payload);
+  } catch(e) {
+    console.error('Export error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── PRIVACY SETTINGS (Do Not Sell / CCPA) ──
+app.post('/api/me/privacy', auth, async (req, res) => {
+  try {
+    const { do_not_sell } = req.body;
+    if (typeof do_not_sell !== 'boolean') return res.status(400).json({ error: 'do_not_sell must be boolean' });
+    await supabase.from('users').update({ do_not_sell }).eq('id', req.user.id);
+    res.json({ ok: true, do_not_sell });
+  } catch(e) {
+    console.error('Privacy settings error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── PROFILE STATUS ──
 app.get('/api/profile-status', auth, async (req, res) => {
   try {
@@ -3287,6 +3386,17 @@ app.post('/api/me/push-token', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Push token error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── DELETE PUSH TOKEN (P4 — data hygiene) ──
+app.delete('/api/me/push-token', auth, async (req, res) => {
+  try {
+    await supabase.from('users').update({ push_token: null }).eq('id', req.user.id);
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Delete push token error:', e);
     res.status(500).json({ error: e.message });
   }
 });
@@ -3659,6 +3769,73 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
   }
 });
 
+// ── CONNECT (direct right-swipe from profile page or card button) ──
+app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
+  try {
+    const { userId: targetId } = req.body;
+    if (!targetId) return res.status(400).json({ error: 'userId required' });
+    if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot connect with yourself' });
+
+    const swiper = req.userData;
+    const SWIPE_LIMIT = swiper.premium ? 200 : 30;
+
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const { count: todayCount, error: countErr } = await supabase.from('swipes')
+      .select('*', { count: 'exact', head: true })
+      .eq('from_user', req.user.id)
+      .gte('created_at', todayStart.toISOString());
+    if (countErr) throw countErr;
+    if ((todayCount || 0) >= SWIPE_LIMIT)
+      return res.status(429).json({ error: 'Daily connection limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
+
+    // Check if already swiped / connected
+    const { data: dupSwipe } = await supabase.from('swipes')
+      .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
+    if (dupSwipe) return res.json({ ok: true, match: false, duplicate: true });
+
+    const { error: insertErr } = await supabase.from('swipes').insert({
+      from_user: req.user.id, to_user: targetId, direction: 'right',
+      created_at: new Date().toISOString(),
+    });
+    if (insertErr) {
+      if (insertErr.code === '23505') return res.json({ ok: true, match: false, duplicate: true });
+      throw insertErr;
+    }
+
+    let match = false, connectionId = null;
+    const { data: theirSwipe } = await supabase.from('swipes')
+      .select('id').eq('from_user', targetId).eq('to_user', req.user.id).eq('direction', 'right').maybeSingle();
+    if (theirSwipe) {
+      const now = new Date();
+      connectionId = uuidv4();
+      const { error: connErr } = await supabase.from('connections').insert({
+        id: connectionId, user1: req.user.id, user2: targetId,
+        created_at: now.toISOString(),
+        expires_at: new Date(now.getTime() + 5 * 24 * 3600000).toISOString(),
+        first_response_deadline: new Date(now.getTime() + 48 * 3600000).toISOString(),
+        user1_responded: false, user2_responded: false,
+        active: false, status: 'active',
+      });
+      if (connErr) throw connErr;
+      match = true;
+
+      const [{ data: me2 }, { data: them }] = await Promise.all([
+        supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
+        supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
+      ]);
+      const myName    = me2  ? me2.name  : 'Someone';
+      const theirName = them ? them.name : 'Someone';
+      sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
+      sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+    }
+
+    res.json({ ok: true, match, connectionId });
+  } catch(e) {
+    console.error('Connect error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── CONNECTIONS ──
 app.get('/api/connections', auth, async (req, res) => {
   try {
@@ -4025,6 +4202,33 @@ app.post('/api/report', auth, async (req, res) => {
   }
 });
 
+// ── DSA ILLEGAL CONTENT REPORT (Art. 16 — separate channel from social reports) ──
+const DSA_CATEGORIES = ['CSAM','Terrorism','Hate Speech','Fraud','Non-Consensual Intimate Images','Violence','Other'];
+app.post('/api/report/illegal-content', auth, async (req, res) => {
+  try {
+    const { targetId, category, description } = req.body;
+    if (!targetId || !category || !DSA_CATEGORIES.includes(category))
+      return res.status(400).json({ error: 'targetId and valid category required', categories: DSA_CATEGORIES });
+    const cleanDesc = description ? String(description).slice(0, 2000) : '';
+    await supabase.from('reports').insert({
+      id: uuidv4(), from_user: req.user.id, target_id: targetId,
+      reason: `[DSA:${category}] ${cleanDesc}`,
+      type: 'illegal_content',
+      created_at: new Date().toISOString(),
+    });
+    // Temporarily ban target pending review if category is CSAM or Terrorism
+    if (category === 'CSAM' || category === 'Terrorism') {
+      await supabase.from('users').update({ banned: true }).eq('id', targetId);
+      await auditLog(req.user.id, 'dsa_auto_ban', targetId);
+    }
+    console.log(`[DSA] report from=${req.user.id} target=${targetId} category=${category}`);
+    res.json({ ok: true, message: 'Report received. Our team will review within 24 hours.' });
+  } catch(e) {
+    console.error('DSA report error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── BLOCK ──
 app.post('/api/block', auth, async (req, res) => {
   try {
@@ -4166,6 +4370,7 @@ app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
 });
 
 // ── FIXED: ADMIN ROUTES ──
+app.use('/api/admin', adminLimiter);
 app.get('/api/admin/users', adminAuth, async (req, res) => {
   try {
     const { data: allUsers } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(1000);
@@ -4321,6 +4526,41 @@ function normalizeSource(src) {
   };
   return src ? (map[src] || 'unknown') : 'unknown';
 }
+
+// ── DSA TRANSPARENCY REPORT (Art. 15) ──
+app.get('/api/admin/dsa-report', adminAuth, async (req, res) => {
+  try {
+    const { data: illegal } = await supabase.from('reports')
+      .select('reason,created_at,target_id').eq('type', 'illegal_content').order('created_at', { ascending: false });
+    const { data: social } = await supabase.from('reports')
+      .select('reason,created_at').not('type', 'eq', 'illegal_content').order('created_at', { ascending: false });
+    const { count: bannedCount } = await supabase.from('users')
+      .select('*', { count: 'exact', head: true }).eq('banned', true);
+
+    const categoryCounts = {};
+    (illegal || []).forEach(r => {
+      const match = r.reason.match(/^\[DSA:([^\]]+)\]/);
+      const cat = match ? match[1] : 'Unknown';
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    });
+
+    res.json({
+      generated_at: new Date().toISOString(),
+      illegal_content_reports: (illegal || []).length,
+      illegal_content_by_category: categoryCounts,
+      social_reports: (social || []).length,
+      total_banned_users: bannedCount || 0,
+      report_log: (illegal || []).map(r => ({
+        created_at: r.created_at,
+        reason: r.reason,
+        target_id: r.target_id,
+      })),
+    });
+  } catch(e) {
+    console.error('DSA report error:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
   try {
@@ -5439,6 +5679,66 @@ app.listen(PORT, () => {
   // Profile nudge: run immediately then every hour
   sendProfileNudges();
   setInterval(sendProfileNudges, 60 * 60 * 1000);
+
+  // Data retention: GDPR Art. 5(1)(e) storage limitation — runs every 24 hours
+  async function runRetentionCycle() {
+    try {
+      const cutoff18m = new Date(Date.now() - 18 * 30 * 24 * 3600 * 1000).toISOString();
+      const warnDeadline = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+
+      // Step 1: schedule deletion for inactive accounts not yet warned
+      const { data: toWarn } = await supabase.from('users')
+        .select('id, email, name')
+        .lt('last_active', cutoff18m)
+        .is('deletion_scheduled_at', null)
+        .neq('role', 'admin')
+        .limit(100);
+
+      for (const u of (toWarn || [])) {
+        await supabase.from('users')
+          .update({ deletion_scheduled_at: warnDeadline })
+          .eq('id', u.id);
+        if (ResendClient && u.email) {
+          ResendClient.emails.send({
+            from: process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
+            to: u.email,
+            subject: 'Your Build Your Network account will be deleted in 30 days',
+            html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px"><h2 style="color:#0F766E">Account Deletion Notice</h2><p>Hi ${u.name || 'there'},</p><p>Your Build Your Network account has been inactive for over 18 months. To comply with our data retention policy, your account and all associated data will be permanently deleted in <strong>30 days</strong>.</p><p>To keep your account, simply <a href="https://app.buildyournetwork.online" style="color:#0F766E">log in</a> before then.</p><p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p></div>`,
+          }).catch(() => {});
+        }
+      }
+
+      // Step 2: hard-delete accounts past their deletion_scheduled_at
+      const now = new Date().toISOString();
+      const { data: toDelete } = await supabase.from('users')
+        .select('id')
+        .lt('deletion_scheduled_at', now)
+        .neq('role', 'admin')
+        .limit(50);
+
+      for (const u of (toDelete || [])) {
+        const id = u.id;
+        await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
+        await supabase.from('messages').delete().eq('sender_id', id);
+        await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+        await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+        await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
+        await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
+        await supabase.from('works').delete().eq('user_id', id);
+        await supabase.from('user_intents').delete().eq('user_id', id);
+        await supabase.from('user_acquisition').delete().eq('user_id', id);
+        await supabase.from('users').delete().eq('id', id);
+        console.log(`[Retention] Deleted inactive account ${id}`);
+      }
+
+      if ((toWarn || []).length || (toDelete || []).length) {
+        console.log(`[Retention] Warned: ${(toWarn||[]).length}, Deleted: ${(toDelete||[]).length}`);
+      }
+    } catch(e) {
+      console.error('[Retention] Cycle error:', e.message);
+    }
+  }
+  setInterval(runRetentionCycle, 24 * 60 * 60 * 1000);
 
   // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
   if (INDEXNOW_KEY) {

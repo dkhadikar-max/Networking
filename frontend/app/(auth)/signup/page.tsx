@@ -12,14 +12,18 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!ageConfirmed) { setError('Please confirm you are 16 or older.'); return; }
+    if (!termsAccepted) { setError('Please accept the Terms and Privacy Policy.'); return; }
     setError(''); setLoading(true);
     try {
-      await signup(name, email, password);
+      await signup(name, email, password, { age_confirmed: true });
       router.replace('/verify');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
@@ -72,6 +76,31 @@ export default function SignupPage() {
             placeholder="At least 8 characters"
             className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--sur2)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
           />
+        </div>
+        <div className="space-y-3 pt-1">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={e => setAgeConfirmed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+            />
+            <span className="text-sm text-[var(--sub)]">I confirm I am 16 years of age or older</span>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--primary)]"
+            />
+            <span className="text-sm text-[var(--sub)]">
+              I agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[var(--primary)] underline underline-offset-2">Terms of Service</a>
+              {' '}and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[var(--primary)] underline underline-offset-2">Privacy Policy</a>
+            </span>
+          </label>
         </div>
         <Button type="submit" loading={loading} fullWidth>Create account</Button>
       </form>
