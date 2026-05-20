@@ -3,8 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
-    const backend = process.env.BACKEND_URL;
-    if (!backend) return [];
+    const backend = process.env.BACKEND_URL ?? 'https://api.buildyournetwork.online';
     return [
       { source: '/api/:path*',     destination: `${backend}/api/:path*` },
       { source: '/uploads/:path*', destination: `${backend}/uploads/:path*` },
