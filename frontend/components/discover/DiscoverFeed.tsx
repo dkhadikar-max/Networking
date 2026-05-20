@@ -37,7 +37,7 @@ export default function DiscoverFeed() {
     }
   }, [page, toast]);
 
-  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
 
   async function handleConnect(profile: DiscoverProfile) {
     const uid = getUid(profile);
@@ -55,11 +55,13 @@ export default function DiscoverFeed() {
 
   function handleSkip(profile: DiscoverProfile) {
     const uid = getUid(profile);
+    let remaining = 0;
     setProfiles(prev => {
       const next = prev.filter(p => getUid(p) !== uid);
-      if (next.length <= 3 && !exhausted) load(false);
+      remaining = next.length;
       return next;
     });
+    if (remaining <= 3 && !exhausted && !loading) load(false);
   }
 
   const current = profiles[0] ?? null;

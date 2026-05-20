@@ -7,15 +7,24 @@ import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import type { User } from '@/lib/types';
 
+function safeHref(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:' ? url : undefined;
+  } catch { return undefined; }
+}
+
 type Props = {
   user: User;
   isSelf?: boolean;
   onConnect?: () => Promise<void>;
   connected?: boolean;
+  connectionId?: string;
   onEdit?: () => void;
 };
 
-export default function ProfileView({ user, isSelf = false, onConnect, connected, onEdit }: Props) {
+export default function ProfileView({ user, isSelf = false, onConnect, connected, connectionId, onEdit }: Props) {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
 
@@ -84,13 +93,13 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
 
             {/* Social links */}
             <div className="flex gap-3 mt-4">
-              {user.linkedin && (
-                <a href={user.linkedin} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
+              {safeHref(user.linkedin) && (
+                <a href={safeHref(user.linkedin)} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
                 </a>
               )}
-              {user.website && (
-                <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
+              {safeHref(user.website) && (
+                <a href={safeHref(user.website)} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 </a>
               )}
@@ -181,7 +190,7 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
 
         {/* Open chat button for non-self connected profiles */}
         {!isSelf && connected && (
-          <Link href="/chat" className="w-full">
+          <Link href={connectionId ? `/chat/${connectionId}` : '/chat'} className="w-full">
             <Button fullWidth variant="secondary">Open chat</Button>
           </Link>
         )}

@@ -58,6 +58,7 @@ export default function OtherProfilePage() {
       user={profile}
       isSelf={isSelf}
       connected={!!profile.connection}
+      connectionId={profile.connection?.id}
       onConnect={isSelf ? undefined : handleConnect}
     />
   );

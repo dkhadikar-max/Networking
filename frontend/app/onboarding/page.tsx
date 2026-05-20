@@ -147,7 +147,7 @@ export default function OnboardingPage() {
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-2xl font-bold text-[var(--text)]">How did you hear about us?</h2>
-                    <p className="text-[var(--text-secondary)] mt-1">Helps us understand where to grow next.</p>
+                    <p className="text-[var(--text-soft)] mt-1">Helps us understand where to grow next.</p>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {SOURCES.map(s => (
@@ -158,13 +158,13 @@ export default function OnboardingPage() {
                           'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
                           source === s.label
                             ? 'border-[var(--primary)] bg-[var(--highlight)]'
-                            : 'border-[var(--border)] bg-white hover:border-[var(--teal)]'
+                            : 'border-[var(--border)] bg-white hover:border-[var(--primary-2)]'
                         )}
                       >
                         <span className="text-2xl">{s.icon}</span>
                         <span className={clsx(
                           'text-xs font-medium text-center leading-tight',
-                          source === s.label ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
+                          source === s.label ? 'text-[var(--primary)]' : 'text-[var(--text-soft)]'
                         )}>
                           {s.label}
                         </span>

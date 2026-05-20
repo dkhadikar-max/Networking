@@ -6,6 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 
+function safeHref(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === 'http:' || protocol === 'https:' ? url : undefined;
+  } catch { return undefined; }
+}
+
 export type DrawerProfile = {
   id?: string;
   name?: string;
@@ -165,13 +173,13 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
           )}
           {(raw?.linkedin || raw?.website || raw?.instagram) && (
             <div className="flex gap-3 pt-1">
-              {raw.linkedin && (
-                <a href={raw.linkedin} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
+              {safeHref(raw.linkedin) && (
+                <a href={safeHref(raw.linkedin)} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z" /><circle cx="4" cy="4" r="2" /></svg>
                 </a>
               )}
-              {raw.website && (
-                <a href={raw.website} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
+              {safeHref(raw.website) && (
+                <a href={safeHref(raw.website)} target="_blank" rel="noopener noreferrer" className="text-[var(--sub)] hover:text-[var(--primary)] transition-colors">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
                 </a>
               )}
