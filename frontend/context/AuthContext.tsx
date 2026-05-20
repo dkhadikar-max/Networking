@@ -18,7 +18,7 @@ const AuthContext = createContext<AuthCtx | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!getToken());
 
   const refreshUser = useCallback(async () => {
     try {
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setLoading(false); return; }
+    if (!token) return;
     apiGet<User>('/api/me')
       .then(data => setUser(data))
       .catch(() => { clearToken(); })

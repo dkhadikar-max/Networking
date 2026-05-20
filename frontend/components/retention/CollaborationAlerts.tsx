@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import type { Connection } from '@/lib/retention/signals';
 
@@ -36,7 +37,7 @@ export default function CollaborationAlerts({ staleConnections }: Props) {
             className="flex items-center gap-3 p-4 rounded-xl border-2 border-[var(--border)] bg-white hover:border-[var(--teal)] transition-colors"
           >
             {c.user.photos?.[0] ? (
-              <img src={c.user.photos[0]} alt={c.user.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+              <Image src={c.user.photos[0]} alt={c.user.name} width={40} height={40} className="w-10 h-10 rounded-full object-cover shrink-0" unoptimized />
             ) : (
               <div className="w-10 h-10 rounded-full bg-[var(--highlight)] flex items-center justify-center text-[var(--primary)] font-bold shrink-0">
                 {c.user.name[0]}

@@ -38,7 +38,7 @@ export default function DiscoverFeed() {
     }
   }, [page, toast]);
 
-  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
 
   async function handleConnect(profile: DiscoverProfile) {
     const uid = getUid(profile);

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import clsx from 'clsx';
 import { sharedInterests } from '@/lib/network/matching';
 import type { Connection } from '@/lib/retention/signals';
@@ -47,7 +48,7 @@ export default function MutualOpportunities({ connections, userInterests }: Prop
           >
             <div className="flex items-center gap-3 mb-3">
               {c.user.photos?.[0] ? (
-                <img src={c.user.photos[0]} alt={c.user.name} className="w-9 h-9 rounded-full object-cover" />
+                <Image src={c.user.photos[0]} alt={c.user.name} width={36} height={36} className="w-9 h-9 rounded-full object-cover" unoptimized />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-[var(--highlight)] flex items-center justify-center text-[var(--primary)] font-bold text-sm">
                   {c.user.name[0]}

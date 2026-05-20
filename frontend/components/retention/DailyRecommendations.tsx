@@ -36,7 +36,7 @@ export default function DailyRecommendations({ recommendations, onDismiss }: Pro
     return (
       <div className="text-center py-10 text-[var(--text-muted)]">
         <p className="text-3xl mb-2">🎉</p>
-        <p className="font-medium text-[var(--text)]">You're all caught up!</p>
+        <p className="font-medium text-[var(--text)]">You&apos;re all caught up!</p>
         <p className="text-sm mt-1">Check back tomorrow for new actions.</p>
       </div>
     );
@@ -45,7 +45,7 @@ export default function DailyRecommendations({ recommendations, onDismiss }: Pro
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-[var(--text)]">Today's actions</h3>
+        <h3 className="font-semibold text-[var(--text)]">Today&apos;s actions</h3>
         <span className="text-sm text-[var(--text-muted)]">{visible.length} remaining</span>
       </div>
 

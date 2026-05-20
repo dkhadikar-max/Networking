@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import WhyThisMatch from './WhyThisMatch';
 import { apiGet } from '@/lib/api';
 
@@ -67,7 +68,7 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
                 className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[var(--border)]"
               >
                 {p.photos?.[0] ? (
-                  <img src={p.photos[0]} alt={p.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
+                  <Image src={p.photos[0]} alt={p.name} width={48} height={48} className="w-12 h-12 rounded-full object-cover shrink-0" unoptimized />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-[var(--highlight)] flex items-center justify-center text-[var(--primary)] font-bold text-lg shrink-0">
                     {p.name[0]}

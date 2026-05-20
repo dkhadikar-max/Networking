@@ -37,10 +37,10 @@ type Props = {
 
 export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: Props) {
   const [connecting, setConnecting] = useState(false);
-  const [photoIdx, setPhotoIdx] = useState(0);
-
   const uid = profile?.user?.id ?? profile?.id;
-  useEffect(() => { setPhotoIdx(0); }, [uid]);
+  const [photoState, setPhotoState] = useState<{ uid: string | undefined; idx: number }>({ uid, idx: 0 });
+  const photoIdx = photoState.uid === uid ? photoState.idx : 0;
+  function setPhotoIdx(idx: number) { setPhotoState({ uid, idx }); }
 
   useEffect(() => {
     if (!profile) return;

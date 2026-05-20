@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { apiGet, getToken } from '@/lib/api';
 import { computeSignals, networkMomentumScore } from '@/lib/retention/signals';
 import { buildRecommendations } from '@/lib/retention/recommendations';
@@ -14,12 +15,13 @@ import type { Recommendation } from '@/lib/retention/recommendations';
 
 interface LikedMeResponse { count: number; profiles: unknown[] }
 
+const PAGE_LOAD_TIME = Date.now();
+
 export default function RetentionPage() {
   const [loading, setLoading]               = useState(true);
   const [profile, setProfile]               = useState<UserProfile | null>(null);
   const [profileStatus, setProfileStatus]   = useState<ProfileStatus | null>(null);
   const [connections, setConnections]       = useState<Connection[]>([]);
-  const [likedMeCount, setLikedMeCount]     = useState(0);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [momentumScore, setMomentumScore]   = useState(0);
   const [error, setError]                   = useState<string | null>(null);
@@ -37,7 +39,6 @@ export default function RetentionPage() {
         setProfile(me);
         setProfileStatus(status);
         setConnections(conns);
-        setLikedMeCount(liked.count);
 
         const signals = computeSignals(me, status, conns, liked.count);
         const recs    = buildRecommendations(signals);
@@ -52,12 +53,14 @@ export default function RetentionPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const staleConns = connections.filter(c => {
-    const lastAt = c.lastMessage
-      ? new Date(c.lastMessage.created_at).getTime()
-      : new Date(c.connection.expires_at).getTime() - 7 * 86400000;
-    return (Date.now() - lastAt) / 86400000 >= 7;
-  });
+  const staleConns = useMemo(() => {
+    return connections.filter(c => {
+      const lastAt = c.lastMessage
+        ? new Date(c.lastMessage.created_at).getTime()
+        : new Date(c.connection.expires_at).getTime() - 7 * 86400000;
+      return (PAGE_LOAD_TIME - lastAt) / 86400000 >= 7;
+    });
+  }, [connections]);
 
   const activeConversations = connections.filter(c => c.msgCount > 0).length;
 
@@ -74,7 +77,7 @@ export default function RetentionPage() {
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
           <p className="text-red-500 font-medium">{error}</p>
-          <a href="/" className="text-sm text-[var(--primary)] mt-2 block hover:underline">Go home</a>
+          <Link href="/" className="text-sm text-[var(--primary)] mt-2 block hover:underline">Go home</Link>
         </div>
       </div>
     );

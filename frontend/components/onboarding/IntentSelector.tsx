@@ -28,7 +28,7 @@ export default function IntentSelector({ onNext, loading }: Props) {
   const toggle = (label: string) => {
     setSelected(prev => {
       const next = new Set(prev);
-      next.has(label) ? next.delete(label) : next.add(label);
+      if (next.has(label)) { next.delete(label); } else { next.add(label); }
       return next;
     });
   };
@@ -37,7 +37,7 @@ export default function IntentSelector({ onNext, loading }: Props) {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--text)]">What brings you here?</h2>
-        <p className="text-[var(--text-secondary)] mt-1">Select all that apply — we'll personalise your experience.</p>
+        <p className="text-[var(--text-secondary)] mt-1">Select all that apply — we&apos;ll personalise your experience.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
