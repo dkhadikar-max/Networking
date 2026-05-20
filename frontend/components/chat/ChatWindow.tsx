@@ -103,7 +103,7 @@ export default function ChatWindow({ connectionId }: Props) {
     <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] bg-white shrink-0">
-        <Link href="/chat" className="lg:hidden p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors">
+        <Link href="/chat" className="p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6"/>
           </svg>
