@@ -1,5 +1,6 @@
 'use client';
 
+import './app.css';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -36,15 +37,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+      <div className="app-wrap">
+        <div className="loading-center">
+          <div className="spinner" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16">
+    <div className="app-wrap">
+      <main className="app-views">
         {children}
       </main>
       <BottomNav />

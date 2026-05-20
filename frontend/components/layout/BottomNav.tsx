@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import clsx from 'clsx';
 
 const TABS = [
   {
@@ -47,25 +46,20 @@ export default function BottomNav() {
   const path = usePathname();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[var(--border)] safe-area-pb">
-      <div className="flex items-stretch h-16">
-        {TABS.map(tab => {
-          const active = path.startsWith(tab.href);
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={clsx(
-                'flex-1 flex flex-col items-center justify-center gap-1 transition-colors',
-                active ? 'text-[var(--primary)]' : 'text-[var(--muted)]'
-              )}
-            >
-              {tab.icon(active)}
-              <span className="text-[10px] font-semibold">{tab.label}</span>
-            </Link>
-          );
-        })}
-      </div>
+    <nav className="bottom-nav">
+      {TABS.map(tab => {
+        const active = path.startsWith(tab.href);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`nav-item${active ? ' active' : ''}`}
+          >
+            {tab.icon(active)}
+            <span>{tab.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

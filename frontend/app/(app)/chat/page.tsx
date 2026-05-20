@@ -19,21 +19,25 @@ export default function ChatListPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-1 min-h-0 flex-col">
-      <div className="px-4 py-4 border-b border-[var(--border)] shrink-0">
-        <h1 className="text-xl font-bold text-[var(--text)]">Messages</h1>
-        {!loading && (
-          <p className="text-xs text-[var(--muted)] mt-0.5">
-            {connections.length} active {connections.length === 1 ? 'conversation' : 'conversations'}
-          </p>
-        )}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div className="chat-list-header">
+        <div style={{ flex: 1 }}>
+          <h1>Messages</h1>
+          {!loading && (
+            <p className="chat-list-sub">
+              {connections.length} active {connections.length === 1 ? 'conversation' : 'conversations'}
+            </p>
+          )}
+        </div>
       </div>
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-7 h-7 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+        <div className="loading-center">
+          <div className="spinner" />
         </div>
       ) : (
-        <ConversationList connections={connections} />
+        <div className="chat-rows-area">
+          <ConversationList connections={connections} />
+        </div>
       )}
     </div>
   );
