@@ -64,6 +64,7 @@ export default function SignupPage() {
           <label className="block text-sm font-medium text-[var(--text)] mb-1.5">Password</label>
           <input
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
