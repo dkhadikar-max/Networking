@@ -67,7 +67,7 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
   if (!open) return null;
 
   const received = data?.received ?? [];
-  const limit = data?.limit ?? (data ? data.limit : null);
+  const limit = data?.limit ?? null;
   const remaining = data?.remaining ?? null;
   const used = (limit != null && remaining != null) ? limit - remaining : null;
 
