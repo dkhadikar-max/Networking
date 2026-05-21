@@ -42,6 +42,8 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
 
   const [interests, setInterests] = useState<string[]>(user.interests ?? []);
   const [skills, setSkills] = useState<string[]>(user.skills ?? []);
+  const [remote, setRemote] = useState<boolean>(!!(user as unknown as Record<string, unknown>)['remote']);
+  const [detectingGps, setDetectingGps] = useState(false);
   const [skillInput, setSkillInput] = useState('');
   const [customInterestInput, setCustomInterestInput] = useState('');
 
@@ -90,12 +92,28 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     } finally { setUploading(false); }
   }
 
+  async function detectGps() {
+    if (!navigator.geolocation) { toast('Geolocation not supported', 'error'); return; }
+    setDetectingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          await apiPut('/api/me', { lat: pos.coords.latitude, lng: pos.coords.longitude });
+          toast('Location detected', 'success');
+        } catch { toast('Could not save location', 'error'); }
+        finally { setDetectingGps(false); }
+      },
+      () => { toast('Location permission denied', 'error'); setDetectingGps(false); },
+      { timeout: 8000 },
+    );
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = { ...form, interests, skills };
-      const updated = await apiPut<User>('/api/profile', payload);
+      const payload = { ...form, interests, skills, remote };
+      const updated = await apiPut<User>('/api/me', payload);
       toast('Profile saved', 'success');
       onSave(updated);
     } catch (err) {
@@ -159,7 +177,35 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           </div>
           <div>
             <label className={labelCls}>Location</label>
-            <input type="text" value={form.location} onChange={field('location')} placeholder="e.g. Bengaluru, India" className={inputCls} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input type="text" value={form.location} onChange={field('location')} placeholder="e.g. Bengaluru, India" className={inputCls} style={{ flex: 1 }} />
+              <button
+                type="button"
+                onClick={detectGps}
+                disabled={detectingGps}
+                style={{ padding: '0 12px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--sur2)', fontSize: 16, cursor: detectingGps ? 'not-allowed' : 'pointer', flexShrink: 0, opacity: detectingGps ? 0.6 : 1 }}
+                title="Detect my location"
+              >
+                {detectingGps ? '…' : '📍'}
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+            <span style={{ fontSize: 14, color: 'var(--text)' }}>Open to remote</span>
+            <button
+              type="button"
+              onClick={() => setRemote(r => !r)}
+              style={{
+                width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', padding: 0,
+                background: remote ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 0.2s',
+              }}
+            >
+              <span style={{
+                position: 'absolute', top: 2, left: remote ? 22 : 2, width: 20, height: 20,
+                borderRadius: '50%', background: 'white', transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
           </div>
         </div>
 
