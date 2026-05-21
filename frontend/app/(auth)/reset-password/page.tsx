@@ -46,8 +46,14 @@ function ResetPasswordForm() {
     }
   }
 
+  const shell = (content: React.ReactNode) => (
+    <div style={{ fontFamily: 'var(--font-roboto), Roboto, sans-serif', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>{content}</div>
+    </div>
+  );
+
   if (done) {
-    return (
+    return shell(
       <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-4 text-center">
         <div className="w-14 h-14 rounded-full bg-[var(--light)] flex items-center justify-center mx-auto">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +66,7 @@ function ResetPasswordForm() {
     );
   }
 
-  return (
+  return shell(
     <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[var(--text)]">Reset your password</h1>
@@ -139,7 +145,15 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 flex justify-center"><div className="w-6 h-6 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" /></div>}>
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 flex justify-center">
+            <div className="w-6 h-6 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+          </div>
+        </div>
+      </div>
+    }>
       <ResetPasswordForm />
     </Suspense>
   );

@@ -28,8 +28,14 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  const shell = (content: React.ReactNode) => (
+    <div style={{ fontFamily: 'var(--font-roboto), Roboto, sans-serif', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
+      <div style={{ width: '100%', maxWidth: 420 }}>{content}</div>
+    </div>
+  );
+
   if (step === 'sent') {
-    return (
+    return shell(
       <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-6 text-center">
         <div className="w-14 h-14 rounded-full bg-[var(--light)] flex items-center justify-center mx-auto">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +66,7 @@ export default function ForgotPasswordPage() {
     );
   }
 
-  return (
+  return shell(
     <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-[var(--text)]">Forgot password?</h1>
