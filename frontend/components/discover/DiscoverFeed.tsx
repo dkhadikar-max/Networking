@@ -15,15 +15,37 @@ function getUid(p: DiscoverProfile): string {
   return (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id ?? '';
 }
 
-function buildUrl(filters: FilterState, offset: number): string {
+function buildUrl(filters: FilterState, offset: number, intent?: string): string {
   const p = new URLSearchParams();
   p.set('limit', '10');
   p.set('offset', String(offset));
   if (filters.sort === 'recent') p.set('sort', 'recent');
-  if (filters.intent) p.set('intent', filters.intent);
+  if (intent) p.set('intent', intent);
   if (filters.location === 'remote') p.set('remote', 'true');
   if (filters.location === 'worldwide') p.set('worldwide', 'true');
   return `/api/discover?${p}`;
+}
+
+// Fetch with multi-intent support: parallel calls per intent, then merge+deduplicate by id
+async function fetchProfiles(filters: FilterState, offset: number): Promise<{ profiles: DiscoverProfile[]; exhausted: boolean }> {
+  const intents = filters.intents;
+  if (intents.length <= 1) {
+    const data = await apiGet<ApiResponse>(buildUrl(filters, offset, intents[0]));
+    const profiles = data.profiles ?? [];
+    return { profiles, exhausted: profiles.length < 10 };
+  }
+  // 2-3 intents: parallel fetch, merge, deduplicate, re-sort by matchScore
+  const results = await Promise.all(intents.map(intent => apiGet<ApiResponse>(buildUrl(filters, 0, intent)).then(d => d.profiles ?? []).catch(() => [])));
+  const seen = new Set<string>();
+  const merged: DiscoverProfile[] = [];
+  for (const batch of results) {
+    for (const p of batch) {
+      const uid = (p as { id?: string }).id ?? '';
+      if (uid && !seen.has(uid)) { seen.add(uid); merged.push(p); }
+    }
+  }
+  merged.sort((a, b) => ((b.matchScore ?? b.match_score ?? 0) - (a.matchScore ?? a.match_score ?? 0)));
+  return { profiles: merged.slice(offset, offset + 20), exhausted: merged.length < 20 };
 }
 
 export default function DiscoverFeed() {
@@ -43,9 +65,8 @@ export default function DiscoverFeed() {
     try {
       setLoading(true);
       const offset = reset ? 0 : page * 10;
-      const data = await apiGet<ApiResponse>(buildUrl(filtersRef.current, offset));
-      const incoming = data.profiles ?? [];
-      if (incoming.length < 10) setExhausted(true);
+      const { profiles: incoming, exhausted: done } = await fetchProfiles(filtersRef.current, offset);
+      if (done) setExhausted(true);
       setProfiles(prev => reset ? incoming : [...prev, ...incoming]);
       if (!reset) setPage(p => p + 1);
     } catch {

@@ -4,13 +4,13 @@ import { useState } from 'react';
 
 export type FilterState = {
   sort: 'relevance' | 'recent';
-  intent: string | null;
+  intents: string[];   // up to 3; empty = no filter
   location: 'nearby' | 'remote' | 'worldwide';
 };
 
 export const DEFAULT_FILTERS: FilterState = {
   sort: 'relevance',
-  intent: null,
+  intents: [],
   location: 'nearby',
 };
 
@@ -46,17 +46,33 @@ function chip(label: string, active: boolean, onClick: () => void) {
 export function activeFilterCount(f: FilterState): number {
   let n = 0;
   if (f.sort !== 'relevance') n++;
-  if (f.intent) n++;
+  if (f.intents.length > 0) n += f.intents.length;
   if (f.location !== 'nearby') n++;
   return n;
 }
+
+const MAX_INTENTS = 3;
 
 export default function DiscoverFilters({ open, current, onApply, onClose }: Props) {
   const [draft, setDraft] = useState<FilterState>(current);
 
   function reset() { setDraft(DEFAULT_FILTERS); }
 
+  function toggleIntent(val: string) {
+    setDraft(d => {
+      if (d.intents.includes(val)) return { ...d, intents: d.intents.filter(i => i !== val) };
+      if (d.intents.length >= MAX_INTENTS) return d; // cap at 3
+      return { ...d, intents: [...d.intents, val] };
+    });
+  }
+
   if (!open) return null;
+
+  const intentHint = draft.intents.length === 0
+    ? 'Select up to 3'
+    : draft.intents.length === 1
+      ? '1 selected — add 1 more to broaden'
+      : `${draft.intents.length} selected`;
 
   return (
     <div
@@ -90,14 +106,17 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
           </div>
         </div>
 
-        {/* Intent */}
+        {/* Intent — multi-select up to 3 */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.7px', textTransform: 'uppercase', marginBottom: 10 }}>Intent</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.7px', textTransform: 'uppercase' }}>Intent</div>
+            <span style={{ fontSize: 11, color: draft.intents.length >= MAX_INTENTS ? 'var(--accent)' : 'var(--muted)' }}>{intentHint}</span>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {INTENTS.map(i => chip(
               i,
-              draft.intent === i,
-              () => setDraft(d => ({ ...d, intent: d.intent === i ? null : i })),
+              draft.intents.includes(i),
+              () => toggleIntent(i),
             ))}
           </div>
         </div>
