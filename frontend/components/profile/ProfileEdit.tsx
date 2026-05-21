@@ -13,7 +13,13 @@ type Props = {
   onCancel: () => void;
 };
 
-const INTENT_OPTIONS = ['Hiring', 'Job hunting', 'Fundraising', 'Investing', 'Collaborating', 'Learning', 'Mentoring', 'Being mentored'];
+const INTENT_OPTIONS = ['Hiring', 'Freelance', 'Co-founder', 'Mentorship', 'Investing', 'Networking'];
+
+const INTERESTS_LIST = [
+  'AI/ML', 'Startups', 'SaaS', 'Fintech', 'Design', 'Marketing',
+  'Sales', 'Product', 'Engineering', 'VC', 'Crypto', 'Health Tech',
+  'EdTech', 'E-commerce', 'Climate Tech',
+];
 
 export default function ProfileEdit({ user, onSave, onCancel }: Props) {
   const toast = useToast();
@@ -32,13 +38,42 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     website: user.website ?? '',
     instagram: user.instagram ?? '',
     intent: user.intent ?? '',
-    interests: (user.interests ?? []).join(', '),
-    skills: (user.skills ?? []).join(', '),
   });
+
+  const [interests, setInterests] = useState<string[]>(user.interests ?? []);
+  const [skills, setSkills] = useState<string[]>(user.skills ?? []);
+  const [skillInput, setSkillInput] = useState('');
+  const [customInterestInput, setCustomInterestInput] = useState('');
 
   function field(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm(prev => ({ ...prev, [key]: e.target.value }));
+  }
+
+  function toggleInterest(val: string) {
+    setInterests(prev => prev.includes(val) ? prev.filter(i => i !== val) : [...prev, val]);
+  }
+
+  function addCustomInterest() {
+    const val = customInterestInput.trim();
+    if (!val || interests.includes(val)) { setCustomInterestInput(''); return; }
+    setInterests(prev => [...prev, val]);
+    setCustomInterestInput('');
+  }
+
+  function removeCustomInterest(val: string) {
+    setInterests(prev => prev.filter(i => i !== val));
+  }
+
+  function addSkill() {
+    const val = skillInput.trim();
+    if (!val || skills.includes(val)) { setSkillInput(''); return; }
+    setSkills(prev => [...prev, val]);
+    setSkillInput('');
+  }
+
+  function removeSkill(val: string) {
+    setSkills(prev => prev.filter(s => s !== val));
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -59,11 +94,7 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     e.preventDefault();
     setSaving(true);
     try {
-      const payload = {
-        ...form,
-        interests: form.interests.split(',').map(s => s.trim()).filter(Boolean),
-        skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
-      };
+      const payload = { ...form, interests, skills };
       const updated = await apiPut<User>('/api/profile', payload);
       toast('Profile saved', 'success');
       onSave(updated);
@@ -74,6 +105,17 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
 
   const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--sur2)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent';
   const labelCls = 'block text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5';
+
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    padding: '7px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500,
+    cursor: 'pointer', border: '1.5px solid', fontFamily: 'inherit',
+    background: active ? 'var(--light)' : 'var(--sur2)',
+    color: active ? 'var(--primary)' : 'var(--sub)',
+    borderColor: active ? 'var(--primary)' : 'var(--border)',
+    transition: 'all 0.15s',
+  });
+
+  const customInterests = interests.filter(i => !INTERESTS_LIST.includes(i));
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -138,20 +180,16 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           </div>
         </div>
 
-        {/* Intent */}
+        {/* Networking intent */}
         <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
-          <h2 className="text-sm font-bold text-[var(--text)]">Networking intent</h2>
-          <div className="flex flex-wrap gap-2">
+          <h2 className="text-sm font-bold text-[var(--text)]">Networking goal</h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {INTENT_OPTIONS.map(opt => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, intent: opt }))}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  form.intent === opt
-                    ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                    : 'bg-white text-[var(--sub)] border-[var(--border)] hover:border-[var(--primary)]'
-                }`}
+                style={chipStyle(form.intent.toLowerCase() === opt.toLowerCase())}
               >
                 {opt}
               </button>
@@ -159,17 +197,98 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           </div>
         </div>
 
-        {/* Interests & skills */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)]">Interests &amp; skills</h2>
-          <div>
-            <label className={labelCls}>Interests (comma-separated)</label>
-            <input type="text" value={form.interests} onChange={field('interests')} placeholder="AI, Climate, Design…" className={inputCls} />
+        {/* Interests */}
+        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
+          <h2 className="text-sm font-bold text-[var(--text)]">
+            Interests{' '}
+            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>(select at least 3)</span>
+          </h2>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {INTERESTS_LIST.map(opt => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => toggleInterest(opt)}
+                style={chipStyle(interests.includes(opt))}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className={labelCls}>Skills (comma-separated)</label>
-            <input type="text" value={form.skills} onChange={field('skills')} placeholder="React, Marketing, Finance…" className={inputCls} />
+          {/* Custom interest add */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <input
+              type="text"
+              value={customInterestInput}
+              onChange={e => setCustomInterestInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomInterest(); } }}
+              placeholder="Add custom interest…"
+              className={inputCls}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={addCustomInterest}
+              style={{ padding: '0 16px', background: 'var(--primary)', color: 'white', borderRadius: 12, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            >
+              Add
+            </button>
           </div>
+          {customInterests.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {customInterests.map(i => (
+                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'var(--light)', borderRadius: 999, fontSize: 13, color: 'var(--primary)' }}>
+                  {i}
+                  <button
+                    type="button"
+                    onClick={() => removeCustomInterest(i)}
+                    style={{ opacity: 0.6, cursor: 'pointer', fontSize: 15, background: 'none', border: 'none', color: 'var(--primary)', padding: 0, lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Skills */}
+        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
+          <h2 className="text-sm font-bold text-[var(--text)]">Skills</h2>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={skillInput}
+              onChange={e => setSkillInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
+              placeholder="e.g. Product Design"
+              className={inputCls}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={addSkill}
+              style={{ padding: '0 16px', background: 'var(--primary)', color: 'white', borderRadius: 12, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            >
+              Add
+            </button>
+          </div>
+          {skills.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {skills.map(s => (
+                <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#FFF4E7', borderRadius: 999, fontSize: 13, color: 'var(--accent)' }}>
+                  {s}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(s)}
+                    style={{ opacity: 0.6, cursor: 'pointer', fontSize: 15, background: 'none', border: 'none', color: 'var(--accent)', padding: 0, lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Social links */}
