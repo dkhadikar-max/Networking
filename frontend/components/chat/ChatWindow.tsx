@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import Avatar from '@/components/ui/Avatar';
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import type { Connection, Message } from '@/lib/types';
 
 type Props = { connectionId: string };
@@ -20,6 +21,7 @@ export default function ChatWindow({ connectionId }: Props) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showPriority, setShowPriority] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -121,7 +123,21 @@ export default function ChatWindow({ connectionId }: Props) {
         {connection.hoursLeft != null && connection.hoursLeft <= 24 && (
           <span className="text-xs text-[var(--accent)] font-semibold shrink-0">⏱ {connection.hoursLeft}h left</span>
         )}
+        <button
+          onClick={() => setShowPriority(true)}
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '6px 8px', borderRadius: 10, fontSize: 20, lineHeight: 1, color: 'var(--accent)', flexShrink: 0 }}
+          title="Send priority message"
+        >
+          ⚡
+        </button>
       </div>
+      <PriorityMessageModal
+        open={showPriority}
+        onClose={() => setShowPriority(false)}
+        mode="compose"
+        targetId={other.id}
+        targetName={other.name}
+      />
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

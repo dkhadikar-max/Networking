@@ -18,7 +18,8 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
   const headline = (user as { headline?: string }).headline ?? '';
   const location = (user as { location?: string }).location ?? '';
   const bio = (user as { bio?: string }).bio ?? '';
-  const intents: string[] = (user as { intents?: string[] }).intents ?? [];
+  const intentsRaw = user as { intents?: string[]; intent?: string };
+  const intents: string[] = intentsRaw.intents ?? (intentsRaw.intent ? [intentsRaw.intent] : []);
   const interests: string[] = (user as { interests?: string[] }).interests ?? [];
   const score = profile.match_score ?? profile.matchScore;
   const connected = !!profile.connection;

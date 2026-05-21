@@ -44,10 +44,9 @@ export default function DiscoverFeed() {
     if (!uid) return;
     try {
       await apiPost('/api/connect', { userId: uid });
-      const updated = { ...profile, connection: { id: 'pending' } };
-      setProfiles(prev => prev.map(p => getUid(p) === uid ? updated : p));
-      updateDrawerProfile(updated);
+      updateDrawerProfile({ ...profile, connection: { id: 'pending' } });
       toast('Connection request sent!', 'success');
+      handleSkip(profile);
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to connect', 'error');
     }
@@ -71,12 +70,21 @@ export default function DiscoverFeed() {
 
       {/* Header */}
       <div className="disc-header">
-        <span className="disc-logo">BuildYourNetwork</span>
+        <div className="disc-logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className="byn-logo-box-sm">
+            <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+              <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+              <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+              <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <span>Build Your Network</span>
+        </div>
         <button className="filter-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
-          </svg>
-          Filters
+          ⚡ Filters&nbsp;<span style={{ background: 'var(--border)', color: 'var(--text-soft)', borderRadius: 8, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>0</span>
         </button>
       </div>
 

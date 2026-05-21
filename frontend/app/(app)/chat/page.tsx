@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import { apiGet } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import ConversationList from '@/components/chat/ConversationList';
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import type { Connection } from '@/lib/types';
 
 export default function ChatListPage() {
   const toast = useToast();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPriority, setShowPriority] = useState(false);
 
   useEffect(() => {
     apiGet<Connection[]>('/api/connections')
@@ -29,7 +31,15 @@ export default function ChatListPage() {
             </p>
           )}
         </div>
+        <button
+          onClick={() => setShowPriority(true)}
+          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '6px 10px', borderRadius: 10, fontSize: 20, lineHeight: 1, color: 'var(--accent)' }}
+          title="Priority messages"
+        >
+          ⚡
+        </button>
       </div>
+      <PriorityMessageModal open={showPriority} onClose={() => setShowPriority(false)} mode="inbox" />
       {loading ? (
         <div className="loading-center">
           <div className="spinner" />

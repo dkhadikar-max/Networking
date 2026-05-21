@@ -19,19 +19,26 @@ export default function OwnProfilePage() {
 
   if (editing) {
     return (
-      <ProfileEdit
-        user={user}
-        onSave={handleSave}
-        onCancel={() => setEditing(false)}
-      />
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <ProfileEdit
+          user={user}
+          onSave={handleSave}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
     );
   }
 
   return (
-    <ProfileView
-      user={user}
-      isSelf
-      onEdit={() => setEditing(true)}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div className="screen-header">
+        <h1>Profile</h1>
+      </div>
+      <ProfileView
+        user={user}
+        isSelf
+        onEdit={() => setEditing(true)}
+      />
+    </div>
   );
 }

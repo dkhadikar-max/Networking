@@ -1,14 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import Avatar from '@/components/ui/Avatar';
 import type { Connection } from '@/lib/types';
-import clsx from 'clsx';
 
 type Props = {
   connections: Connection[];
-  activeId?: string;
 };
 
 function timeAgo(iso: string) {
@@ -16,64 +14,59 @@ function timeAgo(iso: string) {
   catch { return ''; }
 }
 
-export default function ConversationList({ connections, activeId }: Props) {
+function initials(name: string) {
+  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+}
+
+export default function ConversationList({ connections }: Props) {
   if (connections.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center p-8 text-[var(--muted)]">
-        <div>
-          <div className="w-14 h-14 rounded-full bg-[var(--light)] flex items-center justify-center mx-auto mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium">No conversations yet</p>
-          <p className="text-xs mt-1">Connect with someone to start chatting</p>
+      <div className="chat-empty">
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
         </div>
+        <h3>No conversations yet</h3>
+        <p>Connect with someone to start chatting</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <>
       {connections.map(c => {
         const { connection, user, lastMessage, unread_count, hoursLeft } = c;
-        const isActive = connection.id === activeId;
         const unread = (unread_count ?? 0) > 0;
+        const photo = user.photos?.[0];
 
         return (
           <Link
             key={connection.id}
             href={`/chat/${connection.id}`}
-            className={clsx(
-              'flex items-center gap-3 px-4 py-3.5 transition-colors border-b border-[var(--border)]',
-              isActive ? 'bg-[var(--light)]' : 'hover:bg-[var(--sur2)]'
-            )}
+            className="chat-row"
           >
-            <Avatar
-              src={user.photos?.[0]}
-              name={user.name}
-              size={44}
-              online={user.is_online}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className={clsx('text-sm truncate', unread ? 'font-bold text-[var(--text)]' : 'font-semibold text-[var(--text)]')}>
+            <div className="chat-av-wrap">
+              <div className="chat-av">
+                {photo ? <img src={photo} alt={user.name} /> : initials(user.name ?? '?')}
+              </div>
+              {user.is_online && <span className="chat-online" />}
+            </div>
+            <div className="chat-body">
+              <div className="chat-name-row">
+                <span className="chat-name">
+                  {c.is_priority && <span style={{ color: 'var(--accent)', marginRight: 4 }}>⚡</span>}
                   {user.name}
                 </span>
                 {lastMessage && (
-                  <span className="text-[10px] text-[var(--muted)] shrink-0">{timeAgo(lastMessage.created_at)}</span>
+                  <span className="chat-time">{timeAgo(lastMessage.created_at)}</span>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2 mt-0.5">
-                <p className={clsx('text-xs truncate', unread ? 'text-[var(--text)] font-medium' : 'text-[var(--sub)]')}>
-                  {lastMessage?.text ?? 'Say hello!'}
-                </p>
-                {unread && (
-                  <span className="w-2 h-2 rounded-full bg-[var(--primary)] shrink-0" />
-                )}
-              </div>
+              <p className={`chat-preview${unread ? ' unread' : ''}`}>
+                {lastMessage?.text ?? 'Say hello!'}
+              </p>
               {hoursLeft != null && hoursLeft <= 12 && (
-                <p className="text-[10px] text-[var(--accent)] font-semibold mt-0.5">
+                <p style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>
                   ⏱ {hoursLeft}h left
                 </p>
               )}
@@ -81,6 +74,6 @@ export default function ConversationList({ connections, activeId }: Props) {
           </Link>
         );
       })}
-    </div>
+    </>
   );
 }

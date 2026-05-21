@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
-import Avatar from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
 import type { LikedMeResponse } from '@/lib/types';
+
+function initials(name: string) {
+  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+}
 
 export default function LikesPage() {
   const toast = useToast();
@@ -53,93 +56,118 @@ export default function LikesPage() {
   const profiles = data?.profiles ?? [];
 
   return (
-    <div className="flex flex-1 min-h-0">
-      <div className="flex-1 overflow-y-auto flex flex-col">
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+
+      {/* Header */}
+      <div className="screen-header">
+        <h1>Likes</h1>
+        {!loading && (data?.count ?? 0) > 0 && (
+          <span style={{ background: 'var(--gold)', color: '#fff', borderRadius: 12, padding: '3px 10px', fontSize: 13, fontWeight: 700 }}>
+            {data!.count}
+          </span>
+        )}
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingTop: 8 }}>
 
         {loading && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+          <div className="loading-center">
+            <div className="spinner" />
           </div>
         )}
 
         {!loading && data?.premium_required && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="max-w-sm space-y-4">
-              <div className="w-16 h-16 rounded-full bg-[var(--accent-lt)] flex items-center justify-center mx-auto">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-[var(--text)]">
-                  {data.count ?? 0} {(data.count ?? 0) === 1 ? 'person' : 'people'} liked you
-                </h2>
-                <p className="text-sm text-[var(--sub)] mt-2">Upgrade to Premium to see who&apos;s interested in connecting with you.</p>
-              </div>
-              {(data.previews?.length ?? 0) > 0 && (
-                <div className="flex justify-center gap-2 py-2">
-                  {data.previews!.slice(0, 3).map((p, i) => (
-                    <div key={i} className="relative">
-                      <Avatar src={p.photos?.[0]} name={p.name ?? '?'} size={56} className="blur-sm" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <Button variant="gold" fullWidth onClick={() => router.push('/profile')}>
-                Upgrade to Premium
-              </Button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent-lt)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
             </div>
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+              {data.count ?? 0} {(data.count ?? 0) === 1 ? 'person' : 'people'} liked you
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--sub)', marginBottom: 24, maxWidth: 280, lineHeight: 1.55 }}>
+              Upgrade to Premium to see who&apos;s interested in connecting with you.
+            </p>
+            {(data.previews?.length ?? 0) > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+                {data.previews!.slice(0, 3).map((p, i) => (
+                  <div key={i} style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', filter: 'blur(4px)', background: 'var(--light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
+                    {p.photos?.[0] ? <img src={p.photos[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials(p.name ?? '?')}
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => router.push('/profile')}
+              style={{ padding: '14px 32px', borderRadius: 'var(--r-md)', background: 'var(--gold)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 20px rgba(244,162,89,.3)' }}
+            >
+              Upgrade to Premium
+            </button>
           </div>
         )}
 
         {!loading && !data?.premium_required && profiles.length === 0 && (
-          <div className="flex-1 flex items-center justify-center text-center p-8">
-            <div>
-              <div className="w-16 h-16 rounded-full bg-[var(--light)] flex items-center justify-center mx-auto mb-4">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-              </div>
-              <h3 className="font-bold text-[var(--text)] mb-1">No likes yet</h3>
-              <p className="text-sm text-[var(--sub)]">Complete your profile and start connecting to get noticed</p>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--light)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
             </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>No likes yet</h3>
+            <p style={{ fontSize: 14, color: 'var(--sub)' }}>Complete your profile and start connecting to get noticed</p>
           </div>
         )}
 
         {!loading && !data?.premium_required && profiles.length > 0 && (
-          <div className="max-w-2xl mx-auto px-4 py-6 w-full">
-            <h1 className="text-xl font-bold text-[var(--text)] mb-1">People who liked you</h1>
-            <p className="text-sm text-[var(--sub)] mb-5">
-              {profiles.length} {profiles.length === 1 ? 'person' : 'people'} want to connect
-            </p>
-            <div className="space-y-3">
-              {profiles.map(profile => (
-                <div
-                  key={profile.id}
-                  className="flex items-center gap-4 bg-white rounded-xl border border-[var(--border)] p-4 shadow-[var(--shadow-sm)] hover:border-[var(--primary)] transition-colors cursor-pointer"
-                  onClick={() => openProfile(profile, {
-                    onConnect: async () => { await handleConnect(profile.id); },
-                  })}
-                >
-                  <Avatar src={profile.photos?.[0]} name={profile.name} size={52} online={profile.is_online} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-[var(--text)] truncate">{profile.name}</p>
-                    {profile.headline && <p className="text-xs text-[var(--sub)] truncate mt-0.5">{profile.headline}</p>}
-                    {profile.matchScore != null && (
-                      <p className="text-xs text-[var(--primary)] font-semibold mt-1">{profile.matchScore}% match</p>
-                    )}
+          <>
+            {profiles.map(profile => (
+              <div
+                key={profile.id}
+                className="chat-row"
+                onClick={() => openProfile(profile, {
+                  onConnect: async () => { await handleConnect(profile.id); },
+                })}
+              >
+                <div className="chat-av-wrap">
+                  <div className="chat-av">
+                    {profile.photos?.[0]
+                      ? <img src={profile.photos[0]} alt={profile.name} />
+                      : initials(profile.name ?? '?')}
                   </div>
-                  <Button
-                    onClick={e => { e.stopPropagation(); handleConnect(profile.id); }}
-                    loading={connecting === profile.id}
-                    className="shrink-0"
-                  >
-                    Connect
-                  </Button>
+                  {profile.is_online && <span className="chat-online" />}
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="chat-body">
+                  <div className="chat-name-row">
+                    <span className="chat-name">{profile.name}</span>
+                  </div>
+                  {profile.headline && (
+                    <p className="chat-preview">{profile.headline}</p>
+                  )}
+                  {profile.matchScore != null && (
+                    <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginTop: 2 }}>
+                      {profile.matchScore}% match
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={e => { e.stopPropagation(); handleConnect(profile.id); }}
+                  disabled={connecting === profile.id}
+                  style={{
+                    padding: '9px 16px', borderRadius: 'var(--r-sm)',
+                    background: 'linear-gradient(135deg, var(--primary), var(--primary-2))',
+                    color: 'white', fontSize: 13, fontWeight: 700,
+                    border: 'none', cursor: connecting === profile.id ? 'not-allowed' : 'pointer',
+                    flexShrink: 0, opacity: connecting === profile.id ? 0.6 : 1,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {connecting === profile.id ? '…' : 'Connect'}
+                </button>
+              </div>
+            ))}
+          </>
         )}
 
       </div>

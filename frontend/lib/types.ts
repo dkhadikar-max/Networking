@@ -65,3 +65,21 @@ export type LikedMeResponse = {
   previews?: Partial<User>[];
   profiles?: (User & { matchScore?: number })[];
 };
+
+export type PriorityMessage = {
+  id: string;
+  from: string;
+  to: string;
+  text: string;
+  month: string;
+  read: boolean;
+  created_at: string;
+  sender?: Partial<User>;
+};
+
+export type PriorityMessagesResponse = {
+  received: PriorityMessage[];
+  sent: PriorityMessage[];
+  remaining: number;
+  limit: number;
+};
