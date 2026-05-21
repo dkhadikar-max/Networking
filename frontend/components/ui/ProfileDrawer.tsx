@@ -32,6 +32,8 @@ export type DrawerProfile = {
   is_online?: boolean;
   match_score?: number;
   matchScore?: number;
+  trust_score?: number;
+  insight?: string;
   connection?: { id: string };
   user?: DrawerProfile;
 };
@@ -60,6 +62,8 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
   const raw = profile?.user ?? profile;
   const connected = !!profile?.connection;
   const score = profile?.match_score ?? profile?.matchScore;
+  const trustScore = profile?.trust_score ?? (profile?.user as DrawerProfile | undefined)?.trust_score;
+  const insight = profile?.insight ?? (profile?.user as DrawerProfile | undefined)?.insight;
   const name = raw?.name ?? 'Unknown';
   const photos = raw?.photos ?? [];
 
@@ -82,11 +86,24 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             <path d="M18 6 6 18M6 6l12 12" />
           </svg>
         </button>
-        {score != null && (
-          <span className="px-2.5 py-1 rounded-full bg-[var(--primary)] text-white text-xs font-bold">
-            {score}% match
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {trustScore != null && (
+            <span style={{
+              padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+              background: trustScore >= 70 ? '#EBF9F5' : 'var(--sur2)',
+              color: trustScore >= 70 ? 'var(--primary)' : 'var(--muted)',
+              border: '1px solid',
+              borderColor: trustScore >= 70 ? 'var(--primary)' : 'var(--border)',
+            }}>
+              {trustScore >= 70 ? '✓ Trusted' : `Trust ${trustScore}`}
+            </span>
+          )}
+          {score != null && (
+            <span className="px-2.5 py-1 rounded-full bg-[var(--primary)] text-white text-xs font-bold">
+              {score}% match
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Scrollable content */}
@@ -133,6 +150,11 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             )}
           </div>
 
+          {insight && (
+            <div style={{ padding: '8px 12px', background: 'var(--light)', borderRadius: 10, fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>
+              ✦ {insight}
+            </div>
+          )}
           {raw?.bio && (
             <div>
               <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5">About</p>

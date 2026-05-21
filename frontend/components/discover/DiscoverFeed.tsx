@@ -1,16 +1,29 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import SwipeCard from './SwipeCard';
+import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
+import type { FilterState } from './DiscoverFilters';
 import type { DiscoverProfile } from '@/lib/types';
 
 type ApiResponse = { profiles: DiscoverProfile[] };
 
 function getUid(p: DiscoverProfile): string {
   return (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id ?? '';
+}
+
+function buildUrl(filters: FilterState, offset: number): string {
+  const p = new URLSearchParams();
+  p.set('limit', '10');
+  p.set('offset', String(offset));
+  if (filters.sort === 'recent') p.set('sort', 'recent');
+  if (filters.intent) p.set('intent', filters.intent);
+  if (filters.location === 'remote') p.set('remote', 'true');
+  if (filters.location === 'worldwide') p.set('worldwide', 'true');
+  return `/api/discover?${p}`;
 }
 
 export default function DiscoverFeed() {
@@ -20,12 +33,17 @@ export default function DiscoverFeed() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [exhausted, setExhausted] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const filtersRef = useRef(filters);
+
+  useEffect(() => { filtersRef.current = filters; }, [filters]);
 
   const load = useCallback(async (reset = false) => {
     try {
       setLoading(true);
       const offset = reset ? 0 : page * 10;
-      const data = await apiGet<ApiResponse>(`/api/discover?sort=relevance&limit=10&offset=${offset}`);
+      const data = await apiGet<ApiResponse>(buildUrl(filtersRef.current, offset));
       const incoming = data.profiles ?? [];
       if (incoming.length < 10) setExhausted(true);
       setProfiles(prev => reset ? incoming : [...prev, ...incoming]);
@@ -37,7 +55,16 @@ export default function DiscoverFeed() {
     }
   }, [page, toast]);
 
-  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/set-state-in-effect,react-hooks/exhaustive-deps
+  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function applyFilters(f: FilterState) {
+    filtersRef.current = f;
+    setFilters(f);
+    setPage(0);
+    setExhausted(false);
+    setProfiles([]);
+    load(true);
+  }
 
   async function handleConnect(profile: DiscoverProfile) {
     const uid = getUid(profile);
@@ -64,6 +91,7 @@ export default function DiscoverFeed() {
   }
 
   const current = profiles[0] ?? null;
+  const filterCount = activeFilterCount(filters);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -83,10 +111,25 @@ export default function DiscoverFeed() {
           </div>
           <span>Build Your Network</span>
         </div>
-        <button className="filter-btn">
-          ⚡ Filters&nbsp;<span style={{ background: 'var(--border)', color: 'var(--text-soft)', borderRadius: 8, padding: '1px 6px', fontSize: 11, fontWeight: 700 }}>0</span>
+        <button className="filter-btn" onClick={() => setShowFilters(true)}>
+          ⚡ Filters&nbsp;
+          <span style={{
+            background: filterCount > 0 ? 'var(--primary)' : 'var(--border)',
+            color: filterCount > 0 ? 'white' : 'var(--text-soft)',
+            borderRadius: 8, padding: '1px 6px', fontSize: 11, fontWeight: 700,
+          }}>
+            {filterCount}
+          </span>
         </button>
       </div>
+
+      {/* Filter sheet */}
+      <DiscoverFilters
+        open={showFilters}
+        current={filters}
+        onApply={applyFilters}
+        onClose={() => setShowFilters(false)}
+      />
 
       {/* Card area */}
       <div className="card-stack-area">

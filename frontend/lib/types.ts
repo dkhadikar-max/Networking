@@ -37,6 +37,9 @@ export type DiscoverProfile = {
   photos?: string[];
   match_score?: number;
   matchScore?: number;
+  trust_score?: number;
+  insight?: string;
+  distance?: number | null;
   connection?: { id: string };
 };
 
