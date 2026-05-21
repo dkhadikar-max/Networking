@@ -404,6 +404,20 @@
 }
 .panel-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; letter-spacing: 0.1px; }
 
+/* ── PROFILE EDIT ────────────────────────────────────────── */
+.pe-label { display: block; font-size: 11px; color: var(--sub); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
+.pe-input { width: 100%; background: var(--sur2); border: 1.5px solid var(--border2); border-radius: var(--r-sm); padding: 12px 14px; color: var(--text); font-size: 14px; font-family: inherit; box-sizing: border-box; }
+.pe-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(21,122,110,0.08); }
+.pe-input::placeholder { color: var(--dim); }
+textarea.pe-input { resize: none; }
+.pe-chip { padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; background: var(--sur2); color: var(--sub); border: 1.5px solid var(--border2); cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s, color .15s; user-select: none; }
+.pe-chip.active { background: var(--light); color: var(--primary); border-color: var(--soft); }
+.pe-tag { display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--light); border-radius: 999px; font-size: 13px; color: var(--primary); }
+.pe-tag-del { opacity: 0.6; cursor: pointer; font-size: 16px; background: none; border: none; color: var(--primary); padding: 0; line-height: 1; font-family: inherit; }
+.pe-add { padding: 11px 18px; background: var(--primary); color: white; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; border: none; cursor: pointer; flex-shrink: 0; font-family: inherit; white-space: nowrap; }
+.pe-gps { padding: 0 13px; border-radius: var(--r-sm); border: 1.5px solid var(--border2); background: var(--sur2); font-size: 17px; cursor: pointer; flex-shrink: 0; line-height: 1; }
+.pe-gps:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── SPINNER ─────────────────────────────────────────────── */
 .spinner {
   display: inline-block;

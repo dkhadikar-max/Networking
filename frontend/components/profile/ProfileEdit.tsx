@@ -121,83 +121,71 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     } finally { setSaving(false); }
   }
 
-  const inputCls = 'w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--sur2)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent';
-  const labelCls = 'block text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5';
-
-  const chipStyle = (active: boolean): React.CSSProperties => ({
-    padding: '7px 14px', borderRadius: 999, fontSize: 13, fontWeight: 500,
-    cursor: 'pointer', border: '1.5px solid', fontFamily: 'inherit',
-    background: active ? 'var(--light)' : 'var(--sur2)',
-    color: active ? 'var(--primary)' : 'var(--sub)',
-    borderColor: active ? 'var(--primary)' : 'var(--border)',
-    transition: 'all 0.15s',
-  });
-
   const customInterests = interests.filter(i => !INTERESTS_LIST.includes(i));
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <form onSubmit={handleSave} className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-[var(--text)]">Edit profile</h1>
-          <div className="flex gap-2">
+    <div style={{ flex: 1, overflowY: 'auto' }}>
+      <form onSubmit={handleSave} style={{ maxWidth: 560, margin: '0 auto', padding: '16px 14px 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0 8px' }}>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.3px' }}>Edit profile</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
             <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
             <Button type="submit" loading={saving}>Save</Button>
           </div>
         </div>
 
         {/* Photo upload */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5">
-          <label className={labelCls}>Profile photo</label>
-          <div className="flex items-center gap-4">
-            <Avatar src={user.photos?.[0]} name={user.name} size={64} />
-            <label className="cursor-pointer">
-              <span className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--sub)] hover:bg-[var(--sur2)] transition-colors inline-block">
+        <div className="profile-panel" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Avatar src={user.photos?.[0]} name={user.name} size={72} />
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Profile photo</p>
+            <label style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
+              <span style={{
+                display: 'inline-block', padding: '9px 18px', borderRadius: 'var(--r-sm)',
+                border: '1.5px solid var(--border2)', fontSize: 13, fontWeight: 600,
+                color: uploading ? 'var(--dim)' : 'var(--sub)', background: 'var(--sur2)',
+              }}>
                 {uploading ? 'Uploading…' : 'Upload photo'}
               </span>
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" disabled={uploading} />
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="sr-only" disabled={uploading} />
             </label>
           </div>
         </div>
 
         {/* Basic info */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)]">Basic info</h2>
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p className="panel-title">Basic info</p>
           <div>
-            <label className={labelCls}>Full name</label>
-            <input type="text" value={form.name} onChange={field('name')} required className={inputCls} />
+            <label className="pe-label">Full name</label>
+            <input type="text" value={form.name} onChange={field('name')} required className="pe-input" placeholder="Your full name" />
           </div>
           <div>
-            <label className={labelCls}>Headline</label>
-            <input type="text" value={form.headline} onChange={field('headline')} placeholder="e.g. Founder & CEO at Acme" className={inputCls} />
+            <label className="pe-label">Headline</label>
+            <input type="text" value={form.headline} onChange={field('headline')} placeholder="e.g. Founder & CEO at Acme" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Current role</label>
-            <input type="text" value={form.current_role} onChange={field('current_role')} placeholder="e.g. Product Manager" className={inputCls} />
+            <label className="pe-label">Current role</label>
+            <input type="text" value={form.current_role} onChange={field('current_role')} placeholder="e.g. Product Manager" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Location</label>
+            <label className="pe-label">Location</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input type="text" value={form.location} onChange={field('location')} placeholder="e.g. Bengaluru, India" className={inputCls} style={{ flex: 1 }} />
-              <button
-                type="button"
-                onClick={detectGps}
-                disabled={detectingGps}
-                style={{ padding: '0 12px', borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--sur2)', fontSize: 16, cursor: detectingGps ? 'not-allowed' : 'pointer', flexShrink: 0, opacity: detectingGps ? 0.6 : 1 }}
-                title="Detect my location"
-              >
+              <input type="text" value={form.location} onChange={field('location')} placeholder="e.g. Bengaluru, India" className="pe-input" style={{ flex: 1 }} />
+              <button type="button" onClick={detectGps} disabled={detectingGps} className="pe-gps" title="Detect my location">
                 {detectingGps ? '…' : '📍'}
               </button>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 14, color: 'var(--text)' }}>Open to remote</span>
             <button
               type="button"
               onClick={() => setRemote(r => !r)}
               style={{
                 width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', padding: 0,
-                background: remote ? 'var(--primary)' : 'var(--border)', position: 'relative', transition: 'background 0.2s',
+                background: remote ? 'var(--primary)' : 'var(--border2)', position: 'relative', transition: 'background 0.2s',
               }}
             >
               <span style={{
@@ -210,32 +198,32 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
         </div>
 
         {/* About */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)]">About you</h2>
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p className="panel-title">About you</p>
           <div>
-            <label className={labelCls}>Bio</label>
-            <textarea rows={3} value={form.bio} onChange={field('bio')} placeholder="Tell people about yourself" className={inputCls + ' resize-none'} />
+            <label className="pe-label">Bio</label>
+            <textarea rows={3} value={form.bio} onChange={field('bio')} placeholder="Tell people about yourself" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Working on</label>
-            <textarea rows={2} value={form.working_on} onChange={field('working_on')} placeholder="What are you building?" className={inputCls + ' resize-none'} />
+            <label className="pe-label">Working on</label>
+            <textarea rows={2} value={form.working_on} onChange={field('working_on')} placeholder="What are you building?" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Currently exploring</label>
-            <textarea rows={2} value={form.currently_exploring} onChange={field('currently_exploring')} placeholder="What are you curious about?" className={inputCls + ' resize-none'} />
+            <label className="pe-label">Currently exploring</label>
+            <textarea rows={2} value={form.currently_exploring} onChange={field('currently_exploring')} placeholder="What are you curious about?" className="pe-input" />
           </div>
         </div>
 
-        {/* Networking intent */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
-          <h2 className="text-sm font-bold text-[var(--text)]">Networking goal</h2>
+        {/* Networking goal */}
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="panel-title">Networking goal</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {INTENT_OPTIONS.map(opt => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, intent: opt }))}
-                style={chipStyle(form.intent.toLowerCase() === opt.toLowerCase())}
+                className={'pe-chip' + (form.intent.toLowerCase() === opt.toLowerCase() ? ' active' : '')}
               >
                 {opt}
               </button>
@@ -244,54 +232,41 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
         </div>
 
         {/* Interests */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
-          <h2 className="text-sm font-bold text-[var(--text)]">
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="panel-title">
             Interests{' '}
-            <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 400 }}>(select at least 3)</span>
-          </h2>
+            <span style={{ fontSize: 12, color: 'var(--dim)', fontWeight: 400 }}>(select at least 3)</span>
+          </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {INTERESTS_LIST.map(opt => (
               <button
                 key={opt}
                 type="button"
                 onClick={() => toggleInterest(opt)}
-                style={chipStyle(interests.includes(opt))}
+                className={'pe-chip' + (interests.includes(opt) ? ' active' : '')}
               >
                 {opt}
               </button>
             ))}
           </div>
-          {/* Custom interest add */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
               value={customInterestInput}
               onChange={e => setCustomInterestInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomInterest(); } }}
               placeholder="Add custom interest…"
-              className={inputCls}
+              className="pe-input"
               style={{ flex: 1 }}
             />
-            <button
-              type="button"
-              onClick={addCustomInterest}
-              style={{ padding: '0 16px', background: 'var(--primary)', color: 'white', borderRadius: 12, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
-            >
-              Add
-            </button>
+            <button type="button" onClick={addCustomInterest} className="pe-add">Add</button>
           </div>
           {customInterests.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {customInterests.map(i => (
-                <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'var(--light)', borderRadius: 999, fontSize: 13, color: 'var(--primary)' }}>
+                <span key={i} className="pe-tag">
                   {i}
-                  <button
-                    type="button"
-                    onClick={() => removeCustomInterest(i)}
-                    style={{ opacity: 0.6, cursor: 'pointer', fontSize: 15, background: 'none', border: 'none', color: 'var(--primary)', padding: 0, lineHeight: 1 }}
-                  >
-                    ×
-                  </button>
+                  <button type="button" onClick={() => removeCustomInterest(i)} className="pe-tag-del">×</button>
                 </span>
               ))}
             </div>
@@ -299,8 +274,8 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
         </div>
 
         {/* Skills */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-3">
-          <h2 className="text-sm font-bold text-[var(--text)]">Skills</h2>
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="panel-title">Skills</p>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
@@ -308,29 +283,17 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
               onChange={e => setSkillInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
               placeholder="e.g. Product Design"
-              className={inputCls}
+              className="pe-input"
               style={{ flex: 1 }}
             />
-            <button
-              type="button"
-              onClick={addSkill}
-              style={{ padding: '0 16px', background: 'var(--primary)', color: 'white', borderRadius: 12, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
-            >
-              Add
-            </button>
+            <button type="button" onClick={addSkill} className="pe-add">Add</button>
           </div>
           {skills.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {skills.map(s => (
-                <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#FFF4E7', borderRadius: 999, fontSize: 13, color: 'var(--accent)' }}>
+                <span key={s} className="pe-tag">
                   {s}
-                  <button
-                    type="button"
-                    onClick={() => removeSkill(s)}
-                    style={{ opacity: 0.6, cursor: 'pointer', fontSize: 15, background: 'none', border: 'none', color: 'var(--accent)', padding: 0, lineHeight: 1 }}
-                  >
-                    ×
-                  </button>
+                  <button type="button" onClick={() => removeSkill(s)} className="pe-tag-del">×</button>
                 </span>
               ))}
             </div>
@@ -338,25 +301,24 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
         </div>
 
         {/* Social links */}
-        <div className="bg-white rounded-xl border border-[var(--border)] p-5 space-y-4">
-          <h2 className="text-sm font-bold text-[var(--text)]">Links</h2>
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p className="panel-title">Links</p>
           <div>
-            <label className={labelCls}>LinkedIn URL</label>
-            <input type="url" value={form.linkedin} onChange={field('linkedin')} placeholder="https://linkedin.com/in/…" className={inputCls} />
+            <label className="pe-label">LinkedIn URL</label>
+            <input type="url" value={form.linkedin} onChange={field('linkedin')} placeholder="https://linkedin.com/in/…" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Website</label>
-            <input type="url" value={form.website} onChange={field('website')} placeholder="https://yoursite.com" className={inputCls} />
+            <label className="pe-label">Website</label>
+            <input type="url" value={form.website} onChange={field('website')} placeholder="https://yoursite.com" className="pe-input" />
           </div>
           <div>
-            <label className={labelCls}>Instagram handle</label>
-            <input type="text" value={form.instagram} onChange={field('instagram')} placeholder="yourhandle" className={inputCls} />
+            <label className="pe-label">Instagram handle</label>
+            <input type="text" value={form.instagram} onChange={field('instagram')} placeholder="yourhandle" className="pe-input" />
           </div>
         </div>
 
-        <div className="pb-4">
-          <Button type="submit" loading={saving} fullWidth>Save changes</Button>
-        </div>
+        <Button type="submit" loading={saving} fullWidth>Save changes</Button>
+
       </form>
     </div>
   );
