@@ -25,8 +25,8 @@ export default function ChatWindow({ connectionId }: Props) {
 
   const fetchMessages = useCallback(async () => {
     try {
-      const data = await apiGet<{ messages: Message[] }>(`/api/messages/${connectionId}`);
-      setMessages(data.messages ?? []);
+      const data = await apiGet<Message[]>(`/api/messages/${connectionId}`);
+      setMessages(data ?? []);
     } catch { /* silent background poll */ }
   }, [connectionId]);
 
@@ -34,13 +34,13 @@ export default function ChatWindow({ connectionId }: Props) {
     async function init() {
       try {
         setLoading(true);
-        const [connData, msgData] = await Promise.all([
-          apiGet<{ connections: Connection[] }>('/api/connections'),
-          apiGet<{ messages: Message[] }>(`/api/messages/${connectionId}`),
+        const [conns, msgs] = await Promise.all([
+          apiGet<Connection[]>('/api/connections'),
+          apiGet<Message[]>(`/api/messages/${connectionId}`),
         ]);
-        const conn = connData.connections.find(c => c.connection.id === connectionId);
+        const conn = conns.find(c => c.connection.id === connectionId);
         setConnection(conn ?? null);
-        setMessages(msgData.messages ?? []);
+        setMessages(msgs ?? []);
       } catch {
         toast('Failed to load conversation', 'error');
       } finally {
@@ -66,7 +66,7 @@ export default function ChatWindow({ connectionId }: Props) {
     setSending(true);
     setText('');
     try {
-      await apiPost('/api/messages', { connectionId, text: trimmed });
+      await apiPost(`/api/messages/${connectionId}`, { text: trimmed });
       await fetchMessages();
     } catch (err) {
       setText(trimmed);

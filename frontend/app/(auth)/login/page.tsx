@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
+import NetworkBackground from '@/components/NetworkBackground';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -50,7 +51,10 @@ export default function LoginPage() {
       justifyContent: 'center',
       padding: '28px 20px',
       overflowY: 'auto',
+      position: 'relative',
     }}>
+      <NetworkBackground />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
 
       {/* Brand */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -174,6 +178,7 @@ export default function LoginPage() {
         <Link href="/signup" style={{ color: '#157A6E', fontWeight: 600 }}>Create one →</Link>
       </div>
 
+      </div>{/* /zIndex wrapper */}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import NetworkBackground from '@/components/NetworkBackground';
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -83,7 +84,10 @@ export default function SignupPage() {
       justifyContent: 'center',
       padding: '28px 20px',
       overflowY: 'auto',
+      position: 'relative',
     }}>
+      <NetworkBackground />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
 
       {/* Brand */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -255,6 +259,7 @@ export default function SignupPage() {
         <Link href="/login" style={{ color: '#157A6E', fontWeight: 600 }}>Sign in →</Link>
       </div>
 
+      </div>{/* /zIndex wrapper */}
     </div>
   );
 }

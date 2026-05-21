@@ -12,8 +12,8 @@ export default function ChatListPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiGet<{ connections: Connection[] }>('/api/connections')
-      .then(r => setConnections(r.connections ?? []))
+    apiGet<Connection[]>('/api/connections')
+      .then(r => setConnections(r ?? []))
       .catch(() => toast('Failed to load chats', 'error'))
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
