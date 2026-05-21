@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
+import { apiUpload } from '@/lib/api';
 import OpportunityTags from './OpportunityTags';
 
 const EXP_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
@@ -26,9 +27,24 @@ interface Props {
 
 export default function ProfileCompletion({ onNext, loading }: Props) {
   const [interests, setInterests] = useState<string[]>([]);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      const res = await apiUpload<{ url: string }>('/api/me/photos', fd);
+      setPhotoUrl(res?.url ?? URL.createObjectURL(file));
+    } catch { /* silently ignore — photo is optional */ }
+    finally { setUploading(false); }
+  }
 
   const submit = (data: FormValues) => onNext({ ...data, interests });
 
@@ -37,6 +53,37 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
       <div>
         <h2 className="text-2xl font-bold text-[var(--text)]">Complete your profile</h2>
         <p className="text-[var(--text-secondary)] mt-1">Every field is optional — fill in what feels right.</p>
+      </div>
+
+      {/* Photo upload */}
+      <div className="flex flex-col items-center gap-3">
+        <label htmlFor="ob-photo-input" style={{ cursor: 'pointer' }}>
+          <div style={{
+            width: 88, height: 88, borderRadius: '50%',
+            background: photoUrl ? 'transparent' : 'var(--sur2)',
+            border: '2px dashed var(--border)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden', position: 'relative',
+          }}>
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ fontSize: 28 }}>{uploading ? '…' : '📷'}</span>
+            )}
+          </div>
+        </label>
+        <label htmlFor="ob-photo-input" style={{ cursor: 'pointer', fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>
+          {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
+        </label>
+        <input
+          id="ob-photo-input"
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoUpload}
+          disabled={uploading}
+          style={{ display: 'none' }}
+        />
       </div>
 
       <Field label="Headline" error={errors.headline?.message}>

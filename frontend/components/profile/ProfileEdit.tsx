@@ -83,7 +83,7 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     try {
       const fd = new FormData();
       fd.append('photo', file);
-      await apiUpload('/api/profile/photo', fd);
+      await apiUpload('/api/me/photos', fd);
       toast('Photo uploaded', 'success');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Upload failed', 'error');
