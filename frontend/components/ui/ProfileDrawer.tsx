@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -56,7 +57,11 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
     if (!profile) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handler);
+      document.body.style.overflow = '';
+    };
   }, [profile, onClose]);
 
   const raw = profile?.user ?? profile;
@@ -66,6 +71,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
   const insight = profile?.insight ?? (profile?.user as DrawerProfile | undefined)?.insight;
   const name = raw?.name ?? 'Unknown';
   const photos = raw?.photos ?? [];
+  const profileId = raw?.id;
 
   async function handleConnect() {
     if (!onConnect || connected) return;
@@ -75,54 +81,63 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
 
   const panelBody = profile ? (
     <>
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] shrink-0 bg-white">
-        <button
-          onClick={onClose}
-          className="p-2 rounded-xl hover:bg-[var(--sur2)] transition-colors"
-          aria-label="Close"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-2">
-          {trustScore != null && (
-            <span style={{
-              padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
-              background: trustScore >= 70 ? '#EBF9F5' : 'var(--sur2)',
-              color: trustScore >= 70 ? 'var(--primary)' : 'var(--muted)',
-              border: '1px solid',
-              borderColor: trustScore >= 70 ? 'var(--primary)' : 'var(--border)',
-            }}>
-              {trustScore >= 70 ? '✓ Trusted' : `Trust ${trustScore}`}
-            </span>
-          )}
-          {score != null && (
-            <span className="px-2.5 py-1 rounded-full bg-[var(--primary)] text-white text-xs font-bold">
-              {score}% match
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="relative h-52 bg-[var(--light)] shrink-0">
+        {/* Photo with overlaid controls */}
+        <div className="relative h-56 bg-[var(--light)] shrink-0">
           {photos[photoIdx] ? (
             <Image src={photos[photoIdx]} alt={name} fill className="object-cover" unoptimized />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
-              <Avatar src={null} name={name} size={64} />
+              <Avatar src={null} name={name} size={72} />
             </div>
           )}
+
+          {/* Gradient scrim so overlay controls are always legible */}
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/50 to-transparent pointer-events-none" />
+
+          {/* Close — top-left */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+            aria-label="Close"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Badges — top-right */}
+          {(trustScore != null || score != null) && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5">
+              {trustScore != null && (
+                <span style={{
+                  padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+                  background: trustScore >= 70 ? 'rgba(235,249,245,0.95)' : 'rgba(255,255,255,0.88)',
+                  color: trustScore >= 70 ? 'var(--primary)' : 'var(--muted)',
+                  border: '1px solid',
+                  borderColor: trustScore >= 70 ? 'var(--primary)' : 'var(--border)',
+                }}>
+                  {trustScore >= 70 ? '✓ Trusted' : `Trust ${trustScore}`}
+                </span>
+              )}
+              {score != null && (
+                <span className="px-2.5 py-1 rounded-full bg-[var(--primary)] text-white text-xs font-bold shadow">
+                  {score}% match
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Photo pagination dots */}
           {photos.length > 1 && (
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
               {photos.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setPhotoIdx(i)}
-                  className={`w-2 h-2 rounded-full transition-colors ${i === photoIdx ? 'bg-white' : 'bg-white/50'}`}
+                  style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+                  className={`w-2 h-2 rounded-full transition-colors ${i === photoIdx ? 'bg-white' : 'bg-white/55'}`}
                 />
               ))}
             </div>
@@ -216,7 +231,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
         </div>
       </div>
 
-      {/* Action bar */}
+      {/* Action bar — discover context */}
       {(onConnect || onSkip) && (
         <div
           className="flex gap-3 p-4 border-t border-[var(--border)] bg-white shrink-0"
@@ -237,6 +252,25 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
           )}
         </div>
       )}
+
+      {/* View full profile — chat context (read-only, no actions) */}
+      {!onConnect && !onSkip && profileId && (
+        <div
+          className="p-4 border-t border-[var(--border)] bg-white shrink-0"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        >
+          <Link
+            href={`/profile/${profileId}`}
+            onClick={onClose}
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--sub)] hover:bg-[var(--sur2)] transition-colors"
+          >
+            View full profile
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      )}
     </>
   ) : null;
 
@@ -255,14 +289,14 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             onClick={onClose}
           />
 
-          {/* Bottom sheet — all screen sizes */}
+          {/* Bottom sheet */}
           <motion.div
             key="drawer-panel"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[500] bg-white rounded-t-3xl max-h-[92vh] flex flex-col overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-[501] bg-white rounded-t-3xl max-h-[92vh] flex flex-col overflow-hidden"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex justify-center pt-3 pb-1 shrink-0">
