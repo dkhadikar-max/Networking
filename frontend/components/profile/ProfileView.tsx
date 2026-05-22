@@ -128,6 +128,50 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
                 transition: 'width 0.6s ease',
               }} />
             </div>
+            {/* Completion tips — show until score hits 70 */}
+            {(user.profile_score ?? 0) < 70 && (
+              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Complete to unlock discover</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {!user.intent && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
+                      Set your intent (edit profile)
+                    </div>
+                  )}
+                  {(user.photos?.length ?? 0) < 1 && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
+                      Add a profile photo
+                    </div>
+                  )}
+                  {!user.bio && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
+                      Write a short bio
+                    </div>
+                  )}
+                  {!user.location && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
+                      Add your city
+                    </div>
+                  )}
+                  {(user.interests?.length ?? 0) < 3 && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
+                      Add 3+ interests
+                    </div>
+                  )}
+                  {(user.photos?.length ?? 0) < 4 && (user.photos?.length ?? 0) >= 1 && (
+                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
+                      Add 4 photos total for max boost
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
