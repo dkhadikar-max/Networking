@@ -21,6 +21,7 @@ export type DrawerProfile = {
   headline?: string;
   bio?: string;
   location?: string;
+  intent?: string;
   interests?: string[];
   skills?: string[];
   working_on?: string;
@@ -164,6 +165,12 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             )}
           </div>
 
+          {raw?.intent && (
+            <div style={{ padding: '10px 14px', borderRadius: 12, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>Looking for</div>
+              <span style={{ padding: '4px 12px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{raw.intent}</span>
+            </div>
+          )}
           {insight && (
             <div style={{ padding: '8px 12px', background: 'var(--light)', borderRadius: 10, fontSize: 12, color: 'var(--primary)', fontWeight: 600 }}>
               ✦ {insight}

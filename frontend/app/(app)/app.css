@@ -9,7 +9,7 @@
     radial-gradient(ellipse at 0% 0%,#D8FAF2 0%,transparent 40%),
     radial-gradient(ellipse at 100% 100%,#FEE9D1 0%,transparent 38%),
     var(--bg);
-  font-family: 'Roboto', var(--font-roboto, sans-serif), sans-serif;
+  font-family: var(--font-sans);
 }
 .app-views {
   flex: 1;

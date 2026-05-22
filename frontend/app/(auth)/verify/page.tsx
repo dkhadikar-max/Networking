@@ -43,7 +43,7 @@ export default function VerifyPage() {
   }
 
   return (
-    <div style={{ fontFamily: 'var(--font-roboto), Roboto, sans-serif', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
+    <div style={{ fontFamily: 'var(--font-sans)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
       <div style={{ width: '100%', maxWidth: 420 }}>
         <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-6">
           <div>

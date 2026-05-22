@@ -6174,7 +6174,7 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     const stage = user.onboarding_stage || 'acquisition';
     if (stage !== 'profile') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
 
-    const { headline, bio, profession, industry, experience_level, location, interests, education, work, social_links } = req.body;
+    const { headline, bio, profession, industry, experience_level, location, interests, working_on, skills, education, work, social_links } = req.body;
 
     // Validate
     const errors = [];
@@ -6201,6 +6201,13 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     if (industry)   userUpdates.industry    = sanitize(String(industry).trim().slice(0, 100));
     if (cleanExp)   userUpdates.experience_level = cleanExp;
     if (location)   userUpdates.location    = sanitize(String(location).trim().slice(0, 100));
+    if (working_on) userUpdates.working_on  = sanitize(String(working_on).trim().slice(0, 200));
+
+    // Skills — merge into existing skills[] array
+    if (Array.isArray(skills) && skills.length) {
+      const newSkills = [...new Set(skills.map(s => sanitize(String(s).trim())).filter(Boolean))].slice(0, 10);
+      userUpdates.skills = [...new Set([...(user.skills || []), ...newSkills])];
+    }
 
     // Interests — merge into existing interests[] array
     if (Array.isArray(interests) && interests.length) {

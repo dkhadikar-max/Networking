@@ -43,7 +43,7 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      fontFamily: 'var(--font-roboto), Roboto, sans-serif',
+      fontFamily: 'var(--font-sans)',
       minHeight: '100vh',
       display: 'flex',
       flexDirection: 'column',

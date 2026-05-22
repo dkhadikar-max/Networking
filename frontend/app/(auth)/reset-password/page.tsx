@@ -47,7 +47,7 @@ function ResetPasswordForm() {
   }
 
   const shell = (content: React.ReactNode) => (
-    <div style={{ fontFamily: 'var(--font-roboto), Roboto, sans-serif', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
+    <div style={{ fontFamily: 'var(--font-sans)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 20px' }}>
       <div style={{ width: '100%', maxWidth: 420 }}>{content}</div>
     </div>
   );

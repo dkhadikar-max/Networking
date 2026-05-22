@@ -6,9 +6,6 @@ import { useRouter } from 'next/navigation';
 import { apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Script from 'next/script';
-import { Inter } from 'next/font/google';
-
-const inter = Inter({ subsets: ['latin'] });
 
 const LANDING_CSS = `
   :root {
@@ -28,7 +25,7 @@ const LANDING_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
@@ -212,12 +209,12 @@ const LANDING_CSS = `
   .feedback-intro { font-size:14px; color:var(--text-secondary); margin-bottom:20px; line-height:1.6; }
   .feedback-field { margin-bottom:18px; }
   .feedback-field label { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; }
-  .feedback-field input, .feedback-field select, .feedback-field textarea { width:100%; padding:12px 14px; border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; color:var(--text); background:var(--bg); transition:all 0.2s; outline:none; resize:vertical; }
+  .feedback-field input, .feedback-field select, .feedback-field textarea { width:100%; padding:12px 14px; border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:inherit; font-size:14px; color:var(--text); background:var(--bg); transition:all 0.2s; outline:none; resize:vertical; }
   .feedback-field input:focus, .feedback-field select:focus, .feedback-field textarea:focus { border-color:var(--primary); background:var(--card); box-shadow:0 0 0 3px rgba(15,118,110,0.08); }
-  .feedback-submit { width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.25s; margin-top:8px; }
+  .feedback-submit { width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.25s; margin-top:8px; }
   .feedback-submit:hover { background:#0d5f58; transform:translateY(-1px); }
   .field-hint { display:block; font-size:12px; color:var(--text-muted); margin-top:4px; }
-  .feedback-done { padding:12px 32px; background:var(--bg); color:var(--text); border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .feedback-done { padding:12px 32px; background:var(--bg); color:var(--text); border:1.5px solid var(--bg-secondary); border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; transition:all 0.2s; }
   .feedback-done:hover { background:var(--bg-secondary); }
   .success-icon { width:64px; height:64px; background:var(--highlight); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; color:var(--primary); }
   .faq-item { border-bottom:1px solid var(--bg-secondary); }
@@ -323,7 +320,7 @@ export default function HomePage() {
   function closeFeedback() { setFeedbackOpen(false); setFeedbackDone(false); }
 
   return (
-    <div className={inter.className}>
+    <div>
       <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />
 
       {/* Nav */}
@@ -331,7 +328,7 @@ export default function HomePage() {
         <div className="nav-inner">
           <a href="#" className="logo">
             <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" />
-            BuildYourNetwork
+            Build Your Network
           </a>
           <div className={`nav-links${menuOpen ? ' open' : ''}`}>
             <a href="#trust" onClick={() => setMenuOpen(false)}>Trust</a>
@@ -416,7 +413,7 @@ export default function HomePage() {
         <div className="section-inner">
           <p className="section-label animate">What It Does</p>
           <h2 className="section-title animate delay-1">Connect with intent. Find relevant people.</h2>
-          <p className="section-desc animate delay-2">BuildYourNetwork replaces random networking with purposeful discovery. Every connection starts with a clear reason.</p>
+          <p className="section-desc animate delay-2">Build Your Network replaces random networking with purposeful discovery. Every connection starts with a clear reason.</p>
           <div className="features-grid">
             {[
               { n: 1, title: 'Discover by Intent', body: 'See people who are actively looking for the same things you are — jobs, clients, mentors, co-founders, collaborators, or peers.', d: '' },
@@ -518,7 +515,7 @@ export default function HomePage() {
         <div className="section-inner">
           <p className="section-label animate">On The Horizon</p>
           <h2 className="section-title animate delay-1">What&apos;s Next</h2>
-          <div className="coming-soon-card animate delay-2" onClick={() => alert('Launching soon')}>
+          <div className="coming-soon-card animate delay-2">
             <span className="cs-badge">Coming Soon</span>
             <h3>Intent Circles</h3>
             <p>Join focused circles based on intent — launching soon.</p>
@@ -531,7 +528,7 @@ export default function HomePage() {
         <div className="section-inner">
           <p className="section-label animate">Get Started</p>
           <h2 className="section-title animate delay-1">Start in seconds — no install required</h2>
-          <p className="section-desc animate delay-2">The full BuildYourNetwork experience runs directly in your browser. Sign up and start discovering in under a minute.</p>
+          <p className="section-desc animate delay-2">The full Build Your Network experience runs directly in your browser. Sign up and start discovering in under a minute.</p>
           <div className="download-box animate delay-3">
             <a href="/signup" className="download-btn">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
@@ -625,14 +622,14 @@ export default function HomePage() {
       <footer>
         <div className="footer-inner">
           <div>
-            <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" />BuildYourNetwork</div>
+            <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" />Build Your Network</div>
             <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
           </div>
           <div className="footer-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
           <div className="footer-col"><h4>Product</h4><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
           <div className="footer-col"><h4>Support</h4><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a><a href="/download/android">Download APK</a></div>
         </div>
-        <div className="footer-bottom"><span>&copy; 2026 BuildYourNetwork. All rights reserved.</span><span>Early Access Product</span></div>
+        <div className="footer-bottom"><span>&copy; 2026 Build Your Network. All rights reserved.</span><span>Early Access Product</span></div>
       </footer>
 
       {/* Feedback tab */}
@@ -669,7 +666,7 @@ export default function HomePage() {
                   try { await apiPost('/api/feedback', { category, message }); } catch {}
                   setFeedbackDone(true);
                 }}>
-                  <p className="feedback-intro">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
+                  <p className="feedback-intro">Help us improve Build Your Network. Your feedback shapes the product.</p>
                   <div className="feedback-field">
                     <label>What is this about?</label>
                     <select name="category" defaultValue="" required>
