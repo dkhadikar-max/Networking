@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { apiGet, apiPost, getToken } from '@/lib/api';
+import { apiGet, apiPost } from '@/lib/api';
 import IntentSelector from '@/components/onboarding/IntentSelector';
 import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
@@ -48,10 +48,16 @@ export default function OnboardingPage() {
   const [userInterests, setUserInterests] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!getToken()) { window.location.href = '/login'; return; }
     apiGet<{ stage: Stage }>('/api/onboarding/stage')
       .then(r => setStage(r.stage))
-      .catch(() => setStage('acquisition'));
+      .catch((e: unknown) => {
+        const status = (e as { status?: number })?.status;
+        if (status === 401 || status === 403) {
+          window.location.href = '/login';
+        } else {
+          setStage('acquisition');
+        }
+      });
   }, []);
 
   const stepIndex = stage ? STAGE_ORDER.indexOf(stage) : 0;
