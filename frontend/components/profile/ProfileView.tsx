@@ -239,6 +239,23 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
         </div>
       )}
 
+      {/* Sign out — self only */}
+      {isSelf && (
+        <div className="profile-panel" style={{ paddingTop: 0 }}>
+          <button
+            onClick={logout}
+            style={{
+              width: '100%', padding: '11px 16px', borderRadius: 'var(--r-md)',
+              border: '1.5px solid var(--border)', background: 'var(--sur2)',
+              color: 'var(--text-soft)', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      )}
+
       {/* Danger zone — self only */}
       {isSelf && (
         <div className="profile-panel" style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>

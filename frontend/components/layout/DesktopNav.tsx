@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 const TABS = [
   {
@@ -44,6 +45,7 @@ const TABS = [
 
 export default function DesktopNav() {
   const path = usePathname();
+  const { logout } = useAuth();
 
   return (
     <nav className="desk-nav">
@@ -73,6 +75,19 @@ export default function DesktopNav() {
           </Link>
         );
       })}
+      <div style={{ flex: 1 }} />
+      <button
+        onClick={logout}
+        className="desk-nav-btn"
+        style={{ color: 'var(--muted)', fontSize: 13, fontWeight: 500 }}
+      >
+        <span className="desk-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>
+          </svg>
+        </span>
+        <span>Sign Out</span>
+      </button>
     </nav>
   );
 }

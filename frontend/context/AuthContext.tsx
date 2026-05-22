@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { apiGet, apiPost, clearToken } from '@/lib/api';
+import { apiGet, apiPost, clearToken, setToken } from '@/lib/api';
 import type { User } from '@/lib/types';
 
 type AuthCtx = {
@@ -39,12 +39,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const r = await apiPost<{ token: string; user: User }>('/api/login', { email, password });
+    if (r.token) setToken(r.token);
     setUser(r.user);
     return r;
   }
 
   async function signup(name: string, email: string, password: string, extra?: Record<string, unknown>) {
     const r = await apiPost<{ token: string; user: User }>('/api/signup', { name, email, password, ...extra });
+    if (r.token) setToken(r.token);
     setUser(r.user);
     return r;
   }
