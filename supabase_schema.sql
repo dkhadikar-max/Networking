@@ -123,6 +123,15 @@ CREATE TABLE IF NOT EXISTS priority_msgs (
   created_at  timestamptz DEFAULT now()
 );
 
+-- FEEDBACK
+CREATE TABLE IF NOT EXISTS feedback (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     text NOT NULL,
+  category    text NOT NULL DEFAULT 'General Feedback',
+  message     text NOT NULL,
+  created_at  timestamptz DEFAULT now()
+);
+
 -- ── ROW LEVEL SECURITY ───────────────────────────────────────────────────────
 -- service_role key (used by the backend) bypasses RLS entirely — no policies
 -- needed for it. Enabling RLS with no policies means anon/authenticated Supabase
@@ -138,3 +147,4 @@ ALTER TABLE reports       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blocks        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_views   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE priority_msgs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback      ENABLE ROW LEVEL SECURITY;
