@@ -822,7 +822,7 @@ function generateCityPage(slug, city, BASE) {
 </div>
 
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
+${COOKIE_BANNER_SNIPPET}
 <script>(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()</script>
 </body>
 </html>`;
@@ -1007,7 +1007,7 @@ function generateGlobalCityPage(slug, city, BASE) {
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
+${COOKIE_BANNER_SNIPPET}
 <script>(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();</script>
 </body></html>`;
 }
@@ -1248,13 +1248,13 @@ function generateHubPage(region, cities, BASE) {
   const faqs = isUS ? [
     { q: 'What is the best networking platform for startup founders in the US?', a: 'Build Your Network (BYN) is a free intent-based networking platform for startup founders in the United States. Unlike LinkedIn, BYN is built specifically for founder discovery — every member declares their current intent (co-founder search, angel investing, mentoring) so every connection is purposeful. Available across San Francisco, New York, Austin, Boston, Seattle, Los Angeles, Chicago, Miami, Denver, and Atlanta.' },
     { q: 'How do I find a co-founder in the United States?', a: 'Join Build Your Network free, set your intent to "Looking for Co-founder", and enable location discovery. BYN surfaces founders across US cities with complementary skills who are actively seeking co-founders. Filter by city, distance, skills, and industry to find your match.' },
-    { q: 'Is Build Your Network available across the United States?', a: 'Yes. Build Your Network is available in all US cities. The platform uses GPS-based discovery — so whether you're in San Francisco, New York, Austin, Boston, or any other city, you can discover founders, mentors, and investors within your chosen radius.' },
+    { q: 'Is Build Your Network available across the United States?', a: 'Yes. Build Your Network is available in all US cities. The platform uses GPS-based discovery — so whether you are in San Francisco, New York, Austin, Boston, or any other city, you can discover founders, mentors, and investors within your chosen radius.' },
     { q: 'How is BYN different from LinkedIn for US startup networking?', a: 'LinkedIn shows professional history. BYN shows current intent — what each founder is building and what they need right now. This intent-based discovery dramatically increases the quality and conversion rate of networking connections for US founders.' },
     { q: 'Is Build Your Network free for US founders?', a: 'Yes. Build Your Network is free for founders across the United States — including 30 daily connection requests, GPS-based discovery, and direct messaging. Premium plans unlock unlimited connections and priority visibility.' },
   ] : [
     { q: 'What is the best networking platform for startup founders in Europe?', a: 'Build Your Network (BYN) is a free intent-based networking platform for startup founders across Europe. Unlike LinkedIn, BYN is built specifically for founder discovery — every member declares their current intent (co-founder search, angel investing, mentoring) so every connection is purposeful. Available across London, Berlin, Amsterdam, Stockholm, Paris, Dublin, Barcelona, Helsinki, and Zurich.' },
     { q: 'How do I find a co-founder in Europe?', a: 'Join Build Your Network free, set your intent to "Looking for Co-founder", and enable location discovery. BYN surfaces founders across European cities with complementary skills who are actively seeking co-founders. Filter by city, distance, skills, and industry.' },
-    { q: 'Is Build Your Network available across Europe?', a: 'Yes. Build Your Network is available in all major European startup cities. The platform uses GPS-based discovery — so whether you're in London, Berlin, Paris, Amsterdam, Stockholm, or Dublin, you can discover founders, mentors, and investors within your chosen radius.' },
+    { q: 'Is Build Your Network available across Europe?', a: 'Yes. Build Your Network is available in all major European startup cities. The platform uses GPS-based discovery — so whether you are in London, Berlin, Paris, Amsterdam, Stockholm, or Dublin, you can discover founders, mentors, and investors within your chosen radius.' },
     { q: 'How is BYN different from LinkedIn for European startup networking?', a: 'LinkedIn shows professional history. BYN shows current intent — what each founder is building and what they need right now. This intent-based approach dramatically increases the quality and conversion rate of networking connections for European founders.' },
     { q: 'Is Build Your Network free for European founders?', a: 'Yes. Build Your Network is free for founders across Europe — including 30 daily connection requests, GPS-based discovery, and direct messaging. Premium plans unlock unlimited connections and priority visibility.' },
   ];
@@ -1401,7 +1401,7 @@ function generateHubPage(region, cities, BASE) {
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
+${COOKIE_BANNER_SNIPPET}
 <script>(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();</script>
 </body></html>`;
 }
@@ -1470,6 +1470,9 @@ function otherCityPills(slug, pattern, cities) {
     .map(k => `<a href="/${pattern}${k}" class="city-pill">${escHtml(cities[k].name)}</a>`).join('');
 }
 
+const COOKIE_BANNER_SNIPPET = `<div id="byn-ck" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9000;background:#fff;border-top:1px solid #e2e8f0;box-shadow:0 -2px 16px rgba(0,0,0,.08)"><div style="max-width:900px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><p style="flex:1;font-size:13px;color:#475569;margin:0;line-height:1.5">We use analytics cookies to improve your experience. <a href="/privacy" style="color:#0F766E;text-decoration:underline">Privacy Policy</a></p><div style="display:flex;gap:8px;flex-shrink:0"><button id="byn-ck-d" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Decline</button><button id="byn-ck-a" style="padding:8px 16px;border-radius:8px;border:none;background:#0F766E;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Accept</button></div></div></div>
+<script>(function(){var GA='G-5NQDBYG4CJ',CK='byn_consent',MAX=31536000;function read(){var m=document.cookie.match(/(?:^|;\\s*)byn_consent=([^;]+)/);return m?m[1]:null;}function write(v){document.cookie=CK+'='+v+';path=/;max-age='+MAX+';SameSite=Lax';}function ga(){if(window.__byn_ga)return;window.__byn_ga=1;window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};var s=document.createElement('script');s.async=1;s.src='https://www.googletagmanager.com/gtag/js?id='+GA;document.head.appendChild(s);gtag('js',new Date());gtag('config',GA);}var c=read(),b=document.getElementById('byn-ck');if(c==='analytics'){ga();return;}if(c){return;}if(b)b.style.display='block';document.getElementById('byn-ck-a').onclick=function(){write('analytics');ga();b.style.display='none';};document.getElementById('byn-ck-d').onclick=function(){write('none');b.style.display='none';};})();</script>`;
+
 const CITY_PAGE_CSS = `
     :root{--bg:#FFF4EC;--bg2:#FDE8D7;--card:#fff;--primary:#0F766E;--hl:#CCFBF1;--text:#1F2937;--muted:#6B7280;--dim:#9CA3AF}
     *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
@@ -1537,7 +1540,7 @@ function cityPageShell(head, body, BASE) {
 </div></nav>
 ${body}
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}(function(){if(!/byn_consent=analytics/.test(document.cookie))return;var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';document.head.appendChild(s);gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');})();</script>
+${COOKIE_BANNER_SNIPPET}
 <script>
 (function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();
 </script>
@@ -3796,6 +3799,7 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('user_acquisition').delete().eq('user_id', id);
     await supabase.from('users').delete().eq('id', id);
     await auditLog(id, 'self_delete', id);
+    res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
     res.json({ ok: true });
   } catch(e) {
     console.error('Self-delete error:', e);

@@ -3,6 +3,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { apiDelete } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/lib/types';
 
 function safeHref(url?: string | null): string | undefined {
@@ -23,8 +25,24 @@ type Props = {
 };
 
 export default function ProfileView({ user, isSelf = false, onConnect, connected, connectionId, onEdit }: Props) {
+  const { logout } = useAuth();
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await apiDelete('/api/me');
+      logout();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Failed to delete account');
+      setDeleting(false);
+    }
+  }
 
   const photos = user.photos ?? [];
   const name = user.name ?? '';
@@ -218,6 +236,62 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
               <span key={s} className="chip chip-gold">{s}</span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Danger zone — self only */}
+      {isSelf && (
+        <div className="profile-panel" style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              style={{
+                width: '100%', padding: '11px 16px', borderRadius: 'var(--r-md)',
+                border: '1.5px solid #FCA5A5', background: 'transparent',
+                color: '#EF4444', fontSize: 13, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Delete account
+            </button>
+          ) : (
+            <div style={{ background: '#FEF2F2', borderRadius: 'var(--r-md)', padding: '16px', border: '1px solid #FECACA' }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C', marginBottom: 6 }}>Permanently delete account?</p>
+              <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 14, lineHeight: 1.55 }}>
+                All your data — profile, connections, messages, and works — will be permanently erased. This cannot be undone.
+              </p>
+              {deleteError && (
+                <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 10 }}>{deleteError}</p>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: 'var(--r-md)',
+                    border: '1.5px solid var(--border)', background: 'white',
+                    color: 'var(--text)', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: 'var(--r-md)',
+                    border: 'none', background: '#EF4444',
+                    color: 'white', fontSize: 13, fontWeight: 700,
+                    cursor: deleting ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? 'Deleting…' : 'Yes, delete'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
