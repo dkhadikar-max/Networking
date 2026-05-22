@@ -3,13 +3,14 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useState } from 'react';
+import { useState, useRef, KeyboardEvent } from 'react';
 import { apiUpload } from '@/lib/api';
 import OpportunityTags from './OpportunityTags';
 
 const EXP_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
 
 const schema = z.object({
+  working_on:       z.string().max(200).optional(),
   headline:         z.string().max(80).optional(),
   bio:              z.string().min(10, 'Bio must be at least 10 characters').max(180).optional().or(z.literal('')),
   profession:       z.string().max(100).optional(),
@@ -21,17 +22,35 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface Props {
-  onNext: (data: FormValues & { interests: string[] }) => void;
+  onNext: (data: FormValues & { interests: string[]; skills: string[] }) => void;
   loading: boolean;
 }
 
 export default function ProfileCompletion({ onNext, loading }: Props) {
   const [interests, setInterests] = useState<string[]>([]);
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillInput, setSkillInput] = useState('');
+  const skillRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
+
+  function addSkill(val: string) {
+    const s = val.trim();
+    if (s && !skills.includes(s) && skills.length < 10) {
+      setSkills(prev => [...prev, s]);
+    }
+    setSkillInput('');
+  }
+
+  function handleSkillKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addSkill(skillInput); }
+    if (e.key === 'Backspace' && !skillInput && skills.length) {
+      setSkills(prev => prev.slice(0, -1));
+    }
+  }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -46,13 +65,13 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
     finally { setUploading(false); }
   }
 
-  const submit = (data: FormValues) => onNext({ ...data, interests });
+  const submit = (data: FormValues) => onNext({ ...data, interests, skills });
 
   return (
     <form onSubmit={handleSubmit(submit)} className="space-y-5">
       <div>
         <h2 className="text-2xl font-bold text-[var(--text)]">Complete your profile</h2>
-        <p className="text-[var(--text-secondary)] mt-1">Every field is optional — fill in what feels right.</p>
+        <p className="text-[var(--text-secondary)] mt-1">The more you share, the better your matches.</p>
       </div>
 
       {/* Photo upload */}
@@ -86,6 +105,16 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         />
       </div>
 
+      {/* What are you building — highest match signal */}
+      <Field label="What are you currently building?" error={errors.working_on?.message}>
+        <textarea
+          {...register('working_on')}
+          rows={2}
+          placeholder="e.g. A B2B SaaS for restaurant inventory management"
+          className={inputClass + ' resize-none'}
+        />
+      </Field>
+
       <Field label="Headline" error={errors.headline?.message}>
         <input
           {...register('headline')}
@@ -94,36 +123,49 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         />
       </Field>
 
-      <Field label="Bio" error={errors.bio?.message}>
-        <textarea
-          {...register('bio')}
-          rows={3}
-          placeholder="Tell people what you're building, exploring, or looking for…"
-          className={inputClass + ' resize-none'}
-        />
-      </Field>
-
       <div className="grid grid-cols-2 gap-4">
         <Field label="Profession" error={errors.profession?.message}>
           <input {...register('profession')} placeholder="e.g. Product Manager" className={inputClass} />
         </Field>
-        <Field label="Industry" error={errors.industry?.message}>
-          <input {...register('industry')} placeholder="e.g. FinTech" className={inputClass} />
+        <Field label="Location" error={errors.location?.message}>
+          <input {...register('location')} placeholder="e.g. Mumbai" className={inputClass} />
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Experience level" error={errors.experience_level?.message}>
-          <select {...register('experience_level')} className={inputClass}>
-            <option value="">Select…</option>
-            {EXP_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-          </select>
-        </Field>
-        <Field label="Location" error={errors.location?.message}>
-          <input {...register('location')} placeholder="e.g. Mumbai, India" className={inputClass} />
-          <p className="text-xs text-[var(--muted)] mt-1">Your city is shown on your profile. GPS-based proximity discovery uses your approximate location only when you are active.</p>
-        </Field>
+      {/* Skills — chip input */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-[var(--text)]">Skills <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(press Enter to add)</span></label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'white', minHeight: 44, cursor: 'text' }} onClick={() => skillRef.current?.focus()}>
+          {skills.map(s => (
+            <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'var(--sur2)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+              {s}
+              <button type="button" onClick={() => setSkills(prev => prev.filter(x => x !== s))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', fontSize: 14, lineHeight: 1 }}>×</button>
+            </span>
+          ))}
+          <input
+            ref={skillRef}
+            value={skillInput}
+            onChange={e => setSkillInput(e.target.value)}
+            onKeyDown={handleSkillKey}
+            onBlur={() => skillInput.trim() && addSkill(skillInput)}
+            placeholder={skills.length === 0 ? 'e.g. React, Fundraising, Design…' : ''}
+            style={{ border: 'none', outline: 'none', fontSize: 13, flex: 1, minWidth: 120, background: 'transparent', color: 'var(--text)' }}
+          />
+        </div>
       </div>
+
+      <Field label="Industry" error={errors.industry?.message}>
+        <input {...register('industry')} placeholder="e.g. FinTech, EdTech, SaaS…" className={inputClass} />
+      </Field>
+
+      <Field label="Bio" error={errors.bio?.message}>
+        <textarea
+          {...register('bio')}
+          rows={2}
+          placeholder="Tell people what you're exploring or looking for…"
+          className={inputClass + ' resize-none'}
+        />
+      </Field>
 
       <OpportunityTags selected={interests} onChange={setInterests} />
 

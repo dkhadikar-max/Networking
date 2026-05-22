@@ -104,6 +104,14 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
           </div>
         )}
 
+        {/* Intent — the core BYN signal */}
+        {user.intent && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Looking for</span>
+            <span style={{ padding: '5px 16px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{user.intent}</span>
+          </div>
+        )}
+
         {/* Profile score bar (self only) */}
         {isSelf && (
           <div style={{ marginTop: 18 }}>

@@ -145,7 +145,11 @@ export default function ChatWindow({ connectionId }: Props) {
           <Avatar src={other.photos?.[0]} name={other.name} size={40} online={other.is_online} />
           <div className="min-w-0">
             <p className="font-semibold text-sm text-[var(--text)] truncate">{other.name}</p>
-            {other.headline && <p className="text-xs text-[var(--sub)] truncate">{other.headline}</p>}
+            {other.intent ? (
+              <p className="text-xs truncate" style={{ color: 'var(--primary)', fontWeight: 600 }}>Looking for: {other.intent}</p>
+            ) : other.headline ? (
+              <p className="text-xs text-[var(--sub)] truncate">{other.headline}</p>
+            ) : null}
           </div>
         </button>
         {connection.hoursLeft != null && connection.hoursLeft <= 24 && (
@@ -170,8 +174,16 @@ export default function ChatWindow({ connectionId }: Props) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-sm text-[var(--muted)] py-8">
-            <p>Start the conversation! Say hello to {other.name}.</p>
+          <div className="text-center py-10 px-4" style={{ color: 'var(--muted)' }}>
+            {other.intent && (
+              <div style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>They&apos;re looking for</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>{other.intent}</span>
+              </div>
+            )}
+            <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+              You both showed interest — break the ice and start building something together.
+            </p>
           </div>
         )}
         {messages.map(msg => {

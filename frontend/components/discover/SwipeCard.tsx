@@ -92,13 +92,28 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
             {headline}{headline && location ? ' · ' : ''}{location}
           </div>
         )}
-        {(intents.length > 0 || interests.length > 0) && (
-          <div className="chips-row">
-            {intents.slice(0, 2).map(t => <span key={t} className="chip">{t}</span>)}
-            {interests.slice(0, 2).map(t => <span key={t} className="chip chip-gold">{t}</span>)}
+        {/* Intent — most important signal, shown first */}
+        {intents.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>Looking for</span>
+            {intents.slice(0, 2).map(t => (
+              <span key={t} style={{ padding: '3px 10px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 700 }}>{t}</span>
+            ))}
           </div>
         )}
-        {bio && <p className="card-bio">{bio.slice(0, 120)}{bio.length > 120 ? '…' : ''}</p>}
+        {/* Match insight */}
+        {profile.insight && (
+          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            {profile.insight}
+          </div>
+        )}
+        {interests.length > 0 && (
+          <div className="chips-row" style={{ marginBottom: 0 }}>
+            {interests.slice(0, 3).map(t => <span key={t} className="chip chip-gold">{t}</span>)}
+          </div>
+        )}
+        {bio && !profile.insight && <p className="card-bio">{bio.slice(0, 100)}{bio.length > 100 ? '…' : ''}</p>}
       </div>
 
       {/* Actions */}
