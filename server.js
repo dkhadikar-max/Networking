@@ -307,7 +307,7 @@ app.get('/sitemap.xml', (req, res) => {
   const allGlobal   = [...usSlugs, ...euSlugs];
   const cityUrls    = citySlugs.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
   const globalCityUrls = allGlobal.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
-  const intentPatterns = ['founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-'];
+  const intentPatterns = ['founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-', 'professional-networking-'];
   const intentUrls = intentPatterns.flatMap(p => citySlugs.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
   const globalIntentUrls = intentPatterns.flatMap(p => allGlobal.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
   const categoryUrls = CATEGORY_SLUGS.flatMap(cat => citySlugs.map(slug => ({ loc: BASE + '/' + cat + '-' + slug, priority: '0.7', freq: 'monthly' })));
@@ -326,6 +326,8 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly'  },
     { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/professional-networking',        priority: '0.9', freq: 'weekly'  },
+    { loc: BASE + '/build-professional-network',     priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/startup-networking-us',     priority: '0.9', freq: 'weekly' },
     { loc: BASE + '/startup-networking-europe', priority: '0.9', freq: 'weekly' },
     ...cityUrls,
@@ -373,6 +375,9 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /startup-founders-',
     'Allow: /find-cofounders-',
     'Allow: /startup-networking-',
+    'Allow: /professional-networking-',
+    'Allow: /professional-networking',
+    'Allow: /build-professional-network',
     'Allow: /terms',
     'Allow: /privacy',
     'Allow: /support',
@@ -571,36 +576,36 @@ function escHtml(s) {
 }
 
 function generateCityPage(slug, city, BASE) {
-  const title  = `Networking for Startup Founders in ${city.name} — Build Your Network`;
-  const metaDesc = `Find co-founders, mentors, and investors in ${city.name}. Build Your Network is the free networking platform for startup founders in ${city.name}, ${city.state}. No install required.`;
+  const title  = `Professional Networking in ${city.name} — Build Your Network`;
+  const metaDesc = `Build your professional network in ${city.name}. Connect with founders, mentors, freelancers, and career professionals by declared intent — not job title. Free, no install required.`;
   const canonical = `${BASE}/networking-in-${slug}`;
   const otherCityLinks = Object.keys(CITIES).filter(k => k !== slug)
     .map(k => `<a href="/networking-in-${k}">${escHtml(CITIES[k].name)}</a>`).join('\n        ');
 
   const faqs = [
     {
-      q: `What is the best networking app for startup founders in ${city.name}?`,
-      a: `Build Your Network (BYN) is the best networking app for startup founders in ${city.name}. It matches founders with co-founders, mentors, and investors based on intent and skills — with GPS-based discovery within your chosen radius in ${city.name}. It's free and works in-browser with no install required.`
+      q: `What is the best professional networking app in ${city.name}?`,
+      a: `Build Your Network (BYN) is the best intent-based professional networking app in ${city.name}. It connects you with the right people — founders, freelancers, mentors, investors, and career professionals — based on what you are actively looking for, not your job history. GPS-based discovery, free, no install required.`
     },
     {
-      q: `How do I find a co-founder in ${city.name}?`,
-      a: `Join Build Your Network free, set your intent to 'Looking for Co-founder', add your skills and startup description, and enable location discovery. BYN surfaces founders in ${city.name} with complementary skills who are actively seeking co-founders. Filter by distance — 10 km, 50 km, or 200 km — for in-person collaboration.`
+      q: `Who uses Build Your Network in ${city.name}?`,
+      a: `BYN is used by startup founders, freelancers and consultants, professionals changing careers, remote workers seeking community, experienced operators open to mentoring, and anyone who wants to build genuine professional relationships in ${city.name} based on shared goals — not cold outreach.`
     },
     {
-      q: `Are there angel investors and mentors in ${city.name} on Build Your Network?`,
-      a: `Yes. Investors and mentors in ${city.name} use Build Your Network to discover early-stage founders in their city. They set their intent to 'Angel Investing' or 'Open to Advising' — so founders who filter by investor intent in ${city.name} can see exactly who is actively open to new deals and advisory relationships.`
+      q: `Are there mentors, investors, and collaborators in ${city.name} on Build Your Network?`,
+      a: `Yes. Investors, mentors, freelancers, and experienced operators in ${city.name} use Build Your Network to find their next opportunity or give back. They set their intent explicitly — 'Open to Advising', 'Angel Investing', 'Hiring', 'Freelance Available' — so you always know who is open and to what.`
     },
     {
-      q: `What startup ecosystem exists in ${city.name}?`,
-      a: `${city.name}'s startup ecosystem is strong in ${city.ecosystem}. Key institutions include ${city.hubs}. ${city.excerpt}`
+      q: `What professional ecosystem exists in ${city.name}?`,
+      a: `${city.name}'s professional ecosystem is strong in ${city.ecosystem}. Key institutions include ${city.hubs}. ${city.excerpt}`
     },
     {
-      q: `How does Build Your Network work for ${city.name} founders?`,
-      a: `Founders in ${city.name} create a free profile on Build Your Network, set their professional intent, and enable GPS-based location discovery. BYN surfaces founders, investors, and mentors within their chosen radius in ${city.name} who have declared matching intent. Both parties see each other's goals before the first message — making introductions significantly more likely to convert than cold LinkedIn DMs.`
+      q: `How does Build Your Network work in ${city.name}?`,
+      a: `Professionals in ${city.name} create a free profile on Build Your Network, declare their intent — co-founder search, freelance work, career change, mentorship, or collaboration — and enable GPS-based location discovery. BYN surfaces people within their chosen radius who have declared matching intent. Both parties see each other's goals before the first message, making every introduction purposeful.`
     },
     {
-      q: `Is Build Your Network free for founders in ${city.name}?`,
-      a: `Yes. Build Your Network is free for founders in ${city.name} — 30 daily connection requests, direct messaging, and location-based discovery at no cost. No install required; works in your mobile browser. Premium plans unlock unlimited daily connections and priority visibility for faster co-founder discovery.`
+      q: `Is Build Your Network free in ${city.name}?`,
+      a: `Yes. Build Your Network is free in ${city.name} — 30 daily connection requests, direct messaging, and location-based discovery at no cost. No install required; works in your mobile browser. Premium plans unlock unlimited daily connections and priority visibility.`
     }
   ];
 
@@ -669,7 +674,7 @@ function generateCityPage(slug, city, BASE) {
   <meta name="twitter:image" content="${BASE}/assets/logo.png">
   <meta name="twitter:site" content="@buildyournetwork">
   <script type="application/ld+json">${faqJsonLd}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en-IN","description":"Free intent-based networking platform for startup founders, entrepreneurs, investors, mentors, and creators in India.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","availability":"https://schema.org/InStock"}},{"@type":"Organization","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":"IN","contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en-IN","description":"Free intent-based professional networking platform for founders, freelancers, career professionals, mentors, and investors in India.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","availability":"https://schema.org/InStock"}},{"@type":"Organization","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":"IN","contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
   <style>
     :root{--bg:#FFF4EC;--bg-secondary:#FDE8D7;--card:#FFFFFF;--primary:#0F766E;--highlight:#CCFBF1;--text:#1F2937;--text-secondary:#6B7280;--text-muted:#9CA3AF}
     *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
@@ -734,44 +739,49 @@ function generateCityPage(slug, city, BASE) {
 <div class="page-wrap">
   <p class="breadcrumb"><a href="/">Home</a> › <a href="/startup-community-india">Startup Community India</a> › ${escHtml(city.name)}</p>
   <span class="tag">${escHtml(city.name)} · ${escHtml(city.state)}</span>
-  <h1>Find <span>Co-Founders, Mentors &amp; Investors</span> in ${escHtml(city.name)}</h1>
-  <p class="lead">Build Your Network is the free intent-based networking platform for startup founders in ${escHtml(city.name)}. Find co-founders with complementary skills, meet angel investors actively looking for deals, and connect with mentors who have built startups — all within your city.</p>
+  <h1>Build Your <span>Professional Network</span> in ${escHtml(city.name)}</h1>
+  <p class="lead">Build Your Network is the free intent-based networking platform for professionals in ${escHtml(city.name)}. Whether you are a founder seeking a co-founder, a freelancer finding clients, a professional changing careers, or an expert open to mentoring — connect with the right people based on what you actually want.</p>
   <div class="cta-row">
     <a href="/app" class="btn-p">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      Find Founders in ${escHtml(city.name)} — Free
+      Start Networking in ${escHtml(city.name)} — Free
     </a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
 
   <section class="quick-answer" aria-label="Quick answer">
-    <p><strong>Build Your Network (BYN)</strong> is the free networking platform for startup founders in ${escHtml(city.name)}, ${escHtml(city.state)}. It matches founders with co-founders, mentors, and investors based on declared intent — with GPS-based discovery across ${escHtml(city.name)}. No app install required.</p>
+    <p><strong>Build Your Network (BYN)</strong> is the free intent-based professional networking platform in ${escHtml(city.name)}, ${escHtml(city.state)}. It connects founders, freelancers, career professionals, mentors, and investors based on declared intent — with GPS-based discovery across ${escHtml(city.name)}. No app install required.</p>
   </section>
 
   <div class="know-block">
-    <h2>Startup networking in ${escHtml(city.name)} — how it works</h2>
+    <h2>Professional networking in ${escHtml(city.name)} — how it works</h2>
     <p>${escHtml(city.excerpt)}</p>
-    <p>Build Your Network brings ${escHtml(city.name)}'s startup community online. Founders set their intent — co-founder search, investor introductions, mentor connections — and the platform surfaces the right people within their chosen radius. Both parties see each other's goals before the first message, making introductions far more likely to succeed than cold LinkedIn outreach.</p>
+    <p>Build Your Network connects ${escHtml(city.name)}'s professional community by intent. Whether you are a founder seeking a co-founder, a freelancer finding clients, a professional changing careers, or an expert open to mentoring — set your intent and the platform surfaces the right people within your chosen radius. Both parties see each other's goals before the first message, making every introduction count.</p>
     <p>Free to join. Works in your browser. No app install required. GPS-based discovery within ${escHtml(city.name)}: 10 km, 50 km, 200 km, or all of India.</p>
   </div>
 
-  <h2 class="section-h2">What founders find in ${escHtml(city.name)} on BYN</h2>
-  <p class="section-sub">Three types of connections that accelerate your startup.</p>
+  <h2 class="section-h2">Who you will find in ${escHtml(city.name)} on BYN</h2>
+  <p class="section-sub">Every type of professional connection — filtered by what they actually want.</p>
   <div class="cards">
     <div class="card">
       <div class="card-icon">🤝</div>
-      <h3>Co-Founders</h3>
-      <p>Filter by skills and intent to find technical, business, or creative co-founders actively looking in ${escHtml(city.name)} — within 10 km for daily in-person work.</p>
+      <h3>Co-Founders &amp; Collaborators</h3>
+      <p>Founders and builders in ${escHtml(city.name)} actively looking for complementary partners — technical, business, creative — within your chosen radius.</p>
     </div>
     <div class="card">
-      <div class="card-icon">💰</div>
-      <h3>Angel Investors</h3>
-      <p>Investors in ${escHtml(city.name)} who have declared they are actively looking for early-stage deals. No cold introductions — both sides show intent upfront.</p>
+      <div class="card-icon">💼</div>
+      <h3>Freelancers &amp; Consultants</h3>
+      <p>Independent professionals in ${escHtml(city.name)} who have declared they are open to new projects and clients. Filter by skill and proximity.</p>
     </div>
     <div class="card">
       <div class="card-icon">🎓</div>
       <h3>Mentors &amp; Advisors</h3>
-      <p>Experienced founders and operators in ${escHtml(city.name)} who are open to advising early-stage teams. Filter by 'Open to Advising' intent to find them.</p>
+      <p>Experienced operators in ${escHtml(city.name)} who are open to advising. Filter by 'Open to Advising' intent to find the right guide for your goals.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon">💰</div>
+      <h3>Investors</h3>
+      <p>Investors in ${escHtml(city.name)} who have declared they are actively looking for early-stage deals. No cold introductions — both sides show intent upfront.</p>
     </div>
   </div>
 
@@ -786,8 +796,8 @@ function generateCityPage(slug, city, BASE) {
   </div>
 
   <div class="faq-section" id="faq">
-    <h2 class="section-h2">Founder Networking in ${escHtml(city.name)} — FAQ</h2>
-    <p class="section-sub">Common questions from founders looking to build connections in ${escHtml(city.name)}.</p>
+    <h2 class="section-h2">Professional Networking in ${escHtml(city.name)} — FAQ</h2>
+    <p class="section-sub">Common questions from professionals looking to build meaningful connections in ${escHtml(city.name)}.</p>
     <div itemscope itemtype="https://schema.org/FAQPage">${faqHtml}
     </div>
   </div>
@@ -813,11 +823,11 @@ function generateCityPage(slug, city, BASE) {
   </div>
 
   <div class="cta-block">
-    <h2>Start networking with founders in ${escHtml(city.name)}</h2>
-    <p>Join Build Your Network free. GPS-based discovery. No install. Available across ${escHtml(city.name)} and all of India.</p>
+    <h2>Start building your network in ${escHtml(city.name)}</h2>
+    <p>Join Build Your Network free. Declare your intent. Meet the right people. GPS-based discovery across ${escHtml(city.name)} and all of India.</p>
     <a href="/app" class="btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      Join Free — Find Founders in ${escHtml(city.name)}
+      Join Free — Network in ${escHtml(city.name)}
     </a>
   </div>
 </div>
@@ -832,8 +842,8 @@ ${COOKIE_BANNER_SNIPPET}
 // ── GLOBAL CITY PAGE GENERATOR (US / EU) ─────────────────────────────────────
 function generateGlobalCityPage(slug, city, BASE) {
   const E = escHtml;
-  const title     = `Networking for Startup Founders in ${city.name} — Build Your Network`;
-  const metaDesc  = `Find co-founders, mentors, and investors in ${city.name}. Build Your Network is the free networking platform for startup founders in ${city.name}, ${city.region}. No install required.`;
+  const title     = `Professional Networking in ${city.name} — Build Your Network`;
+  const metaDesc  = `Build your professional network in ${city.name}. Connect with founders, mentors, freelancers, and career professionals by declared intent — not job title. Free, no install required.`;
   const canonical = `${BASE}/networking-in-${slug}`;
   const peerCities = city.hubPage === 'startup-networking-us' ? US_CITIES : EU_CITIES;
   const regionLabel = city.hubPage === 'startup-networking-us' ? 'US' : 'European';
@@ -841,12 +851,12 @@ function generateGlobalCityPage(slug, city, BASE) {
     .map(k => `<a href="/networking-in-${k}">${E(peerCities[k].name)}</a>`).join('\n        ');
 
   const faqs = [
-    { q: `What is the best networking app for startup founders in ${city.name}?`, a: `Build Your Network (BYN) is a free networking app for startup founders in ${city.name}. It matches founders with co-founders, mentors, and investors based on intent and skills — with GPS-based discovery within your chosen radius. It works in-browser with no install required.` },
-    { q: `How do I find a co-founder in ${city.name}?`, a: `Join Build Your Network free, set your intent to 'Looking for Co-founder', add your skills and startup description, and enable location discovery. BYN surfaces founders in ${city.name} with complementary skills who are actively seeking co-founders. Filter by distance — 10 km, 50 km, or 200 km — for in-person collaboration.` },
-    { q: `Are there angel investors and mentors in ${city.name} on Build Your Network?`, a: `Yes. Investors and mentors in ${city.name} use Build Your Network to discover early-stage founders. They set their intent to 'Angel Investing' or 'Open to Advising' — so founders who filter by investor intent in ${city.name} see exactly who is actively open to new deals and advisory relationships.` },
-    { q: `What startup ecosystem exists in ${city.name}?`, a: `${city.name}'s startup ecosystem is strong in ${city.ecosystem}. Key institutions include ${city.hubs}. ${city.excerpt}` },
-    { q: `How does Build Your Network work for ${city.name} founders?`, a: `Founders in ${city.name} create a free profile, set their professional intent, and enable GPS-based location discovery. BYN surfaces founders, investors, and mentors within their chosen radius who have declared matching intent. Both parties see each other's goals before the first message — making introductions far more likely to convert than cold LinkedIn DMs.` },
-    { q: `Is Build Your Network free for founders in ${city.name}?`, a: `Yes. Build Your Network is free for founders in ${city.name} — 30 daily connection requests, direct messaging, and location-based discovery at no cost. No install required; works in your browser. Premium plans unlock unlimited daily connections and priority visibility for faster co-founder discovery.` },
+    { q: `What is the best professional networking app in ${city.name}?`, a: `Build Your Network (BYN) is the free intent-based professional networking platform for ${city.name}. It connects founders, freelancers, career professionals, mentors, and investors based on what they are actively looking for — with GPS-based discovery and no install required.` },
+    { q: `Who uses Build Your Network in ${city.name}?`, a: `BYN is used by startup founders, freelancers, consultants, career changers, remote workers, mentors, and investors in ${city.name}. Anyone who wants to build genuine professional relationships based on shared goals — not cold outreach — will find value on BYN.` },
+    { q: `Are there mentors, investors, and collaborators in ${city.name} on Build Your Network?`, a: `Yes. Investors set their intent to 'Angel Investing', mentors to 'Open to Advising', freelancers to 'Available for Projects'. Filter by intent in ${city.name} to see exactly who is open and to what — no guessing, no cold messages.` },
+    { q: `What professional ecosystem exists in ${city.name}?`, a: `${city.name}'s professional ecosystem is strong in ${city.ecosystem}. Key institutions include ${city.hubs}. ${city.excerpt}` },
+    { q: `How does Build Your Network work in ${city.name}?`, a: `Professionals in ${city.name} create a free profile, declare their intent — co-founder search, freelance, career change, mentoring, investing — and enable GPS-based discovery. BYN surfaces people within their chosen radius who have declared matching intent. Both parties see each other's goals before the first message.` },
+    { q: `Is Build Your Network free in ${city.name}?`, a: `Yes. Build Your Network is free in ${city.name} — 30 daily connection requests, direct messaging, and location-based discovery at no cost. No install required; works in your browser. Premium plans unlock unlimited daily connections and priority visibility.` },
   ];
 
   const faqJsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': [
@@ -890,7 +900,7 @@ function generateGlobalCityPage(slug, city, BASE) {
   <meta name="twitter:description" content="${E(metaDesc)}"><meta name="twitter:image" content="${BASE}/assets/logo.png">
   <meta name="twitter:site" content="@buildyournetwork">
   <script type="application/ld+json">${faqJsonLd}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en","description":"Free intent-based networking platform for startup founders worldwide.","offers":{"@type":"Offer","price":"0","priceCurrency":"${city.currency}","availability":"https://schema.org/InStock"}},{"@type":"Organization","name":"Build Your Network","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":["IN","US","GB","EU"],"contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en","description":"Free intent-based professional networking platform for founders, freelancers, mentors, and career professionals worldwide.","offers":{"@type":"Offer","price":"0","priceCurrency":"${city.currency}","availability":"https://schema.org/InStock"}},{"@type":"Organization","name":"Build Your Network","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":["IN","US","GB","EU"],"contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
   <style>
     :root{--bg:#FFF4EC;--bg-secondary:#FDE8D7;--card:#FFFFFF;--primary:#0F766E;--highlight:#CCFBF1;--text:#1F2937;--text-secondary:#6B7280;--text-muted:#9CA3AF}
     *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
@@ -948,27 +958,28 @@ function generateGlobalCityPage(slug, city, BASE) {
 <div class="page-wrap">
   <p class="breadcrumb"><a href="/">Home</a> › <a href="/${E(city.hubPage)}">${E(city.hubLabel)}</a> › ${E(city.name)}</p>
   <span class="tag">${E(city.name)} · ${E(city.region)}</span>
-  <h1>Find <span>Co-Founders, Mentors &amp; Investors</span> in ${E(city.name)}</h1>
-  <p class="lead">Build Your Network is the free intent-based networking platform for startup founders in ${E(city.name)}. Find co-founders with complementary skills, meet angel investors actively looking for deals, and connect with mentors who have built startups — all within your city.</p>
+  <h1>Build Your <span>Professional Network</span> in ${E(city.name)}</h1>
+  <p class="lead">Build Your Network is the free intent-based professional networking platform for ${E(city.name)}. Whether you are a founder, freelancer, career professional, mentor, or investor — declare your intent and connect with the right people in your city.</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Find Founders in ${E(city.name)} — Free</a>
+    <a href="/app" class="btn-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Start Networking in ${E(city.name)} — Free</a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
   <section class="quick-answer" aria-label="Quick answer">
-    <p><strong>Build Your Network (BYN)</strong> is the free networking platform for startup founders in ${E(city.name)}, ${E(city.region)}. It matches founders with co-founders, mentors, and investors based on declared intent — with GPS-based discovery across ${E(city.name)}. No app install required.</p>
+    <p><strong>Build Your Network (BYN)</strong> is the free intent-based professional networking platform for ${E(city.name)}, ${E(city.region)}. It connects founders, freelancers, career professionals, mentors, and investors based on declared intent — with GPS-based discovery. No app install required.</p>
   </section>
   <div class="know-block">
-    <h2>Startup networking in ${E(city.name)} — how it works</h2>
+    <h2>Professional networking in ${E(city.name)} — how it works</h2>
     <p>${E(city.excerpt)}</p>
-    <p>Build Your Network brings ${E(city.name)}'s startup community online. Founders set their intent — co-founder search, investor introductions, mentor connections — and the platform surfaces the right people within their chosen radius. Both parties see each other's goals before the first message, making introductions far more likely to succeed than cold LinkedIn outreach.</p>
+    <p>Build Your Network connects ${E(city.name)}'s professional community by intent. Whether you are a founder seeking a co-founder, a freelancer finding clients, a professional changing careers, or an expert open to mentoring — set your intent and the platform surfaces the right people within your chosen radius. Both parties see each other's goals before the first message, making every introduction count.</p>
     <p>Free to join. Works in your browser. No app install required.</p>
   </div>
-  <h2 class="section-h2">What founders find in ${E(city.name)} on BYN</h2>
-  <p class="section-sub">Three types of connections that accelerate your startup.</p>
+  <h2 class="section-h2">Who you will find in ${E(city.name)} on BYN</h2>
+  <p class="section-sub">Every type of professional connection — filtered by what they actually want.</p>
   <div class="cards">
-    <div class="card"><div class="card-icon">🤝</div><h3>Co-Founders</h3><p>Filter by skills and intent to find technical, business, or creative co-founders actively looking in ${E(city.name)} — within 10 km for daily in-person work.</p></div>
-    <div class="card"><div class="card-icon">💰</div><h3>Angel Investors</h3><p>Investors in ${E(city.name)} who have declared they are actively looking for early-stage deals. No cold introductions — both sides show intent upfront.</p></div>
-    <div class="card"><div class="card-icon">🎓</div><h3>Mentors &amp; Advisors</h3><p>Experienced founders and operators in ${E(city.name)} who are open to advising early-stage teams. Filter by 'Open to Advising' intent to find them.</p></div>
+    <div class="card"><div class="card-icon">🤝</div><h3>Co-Founders &amp; Collaborators</h3><p>Founders and builders in ${E(city.name)} actively looking for complementary partners — technical, business, or creative — within your chosen radius.</p></div>
+    <div class="card"><div class="card-icon">💼</div><h3>Freelancers &amp; Consultants</h3><p>Independent professionals in ${E(city.name)} open to new projects and clients. Filter by skill and intent to find the right fit.</p></div>
+    <div class="card"><div class="card-icon">🎓</div><h3>Mentors &amp; Advisors</h3><p>Experienced operators in ${E(city.name)} who are open to advising. Filter by 'Open to Advising' intent to find the right guide for your stage.</p></div>
+    <div class="card"><div class="card-icon">💰</div><h3>Investors</h3><p>Investors in ${E(city.name)} who have declared they are actively looking for early-stage deals. No cold introductions — both sides show intent upfront.</p></div>
   </div>
   <div class="eco-block">
     <h3>${E(city.name)} Startup Ecosystem</h3>
@@ -980,8 +991,8 @@ function generateGlobalCityPage(slug, city, BASE) {
     </div>
   </div>
   <div class="faq-section" id="faq">
-    <h2 class="section-h2">Founder Networking in ${E(city.name)} — FAQ</h2>
-    <p class="section-sub">Common questions from founders looking to build connections in ${E(city.name)}.</p>
+    <h2 class="section-h2">Professional Networking in ${E(city.name)} — FAQ</h2>
+    <p class="section-sub">Common questions from professionals looking to build meaningful connections in ${E(city.name)}.</p>
     <div itemscope itemtype="https://schema.org/FAQPage">${faqHtml}</div>
   </div>
   <div class="city-links">
@@ -1002,9 +1013,9 @@ function generateGlobalCityPage(slug, city, BASE) {
     <a href="/startup-networking-${slug}">Startup Networking ${E(city.name)}</a>
   </div>
   <div class="cta-block">
-    <h2>Start networking with founders in ${E(city.name)}</h2>
-    <p>Join Build Your Network free. GPS-based discovery. No install. Available worldwide.</p>
-    <a href="/app" class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Join Free — Find Founders in ${E(city.name)}</a>
+    <h2>Start building your network in ${E(city.name)}</h2>
+    <p>Join Build Your Network free. Declare your intent. Meet the right people. GPS-based discovery, no install required.</p>
+    <a href="/app" class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Join Free — Network in ${E(city.name)}</a>
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
@@ -1657,6 +1668,32 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
       breadLabel: 'Networking for Founders', breadPath: 'networking-for-founders',
       ctaH: `Start Networking in ${cn}`, ctaP: 'Free. No install required.',
     },
+    'professional-networking-': {
+      title:    `Professional Networking in ${cn} — Build Your Network`,
+      metaDesc: `Build your professional network in ${cn}. Connect with founders, freelancers, mentors, and career professionals by declared intent — not job title. Free, no install required.`,
+      canonical: `${BASE}/professional-networking-${slug}`,
+      tag:      `Professional Networking · ${cn}`,
+      h1:       `Professional Networking in <span>${cn}</span>`,
+      lead:     `Build Your Network is the free intent-based professional networking platform for ${cn}. Whether you are changing careers, building a startup, seeking freelance clients, or open to mentoring — declare your intent and meet the right people.`,
+      answerH2: `How professional networking works in ${cn}`,
+      answerP:  [`${cn}'s professional community is active across ${city.ecosystem}, with key institutions at ${city.hubs}. ${city.excerpt}`,
+                 `BYN removes the friction from professional networking in ${cn}: every member declares what they are actively looking for, so you only meet people who want what you offer.`],
+      cards: [
+        { icon: '🎯', h: 'Intent before connection',   p: `See what each person in ${cn} is open to — co-founding, freelance, mentoring, hiring, or collaborating — before you reach out.` },
+        { icon: '📍', h: 'Location-aware discovery',   p: `GPS-based discovery surfaces professionals in ${cn} within your chosen radius — 10 km, 50 km, 200 km, or all of India.` },
+        { icon: '🤝', h: 'Every type of professional', p: 'Founders, freelancers, career changers, mentors, investors — all declaring intent so every connection is purposeful.' },
+      ],
+      faqs: [
+        { q: `How do I build a professional network in ${cn}?`, a: `Join Build Your Network free, set your location to ${cn}, and declare your intent — whether that is finding a job, landing clients, changing careers, mentoring, or co-founding. BYN surfaces professionals in ${cn} who match your goals, GPS-filtered to your chosen radius.` },
+        { q: `Who uses Build Your Network in ${cn}?`, a: `BYN is used by startup founders, freelancers, consultants, career changers, remote workers, mentors, and investors in ${cn}. Anyone building a professional network in ${cn} based on shared goals — not cold outreach — will find value on BYN.` },
+        { q: `Is Build Your Network better than LinkedIn for professional networking in ${cn}?`, a: `For intent-based networking, yes. LinkedIn shows past jobs; BYN shows current goals. Every member in ${cn} on BYN has declared what they need right now — making connections far more likely to be relevant and reciprocal.` },
+        { q: `Can freelancers use Build Your Network in ${cn}?`, a: `Yes. Freelancers and consultants in ${cn} use BYN to find clients, collaborators, and referral partners. Set your intent to "Available for Projects" and your skills — BYN surfaces people in ${cn} who are looking for exactly what you offer.` },
+        { q: `How do I find a mentor in ${cn}?`, a: `On BYN, mentors in ${cn} set their intent to "Open to Advising". Filter by mentor intent to see exactly who is available in ${cn} and open to new mentoring relationships.` },
+        { q: `Is Build Your Network free for professional networking in ${cn}?`, a: `Yes. Build Your Network is free — create a profile, set your intent, and start building your professional network in ${cn} at no cost. Premium plans (₹249/month) unlock unlimited connections and priority visibility.` },
+      ],
+      breadLabel: 'Networking for Professionals', breadPath: 'professional-networking',
+      ctaH: `Build Your Network in ${cn}`, ctaP: 'Free. No install required.',
+    },
   };
 
   const cfg = configs[pattern];
@@ -2046,10 +2083,11 @@ app.get('/investor-networking-:city',    makeCategoryRoute('investor-networking'
 app.get('/startup-ecosystem-:city',      makeCategoryRoute('startup-ecosystem'));
 
 // Register 4 new intent-pattern routes + Programmatic city route
-app.get('/founders-in-:city',       makeCityRoute('founders-in-',       seoPageViews));
-app.get('/startup-founders-:city',  makeCityRoute('startup-founders-',  seoPageViews));
-app.get('/find-cofounders-:city',   makeCityRoute('find-cofounders-',   seoPageViews));
-app.get('/startup-networking-:city',makeCityRoute('startup-networking-',seoPageViews));
+app.get('/founders-in-:city',            makeCityRoute('founders-in-',            seoPageViews));
+app.get('/startup-founders-:city',       makeCityRoute('startup-founders-',       seoPageViews));
+app.get('/find-cofounders-:city',        makeCityRoute('find-cofounders-',        seoPageViews));
+app.get('/startup-networking-:city',     makeCityRoute('startup-networking-',     seoPageViews));
+app.get('/professional-networking-:city',makeCityRoute('professional-networking-',seoPageViews));
 
 // Programmatic city route — must come after all static routes
 app.get('/networking-in-:city', (req, res) => {
@@ -4261,6 +4299,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     const { data: allUsers } = await supabase.from('users')
       .select(DISCOVER_FIELDS)
       .or('banned.is.null,banned.eq.false')
+      .eq('email_verified', true)
       .gte('trust_score', 10)
       .neq('id', req.user.id)
       .limit(500);

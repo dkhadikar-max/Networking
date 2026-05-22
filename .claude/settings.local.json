@@ -33,7 +33,23 @@
       "Bash(mkdir -p \"app/\\(seo\\)/professionals/[slug]\" \"app/\\(seo\\)/cities/[city]\" \"app/\\(seo\\)/industries/[industry]\" \"app/\\(seo\\)/roles/[role]\")",
       "Bash(touch 'app/\\(seo\\)/professionals/[slug]/page.tsx' 'app/\\(seo\\)/cities/[city]/page.tsx' 'app/\\(seo\\)/industries/[industry]/page.tsx' 'app/\\(seo\\)/roles/[role]/page.tsx')",
       "Bash(npx tsc *)",
-      "Bash(dir C:Networking *)"
+      "Bash(dir C:Networking *)",
+      "PowerShell(node \"C:\\\\Networking\\\\_test_login.mjs\" 2>&1)",
+      "PowerShell(node \"C:\\\\Networking\\\\_test_signup.mjs\" 2>&1)",
+      "PowerShell(railway status *)",
+      "PowerShell(Start-Process \"https://buildyournetwork.online/app\")",
+      "Bash(npm run *)",
+      "Bash(git *)",
+      "WebFetch(domain:buildyournetwork.online)",
+      "WebFetch(domain:app.buildyournetwork.online)",
+      "Bash(dir \"C:\\\\Networking\" /b)",
+      "Bash(dir \"C:\\\\Networking\\\\backend\" /b)",
+      "Bash(powershell *)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(npx playwright *)",
+      "Read(//c/Program Files/Google/Chrome/Application/**)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft/Edge/Application/**)",
+      "Read(//c/Program Files/Microsoft/Edge/Application/**)"
     ]
   }
 }

@@ -351,9 +351,12 @@
             Secured by Razorpay
           </span>
           <span class="w-1 h-1 rounded-full bg-gray-300"></span>
-          <span>Cancel anytime</span>
+          <span class="font-medium text-gray-500">Cancel anytime</span>
           <span class="w-1 h-1 rounded-full bg-gray-300"></span>
           <a href="/privacy.html" class="text-brand-600 hover:text-brand-700 font-medium hover:underline">Privacy Policy</a>
+        </div>
+        <div class="text-center mt-5">
+          <a href="/app" class="text-sm text-gray-400 hover:text-gray-600 transition-colors">← Return to app</a>
         </div>
       </div>
     </div>
@@ -527,7 +530,7 @@
   // ── PAYMENT FLOW ──
   async function handlePayment() {
     if (!token) {
-      alert('Please open this page from the BYN app to complete payment.');
+      showOverlay('error', 'Session expired', 'Please return to the app and tap "Upgrade" again to start a fresh payment session.', 'Return to App', returnToApp);
       return;
     }
 
@@ -548,7 +551,7 @@
     } catch(e) {
       btn.disabled = false;
       updateCTA();
-      alert('Could not create payment order: ' + e.message);
+      showOverlay('error', 'Could not start payment', e.message || 'Please check your connection and try again.', 'Try Again', () => { hideOverlay(); });
     }
   }
 

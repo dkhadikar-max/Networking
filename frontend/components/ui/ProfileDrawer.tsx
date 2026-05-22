@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
-import Button from '@/components/ui/Button';
 
 function safeHref(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -84,7 +83,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* Photo with overlaid controls */}
-        <div className="relative h-56 bg-[var(--light)] shrink-0">
+        <div className="relative bg-[var(--light)] shrink-0" style={{ height: 280 }}>
           {photos[photoIdx] ? (
             <Image src={photos[photoIdx]} alt={name} fill className="object-cover" unoptimized />
           ) : (
@@ -234,35 +233,41 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
       {/* Action bar — discover context */}
       {(onConnect || onSkip) && (
         <div
-          className="flex gap-3 p-4 border-t border-[var(--border)] bg-white shrink-0"
-          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+          style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'white', flexShrink: 0, paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}
         >
-          {onSkip && (
-            <button
-              onClick={onSkip}
-              className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--sub)] hover:bg-[var(--sur2)] transition-colors"
-            >
-              Skip
-            </button>
-          )}
-          {onConnect && (
-            <Button onClick={handleConnect} loading={connecting} disabled={connected} className="flex-1">
-              {connected ? 'Connected' : 'Connect'}
-            </Button>
-          )}
+          <div className="card-actions" style={{ padding: 0, maxWidth: '100%' }}>
+            {onSkip && (
+              <button className="action-btn action-skip" onClick={onSkip}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                Skip
+              </button>
+            )}
+            {onConnect && (
+              <button
+                className="action-btn action-connect"
+                onClick={handleConnect}
+                disabled={connecting || connected}
+                style={{ flex: 2, opacity: (connecting || connected) ? 0.6 : 1 }}
+              >
+                {connected ? 'Connected' : connecting ? 'Connecting…' : '→ Connect'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* View full profile — chat context (read-only, no actions) */}
       {!onConnect && !onSkip && profileId && (
-        <div
-          className="p-4 border-t border-[var(--border)] bg-white shrink-0"
-          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
-        >
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', background: 'white', flexShrink: 0, paddingBottom: 'max(14px, env(safe-area-inset-bottom))' }}>
           <Link
             href={`/profile/${profileId}`}
             onClick={onClose}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--sub)] hover:bg-[var(--sur2)] transition-colors"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              width: '100%', padding: '11px 0', borderRadius: 12,
+              border: '1.5px solid var(--border)', fontSize: 14, fontWeight: 600,
+              color: 'var(--text-soft)', background: 'var(--sur2)', textDecoration: 'none',
+            }}
           >
             View full profile
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

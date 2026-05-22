@@ -358,8 +358,8 @@ export default function HomePage() {
               <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>No install needed</span>
               <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>Early Access</span>
             </div>
-            <h1 className="animate delay-1">Find <span>Co-Founders, Mentors &amp; Collaborators</span> — Free</h1>
-            <p className="subtitle animate delay-2">The networking platform built for founders and entrepreneurs in India. Connect based on intent, skills, and goals — not job titles.</p>
+            <h1 className="animate delay-1">Build Your <span>Professional Network</span> — by Intent</h1>
+            <p className="subtitle animate delay-2">The platform where professionals connect on purpose. Founders, freelancers, career changers, mentors, and makers — find the right people based on what you actually want, not job titles.</p>
             {stats && (
               <div className="hero-badges animate delay-2" style={{ marginBottom: '24px' }}>
                 <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>{stats.users.toLocaleString()} professionals</span>
@@ -375,8 +375,8 @@ export default function HomePage() {
             <div className="phone-mockup">
               <div className="phone-notch" />
               <div className="phone-screen">
-                <div className="screen-header"><span className="screen-title">Discover</span><span className="filter-pill">Intent: Founder</span></div>
-                {[{ i: 'SK', n: 'Sarah Kim', r: 'Building a climate tech startup', t: 'Looking for: Co-founder', s: 94 }, { i: 'JM', n: 'James Miller', r: 'Product lead at Series B fintech', t: 'Looking for: Advisors', s: 88 }, { i: 'AL', n: 'Aisha Lopez', r: 'Ex-Google PM, now indie hacker', t: 'Looking for: Beta testers', s: 91 }].map(p => (
+                <div className="screen-header"><span className="screen-title">Discover</span><span className="filter-pill">Intent: All</span></div>
+                {[{ i: 'SK', n: 'Sarah Kim', r: 'Climate tech founder, ex-McKinsey', t: 'Looking for: Co-founder', s: 94 }, { i: 'JM', n: 'James Miller', r: 'Senior engineer, exploring freelance', t: 'Looking for: Clients', s: 88 }, { i: 'AL', n: 'Aisha Lopez', r: 'Marketing lead, career pivot', t: 'Looking for: Mentor', s: 91 }].map(p => (
                   <div key={p.i} className="profile-card">
                     <div className="profile-avatar">{p.i}</div>
                     <div className="profile-info"><h4>{p.n}</h4><p>{p.r}</p><span className="intent-tag">{p.t}</span></div>
@@ -419,7 +419,7 @@ export default function HomePage() {
           <p className="section-desc animate delay-2">BuildYourNetwork replaces random networking with purposeful discovery. Every connection starts with a clear reason.</p>
           <div className="features-grid">
             {[
-              { n: 1, title: 'Discover by Intent', body: 'See people who are actively looking for the same things you are — co-founders, mentors, collaborators, or peers.', d: '' },
+              { n: 1, title: 'Discover by Intent', body: 'See people who are actively looking for the same things you are — jobs, clients, mentors, co-founders, collaborators, or peers.', d: '' },
               { n: 2, title: 'Filter by Goals', body: 'Narrow your search by industry, role, stage, or specific intent. No noise, only relevance.', d: 'delay-1' },
               { n: 3, title: 'Build Meaningful Connections', body: 'Every interaction is grounded in shared purpose. Start conversations that actually matter.', d: 'delay-2' },
             ].map(f => (
@@ -439,7 +439,7 @@ export default function HomePage() {
           <p className="section-desc animate delay-2">No complex onboarding. No endless scrolling. Just clarity, relevance, and action.</p>
           <div className="steps-grid">
             {[
-              { n: 1, title: 'Define Your Intent', body: "Tell the platform what you're looking for — a co-founder, advisor, collaborator, or peer. Be specific. The clearer your intent, the better your matches.", d: '' },
+              { n: 1, title: 'Define Your Intent', body: "Tell the platform what you're looking for — a job, client, co-founder, mentor, collaborator, or peer. The clearer your intent, the better your matches.", d: '' },
               { n: 2, title: 'Discover Relevant People', body: 'Browse profiles filtered by your goals. See trust scores, background context, and exactly what each person is looking for.', d: 'delay-1' },
               { n: 3, title: 'Start a Connection', body: 'Send a purposeful connection request. When accepted, start a focused conversation built on mutual intent.', d: 'delay-2' },
             ].map(s => (
@@ -717,7 +717,7 @@ export default function HomePage() {
                 'width': 512,
                 'height': 512,
               },
-              'description': 'Build Your Network (BYN) is the free intent-based networking platform for startup founders worldwide. Find co-founders, mentors, and investors based on declared intent — not job titles. GPS-based discovery. No install required.',
+              'description': 'Build Your Network (BYN) is the free intent-based professional networking platform. Connect with founders, freelancers, mentors, career changers, and collaborators based on what you actually want — not job titles. GPS-based discovery. No install required.',
               'foundingDate': '2024',
               'email': 'support@buildyournetwork.online',
               'areaServed': ['IN', 'US', 'GB', 'EU'],
@@ -761,7 +761,7 @@ export default function HomePage() {
               'applicationCategory': 'BusinessApplication',
               'operatingSystem': 'Android, Web',
               'inLanguage': 'en',
-              'description': 'Free intent-based networking platform for startup founders. Find co-founders, mentors, and investors based on declared intent — GPS-filtered, no cold email.',
+              'description': 'Free intent-based professional networking platform. Find co-founders, freelancers, mentors, collaborators, and career connections based on declared intent — GPS-filtered, no cold email.',
               'offers': {
                 '@type': 'Offer',
                 'price': '0',
