@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   password              text NOT NULL,
   name                  text NOT NULL DEFAULT '',
   bio                   text DEFAULT '',
+  headline              text DEFAULT '',
   photos                text[] DEFAULT '{}',
   instagram             text DEFAULT '',
   linkedin              text DEFAULT '',
@@ -26,6 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
   intent                text DEFAULT 'explore-network',
   role                  text DEFAULT 'user',
   premium               boolean DEFAULT false,
+  is_premium            boolean DEFAULT false,
+  premium_expires_at    timestamptz,
   trust_score           integer DEFAULT 0,
   profile_score         integer DEFAULT 0,
   is_profile_complete   boolean DEFAULT false,
@@ -36,6 +39,18 @@ CREATE TABLE IF NOT EXISTS users (
   avg_reply_minutes     integer DEFAULT 0,
   reply_count           integer DEFAULT 0,
   response_rate         integer DEFAULT 100,
+  -- auth & OTP
+  email_verified        boolean DEFAULT false,
+  otp_code              text,
+  otp_expires_at        timestamptz,
+  failed_login_attempts integer DEFAULT 0,
+  lockout_until         timestamptz,
+  -- consent (GDPR/privacy)
+  consent_given_at      timestamptz,
+  consent_version       text DEFAULT 'v1.0',
+  do_not_sell           boolean DEFAULT false,
+  -- referrals
+  referred_by           text,
   created_at            timestamptz DEFAULT now()
 );
 
