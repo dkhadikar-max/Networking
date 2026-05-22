@@ -35,7 +35,7 @@ async function fetchProfiles(filters: FilterState, offset: number): Promise<{ pr
     return { profiles, exhausted: profiles.length < 10 };
   }
   // 2-3 intents: parallel fetch, merge, deduplicate, re-sort by matchScore
-  const results = await Promise.all(intents.map(intent => apiGet<ApiResponse>(buildUrl(filters, 0, intent)).then(d => d.profiles ?? []).catch(() => [])));
+  const results = await Promise.all(intents.map(intent => apiGet<ApiResponse>(buildUrl(filters, offset, intent)).then(d => d.profiles ?? []).catch(() => [])));
   const seen = new Set<string>();
   const merged: DiscoverProfile[] = [];
   for (const batch of results) {
@@ -45,7 +45,7 @@ async function fetchProfiles(filters: FilterState, offset: number): Promise<{ pr
     }
   }
   merged.sort((a, b) => ((b.matchScore ?? b.match_score ?? 0) - (a.matchScore ?? a.match_score ?? 0)));
-  return { profiles: merged.slice(offset, offset + 20), exhausted: merged.length < 20 };
+  return { profiles: merged.slice(0, 20), exhausted: merged.length < 20 };
 }
 
 export default function DiscoverFeed() {

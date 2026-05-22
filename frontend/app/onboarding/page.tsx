@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiGet, apiPost, getToken } from '@/lib/api';
 import IntentSelector from '@/components/onboarding/IntentSelector';
@@ -37,6 +38,7 @@ type DiscoverProfile = {
 };
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [stage, setStage]       = useState<Stage | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -201,7 +203,7 @@ export default function OnboardingPage() {
                 <SuggestedConnections
                   profiles={suggestions}
                   userInterests={userInterests}
-                  onDone={() => { window.location.href = '/discover'; }}
+                  onDone={() => { router.push('/discover'); }}
                 />
               )}
             </motion.div>

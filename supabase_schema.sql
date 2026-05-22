@@ -123,15 +123,18 @@ CREATE TABLE IF NOT EXISTS priority_msgs (
   created_at  timestamptz DEFAULT now()
 );
 
--- ── DISABLE ROW LEVEL SECURITY ───────────────────────────────────────────────
--- The backend uses the service_role key which bypasses RLS anyway,
--- but disabling keeps things explicit and avoids any surprises.
-ALTER TABLE users         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE swipes        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE connections   DISABLE ROW LEVEL SECURITY;
-ALTER TABLE messages      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE works         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE reports       DISABLE ROW LEVEL SECURITY;
-ALTER TABLE blocks        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE daily_views   DISABLE ROW LEVEL SECURITY;
-ALTER TABLE priority_msgs DISABLE ROW LEVEL SECURITY;
+-- ── ROW LEVEL SECURITY ───────────────────────────────────────────────────────
+-- service_role key (used by the backend) bypasses RLS entirely — no policies
+-- needed for it. Enabling RLS with no policies means anon/authenticated Supabase
+-- roles have zero access, which is correct: all data access must go through the
+-- Express backend, never directly to Supabase.
+-- NOTE: Run this block in Supabase SQL Editor to apply to the live database.
+ALTER TABLE users         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE swipes        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE connections   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE works         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blocks        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_views   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE priority_msgs ENABLE ROW LEVEL SECURITY;

@@ -53,8 +53,36 @@ export default function ChatWindow({ connectionId }: Props) {
   }, [connectionId, toast]);
 
   useEffect(() => {
-    pollRef.current = setInterval(fetchMessages, 4000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    let cancelled = false;
+    let errors = 0;
+    pollRef.current = null;
+
+    async function tick() {
+      if (cancelled) return;
+      if (!document.hidden) {
+        try { await fetchMessages(); errors = 0; }
+        catch { errors = Math.min(errors + 1, 5); }
+      }
+      if (!cancelled) {
+        const delay = document.hidden ? 30_000 : Math.min(4000 * 2 ** errors, 32_000);
+        pollRef.current = setTimeout(tick, delay) as unknown as ReturnType<typeof setInterval>;
+      }
+    }
+
+    function onVisible() {
+      if (!document.hidden && pollRef.current) {
+        clearTimeout(pollRef.current as unknown as ReturnType<typeof setTimeout>);
+        pollRef.current = setTimeout(tick, 0) as unknown as ReturnType<typeof setInterval>;
+      }
+    }
+
+    pollRef.current = setTimeout(tick, 4000) as unknown as ReturnType<typeof setInterval>;
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearTimeout(pollRef.current as unknown as ReturnType<typeof setTimeout>);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [fetchMessages]);
 
   useEffect(() => {

@@ -28,7 +28,8 @@ const rateLimit = require('express-rate-limit');
 const express   = require('express');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
-const cors      = require('cors');
+const cors        = require('cors');
+const cookieParser = require('cookie-parser');
 const multerPkg = optionalRequire('multer', null);
 const cloudinaryPkg = optionalRequire('cloudinary', { v2: { config: () => {}, uploader: { destroy: async () => {} } } });
 const cloudinary = cloudinaryPkg.v2 || cloudinaryPkg;
@@ -220,6 +221,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+app.use(cookieParser());
 
 // ── RATE LIMITERS ──
 const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeaders: true, legacyHeaders: false,
@@ -230,7 +232,7 @@ const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { err
 const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' },
   keyGenerator: (req) => {
     try {
-      const token = (req.headers.authorization || '').split(' ')[1];
+      const token = req.cookies?.byn_token || (req.headers.authorization || '').split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       return `verify:${decoded.id}`;
     } catch { return req.ip; }
@@ -243,7 +245,7 @@ const bootstrapLimiter  = rateLimit({ windowMs: 60*60*1000, max: 10, message: { 
 const otpSendLimiter    = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many OTP requests — wait 15 minutes' },
   keyGenerator: (req) => {
     try {
-      const token = (req.headers.authorization || '').split(' ')[1];
+      const token = req.cookies?.byn_token || (req.headers.authorization || '').split(' ')[1];
       const decoded = jwt.verify(token, JWT_SECRET);
       return `otp-send:${decoded.id}`;
     } catch { return req.ip; }
@@ -630,7 +632,7 @@ function generateCityPage(slug, city, BASE) {
   <meta name="twitter:image" content="${BASE}/assets/logo.png">
   <meta name="twitter:site" content="@buildyournetwork">
   <script type="application/ld+json">${faqJsonLd}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en-IN","description":"Free intent-based networking platform for startup founders, entrepreneurs, investors, mentors, and creators in India.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","availability":"https://schema.org/InStock"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"127"}},{"@type":"Organization","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":"IN","contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","applicationCategory":"BusinessApplication","operatingSystem":"Android, Web","inLanguage":"en-IN","description":"Free intent-based networking platform for startup founders, entrepreneurs, investors, mentors, and creators in India.","offers":{"@type":"Offer","price":"0","priceCurrency":"INR","availability":"https://schema.org/InStock"}},{"@type":"Organization","name":"Build Your Network","alternateName":"BYN","url":"${BASE}","logo":{"@type":"ImageObject","url":"${BASE}/assets/logo.png","width":512,"height":512},"foundingDate":"2024","areaServed":"IN","contactPoint":{"@type":"ContactPoint","contactType":"Customer Support","email":"support@buildyournetwork.online"}}]}</script>
   <style>
     :root{--bg:#FFF4EC;--bg-secondary:#FDE8D7;--card:#FFFFFF;--primary:#0F766E;--highlight:#CCFBF1;--text:#1F2937;--text-secondary:#6B7280;--text-muted:#9CA3AF}
     *{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
@@ -839,8 +841,7 @@ function cityIntentSchema(title, canonical, BASE, city, faqs, breadLabel, breadP
       {
         '@type': 'SoftwareApplication', 'name': 'Build Your Network', 'url': BASE,
         'applicationCategory': 'BusinessApplication', 'operatingSystem': 'Android, Web',
-        'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'INR' },
-        'aggregateRating': { '@type': 'AggregateRating', 'ratingValue': '4.8', 'ratingCount': '127' }
+        'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'INR' }
       }
     ]
   });
@@ -2525,7 +2526,8 @@ async function sendPush(userIds, title, body, data = {}) {
 // Verifies token, checks user exists in DB, checks banned status,
 // and attaches full user data to avoid duplicate DB queries in guards.
 async function auth(req, res, next) {
-  const token = (req.headers.authorization || '').split(' ')[1];
+  const token = req.cookies?.byn_token
+    || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'No token' });
 
   // Step 1: Verify JWT signature — synchronous, no DB involved
@@ -2569,7 +2571,8 @@ async function auth(req, res, next) {
 
 // BUG FIX 7: adminAuth now splits JWT errors (401) from DB errors (503), matching auth()
 async function adminAuth(req, res, next) {
-  const token = (req.headers.authorization || '').split(' ')[1];
+  const token = req.cookies?.byn_token
+    || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return res.status(401).json({ error: 'No token' });
 
   let decoded;
@@ -2810,6 +2813,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     } catch(_) {}
 
     const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('byn_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
     res.json({ token, user: clean(inserted), email_verified: false });
   } catch(e) {
     console.error('Signup error:', e);
@@ -2897,6 +2901,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
     // Step 6: sign JWT and respond
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
     console.log(`${tag} step6 OK — login successful for ${email}`);
+    res.cookie('byn_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
     // NOTE: OTP is NOT auto-sent on login. The client calls /api/auth/send-otp
     // explicitly when it detects email_verified === false, so the user sees a
     // proper "Sending code…" state rather than a silent background fire-and-forget.
@@ -3118,11 +3123,18 @@ app.get('/api/me', auth, async (req, res) => {
       JWT_SECRET,
       { expiresIn: '24h' }
     );
+    res.cookie('byn_token', freshToken, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
     res.json({ ...u, _token: freshToken });
   } catch(e) {
     console.error('Get me error:', e);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── LOGOUT ──
+app.post('/api/logout', (_req, res) => {
+  res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
+  res.json({ ok: true });
 });
 
 // ── DELETE MY ACCOUNT (GDPR Art. 17 right to erasure) ──
@@ -4329,7 +4341,7 @@ app.delete('/api/works/:id', auth, async (req, res) => {
     const { data: work } = await supabase.from('works')
       .select('id').eq('id', req.params.id).eq('user_id', req.user.id).maybeSingle();
     if (!work) return res.status(404).json({ error: 'Not found' });
-    await supabase.from('works').delete().eq('id', req.params.id);
+    await supabase.from('works').delete().eq('id', req.params.id).eq('user_id', req.user.id);
     res.json({ ok: true });
   } catch(e) {
     console.error('Delete work error:', e);

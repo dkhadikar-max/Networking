@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Script from 'next/script';
 import { Inter } from 'next/font/google';
@@ -660,11 +661,18 @@ export default function HomePage() {
                   <button className="feedback-done" onClick={closeFeedback}>Close</button>
                 </div>
               ) : (
-                <form onSubmit={e => { e.preventDefault(); setFeedbackDone(true); }}>
+                <form onSubmit={async e => {
+                  e.preventDefault();
+                  const form = e.currentTarget;
+                  const category = (form.elements.namedItem('category') as HTMLSelectElement).value;
+                  const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
+                  try { await apiPost('/api/feedback', { category, message }); } catch {}
+                  setFeedbackDone(true);
+                }}>
                   <p className="feedback-intro">Help us improve BuildYourNetwork. Your feedback shapes the product.</p>
                   <div className="feedback-field">
                     <label>What is this about?</label>
-                    <select defaultValue="" required>
+                    <select name="category" defaultValue="" required>
                       <option value="" disabled>Select a topic</option>
                       <option value="bug">Bug or issue</option>
                       <option value="feature">Feature request</option>
@@ -675,7 +683,7 @@ export default function HomePage() {
                   </div>
                   <div className="feedback-field">
                     <label>Your feedback</label>
-                    <textarea rows={5} required placeholder="Describe what you experienced, what you expected, and what happened instead..." />
+                    <textarea name="message" rows={5} required placeholder="Describe what you experienced, what you expected, and what happened instead..." />
                   </div>
                   <div className="feedback-field">
                     <label>Email (optional)</label>

@@ -25,7 +25,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(path, { headers: authHeaders() });
+  const res = await fetch(path, { headers: authHeaders(), credentials: 'include' });
   return handleResponse<T>(res);
 }
 
@@ -34,6 +34,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
+    credentials: 'include',
   });
   return handleResponse<T>(res);
 }
@@ -43,6 +44,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
+    credentials: 'include',
   });
   return handleResponse<T>(res);
 }
@@ -51,6 +53,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const res = await fetch(path, {
     method: 'DELETE',
     headers: authHeaders(),
+    credentials: 'include',
   });
   return handleResponse<T>(res);
 }
@@ -60,6 +63,7 @@ export async function apiUpload<T>(path: string, formData: FormData): Promise<T>
     method: 'POST',
     headers: authHeaders(),
     body: formData,
+    credentials: 'include',
   });
   return handleResponse<T>(res);
 }
