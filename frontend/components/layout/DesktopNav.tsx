@@ -1,0 +1,78 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+const TABS = [
+  {
+    href: '/discover',
+    label: 'Discover',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/likes',
+    label: 'Likes',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/chat',
+    label: 'Chat',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    ),
+  },
+  {
+    href: '/profile',
+    label: 'Profile',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+    ),
+  },
+];
+
+export default function DesktopNav() {
+  const path = usePathname();
+
+  return (
+    <nav className="desk-nav">
+      <div className="desk-brand">
+        <div className="byn-logo-box-sm">
+          <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
+            <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+            <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+            <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+            <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+            <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+            <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <span>BYN</span>
+      </div>
+      {TABS.map(tab => {
+        const active = path.startsWith(tab.href);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`desk-nav-btn${active ? ' active' : ''}`}
+          >
+            <span className="desk-icon">{tab.icon}</span>
+            <span>{tab.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

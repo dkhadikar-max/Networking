@@ -41,6 +41,7 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingInbox(true);
     apiGet<PriorityMessagesResponse>('/api/priority-messages')
       .then(r => setData(r))

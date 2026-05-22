@@ -135,9 +135,9 @@
 }
 .card-photo {
   width: 100%;
-  height: 56vw;
-  max-height: 380px;
-  min-height: 240px;
+  height: 62vw;
+  max-height: 440px;
+  min-height: 300px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg,#D8FAF2,#FEE9D1);
@@ -447,6 +447,13 @@ textarea.pe-input { resize: none; }
   flex-shrink: 0;
 }
 
+/* ── DESKTOP NAV — hidden on mobile/tablet ────────────────── */
+.desk-nav { display: none; }
+.desk-brand { display: none; }
+.desk-nav-btn { display: none; }
+.desk-icon { display: none; }
+.disc-right { display: none; }
+
 /* ── TABLET: centered phone shell ─────────────────────────── */
 @media (min-width: 768px) {
   body:has(.app-wrap) {
@@ -460,4 +467,111 @@ textarea.pe-input { resize: none; }
     max-width: 480px;
     box-shadow: 1px 0 0 var(--border), -1px 0 0 var(--border);
   }
+}
+
+/* ── DESKTOP: sidebar + 2-column (≥1024px) ───────────────── */
+@media (min-width: 1024px) {
+  body:has(.app-wrap) {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    background: #F0F2F5;
+    overflow: hidden;
+  }
+  .app-wrap {
+    flex-direction: row;
+    width: 100%;
+    min-width: 0;
+    max-width: 1400px;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px var(--border), 0 8px 40px rgba(15,23,42,0.10);
+  }
+  .bottom-nav { display: none !important; }
+
+  /* Desktop sidebar nav */
+  .desk-nav {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: 220px;
+    padding: 20px 10px;
+    gap: 2px;
+    border-right: 1px solid rgba(226,232,240,0.7);
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    overflow-y: auto;
+  }
+  .desk-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px 20px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+  .desk-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: background 0.15s, color 0.15s;
+    text-decoration: none;
+    font-family: inherit;
+  }
+  .desk-nav-btn:hover { background: var(--sur2); color: var(--text); }
+  .desk-nav-btn.active { background: var(--light); color: var(--primary); }
+  .desk-icon {
+    display: flex;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Discover: 2-column grid */
+  .discover-wrap {
+    display: grid;
+    grid-template-columns: 480px 1fr;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+  }
+  .discover-left {
+    border-right: 1px solid rgba(226,232,240,0.6);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .disc-right {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--bg);
+  }
+
+  /* Card sizing on desktop */
+  .swipe-card { max-width: 416px; }
+  .card-photo { height: 460px; max-height: 460px; }
+}
+
+/* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */
+@media (min-width: 1440px) {
+  .app-wrap { max-width: 1440px; }
+  .discover-wrap { grid-template-columns: 520px 1fr; }
+  .swipe-card { max-width: 456px; }
+  .card-photo { height: 500px; max-height: 500px; }
 }

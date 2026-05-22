@@ -56,7 +56,8 @@ const MAX_INTENTS = 3;
 export default function DiscoverFilters({ open, current, onApply, onClose }: Props) {
   const [draft, setDraft] = useState<FilterState>(current);
 
-  useEffect(() => { if (open) setDraft(current); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
+  useEffect(() => { if (open) setDraft(current); }, [open]);
 
   function reset() { setDraft(DEFAULT_FILTERS); }
 

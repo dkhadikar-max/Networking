@@ -24,7 +24,7 @@ export default function ChatListPage() {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <div className="chat-list-header">
         <div style={{ flex: 1 }}>
-          <h1>Messages</h1>
+          <h1>Chat</h1>
           {!loading && (
             <p className="chat-list-sub">
               {connections.length} active {connections.length === 1 ? 'conversation' : 'conversations'}

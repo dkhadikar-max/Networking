@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { ProfileDrawerProvider, useProfileDrawer } from '@/context/ProfileDrawerContext';
 import BottomNav from '@/components/layout/BottomNav';
+import DesktopNav from '@/components/layout/DesktopNav';
 import { ToastProvider } from '@/components/ui/Toast';
 import ProfileDrawer from '@/components/ui/ProfileDrawer';
 
@@ -47,6 +48,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-wrap">
+      <DesktopNav />
       <main className="app-views">
         {children}
       </main>
