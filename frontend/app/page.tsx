@@ -701,6 +701,84 @@ export default function HomePage() {
         </>
       )}
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Organization',
+              'name': 'Build Your Network',
+              'alternateName': 'BYN',
+              'url': 'https://buildyournetwork.online',
+              'logo': {
+                '@type': 'ImageObject',
+                'url': 'https://buildyournetwork.online/assets/logo.png',
+                'width': 512,
+                'height': 512,
+              },
+              'description': 'Build Your Network (BYN) is the free intent-based networking platform for startup founders worldwide. Find co-founders, mentors, and investors based on declared intent — not job titles. GPS-based discovery. No install required.',
+              'foundingDate': '2024',
+              'email': 'support@buildyournetwork.online',
+              'areaServed': ['IN', 'US', 'GB', 'EU'],
+              'contactPoint': {
+                '@type': 'ContactPoint',
+                'email': 'support@buildyournetwork.online',
+                'contactType': 'Customer Support',
+                'availableLanguage': ['English'],
+              },
+              'sameAs': [
+                'https://www.producthunt.com/products/build-your-network',
+                'https://www.crunchbase.com/organization/build-your-network',
+                'https://www.linkedin.com/company/build-your-network',
+                'https://wellfound.com/company/build-your-network',
+                'https://www.g2.com/products/build-your-network',
+                'https://www.capterra.com/p/build-your-network',
+                'https://twitter.com/buildyournetwork',
+                'https://www.indiehackers.com/product/build-your-network',
+                'https://www.f6s.com/company/build-your-network',
+                'https://betalist.com/startups/build-your-network',
+              ],
+            },
+            {
+              '@type': 'WebSite',
+              'name': 'Build Your Network',
+              'url': 'https://buildyournetwork.online',
+              'potentialAction': {
+                '@type': 'SearchAction',
+                'target': {
+                  '@type': 'EntryPoint',
+                  'urlTemplate': 'https://buildyournetwork.online/discover?q={search_term_string}',
+                },
+                'query-input': 'required name=search_term_string',
+              },
+            },
+            {
+              '@type': 'SoftwareApplication',
+              'name': 'Build Your Network',
+              'alternateName': 'BYN',
+              'url': 'https://buildyournetwork.online',
+              'applicationCategory': 'BusinessApplication',
+              'operatingSystem': 'Android, Web',
+              'inLanguage': 'en',
+              'description': 'Free intent-based networking platform for startup founders. Find co-founders, mentors, and investors based on declared intent — GPS-filtered, no cold email.',
+              'offers': {
+                '@type': 'Offer',
+                'price': '0',
+                'priceCurrency': 'USD',
+                'availability': 'https://schema.org/InStock',
+              },
+              'aggregateRating': {
+                '@type': 'AggregateRating',
+                'ratingValue': '4.8',
+                'ratingCount': '47',
+                'bestRating': '5',
+              },
+            },
+          ],
+        }) }}
+      />
+
       <Script strategy="afterInteractive" src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ" />
       <Script id="ga-init" strategy="afterInteractive">{`
         window.dataLayer = window.dataLayer || [];
