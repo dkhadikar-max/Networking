@@ -162,6 +162,7 @@ const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'dkhadikar@gmail.com')
 fs.mkdirSync(path.join(__dirname, 'public', 'uploads'), { recursive: true });
 
 // ── SECURITY HEADERS ──
+app.disable('x-powered-by');   // never reveal Express/Node version
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -3459,7 +3460,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     res.json({ token, user: clean(inserted), email_verified: false });
   } catch(e) {
     console.error('Signup error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3550,7 +3551,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
     res.json({ token, user: clean(user), email_verified: !!user.email_verified });
   } catch(e) {
     console.error('Login error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3582,7 +3583,7 @@ app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Send OTP error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3612,7 +3613,7 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Verify OTP error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3769,7 +3770,7 @@ app.get('/api/me', auth, async (req, res) => {
     res.json({ ...u, _token: freshToken });
   } catch(e) {
     console.error('Get me error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3803,7 +3804,7 @@ app.delete('/api/me', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Self-delete error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3871,7 +3872,7 @@ app.get('/api/me/export', auth, async (req, res) => {
     res.json(payload);
   } catch(e) {
     console.error('Export error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3884,7 +3885,7 @@ app.post('/api/me/privacy', auth, async (req, res) => {
     res.json({ ok: true, do_not_sell });
   } catch(e) {
     console.error('Privacy settings error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3914,7 +3915,7 @@ app.get('/api/profile-status', auth, async (req, res) => {
     });
   } catch(e) {
     console.error('Profile status error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3954,7 +3955,7 @@ app.put('/api/me', auth, async (req, res) => {
     res.json(u);
   } catch(e) {
     console.error('Update me error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3984,7 +3985,7 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (r
     res.json({ url, photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
     console.error('Add photo error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4021,7 +4022,7 @@ app.delete('/api/me/photos', auth, async (req, res) => {
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
     console.error('Delete photo error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4040,7 +4041,7 @@ app.get('/api/me/verify', auth, async (req, res) => {
     });
   } catch(e) {
     console.error('Verify status error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4056,7 +4057,7 @@ app.post('/api/me/push-token', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Push token error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4067,7 +4068,7 @@ app.delete('/api/me/push-token', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Delete push token error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4121,7 +4122,7 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
     res.json(u);
   } catch(e) {
     console.error('Public profile error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4174,7 +4175,7 @@ app.post('/api/users/:id/review', auth, async (req, res) => {
     res.json(data);
   } catch(e) {
     console.error('Review error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4188,7 +4189,7 @@ app.get('/api/users/:id/reviews', auth, profileViewLimiter, async (req, res) => 
       .order('created_at', { ascending: false });
     res.json(buildReviewSummary(reviews || []));
   } catch(e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4331,7 +4332,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
     res.json({ limited: false, remaining, profiles, daily_limit: DAILY_LIMIT });
   } catch(e) {
     console.error('Discover error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4358,7 +4359,7 @@ app.get('/api/search', auth, profileGuard, trustGuard, async (req, res) => {
     res.json(results);
   } catch(e) {
     console.error('Search error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4435,7 +4436,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
     res.json({ match, direction, connectionId });
   } catch(e) {
     console.error('Swipe error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4509,7 +4510,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
     res.json({ ok: true, match, connectionId });
   } catch(e) {
     console.error('Connect error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4569,7 +4570,7 @@ app.get('/api/connections', auth, async (req, res) => {
     res.json(result);
   } catch(e) {
     console.error('Connections error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4586,7 +4587,7 @@ app.get('/api/messages/:connId', auth, async (req, res) => {
     res.json((msgs || []).map(mapMessage));
   } catch(e) {
     console.error('Get messages error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4675,7 +4676,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
     res.json(mapMessage({ id: msgId, connection_id: conn.id, sender_id: req.user.id, text: text.trim(), created_at: now }));
   } catch(e) {
     console.error('Send message error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4735,7 +4736,7 @@ app.post('/api/priority-message', auth, async (req, res) => {
     res.json({ ok: true, remaining: limit - monthCount - 1 });
   } catch(e) {
     console.error('Priority message error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4775,7 +4776,7 @@ app.get('/api/priority-messages', auth, async (req, res) => {
     });
   } catch(e) {
     console.error('Get priority messages error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4840,7 +4841,7 @@ app.get('/api/liked-me', auth, async (req, res) => {
     });
   } catch(e) {
     console.error('Liked me error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4873,7 +4874,7 @@ app.post('/api/report', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Report error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4900,7 +4901,7 @@ app.post('/api/report/illegal-content', auth, async (req, res) => {
     res.json({ ok: true, message: 'Report received. Our team will review within 24 hours.' });
   } catch(e) {
     console.error('DSA report error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4936,7 +4937,7 @@ app.post('/api/block', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Block error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4975,7 +4976,7 @@ app.post('/api/works', worksLimiter, auth, upload.single('image'), async (req, r
     res.json(inserted || work);
   } catch(e) {
     console.error('Create work error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -4988,7 +4989,7 @@ app.delete('/api/works/:id', auth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Delete work error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5040,7 +5041,7 @@ app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
     res.json({ prompts: prompts.slice(0, 5) });
   } catch(e) {
     console.error('Conversation starters error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5056,7 +5057,7 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
     }));
   } catch(e) {
     console.error('Admin users error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5070,7 +5071,7 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin ban error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5088,7 +5089,7 @@ app.post('/api/admin/verify', adminAuth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin verify error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5102,7 +5103,7 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin upgrade error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5127,7 +5128,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin delete error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5183,7 +5184,7 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
     });
   } catch(e) {
     console.error('Admin analytics error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5233,7 +5234,7 @@ app.get('/api/admin/dsa-report', adminAuth, async (req, res) => {
     });
   } catch(e) {
     console.error('DSA report error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5359,7 +5360,7 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
     });
   } catch(e) {
     console.error('Onboarding funnel error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5513,7 +5514,7 @@ app.post('/api/admin/agents/task/:id/execute', adminAuth, async (req, res) => {
     const result = await agentOrchestrator.executeTask(req.params.id);
     res.json({ ok: true, result });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5524,7 +5525,7 @@ app.post('/api/admin/agents/task/:id/retry', adminAuth, async (req, res) => {
     await agentOrchestrator.retryTask(req.params.id);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5540,7 +5541,7 @@ app.get('/api/admin/agents/tasks', adminAuth, async (req, res) => {
     });
     res.json({ tasks });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5568,7 +5569,7 @@ app.post('/api/admin/agents/run', adminAuth, async (req, res) => {
     );
     res.json({ ok: true, result });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5584,7 +5585,7 @@ app.get('/api/admin/agents/memory', adminAuth, async (req, res) => {
     });
     res.json({ entries });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5595,7 +5596,7 @@ app.delete('/api/admin/agents/memory/:id', adminAuth, async (req, res) => {
     await agentMemory.delete(req.params.id);
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5613,7 +5614,7 @@ app.get('/api/admin/agents/workflows', adminAuth, async (req, res) => {
     const { status, limit } = req.query;
     const workflows = await workflowEngine.list({ status: status || undefined, limit: Math.min(Number(limit) || 50, 200) });
     res.json({ workflows });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Create and start a workflow from a template
@@ -5642,7 +5643,7 @@ app.post('/api/admin/agents/workflow/:id/advance', adminAuth, async (req, res) =
   try {
     const wf = await workflowEngine.advance(req.params.id);
     res.json({ ok: true, workflow: wf });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Run all remaining steps (sync — may take 30-90s for multi-step workflows)
@@ -5651,21 +5652,21 @@ app.post('/api/admin/agents/workflow/:id/run-all', adminAuth, async (req, res) =
   try {
     const wf = await workflowEngine.runAll(req.params.id);
     res.json({ ok: true, workflow: wf });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Pause a running workflow
 app.post('/api/admin/agents/workflow/:id/pause', adminAuth, async (req, res) => {
   if (!requireWorkflows(res)) return;
   try { await workflowEngine.pause(req.params.id); res.json({ ok: true }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Resume a paused workflow
 app.post('/api/admin/agents/workflow/:id/resume', adminAuth, async (req, res) => {
   if (!requireWorkflows(res)) return;
   try { await workflowEngine.resume(req.params.id); res.json({ ok: true }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Scheduler live status
@@ -5725,7 +5726,7 @@ app.get('/api/admin/langgraph/status', adminAuth, async (req, res) => {
 // Graph topology
 app.get('/api/admin/langgraph/topology', adminAuth, async (req, res) => {
   try { res.json(await lgFetch('/graph/topology')); }
-  catch (e) { res.status(503).json({ error: e.message }); }
+  catch (e) { res.status(503).json({ error: 'Service unavailable' }); }
 });
 
 // Run workflow (sync)
@@ -5738,7 +5739,7 @@ app.post('/api/admin/langgraph/run', adminAuth, async (req, res) => {
       body: JSON.stringify({ task_type, payload: payload || {} }),
     });
     res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // Queue async workflow
@@ -5751,7 +5752,7 @@ app.post('/api/admin/langgraph/run/async', adminAuth, async (req, res) => {
       body: JSON.stringify({ task_type, payload: payload || {} }),
     });
     res.json(data);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // List executions
@@ -5759,7 +5760,7 @@ app.get('/api/admin/langgraph/executions', adminAuth, async (req, res) => {
   try {
     const qs = new URLSearchParams({ limit: req.query.limit || 50, ...(req.query.status ? { status: req.query.status } : {}) });
     res.json(await lgFetch(`/executions?${qs}`));
-  } catch (e) { res.status(503).json({ error: e.message }); }
+  } catch (e) { res.status(503).json({ error: 'Service unavailable' }); }
 });
 
 // Get single execution + traces
@@ -5783,7 +5784,7 @@ app.post('/api/admin/bootstrap', bootstrapLimiter, async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin bootstrap error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5876,7 +5877,7 @@ app.post('/api/payments/create-order', auth, async (req, res) => {
     });
   } catch(e) {
     console.error('Create order error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -5965,7 +5966,7 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     res.json({ ok: true, premium: true, expires_at: expiresAt });
   } catch(e) {
     console.error('Verify payment error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6013,7 +6014,7 @@ app.post('/api/payments/webhook', async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Webhook error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6087,7 +6088,7 @@ app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res
     res.json({ stage: 'intent' });
   } catch(e) {
     console.error('Onboarding acquisition error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6122,7 +6123,7 @@ app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => 
     res.json({ stage: 'profile' });
   } catch(e) {
     console.error('Onboarding intent error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6238,7 +6239,7 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     res.json({ stage: 'complete', trust_score: userUpdates.trust_score });
   } catch(e) {
     console.error('Onboarding profile error:', e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -6307,7 +6308,7 @@ app.get('/api/profile/referral', auth, async (req, res) => {
       .eq('referred_by', req.user.id);
     const base = (process.env.BASE_URL || 'https://buildyournetwork.online').replace(/\/$/, '');
     res.json({ code, link: `${base}/r/${code}`, count: count || 0 });
-  } catch(e) { res.status(500).json({ error: e.message }); }
+  } catch(e) { res.status(500).json({ error: 'Internal server error' }); }
 });
 
 // ── FRONTEND EVENT LOG ──
@@ -6344,6 +6345,14 @@ app.post('/api/events', (req, res) => {
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));
+
+// ── GLOBAL ERROR HANDLER — must be last, 4-arg signature required by Express ──
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, _next) => {
+  console.error('[Unhandled]', err?.message || err);
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 // ── START SERVER ──
 app.listen(PORT, () => {
