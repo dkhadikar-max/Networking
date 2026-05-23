@@ -101,7 +101,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="9. Children">
-        <p>BYN is not directed at children under 16. We do not knowingly collect data from anyone under 16. If you believe we have collected data from a child, contact us immediately at {CONTACT_EMAIL}.</p>
+        <p>BYN is not directed at children under 18. We do not knowingly collect data from anyone under 18. If you believe we have collected data from a minor, contact us immediately at {CONTACT_EMAIL}.</p>
       </Section>
 
       <Section title="10. Changes to this policy">

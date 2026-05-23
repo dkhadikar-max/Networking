@@ -22,7 +22,7 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!ageConfirmed) { setError('Please confirm you are 16 or older.'); return; }
+    if (!ageConfirmed) { setError('Please confirm you are 18 or older.'); return; }
     if (!termsAccepted) { setError('Please accept the Terms and Privacy Policy.'); return; }
     setError(''); setLoading(true);
     try {
@@ -210,7 +210,7 @@ export default function SignupPage() {
               style={{ marginTop: 2, accentColor: '#157A6E', width: 16, height: 16, flexShrink: 0 }}
             />
             <span style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
-              I confirm I am 16 years of age or older
+              I confirm I am at least 18 years old
             </span>
           </label>
 

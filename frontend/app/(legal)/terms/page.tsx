@@ -15,11 +15,11 @@ export default function TermsPage() {
       <p className="text-[var(--muted)] text-sm mb-8">Last updated: {LAST_UPDATED}</p>
 
       <Section title="1. Acceptance">
-        <p>By creating an account on Build Your Network ({'"'}BYN{'"'}, {'"'}Service{'"'}), you confirm that you are at least 16 years old and agree to these Terms. If you are accessing BYN on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
+        <p>By creating an account on Build Your Network ({'"'}BYN{'"'}, {'"'}Service{'"'}), you confirm that you are at least 18 years old and agree to these Terms. If you are accessing BYN on behalf of an organisation, you represent that you have authority to bind that organisation.</p>
       </Section>
 
       <Section title="2. Eligibility">
-        <p>You must be at least 16 years of age to use BYN. Users in the European Union must be at least 16, or have verifiable parental consent. We reserve the right to terminate accounts that we reasonably believe belong to users under this minimum age.</p>
+        <p>You must be at least 18 years of age to use BYN. By creating an account, you self-declare that you meet this minimum age requirement. We reserve the right to terminate accounts that we reasonably believe belong to users under this minimum age.</p>
       </Section>
 
       <Section title="3. Your account">

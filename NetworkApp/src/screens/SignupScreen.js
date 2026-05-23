@@ -98,6 +98,11 @@ export default function SignupScreen({ navigation }) {
             onSubmitEditing={handleSignup}
           />
 
+          {/* Age self-declaration */}
+          <Text style={s.ageTxt}>
+            By continuing, you confirm that you are at least 18 years old.
+          </Text>
+
           {/* Consent checkbox — REQUIRED */}
           <TouchableOpacity
             style={s.consentRow}
@@ -154,7 +159,8 @@ const s = StyleSheet.create({
   label:       { fontSize: 12, color: C.sub, marginBottom: 6, letterSpacing: 0.5 },
   input:       { backgroundColor: C.bgSec, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 14, color: C.text, fontSize: 15, marginBottom: 16 },
 
-  consentRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 16, marginTop: 4 },
+  ageTxt:      { fontSize: 12, color: C.sub, lineHeight: 18, marginBottom: 12, marginTop: 4 },
+  consentRow:  { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 16, marginTop: 0 },
   checkbox:    { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: C.border2, backgroundColor: C.bg,
                  justifyContent: 'center', alignItems: 'center', marginTop: 1, flexShrink: 0 },
   checkboxOn:  { backgroundColor: C.primary, borderColor: C.primary },
