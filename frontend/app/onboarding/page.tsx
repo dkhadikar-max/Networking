@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiGet, apiPost } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 import IntentSelector from '@/components/onboarding/IntentSelector';
 import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
@@ -37,6 +38,7 @@ type DiscoverProfile = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [stage, setStage]       = useState<Stage | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -87,6 +89,7 @@ export default function OnboardingPage() {
     setUserInterests((interests as string[]) ?? []);
     try {
       await apiPost('/api/onboarding/profile', { ...rest, interests });
+      await refreshUser();
       const res = await apiGet<{ profiles: DiscoverProfile[] }>('/api/discover?sort=relevance')
         .catch(() => ({ profiles: [] }));
       setSuggestions(res.profiles ?? []);
