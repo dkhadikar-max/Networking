@@ -71,10 +71,17 @@ function DiscoverRightPanel({ profile, onConnect, onSkip }: RightPanelProps) {
         </div>
 
         {/* Intent — primary signal */}
-        {raw?.intent && (
+        {(raw?.intent || (raw as { working_on?: string })?.working_on) && (
           <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 12, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>Looking for</div>
-            <span style={{ padding: '4px 12px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{raw.intent}</span>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>Looking for</div>
+            {raw?.intent && (
+              <span style={{ padding: '4px 12px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{raw.intent}</span>
+            )}
+            {(raw as { working_on?: string })?.working_on && (
+              <p style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, lineHeight: 1.45, marginTop: raw?.intent ? 10 : 0, marginBottom: 0 }}>
+                {(raw as { working_on?: string }).working_on}
+              </p>
+            )}
           </div>
         )}
 
@@ -83,14 +90,6 @@ function DiscoverRightPanel({ profile, onConnect, onSkip }: RightPanelProps) {
           <div style={{ marginBottom: 14, fontSize: 12, color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--primary)" style={{ flexShrink: 0, marginTop: 2 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             {profile.insight}
-          </div>
-        )}
-
-        {/* What they're building */}
-        {(raw as { working_on?: string })?.working_on && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: 6 }}>Building</div>
-            <div style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.6 }}>{(raw as { working_on?: string }).working_on}</div>
           </div>
         )}
 

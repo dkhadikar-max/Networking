@@ -1,7 +1,5 @@
 'use client';
 
-import clsx from 'clsx';
-
 const POPULAR_INTERESTS = [
   'Startups','SaaS','VC / Investing','E-commerce','Creator Economy',
   'Web3 / Crypto','AI / ML','Product Management','Marketing','Sales',
@@ -25,23 +23,30 @@ export default function OpportunityTags({ selected, onChange }: Props) {
 
   return (
     <div>
-      <p className="text-sm font-medium text-[var(--text-secondary)] mb-3">Your interests</p>
-      <div className="flex flex-wrap gap-2">
-        {POPULAR_INTERESTS.map(tag => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => toggle(tag)}
-            className={clsx(
-              'px-3 py-1.5 rounded-full text-sm border transition-all',
-              selected.includes(tag)
-                ? 'bg-[var(--primary)] text-white border-[var(--primary)]'
-                : 'bg-white text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]'
-            )}
-          >
-            {tag}
-          </button>
-        ))}
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 10 }}>
+        Your interests
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {POPULAR_INTERESTS.map(tag => {
+          const active = selected.includes(tag);
+          return (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => toggle(tag)}
+              style={{
+                padding: '7px 13px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                border: active ? '1.5px solid #157A6E' : '1.5px solid #E2E8F0',
+                background: active ? '#157A6E' : '#F8FAFC',
+                color: active ? '#fff' : '#64748B',
+                cursor: 'pointer', transition: 'all 0.15s ease',
+                fontFamily: 'inherit',
+              }}
+            >
+              {tag}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

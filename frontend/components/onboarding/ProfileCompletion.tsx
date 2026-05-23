@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -68,31 +69,37 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
   const submit = (data: FormValues) => onNext({ ...data, interests, skills });
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-5">
+    <form onSubmit={handleSubmit(submit)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
-        <h2 className="text-2xl font-bold text-[var(--text)]">Complete your profile</h2>
-        <p className="text-[var(--text-secondary)] mt-1">The more you share, the better your matches.</p>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.4px', marginBottom: 5 }}>
+          Complete your profile
+        </h2>
+        <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+          The more you share, the better your matches.
+        </p>
       </div>
 
       {/* Photo upload */}
-      <div className="flex flex-col items-center gap-3">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
         <label htmlFor="ob-photo-input" style={{ cursor: 'pointer' }}>
           <div style={{
-            width: 88, height: 88, borderRadius: '50%',
-            background: photoUrl ? 'transparent' : 'var(--sur2)',
-            border: '2px dashed var(--border)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-            overflow: 'hidden', position: 'relative',
+            width: 96, height: 96, borderRadius: '50%', overflow: 'hidden',
+            background: photoUrl ? 'transparent' : 'linear-gradient(135deg,#D5F5EE,#EDF9FF)',
+            border: photoUrl ? '3px solid #157A6E' : '2px dashed #B8EDE5',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: photoUrl ? '0 4px 16px rgba(21,122,110,0.2)' : 'none',
+            transition: 'all 0.2s ease',
           }}>
             {photoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <span style={{ fontSize: 28 }}>{uploading ? '…' : '📷'}</span>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 26, marginBottom: 2 }}>{uploading ? '⏳' : '📷'}</div>
+              </div>
             )}
           </div>
         </label>
-        <label htmlFor="ob-photo-input" style={{ cursor: 'pointer', fontSize: 13, color: 'var(--primary)', fontWeight: 600 }}>
+        <label htmlFor="ob-photo-input" style={{ cursor: 'pointer', fontSize: 12, color: '#157A6E', fontWeight: 700, letterSpacing: '0.2px' }}>
           {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
         </label>
         <input
@@ -105,13 +112,13 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         />
       </div>
 
-      {/* What are you building — highest match signal */}
+      {/* What are you building */}
       <Field label="What are you currently building?" error={errors.working_on?.message}>
         <textarea
           {...register('working_on')}
           rows={2}
           placeholder="e.g. A B2B SaaS for restaurant inventory management"
-          className={inputClass + ' resize-none'}
+          style={{ ...inputStyle, resize: 'none' }}
         />
       </Field>
 
@@ -119,27 +126,46 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         <input
           {...register('headline')}
           placeholder="e.g. Founder building in B2B SaaS"
-          className={inputClass}
+          style={inputStyle}
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field label="Profession" error={errors.profession?.message}>
-          <input {...register('profession')} placeholder="e.g. Product Manager" className={inputClass} />
+          <input {...register('profession')} placeholder="e.g. Product Manager" style={inputStyle} />
         </Field>
         <Field label="Location" error={errors.location?.message}>
-          <input {...register('location')} placeholder="e.g. Mumbai" className={inputClass} />
+          <input {...register('location')} placeholder="e.g. Mumbai" style={inputStyle} />
         </Field>
       </div>
 
-      {/* Skills — chip input */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-[var(--text)]">Skills <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(press Enter to add)</span></label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'white', minHeight: 44, cursor: 'text' }} onClick={() => skillRef.current?.focus()}>
+      {/* Skills chip input */}
+      <div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>
+          Skills <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(press Enter to add)</span>
+        </div>
+        <div
+          style={{
+            display: 'flex', flexWrap: 'wrap', gap: 6,
+            padding: '10px 12px', borderRadius: 12,
+            border: '1.5px solid #E2E8F0', background: '#F8FAFC',
+            minHeight: 48, cursor: 'text',
+          }}
+          onClick={() => skillRef.current?.focus()}
+        >
           {skills.map(s => (
-            <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 999, background: 'var(--sur2)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>
+            <span key={s} style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 999,
+              background: 'rgba(21,122,110,0.08)', border: '1px solid rgba(21,122,110,0.2)',
+              fontSize: 12, fontWeight: 600, color: '#157A6E',
+            }}>
               {s}
-              <button type="button" onClick={() => setSkills(prev => prev.filter(x => x !== s))} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: 'var(--muted)', fontSize: 14, lineHeight: 1 }}>×</button>
+              <button
+                type="button"
+                onClick={() => setSkills(prev => prev.filter(x => x !== s))}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, color: '#157A6E', fontSize: 14, lineHeight: 1, opacity: 0.6 }}
+              >×</button>
             </span>
           ))}
           <input
@@ -149,13 +175,13 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
             onKeyDown={handleSkillKey}
             onBlur={() => skillInput.trim() && addSkill(skillInput)}
             placeholder={skills.length === 0 ? 'e.g. React, Fundraising, Design…' : ''}
-            style={{ border: 'none', outline: 'none', fontSize: 13, flex: 1, minWidth: 120, background: 'transparent', color: 'var(--text)' }}
+            style={{ border: 'none', outline: 'none', fontSize: 13, flex: 1, minWidth: 120, background: 'transparent', color: '#0F172A', fontFamily: 'inherit' }}
           />
         </div>
       </div>
 
       <Field label="Industry" error={errors.industry?.message}>
-        <input {...register('industry')} placeholder="e.g. FinTech, EdTech, SaaS…" className={inputClass} />
+        <input {...register('industry')} placeholder="e.g. FinTech, EdTech, SaaS…" style={inputStyle} />
       </Field>
 
       <Field label="Bio" error={errors.bio?.message}>
@@ -163,7 +189,7 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
           {...register('bio')}
           rows={2}
           placeholder="Tell people what you're exploring or looking for…"
-          className={inputClass + ' resize-none'}
+          style={{ ...inputStyle, resize: 'none' }}
         />
       </Field>
 
@@ -172,7 +198,15 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-[var(--primary)] text-white font-semibold disabled:opacity-40 hover:bg-[var(--primary-dark)] transition-colors"
+        style={{
+          width: '100%', padding: '15px 16px', borderRadius: 12,
+          background: '#F4A259', color: '#fff', border: 'none',
+          fontSize: 15, fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.45 : 1,
+          boxShadow: loading ? 'none' : '0 8px 20px rgba(244,162,89,0.3)',
+          fontFamily: 'inherit', transition: 'opacity 0.15s',
+        }}
       >
         {loading ? 'Saving…' : 'Finish profile →'}
       </button>
@@ -180,15 +214,21 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
   );
 }
 
-const inputClass =
-  'w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-white text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-sm';
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '13px 14px', borderRadius: 12,
+  border: '1.5px solid #E2E8F0', background: '#F8FAFC',
+  color: '#0F172A', fontSize: 14, outline: 'none',
+  fontFamily: 'inherit', transition: 'border-color 0.15s, box-shadow 0.15s',
+};
 
 function Field({ label, children, error }: { label: string; children: React.ReactNode; error?: string }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm font-medium text-[var(--text)]">{label}</label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+        {label}
+      </div>
       {children}
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p style={{ fontSize: 12, color: '#EF4444', marginTop: 2 }}>{error}</p>}
     </div>
   );
 }

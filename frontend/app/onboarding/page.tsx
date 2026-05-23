@@ -7,7 +7,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import IntentSelector from '@/components/onboarding/IntentSelector';
 import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
-import clsx from 'clsx';
+import NetworkBackground from '@/components/NetworkBackground';
 
 const SOURCES = [
   { label: 'LinkedIn',        icon: '💼' },
@@ -23,8 +23,6 @@ const SOURCES = [
 
 const STAGE_ORDER = ['acquisition', 'intent', 'profile', 'complete'] as const;
 type Stage = (typeof STAGE_ORDER)[number];
-
-const STEP_LABELS = ['Discover', 'Intent', 'Profile', "You're in"];
 
 type DiscoverProfile = {
   id: string;
@@ -100,122 +98,179 @@ export default function OnboardingPage() {
 
   if (!stage) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2.5px solid #157A6E', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col">
-      <header className="sticky top-0 z-10 bg-[var(--bg)] border-b border-[var(--border)] px-6 py-4">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <span className="font-bold text-[var(--primary)] text-lg">BYN</span>
-          {stage !== 'complete' && (
-            <div className="flex items-center gap-2">
-              {STEP_LABELS.map((label, i) => (
-                <div key={label} className="flex items-center gap-2">
-                  <div className={clsx(
-                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                    i < stepIndex
-                      ? 'bg-[var(--primary)] text-white'
-                      : i === stepIndex
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--border)] text-[var(--text-muted)]'
-                  )}>
-                    {i < stepIndex ? '✓' : i + 1}
-                  </div>
-                  {i < STEP_LABELS.length - 1 && (
-                    <div className={clsx('h-0.5 w-8', i < stepIndex ? 'bg-[var(--primary)]' : 'bg-[var(--border)]')} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </header>
+    <div style={{ fontFamily: 'var(--font-sans)', minHeight: '100vh', background: '#FFFFFF', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      <NetworkBackground />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
 
-      <main className="flex-1 flex items-start justify-center px-6 py-10">
-        <div className="w-full max-w-lg">
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm">
-              {error}
+        {/* Header */}
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 10,
+          background: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          borderBottom: '1px solid rgba(226,232,240,0.7)',
+          padding: '13px 24px',
+        }}>
+          <div style={{ maxWidth: 480, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <div style={{
+                width: 30, height: 30, borderRadius: 9,
+                background: 'linear-gradient(145deg,#157A6E,#0E5E55)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(21,122,110,0.28)',
+                flexShrink: 0,
+              }}>
+                <svg width="17" height="17" viewBox="0 0 100 100" fill="none">
+                  <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
+                  <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
+                  <circle cx="25" cy="75" r="10" fill="#F4A259"/>
+                  <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+                  <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+                  <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.3px' }}>Build Your Network</span>
             </div>
-          )}
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={stage}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.2 }}
-            >
-              {stage === 'acquisition' && (
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-[var(--text)]">How did you hear about us?</h2>
-                    <p className="text-[var(--text-soft)] mt-1">Helps us understand where to grow next.</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    {SOURCES.map(s => (
+            {stage !== 'complete' && (
+              <div style={{ display: 'flex', gap: 5 }}>
+                {(['acquisition', 'intent', 'profile'] as const).map((s, i) => (
+                  <div key={s} style={{
+                    width: 36, height: 3, borderRadius: 2,
+                    background: i < stepIndex ? '#157A6E' : i === stepIndex ? '#F4A259' : '#E2E8F0',
+                    transition: 'background 0.3s ease',
+                  }} />
+                ))}
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Main */}
+        <main style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '28px 20px 52px' }}>
+          <div style={{ width: '100%', maxWidth: 460 }}>
+
+            {error && (
+              <div style={{
+                marginBottom: 16, padding: '12px 14px', borderRadius: 12,
+                background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)',
+                color: '#EF4444', fontSize: 13, lineHeight: 1.5,
+              }}>
+                {error}
+              </div>
+            )}
+
+            <div style={{
+              background: '#FFFFFF',
+              borderRadius: 28,
+              border: '1px solid rgba(226,232,240,0.8)',
+              boxShadow: '0 12px 40px rgba(15,23,42,0.09), 0 2px 8px rgba(15,23,42,0.04)',
+              padding: '28px 24px',
+            }}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={stage}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -14 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  {stage === 'acquisition' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+                      <div>
+                        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.4px', marginBottom: 5 }}>
+                          How did you hear about us?
+                        </h2>
+                        <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+                          Helps us understand where to grow next.
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+                        {SOURCES.map(s => (
+                          <button
+                            key={s.label}
+                            onClick={() => setSource(s.label)}
+                            style={{
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                              padding: '14px 8px', borderRadius: 14, cursor: 'pointer',
+                              border: source === s.label ? '2px solid #157A6E' : '1.5px solid #E2E8F0',
+                              background: source === s.label ? 'rgba(21,122,110,0.07)' : '#F8FAFC',
+                              transition: 'all 0.15s ease',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            <span style={{ fontSize: 20, lineHeight: 1 }}>{s.icon}</span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.3,
+                              color: source === s.label ? '#157A6E' : '#64748B',
+                            }}>
+                              {s.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+
+                      {source === 'Friend/Referral' && (
+                        <input
+                          value={referral}
+                          onChange={e => setReferral(e.target.value)}
+                          placeholder="Referrer's name (optional)"
+                          style={{
+                            width: '100%', padding: '13px 14px', borderRadius: 12,
+                            border: '1.5px solid #E2E8F0', background: '#F8FAFC',
+                            fontSize: 14, color: '#0F172A', outline: 'none',
+                            fontFamily: 'inherit',
+                          }}
+                        />
+                      )}
+
                       <button
-                        key={s.label}
-                        onClick={() => setSource(s.label)}
-                        className={clsx(
-                          'flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all',
-                          source === s.label
-                            ? 'border-[var(--primary)] bg-[var(--highlight)]'
-                            : 'border-[var(--border)] bg-white hover:border-[var(--primary-2)]'
-                        )}
+                        onClick={submitAcquisition}
+                        disabled={!source || loading}
+                        style={{
+                          width: '100%', padding: '15px 16px', borderRadius: 12,
+                          background: '#F4A259', color: '#fff', border: 'none',
+                          fontSize: 15, fontWeight: 700, cursor: !source || loading ? 'not-allowed' : 'pointer',
+                          opacity: !source || loading ? 0.45 : 1,
+                          boxShadow: !source || loading ? 'none' : '0 8px 20px rgba(244,162,89,0.3)',
+                          fontFamily: 'inherit', transition: 'opacity 0.15s',
+                        }}
                       >
-                        <span className="text-2xl">{s.icon}</span>
-                        <span className={clsx(
-                          'text-xs font-medium text-center leading-tight',
-                          source === s.label ? 'text-[var(--primary)]' : 'text-[var(--text-soft)]'
-                        )}>
-                          {s.label}
-                        </span>
+                        {loading ? 'Saving…' : 'Continue →'}
                       </button>
-                    ))}
-                  </div>
-                  {source === 'Friend/Referral' && (
-                    <input
-                      value={referral}
-                      onChange={e => setReferral(e.target.value)}
-                      placeholder="Referrer's name (optional)"
-                      className="w-full px-4 py-2.5 rounded-lg border border-[var(--border)] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                    </div>
+                  )}
+
+                  {stage === 'intent' && (
+                    <IntentSelector onNext={submitIntent} loading={loading} />
+                  )}
+
+                  {stage === 'profile' && (
+                    <ProfileCompletion onNext={submitProfile} loading={loading} />
+                  )}
+
+                  {stage === 'complete' && (
+                    <SuggestedConnections
+                      profiles={suggestions}
+                      userInterests={userInterests}
+                      onDone={() => { router.push('/discover'); }}
                     />
                   )}
-                  <button
-                    onClick={submitAcquisition}
-                    disabled={!source || loading}
-                    className="w-full py-3 rounded-xl bg-[var(--primary)] text-white font-semibold disabled:opacity-40 hover:bg-[var(--primary-dark)] transition-colors"
-                  >
-                    {loading ? 'Saving…' : 'Continue →'}
-                  </button>
-                </div>
-              )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
 
-              {stage === 'intent' && (
-                <IntentSelector onNext={submitIntent} loading={loading} />
-              )}
-
-              {stage === 'profile' && (
-                <ProfileCompletion onNext={submitProfile} loading={loading} />
-              )}
-
-              {stage === 'complete' && (
-                <SuggestedConnections
-                  profiles={suggestions}
-                  userInterests={userInterests}
-                  onDone={() => { router.push('/discover'); }}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

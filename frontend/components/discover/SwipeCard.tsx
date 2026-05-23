@@ -21,6 +21,8 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
   const intentsRaw = user as { intents?: string[]; intent?: string };
   const intents: string[] = intentsRaw.intents ?? (intentsRaw.intent ? [intentsRaw.intent] : []);
   const interests: string[] = (user as { interests?: string[] }).interests ?? [];
+  const skills: string[] = (user as { skills?: string[] }).skills ?? [];
+  const working_on = (user as { working_on?: string }).working_on ?? '';
   const score = profile.match_score ?? profile.matchScore;
   const connected = !!profile.connection;
   const verified = (user as { identity_verified?: boolean }).identity_verified;
@@ -41,6 +43,7 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
   }
 
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  const supportingTags = [...intents.slice(1), ...skills.slice(0, 2), ...interests.slice(0, 2)].slice(0, 4);
 
   return (
     <div className="swipe-card" onClick={onSelect}>
@@ -92,28 +95,35 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
             {headline}{headline && location ? ' · ' : ''}{location}
           </div>
         )}
-        {/* Intent — most important signal, shown first */}
-        {intents.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', flexShrink: 0 }}>Looking for</span>
-            {intents.slice(0, 2).map(t => (
-              <span key={t} style={{ padding: '3px 10px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 700 }}>{t}</span>
-            ))}
+        {/* Intent statement — primary opportunity signal */}
+        {(intents.length > 0 || working_on) && (
+          <div style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(21,122,110,0.07)', border: '1px solid rgba(21,122,110,0.18)' }}>
+            {intents[0] && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: working_on ? 4 : 0 }}>
+                {intents[0]}
+              </span>
+            )}
+            {working_on && (
+              <p style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
+                {working_on.slice(0, 85)}{working_on.length > 85 ? '…' : ''}
+              </p>
+            )}
           </div>
         )}
         {/* Match insight */}
         {profile.insight && (
-          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             {profile.insight}
           </div>
         )}
-        {interests.length > 0 && (
+        {/* Supporting tags — skills + interests */}
+        {supportingTags.length > 0 && (
           <div className="chips-row" style={{ marginBottom: 0 }}>
-            {interests.slice(0, 3).map(t => <span key={t} className="chip chip-gold">{t}</span>)}
+            {supportingTags.map(t => <span key={t} className="chip">{t}</span>)}
           </div>
         )}
-        {bio && !profile.insight && <p className="card-bio">{bio.slice(0, 100)}{bio.length > 100 ? '…' : ''}</p>}
+        {bio && !working_on && !profile.insight && <p className="card-bio">{bio.slice(0, 100)}{bio.length > 100 ? '…' : ''}</p>}
       </div>
 
       {/* Actions */}
