@@ -205,8 +205,15 @@ export default function DiscoverFeed() {
       if (done) setExhausted(true);
       setProfiles(prev => reset ? incoming : [...prev, ...incoming]);
       if (!reset) setPage(p => p + 1);
-    } catch {
-      toast('Failed to load profiles', 'error');
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code === 'NO_PHOTO') {
+        toast('Add a profile photo to start discovering people', 'error');
+      } else if (code === 'TRUST_TOO_LOW') {
+        toast('Set your networking goal in your profile to unlock Discovery', 'error');
+      } else {
+        toast('Failed to load profiles', 'error');
+      }
     } finally {
       setLoading(false);
     }

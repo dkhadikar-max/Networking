@@ -3328,6 +3328,35 @@ async function trustGuard(req, res, next) {
   }
 }
 
+// Lightweight guard for browsing discovery — only requires intent to be set (trust >= 10).
+// The discover route itself gates on having at least 1 photo (NO_PHOTO check).
+// profileGuard (70) and full trustGuard (20) are still enforced on swipe/connect.
+async function discoverGuard(req, res, next) {
+  try {
+    const user = req.userData;
+    if (!user) {
+      const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!u) return res.status(404).json({ error: 'Not found' });
+      req.userData = u;
+      return discoverGuard(req, res, next);
+    }
+    const score = calcTrust(user);
+    if (score < 10) {
+      return res.status(403).json({
+        error: 'Set your networking goal to unlock Discovery',
+        code: 'TRUST_TOO_LOW',
+        trust_score: score,
+        required: 10,
+        trust_steps: trustSteps(user),
+      });
+    }
+    next();
+  } catch(e) {
+    console.error('discoverGuard error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
 // ── FIXED: ADMIN AUDIT LOG ──
 // Persists to Supabase audit_logs table; keeps in-memory buffer for fast reads.
 const adminAuditLog = [];
@@ -4232,7 +4261,7 @@ app.get('/api/users/:id/reviews', auth, profileViewLimiter, async (req, res) => 
 });
 
 // ── DISCOVER ──
-app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
+app.get('/api/discover', auth, discoverGuard, async (req, res) => {
   try {
     const me = req.userData;
     if (!me) return res.status(404).json({ error: 'User not found' });
@@ -4376,8 +4405,7 @@ app.get('/api/discover', auth, profileGuard, trustGuard, async (req, res) => {
 });
 
 // ── SEARCH ──
-// BUG FIX 8: Added profileGuard + trustGuard — search was bypassing discovery restrictions
-app.get('/api/search', auth, profileGuard, trustGuard, async (req, res) => {
+app.get('/api/search', auth, discoverGuard, async (req, res) => {
   try {
     const { q } = req.query;
     if (!q || q.trim().length < 2) return res.json([]);

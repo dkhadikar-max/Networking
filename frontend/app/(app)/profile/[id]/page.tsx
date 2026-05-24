@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
@@ -13,6 +13,7 @@ type ProfileData = User & { connection?: { id: string } };
 export default function OtherProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { user: me } = useAuth();
+  const router = useRouter();
   const toast = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,7 @@ export default function OtherProfilePage() {
       connected={!!profile.connection}
       connectionId={profile.connection?.id}
       onConnect={isSelf ? undefined : handleConnect}
+      onEdit={isSelf ? () => router.replace('/profile') : undefined}
     />
   );
 }

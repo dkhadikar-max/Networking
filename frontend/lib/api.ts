@@ -19,7 +19,7 @@ function authHeaders(): Record<string, string> {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status });
+    throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status, code: err.code });
   }
   return res.json();
 }

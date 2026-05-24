@@ -127,8 +127,13 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <form onSubmit={handleSave} style={{ maxWidth: 560, margin: '0 auto', padding: '16px 14px 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0 8px' }}>
+        {/* Header — sticky so Save is always reachable */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 0', marginBottom: 4,
+          background: 'white', borderBottom: '1px solid var(--border)',
+        }}>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.3px' }}>Edit profile</h1>
           <div style={{ display: 'flex', gap: 8 }}>
             <Button type="button" variant="secondary" onClick={onCancel}>Cancel</Button>
