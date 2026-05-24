@@ -38,7 +38,7 @@ type DiscoverProfile = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, setUser } = useAuth();
+  const { user, setUser, refreshUser } = useAuth();
   const [stage, setStage]       = useState<Stage | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -89,7 +89,8 @@ export default function OnboardingPage() {
     setUserInterests((interests as string[]) ?? []);
     try {
       await apiPost('/api/onboarding/profile', { ...rest, interests });
-      if (user) setUser({ ...user, onboarding_stage: 'complete' });
+      // Refresh full user so AuthContext has the saved bio/interests/scores, not stale onboarding data
+      await refreshUser();
       const res = await apiGet<{ profiles: DiscoverProfile[] }>('/api/discover?limit=5')
         .catch(() => ({ profiles: [] }));
       setSuggestions(res.profiles ?? []);
