@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { DiscoverProfile } from '@/lib/types';
 
 type Props = {
@@ -29,12 +29,20 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
 
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const swipeFired = useRef(false);
 
-  async function handleConnect(e: React.MouseEvent) {
-    e.stopPropagation();
+  async function triggerConnect() {
     if (connected || connecting) return;
     setConnecting(true);
     try { await onConnect(); } finally { setConnecting(false); }
+  }
+
+  async function handleConnect(e: React.MouseEvent) {
+    e.stopPropagation();
+    await triggerConnect();
   }
 
   function handleSkip(e: React.MouseEvent) {
@@ -42,11 +50,57 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
     onSkip();
   }
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (Math.abs(dx) > Math.abs(dy)) setDragX(dx);
+  }
+
+  async function handleTouchEnd() {
+    const dx = dragX;
+    setDragX(0);
+    touchStartX.current = null;
+    touchStartY.current = null;
+    if (Math.abs(dx) >= 80) {
+      swipeFired.current = true;
+      if (dx > 0) await triggerConnect();
+      else onSkip();
+    }
+  }
+
+  function handleCardClick() {
+    if (swipeFired.current) { swipeFired.current = false; return; }
+    onSelect();
+  }
+
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
   const supportingTags = [...intents.slice(1), ...skills.slice(0, 2), ...interests.slice(0, 2)].slice(0, 4);
 
   return (
-    <div className="swipe-card" onClick={onSelect}>
+    <div
+      className="swipe-card"
+      onClick={handleCardClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        position: 'relative',
+        transform: dragX ? `translateX(${dragX}px) rotate(${dragX * 0.04}deg)` : undefined,
+        transition: dragX ? 'none' : 'transform 0.25s ease',
+      }}
+    >
+      {dragX > 20 && (
+        <div style={{ position: 'absolute', top: 24, left: 20, zIndex: 10, background: 'var(--primary)', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: Math.min((dragX - 20) / 60, 1), pointerEvents: 'none' }}>CONNECT ✓</div>
+      )}
+      {dragX < -20 && (
+        <div style={{ position: 'absolute', top: 24, right: 20, zIndex: 10, background: '#ef4444', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: Math.min((-dragX - 20) / 60, 1), pointerEvents: 'none' }}>SKIP ✗</div>
+      )}
       {/* Photo */}
       <div className="card-photo">
         {photos[photoIdx] ? (

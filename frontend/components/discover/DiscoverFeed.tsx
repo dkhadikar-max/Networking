@@ -259,7 +259,7 @@ export default function DiscoverFeed() {
   const filterCount = activeFilterCount(filters);
 
   return (
-    <div className="discover-wrap" style={{ flex: 1, minHeight: 0 }}>
+    <div className="discover-wrap" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 
       {/* Left column: header + card stack */}
       <div className="discover-left" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
