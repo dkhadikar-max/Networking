@@ -3214,6 +3214,25 @@ async function sendPush(userIds, title, body, data = {}) {
   }
 }
 
+async function sendLikeNotification(likerId, targetId) {
+  try {
+    const [{ data: liker }, { data: target }] = await Promise.all([
+      supabase.from('users').select('name,intent,interests,skills,lat,lng,location,remote,working_on,currently_exploring,interested_in').eq('id', likerId).maybeSingle(),
+      supabase.from('users').select('premium,is_premium,interests,skills,lat,lng,location,remote,working_on,currently_exploring,interested_in').eq('id', targetId).maybeSingle(),
+    ]);
+    if (!liker || !target) return;
+
+    const score = Math.min(matchScore(liker, target), 99);
+    const isPremium = !!(target.premium || target.is_premium);
+    const intent = liker.intent || null;
+
+    const title = isPremium ? `❤️ ${liker.name} liked you` : '❤️ Someone liked you';
+    const body  = intent ? `${intent} · ${score}% match` : `${score}% match`;
+
+    sendWebPush([targetId], title, body, { screen: 'LikedMe' }).catch(() => {});
+  } catch (e) { /* non-critical */ }
+}
+
 async function sendWebPush(userIds, title, body, data = {}) {
   if (!webpush || !userIds.length) return;
   const { data: rows } = await supabase.from('push_subscriptions')
@@ -4531,7 +4550,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
         sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
         sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
       } else {
-        sendWebPush([targetId], '❤️ New Like', 'Someone liked your profile — check who it is.', { screen: 'LikedMe' }).catch(()=>{});
+        sendLikeNotification(req.user.id, targetId);
       }
     }
     res.json({ match, direction, connectionId });
@@ -4609,7 +4628,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
       sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
       sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
     } else {
-      sendWebPush([targetId], '❤️ New Like', 'Someone liked your profile — check who it is.', { screen: 'LikedMe' }).catch(() => {});
+      sendLikeNotification(req.user.id, targetId);
     }
 
     res.json({ ok: true, match, connectionId });
