@@ -147,7 +147,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
         <div className="p-4 space-y-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-[var(--text)]">{name}</h2>
+              <h2 className="text-2xl font-extrabold text-[var(--text)]" style={{ letterSpacing: '-0.03em' }}>{name}</h2>
               {raw?.verified && (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--primary)">
                   <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -178,38 +178,38 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
           )}
           {raw?.bio && (
             <div>
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5">About</p>
+              <p className="text-sm font-bold text-[var(--text-soft)] mb-1.5">About</p>
               <p className="text-sm text-[var(--sub)] leading-relaxed">{raw.bio}</p>
             </div>
           )}
           {raw?.working_on && (
             <div>
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5">Working on</p>
+              <p className="text-sm font-bold text-[var(--text-soft)] mb-1.5">Working on</p>
               <p className="text-sm text-[var(--sub)] leading-relaxed">{raw.working_on}</p>
             </div>
           )}
           {raw?.currently_exploring && (
             <div>
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-1.5">Exploring</p>
+              <p className="text-sm font-bold text-[var(--text-soft)] mb-1.5">Exploring</p>
               <p className="text-sm text-[var(--sub)] leading-relaxed">{raw.currently_exploring}</p>
             </div>
           )}
           {(raw?.interests?.length ?? 0) > 0 && (
             <div>
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Interests</p>
+              <p className="text-sm font-bold text-[var(--text-soft)] mb-2">Interests</p>
               <div className="flex flex-wrap gap-1.5">
                 {raw!.interests!.map(tag => (
-                  <span key={tag} className="px-2.5 py-1 rounded-full bg-[var(--light)] text-[var(--primary)] text-xs font-medium">{tag}</span>
+                  <span key={tag} className="chip">{tag}</span>
                 ))}
               </div>
             </div>
           )}
           {(raw?.skills?.length ?? 0) > 0 && (
             <div>
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Skills</p>
+              <p className="text-sm font-bold text-[var(--text-soft)] mb-2">Skills</p>
               <div className="flex flex-wrap gap-1.5">
                 {raw!.skills!.map(s => (
-                  <span key={s} className="px-2.5 py-1 rounded-full bg-[var(--sur2)] text-[var(--text)] text-xs font-medium border border-[var(--border)]">{s}</span>
+                  <span key={s} className="chip chip-gold">{s}</span>
                 ))}
               </div>
             </div>

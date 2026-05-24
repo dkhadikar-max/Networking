@@ -205,14 +205,15 @@
 }
 .chips-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .chip {
-  padding: 6px 13px;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: #EBF9F5;
+  background: white;
   color: var(--primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  border: 1.5px solid rgba(21,122,110,0.22);
 }
-.chip-gold { background: #FFF4E7; color: var(--accent); }
+.chip-gold { background: #FFF4E7; color: var(--accent); border: 1.5px solid rgba(244,162,89,0.3); }
 .card-bio { font-size: 14px; color: var(--text-soft); line-height: 1.65; margin-bottom: 14px; }
 .match-score-box {
   display: inline-flex;

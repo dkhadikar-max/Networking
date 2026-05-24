@@ -29,7 +29,10 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
 
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
-  const [dragX, setDragX] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const connectLabelRef = useRef<HTMLDivElement>(null);
+  const skipLabelRef = useRef<HTMLDivElement>(null);
+  const dragXRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const swipeFired = useRef(false);
@@ -59,14 +62,28 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;
-    if (Math.abs(dx) > Math.abs(dy)) setDragX(dx);
+    if (Math.abs(dx) > Math.abs(dy)) {
+      dragXRef.current = dx;
+      if (cardRef.current) {
+        cardRef.current.style.transform = `translateX(${dx}px) rotate(${dx * 0.04}deg)`;
+        cardRef.current.style.transition = 'none';
+      }
+      if (connectLabelRef.current) connectLabelRef.current.style.opacity = dx > 20 ? String(Math.min((dx - 20) / 60, 1)) : '0';
+      if (skipLabelRef.current) skipLabelRef.current.style.opacity = dx < -20 ? String(Math.min((-dx - 20) / 60, 1)) : '0';
+    }
   }
 
   async function handleTouchEnd() {
-    const dx = dragX;
-    setDragX(0);
+    const dx = dragXRef.current;
+    dragXRef.current = 0;
     touchStartX.current = null;
     touchStartY.current = null;
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'transform 0.25s ease';
+      cardRef.current.style.transform = '';
+    }
+    if (connectLabelRef.current) connectLabelRef.current.style.opacity = '0';
+    if (skipLabelRef.current) skipLabelRef.current.style.opacity = '0';
     if (Math.abs(dx) >= 80) {
       swipeFired.current = true;
       if (dx > 0) await triggerConnect();
@@ -84,23 +101,16 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
 
   return (
     <div
+      ref={cardRef}
       className="swipe-card"
       onClick={handleCardClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      style={{
-        position: 'relative',
-        transform: dragX ? `translateX(${dragX}px) rotate(${dragX * 0.04}deg)` : undefined,
-        transition: dragX ? 'none' : 'transform 0.25s ease',
-      }}
+      style={{ position: 'relative' }}
     >
-      {dragX > 20 && (
-        <div style={{ position: 'absolute', top: 24, left: 20, zIndex: 10, background: 'var(--primary)', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: Math.min((dragX - 20) / 60, 1), pointerEvents: 'none' }}>CONNECT ✓</div>
-      )}
-      {dragX < -20 && (
-        <div style={{ position: 'absolute', top: 24, right: 20, zIndex: 10, background: '#ef4444', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: Math.min((-dragX - 20) / 60, 1), pointerEvents: 'none' }}>SKIP ✗</div>
-      )}
+      <div ref={connectLabelRef} style={{ position: 'absolute', top: 24, left: 20, zIndex: 10, background: 'var(--primary)', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: 0, pointerEvents: 'none' }}>CONNECT ✓</div>
+      <div ref={skipLabelRef} style={{ position: 'absolute', top: 24, right: 20, zIndex: 10, background: '#ef4444', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: 0, pointerEvents: 'none' }}>SKIP ✗</div>
       {/* Photo */}
       <div className="card-photo">
         {photos[photoIdx] ? (
