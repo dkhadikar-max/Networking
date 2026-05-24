@@ -4,7 +4,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import SwipeCard from './SwipeCard';
 import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
 import type { FilterState } from './DiscoverFilters';
@@ -186,7 +185,6 @@ async function fetchProfiles(filters: FilterState, offset: number): Promise<{ pr
 
 export default function DiscoverFeed() {
   const toast = useToast();
-  const { openProfile, updateDrawerProfile } = useProfileDrawer();
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -236,7 +234,6 @@ export default function DiscoverFeed() {
     if (!uid) return;
     try {
       await apiPost('/api/connect', { userId: uid });
-      updateDrawerProfile({ ...profile, connection: { id: 'pending' } });
       toast('Connection request sent!', 'success');
       handleSkip(profile);
     } catch (e) {
@@ -325,10 +322,6 @@ export default function DiscoverFeed() {
               profile={current}
               onConnect={() => handleConnect(current)}
               onSkip={() => handleSkip(current)}
-              onSelect={() => openProfile(current, {
-                onConnect: () => handleConnect(current),
-                onSkip: () => handleSkip(current),
-              })}
             />
           )}
 

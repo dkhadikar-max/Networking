@@ -8,10 +8,9 @@ type Props = {
   profile: DiscoverProfile;
   onConnect: () => Promise<void>;
   onSkip: () => void;
-  onSelect: () => void;
 };
 
-export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Props) {
+export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const user = profile.user ?? profile;
   const name = (user as { name?: string }).name ?? 'Unknown';
   const photos: string[] = (user as { photos?: string[] }).photos ?? [];
@@ -23,7 +22,9 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
   const interests: string[] = (user as { interests?: string[] }).interests ?? [];
   const skills: string[] = (user as { skills?: string[] }).skills ?? [];
   const working_on = (user as { working_on?: string }).working_on ?? '';
+  const currently_exploring = (user as { currently_exploring?: string }).currently_exploring ?? '';
   const score = profile.match_score ?? profile.matchScore;
+  const trust_score = (profile as { trust_score?: number }).trust_score ?? (user as { trust_score?: number }).trust_score;
   const connected = !!profile.connection;
   const verified = (user as { identity_verified?: boolean }).identity_verified;
 
@@ -35,7 +36,8 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
   const dragXRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
-  const swipeFired = useRef(false);
+
+  const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   async function triggerConnect() {
     if (connected || connecting) return;
@@ -78,119 +80,158 @@ export default function SwipeCard({ profile, onConnect, onSkip, onSelect }: Prop
     dragXRef.current = 0;
     touchStartX.current = null;
     touchStartY.current = null;
-    if (cardRef.current) {
-      cardRef.current.style.transition = 'transform 0.25s ease';
-      cardRef.current.style.transform = '';
-    }
     if (connectLabelRef.current) connectLabelRef.current.style.opacity = '0';
     if (skipLabelRef.current) skipLabelRef.current.style.opacity = '0';
     if (Math.abs(dx) >= 80) {
-      swipeFired.current = true;
+      const flyX = dx > 0 ? window.innerWidth * 1.4 : -window.innerWidth * 1.4;
+      if (cardRef.current) {
+        cardRef.current.style.transition = 'transform 0.28s ease-in';
+        cardRef.current.style.transform = `translateX(${flyX}px) rotate(${dx > 0 ? 25 : -25}deg)`;
+      }
+      await new Promise<void>(r => setTimeout(r, 260));
       if (dx > 0) await triggerConnect();
       else onSkip();
+    } else {
+      if (cardRef.current) {
+        cardRef.current.style.transition = 'transform 0.3s cubic-bezier(0.22,1,0.36,1)';
+        cardRef.current.style.transform = '';
+      }
     }
   }
-
-  function handleCardClick() {
-    if (swipeFired.current) { swipeFired.current = false; return; }
-    onSelect();
-  }
-
-  const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-  const supportingTags = [...intents.slice(1), ...skills.slice(0, 2), ...interests.slice(0, 2)].slice(0, 4);
 
   return (
     <div
       ref={cardRef}
       className="swipe-card"
-      onClick={handleCardClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ position: 'relative' }}
     >
-      <div ref={connectLabelRef} style={{ position: 'absolute', top: 24, left: 20, zIndex: 10, background: 'var(--primary)', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: 0, pointerEvents: 'none' }}>CONNECT ✓</div>
-      <div ref={skipLabelRef} style={{ position: 'absolute', top: 24, right: 20, zIndex: 10, background: '#ef4444', color: 'white', padding: '6px 16px', borderRadius: 8, fontWeight: 800, fontSize: 15, border: '2px solid rgba(255,255,255,0.6)', opacity: 0, pointerEvents: 'none' }}>SKIP ✗</div>
-      {/* Photo */}
-      <div className="card-photo">
-        {photos[photoIdx] ? (
-          <img
-            src={photos[photoIdx]}
-            alt={name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <div className="card-photo-placeholder">{initials}</div>
-        )}
-        <div className="card-gradient" />
-        {verified && (
-          <div className="card-verified">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            Verified
-          </div>
-        )}
-        {photos.length > 1 && (
-          <div style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
-            {photos.map((_, i) => (
-              <button
-                key={i}
-                onClick={e => { e.stopPropagation(); setPhotoIdx(i); }}
-                style={{ width: 7, height: 7, borderRadius: '50%', border: 'none', cursor: 'pointer', background: i === photoIdx ? 'white' : 'rgba(255,255,255,0.45)', padding: 0 }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Swipe indicators */}
+      <div ref={connectLabelRef} style={{ position: 'absolute', top: 14, left: 16, zIndex: 20, background: 'rgba(21,184,166,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>CONNECT ✓</div>
+      <div ref={skipLabelRef} style={{ position: 'absolute', top: 14, right: 16, zIndex: 20, background: 'rgba(239,68,68,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>SKIP ✗</div>
 
-      {/* Info */}
-      <div className="card-body">
-        <div className="card-name">
-          {name}
+      {/* 1. INTENT — top, full-width banner */}
+      {intents[0] ? (
+        <div className="card-intent-banner">{intents[0]}</div>
+      ) : (
+        <div className="card-intent-banner" style={{ background: 'var(--sur2)', color: 'var(--muted)' }}>Open to connect</div>
+      )}
+
+      {/* 2. IDENTITY — avatar + name + trust indicators */}
+      <div className="card-identity">
+        <div className="card-avatar">
+          {photos[0]
+            ? <img src={photos[0]} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : initials}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+            {verified && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--primary)" style={{ flexShrink: 0 }}>
+                <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            )}
+          </div>
+          {(headline || location) && (
+            <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {headline}{headline && location ? ' · ' : ''}{location}
+            </div>
+          )}
+        </div>
+        {/* Trust indicators */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           {score != null && (
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', background: 'linear-gradient(135deg,#D5F5EE,#BBF0E7)', padding: '4px 10px', borderRadius: 10, letterSpacing: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', background: 'linear-gradient(135deg,#D5F5EE,#BBF0E7)', padding: '3px 8px', borderRadius: 8 }}>
               {score}% match
             </span>
           )}
+          {trust_score != null && (
+            <span style={{ fontSize: 10, fontWeight: 600, color: trust_score >= 70 ? 'var(--primary)' : 'var(--muted)', background: 'var(--sur2)', padding: '2px 7px', borderRadius: 6, border: '1px solid var(--border)' }}>
+              {trust_score >= 70 ? '✓ Trusted' : `Trust ${trust_score}`}
+            </span>
+          )}
         </div>
-        {(headline || location) && (
-          <div className="card-role">
-            {headline}{headline && location ? ' · ' : ''}{location}
+      </div>
+
+      {/* Scrollable body */}
+      <div className="card-scroll-body">
+
+        {/* 3. WHAT THEY'RE BUILDING */}
+        {working_on && (
+          <div style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--sur2)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>Building</div>
+            <p style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, lineHeight: 1.55, margin: 0 }}>{working_on}</p>
           </div>
         )}
-        {/* Intent statement — primary opportunity signal */}
-        {(intents.length > 0 || working_on) && (
-          <div style={{ marginBottom: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(21,122,110,0.07)', border: '1px solid rgba(21,122,110,0.18)' }}>
-            {intents[0] && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'block', marginBottom: working_on ? 4 : 0 }}>
-                {intents[0]}
-              </span>
-            )}
-            {working_on && (
-              <p style={{ fontSize: 12, color: 'var(--text)', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
-                {working_on.slice(0, 85)}{working_on.length > 85 ? '…' : ''}
-              </p>
-            )}
+
+        {/* 4. LOOKING FOR */}
+        {currently_exploring && (
+          <div style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--sur2)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>Looking for</div>
+            <p style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, lineHeight: 1.55, margin: 0 }}>{currently_exploring}</p>
           </div>
         )}
+
         {/* Match insight */}
         {profile.insight && (
-          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 5, padding: '8px 10px', background: 'rgba(21,122,110,0.06)', borderRadius: 8 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
             {profile.insight}
           </div>
         )}
-        {/* Supporting tags — skills + interests */}
-        {supportingTags.length > 0 && (
-          <div className="chips-row" style={{ marginBottom: 0 }}>
-            {supportingTags.map(t => <span key={t} className="chip">{t}</span>)}
+
+        {/* Bio */}
+        {bio && (
+          <p style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.65, marginBottom: 12 }}>{bio}</p>
+        )}
+
+        {/* Photos — media integrated after substance */}
+        {photos.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ position: 'relative', width: '100%', borderRadius: 10, overflow: 'hidden', background: 'linear-gradient(135deg,#D8FAF2,#FEE9D1)', aspectRatio: '4/3' }}>
+              <img
+                src={photos[photoIdx]}
+                alt={name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+              {photos.length > 1 && (
+                <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
+                  {photos.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={e => { e.stopPropagation(); setPhotoIdx(i); }}
+                      style={{ width: 6, height: 6, borderRadius: '50%', border: 'none', cursor: 'pointer', background: i === photoIdx ? 'white' : 'rgba(255,255,255,0.5)', padding: 0 }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-        {bio && !working_on && !profile.insight && <p className="card-bio">{bio.slice(0, 100)}{bio.length > 100 ? '…' : ''}</p>}
+
+        {/* 5. SKILLS / INTERESTS */}
+        {skills.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>Skills</div>
+            <div className="chips-row" style={{ marginBottom: 0 }}>
+              {skills.map(s => <span key={s} className="chip chip-gold">{s}</span>)}
+            </div>
+          </div>
+        )}
+        {interests.length > 0 && (
+          <div style={{ marginBottom: 4 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>Interests</div>
+            <div className="chips-row" style={{ marginBottom: 0 }}>
+              {interests.map(t => <span key={t} className="chip">{t}</span>)}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Actions */}
+      {/* 6. CTA — always visible at bottom */}
       <div className="card-actions">
         <button className="action-btn action-skip" onClick={handleSkip}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
