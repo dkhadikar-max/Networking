@@ -3227,7 +3227,9 @@ async function sendLikeNotification(likerId, targetId) {
     const intent = liker.intent || null;
 
     const title = isPremium ? `❤️ ${liker.name} liked you` : '❤️ Someone liked you';
-    const body  = intent ? `${intent} · ${score}% match` : `${score}% match`;
+    const body  = isPremium
+      ? (intent ? `${liker.name} is looking to ${intent.toLowerCase()} — you're a ${score}% match.` : `You two are a ${score}% match — say hello.`)
+      : (intent ? `They're looking to ${intent.toLowerCase()} and you're a ${score}% match.` : `You two are a ${score}% match — go check them out.`);
 
     sendWebPush([targetId], title, body, { screen: 'LikedMe' }).catch(() => {});
   } catch (e) { /* non-critical */ }
