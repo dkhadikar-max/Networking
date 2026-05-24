@@ -3207,8 +3207,8 @@ async function sendPush(userIds, title, body, data = {}) {
 // Verifies token, checks user exists in DB, checks banned status,
 // and attaches full user data to avoid duplicate DB queries in guards.
 async function auth(req, res, next) {
-  const token = req.cookies?.byn_token
-    || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const bearerToken = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const token = bearerToken || req.cookies?.byn_token;
   if (!token) return res.status(401).json({ error: 'No token' });
 
   // Step 1: Verify JWT signature — synchronous, no DB involved
