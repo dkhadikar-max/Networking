@@ -47,6 +47,17 @@ const razorpayPkg = optionalRequire('razorpay', null);
 const razorpay = (razorpayPkg && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
   ? new razorpayPkg({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
   : null;
+const webpushPkg = optionalRequire('web-push', null);
+const webpush = (webpushPkg && process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY)
+  ? (() => {
+      webpushPkg.setVapidDetails(
+        `mailto:${process.env.VAPID_EMAIL || 'support@buildyournetwork.online'}`,
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      );
+      return webpushPkg;
+    })()
+  : null;
 const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const uuidv4 = () => crypto.randomUUID();
@@ -3203,6 +3214,25 @@ async function sendPush(userIds, title, body, data = {}) {
   }
 }
 
+async function sendWebPush(userIds, title, body, data = {}) {
+  if (!webpush || !userIds.length) return;
+  const { data: rows } = await supabase.from('push_subscriptions')
+    .select('subscription, user_id').in('user_id', userIds);
+  if (!rows?.length) return;
+  const payload = JSON.stringify({ title, body, data });
+  for (const row of rows) {
+    try {
+      await webpush.sendNotification(row.subscription, payload);
+    } catch (e) {
+      if (e.statusCode === 410 || e.statusCode === 404) {
+        supabase.from('push_subscriptions')
+          .delete().eq('user_id', row.user_id).eq('endpoint', row.subscription.endpoint)
+          .then(() => {}).catch(() => {});
+      }
+    }
+  }
+}
+
 // ── FIXED: AUTH MIDDLEWARE ──
 // Verifies token, checks user exists in DB, checks banned status,
 // and attaches full user data to avoid duplicate DB queries in guards.
@@ -4498,6 +4528,10 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
         const theirName = them  ? them.name  : 'Someone';
         sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
         sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+        sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
+        sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+      } else {
+        sendWebPush([targetId], '❤️ New Like', 'Someone liked your profile — check who it is.', { screen: 'LikedMe' }).catch(()=>{});
       }
     }
     res.json({ match, direction, connectionId });
@@ -4572,6 +4606,10 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
       const theirName = them ? them.name : 'Someone';
       sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
       sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+      sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
+      sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+    } else {
+      sendWebPush([targetId], '❤️ New Like', 'Someone liked your profile — check who it is.', { screen: 'LikedMe' }).catch(() => {});
     }
 
     res.json({ ok: true, match, connectionId });
@@ -4739,6 +4777,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
     const senderName = senderUser ? senderUser.name : 'Someone';
     const preview    = text.trim().slice(0, 60) + (text.trim().length > 60 ? '…' : '');
     sendPush([recipientId], `💬 ${senderName}`, preview, { screen: 'ChatDetail', connectionId: conn.id }).catch(()=>{});
+    sendWebPush([recipientId], `💬 ${senderName}`, preview, { screen: 'ChatDetail', connectionId: conn.id }).catch(()=>{});
 
     res.json(mapMessage({ id: msgId, connection_id: conn.id, sender_id: req.user.id, text: text.trim(), created_at: now }));
   } catch(e) {
@@ -4800,6 +4839,7 @@ app.post('/api/priority-message', auth, async (req, res) => {
     await supabase.from('priority_msgs').insert(pm);
 
     sendPush([targetId], `⚡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
+    sendWebPush([targetId], `⚡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
     res.json({ ok: true, remaining: limit - monthCount - 1 });
   } catch(e) {
     console.error('Priority message error:', e);
@@ -6422,6 +6462,42 @@ app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 // ── GLOBAL ERROR HANDLER — must be last, 4-arg signature required by Express ──
 // eslint-disable-next-line no-unused-vars
+// ── WEB PUSH ──
+app.get('/api/push/vapid-public-key', (req, res) => {
+  if (!process.env.VAPID_PUBLIC_KEY) return res.status(503).json({ error: 'Push not configured' });
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/push/subscribe', auth, async (req, res) => {
+  try {
+    const { subscription } = req.body;
+    if (!subscription?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
+    await supabase.from('push_subscriptions').upsert({
+      user_id:      req.user.id,
+      endpoint:     subscription.endpoint,
+      subscription: subscription,
+      updated_at:   new Date().toISOString(),
+    }, { onConflict: 'user_id,endpoint' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+app.delete('/api/push/subscribe', auth, async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    if (endpoint) {
+      await supabase.from('push_subscriptions').delete().eq('user_id', req.user.id).eq('endpoint', endpoint);
+    } else {
+      await supabase.from('push_subscriptions').delete().eq('user_id', req.user.id);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to remove subscription' });
+  }
+});
+
 app.use((err, req, res, _next) => {
   console.error('[Unhandled]', err?.message || err);
   if (res.headersSent) return;

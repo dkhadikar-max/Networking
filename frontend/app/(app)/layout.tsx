@@ -9,6 +9,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import DesktopNav from '@/components/layout/DesktopNav';
 import { ToastProvider } from '@/components/ui/Toast';
 import ProfileDrawer from '@/components/ui/ProfileDrawer';
+import { registerWebPush } from '@/lib/webpush';
 
 function ShellDrawer() {
   const { drawerState, closeProfile } = useProfileDrawer();
@@ -34,6 +35,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
     if (user.onboarding_stage !== 'complete' && !path.startsWith('/onboarding')) {
       router.replace('/onboarding'); return;
     }
+    registerWebPush();
   }, [user, loading, router, path]);
 
   if (loading || !user) {
