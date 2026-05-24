@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { apiDelete } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/lib/types';
@@ -26,6 +27,7 @@ type Props = {
 
 export default function ProfileView({ user, isSelf = false, onConnect, connected, connectionId, onEdit }: Props) {
   const { logout } = useAuth();
+  const router = useRouter();
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -213,19 +215,37 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
         )}
 
         {/* Action buttons */}
-        <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
+        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {isSelf ? (
-            <button
-              onClick={onEdit}
-              style={{
-                flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                border: '1.5px solid var(--border)', background: 'white',
-                color: 'var(--text)', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              Edit profile
-            </button>
+            <>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={onEdit}
+                  style={{
+                    flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
+                    border: '1.5px solid var(--border)', background: 'white',
+                    color: 'var(--text)', fontSize: 14, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Edit profile
+                </button>
+                {!(user.premium || user.is_premium) && (
+                  <button
+                    onClick={() => router.push('/upgrade')}
+                    style={{
+                      flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
+                      background: 'linear-gradient(135deg, #F4A259, #e8923f)',
+                      border: 'none', color: 'white', fontSize: 14, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      boxShadow: '0 4px 14px rgba(244,162,89,0.35)',
+                    }}
+                  >
+                    ⭐ Go Pro
+                  </button>
+                )}
+              </div>
+            </>
           ) : (
             <button
               onClick={handleConnect}
