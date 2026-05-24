@@ -3957,7 +3957,9 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('works').delete().eq('user_id', id);
     await supabase.from('user_intents').delete().eq('user_id', id);
     await supabase.from('user_acquisition').delete().eq('user_id', id);
-    await supabase.from('users').delete().eq('id', id);
+    await supabase.from('push_subscriptions').delete().eq('user_id', id);
+    const { error: selfDelErr } = await supabase.from('users').delete().eq('id', id);
+    if (selfDelErr) return res.status(500).json({ error: 'Failed to delete account: ' + selfDelErr.message });
     await auditLog(id, 'self_delete', id);
     res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
     res.json({ ok: true });
@@ -5293,7 +5295,11 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
     await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('works').delete().eq('user_id', id);
-    await supabase.from('users').delete().eq('id', id);
+    await supabase.from('user_intents').delete().eq('user_id', id);
+    await supabase.from('user_acquisition').delete().eq('user_id', id);
+    await supabase.from('push_subscriptions').delete().eq('user_id', id);
+    const { error: adminDelErr } = await supabase.from('users').delete().eq('id', id);
+    if (adminDelErr) return res.status(500).json({ error: 'Failed to delete user: ' + adminDelErr.message });
     await auditLog(req.user.id, 'delete_user', id);
     res.json({ ok: true });
   } catch(e) {
