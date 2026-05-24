@@ -1,6 +1,6 @@
 create table if not exists push_subscriptions (
   id           uuid primary key default gen_random_uuid(),
-  user_id      uuid not null references users(id) on delete cascade,
+  user_id      text not null references users(id) on delete cascade,
   endpoint     text not null,
   subscription jsonb not null,
   created_at   timestamptz default now(),
