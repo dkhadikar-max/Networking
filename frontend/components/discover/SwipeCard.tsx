@@ -25,6 +25,7 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const currently_exploring = (user as { currently_exploring?: string }).currently_exploring ?? '';
   const score = profile.match_score ?? profile.matchScore;
   const trust_score = (profile as { trust_score?: number }).trust_score ?? (user as { trust_score?: number }).trust_score;
+  const matchReasons: string[] = profile.matchReasons ?? (profile.insight ? [profile.insight] : []);
   const connected = !!profile.connection;
   const verified = (user as { identity_verified?: boolean }).identity_verified;
 
@@ -155,6 +156,21 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
         </div>
       </div>
 
+      {/* WHY YOU MATCHED — between identity and scroll body */}
+      {matchReasons.length > 0 && (
+        <div style={{ padding: '8px 14px 10px', borderBottom: '1px solid var(--border)', background: 'rgba(21,122,110,0.04)', flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>Why you matched</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {matchReasons.map((r, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text)', fontWeight: 500 }}>
+                <svg width="8" height="8" viewBox="0 0 8 8" style={{ flexShrink: 0 }}><circle cx="4" cy="4" r="4" fill="var(--primary)"/></svg>
+                {r}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Scrollable body */}
       <div className="card-scroll-body">
 
@@ -171,14 +187,6 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
           <div style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--sur2)', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 4 }}>Looking for</div>
             <p style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, lineHeight: 1.55, margin: 0 }}>{currently_exploring}</p>
-          </div>
-        )}
-
-        {/* Match insight */}
-        {profile.insight && (
-          <div style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'flex-start', gap: 5, padding: '8px 10px', background: 'rgba(21,122,110,0.06)', borderRadius: 8 }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)" style={{ flexShrink: 0, marginTop: 1 }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            {profile.insight}
           </div>
         )}
 

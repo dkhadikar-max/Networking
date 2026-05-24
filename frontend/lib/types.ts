@@ -39,6 +39,7 @@ export type DiscoverProfile = {
   matchScore?: number;
   trust_score?: number;
   insight?: string;
+  matchReasons?: string[];
   distance?: number | null;
   connection?: { id: string };
 };

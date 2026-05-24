@@ -3183,6 +3183,47 @@ function getInsight(a, b) {
   return b.intent ? 'Looking to ' + b.intent.replace(/-/g,' ') : 'Could be worth a conversation';
 }
 
+function getMatchReasons(a, b) {
+  const reasons = [];
+
+  // Same city
+  if (a.location && b.location) {
+    const aCity = a.location.split(',')[0].trim().toLowerCase();
+    const bCity = b.location.split(',')[0].trim().toLowerCase();
+    if (aCity && bCity && aCity === bCity) reasons.push(`Same city · ${a.location.split(',')[0].trim()}`);
+  }
+
+  // Both remote
+  if (a.remote && b.remote) reasons.push('Both working remotely');
+
+  // Intent — shared or theirs
+  if (b.intent) {
+    const bIntent = b.intent.replace(/-/g,' ');
+    const aIntent = (a.intent||'').replace(/-/g,' ').toLowerCase();
+    if (aIntent && aIntent === bIntent.toLowerCase()) {
+      reasons.push(`Both looking for ${bIntent.toLowerCase()}`);
+    } else {
+      reasons.push(`Looking for ${bIntent.toLowerCase()}`);
+    }
+  }
+
+  // Shared skills
+  const sharedSkills = (a.skills||[]).filter(s=>(b.skills||[]).some(x=>x.toLowerCase()===s.toLowerCase()));
+  if (sharedSkills.length) reasons.push(`Shared skills · ${sharedSkills.slice(0,2).join(', ')}`);
+
+  // Shared interests
+  const sharedInterests = (a.interests||[]).filter(s=>(b.interests||[]).some(x=>x.toLowerCase()===s.toLowerCase()));
+  if (sharedInterests.length) reasons.push(`Both into ${sharedInterests.slice(0,2).join(' & ')}`);
+
+  // Exploring ↔ building overlap
+  if (a.currently_exploring && b.working_on) {
+    const kw = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
+    if (kw.some(x=>b.working_on.toLowerCase().includes(x))) reasons.push("Their work connects to what you're exploring");
+  }
+
+  return reasons.slice(0, 3);
+}
+
 // ── DATE HELPERS ──
 function todayKey()     { return new Date().toISOString().slice(0,10); }
 function thisMonthKey() { return new Date().toISOString().slice(0,7);  }
@@ -4436,8 +4477,9 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
       const isActive = !!(u.last_active && u.last_active >= oneDayAgo);
       const base = matchScore(me, u);
       return Object.assign({}, cleanPublic(u), {
-        matchScore: Math.min(base + (isActive ? ACTIVE_BOOST : 0), 99),
-        insight:    getInsight(me, u),
+        matchScore:    Math.min(base + (isActive ? ACTIVE_BOOST : 0), 99),
+        insight:       getInsight(me, u),
+        matchReasons:  getMatchReasons(me, u),
         works:      worksMap[u.id] || [],
         distance:   dist,
       });
