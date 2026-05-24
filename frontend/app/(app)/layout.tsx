@@ -35,8 +35,12 @@ function AppShell({ children }: { children: React.ReactNode }) {
     if (user.onboarding_stage !== 'complete' && !path.startsWith('/onboarding')) {
       router.replace('/onboarding'); return;
     }
-    registerWebPush();
   }, [user, loading, router, path]);
+
+  useEffect(() => {
+    if (!user || user.onboarding_stage !== 'complete') return;
+    registerWebPush();
+  }, [user?.id]);
 
   if (loading || !user) {
     return (

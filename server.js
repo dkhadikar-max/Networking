@@ -6477,12 +6477,6 @@ app.post('/api/events', (req, res) => {
   }
 });
 
-// ── FALLBACK ──
-app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
-app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));
-
-// ── GLOBAL ERROR HANDLER — must be last, 4-arg signature required by Express ──
-// eslint-disable-next-line no-unused-vars
 // ── WEB PUSH ──
 app.get('/api/push/vapid-public-key', (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY) return res.status(503).json({ error: 'Push not configured' });
@@ -6518,6 +6512,10 @@ app.delete('/api/push/subscribe', auth, async (req, res) => {
     res.status(500).json({ error: 'Failed to remove subscription' });
   }
 });
+
+// ── FALLBACK ──
+app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
+app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.use((err, req, res, _next) => {
   console.error('[Unhandled]', err?.message || err);
