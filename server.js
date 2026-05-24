@@ -4552,7 +4552,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
         sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
         sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
       } else {
-        sendLikeNotification(req.user.id, targetId);
+        sendLikeNotification(req.user.id, targetId).catch(() => {});
       }
     }
     res.json({ match, direction, connectionId });

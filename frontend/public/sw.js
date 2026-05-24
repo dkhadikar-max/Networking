@@ -32,8 +32,7 @@ self.addEventListener('notificationclick', function (event) {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (windowClients) {
       for (const client of windowClients) {
-        if ('focus' in client) {
-          client.navigate(url);
+        if (client.url.endsWith(url) && 'focus' in client) {
           return client.focus();
         }
       }
