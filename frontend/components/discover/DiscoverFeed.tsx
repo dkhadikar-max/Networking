@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import SwipeCard from './SwipeCard';
 import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import type { FilterState } from './DiscoverFilters';
 import type { DiscoverProfile } from '@/lib/types';
 
@@ -19,11 +20,13 @@ type RightPanelProps = {
 
 function DiscoverRightPanel({ profile, onConnect, onSkip }: RightPanelProps) {
   const [connecting, setConnecting] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
   const raw = (profile.user ?? profile) as import('@/lib/types').User;
   const name = raw?.name ?? 'Unknown';
   const photos = (raw?.photos ?? []) as string[];
   const score = profile.matchScore ?? profile.match_score;
   const connected = !!profile.connection;
+  const uid = raw?.id ?? '';
 
   async function handleConnect() {
     if (connected) return;
@@ -132,6 +135,15 @@ function DiscoverRightPanel({ profile, onConnect, onSkip }: RightPanelProps) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
             Skip
           </button>
+          {uid && (
+            <button
+              className="action-btn"
+              onClick={() => setShowPriority(true)}
+              style={{ background: 'linear-gradient(135deg,#FEF3C7,#FDE68A)', color: '#92400E', border: '1px solid rgba(245,158,11,0.3)' }}
+            >
+              ⚡ Priority
+            </button>
+          )}
           <button
             className="action-btn action-connect"
             onClick={handleConnect}
@@ -142,6 +154,14 @@ function DiscoverRightPanel({ profile, onConnect, onSkip }: RightPanelProps) {
           </button>
         </div>
       </div>
+
+      <PriorityMessageModal
+        open={showPriority}
+        onClose={() => setShowPriority(false)}
+        mode="compose"
+        targetId={uid}
+        targetName={name}
+      />
     </div>
   );
 }

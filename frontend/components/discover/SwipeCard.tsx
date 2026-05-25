@@ -3,6 +3,7 @@
 
 import { useState, useRef } from 'react';
 import type { DiscoverProfile } from '@/lib/types';
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 
 type Props = {
   profile: DiscoverProfile;
@@ -29,8 +30,11 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const connected = !!profile.connection;
   const verified = (user as { identity_verified?: boolean }).identity_verified;
 
+  const uid = (user as { id?: string }).id ?? (profile as { id?: string }).id ?? '';
+
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const connectLabelRef = useRef<HTMLDivElement>(null);
   const skipLabelRef = useRef<HTMLDivElement>(null);
@@ -205,15 +209,23 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               />
               {photos.length > 1 && (
-                <div style={{ position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
-                  {photos.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={e => { e.stopPropagation(); setPhotoIdx(i); }}
-                      style={{ width: 6, height: 6, borderRadius: '50%', border: 'none', cursor: 'pointer', background: i === photoIdx ? 'white' : 'rgba(255,255,255,0.5)', padding: 0 }}
-                    />
-                  ))}
-                </div>
+                <>
+                  {/* Tap left/right halves to navigate — uses onClick so card swipe (touch) is unaffected */}
+                  <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.max(0, i - 1)); }} style={{ position: 'absolute', left: 0, top: 0, width: '45%', height: '100%', zIndex: 5, cursor: 'pointer' }} />
+                  <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.min(photos.length - 1, i + 1)); }} style={{ position: 'absolute', right: 0, top: 0, width: '45%', height: '100%', zIndex: 5, cursor: 'pointer' }} />
+                  {/* Dot indicators — 28px touch target, 6px visual dot */}
+                  <div style={{ position: 'absolute', bottom: 4, left: '50%', transform: 'translateX(-50%)', display: 'flex', zIndex: 6 }}>
+                    {photos.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={e => { e.stopPropagation(); setPhotoIdx(i); }}
+                        style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'block', background: i === photoIdx ? 'white' : 'rgba(255,255,255,0.5)' }} />
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -246,6 +258,15 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
           </svg>
           Skip
         </button>
+        {uid && (
+          <button
+            className="action-btn"
+            onClick={e => { e.stopPropagation(); setShowPriority(true); }}
+            style={{ background: 'linear-gradient(135deg,#FEF3C7,#FDE68A)', color: '#92400E', border: '1px solid rgba(245,158,11,0.3)' }}
+          >
+            ⚡ Priority
+          </button>
+        )}
         <button
           className="action-btn action-connect"
           onClick={handleConnect}
@@ -261,6 +282,14 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
           {connected ? 'Requested' : 'Connect'}
         </button>
       </div>
+
+      <PriorityMessageModal
+        open={showPriority}
+        onClose={() => setShowPriority(false)}
+        mode="compose"
+        targetId={uid}
+        targetName={name}
+      />
     </div>
   );
 }
