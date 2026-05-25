@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     url: "https://buildyournetwork.online",
     siteName: "Build Your Network",
     type: "website",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Build Your Network" }],
+    images: [{ url: "/assets/logo.png", width: 1200, height: 630, alt: "Build Your Network" }],
   },
   twitter: {
     card: "summary_large_image",

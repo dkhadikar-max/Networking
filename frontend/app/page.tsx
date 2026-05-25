@@ -1,11 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { apiPost } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 import Script from 'next/script';
+import { APP_URL } from '@/lib/seo/data';
+import LandingClient from '@/components/landing/LandingClient';
+import MobileNav from '@/components/landing/MobileNav';
+import FeedbackWidget from '@/components/landing/FeedbackWidget';
 
 const LANDING_CSS = `
   :root {
@@ -255,73 +253,23 @@ const LANDING_CSS = `
   }
 `;
 
-export default function HomePage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [stats, setStats] = useState<{ users: number; connections: number } | null>(null);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackDone, setFeedbackDone] = useState(false);
+async function getStats() {
+  try {
+    const r = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } });
+    const d = await r.json();
+    return d.users > 0 ? (d as { users: number; connections: number }) : null;
+  } catch { return null; }
+}
 
-  useEffect(() => {
-    if (!loading && user?.email_verified && user.onboarding_stage === 'complete') {
-      router.replace('/discover');
-    }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    fetch('/api/stats/public').then(r => r.json()).then(d => { if (d.users > 0) setStats(d); }).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      entries => entries.forEach(e => {
-        if (e.isIntersecting) {
-          const el = e.target as HTMLElement;
-          el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
-        }
-      }),
-      { threshold: 0.1 }
-    );
-    document.querySelectorAll('.animate').forEach(el => {
-      const h = el as HTMLElement;
-      h.style.opacity = '0';
-      h.style.transform = 'translateY(24px)';
-      const delay = h.classList.contains('delay-4') ? '400ms'
-                  : h.classList.contains('delay-3') ? '300ms'
-                  : h.classList.contains('delay-2') ? '200ms'
-                  : h.classList.contains('delay-1') ? '100ms' : '0ms';
-      h.style.transition = `opacity 0.6s cubic-bezier(0.22,1,0.36,1) ${delay},transform 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}`;
-      obs.observe(el);
-    });
-    const onScroll = () => {
-      const nav = document.querySelector('nav') as HTMLElement | null;
-      if (nav) nav.style.boxShadow = window.scrollY > 50 ? '0 1px 20px rgba(0,0,0,0.05)' : 'none';
-    };
-    const onHashClick = (e: MouseEvent) => {
-      const a = (e.target as HTMLElement).closest('a[href^="#"]') as HTMLAnchorElement | null;
-      if (!a) return;
-      const t = document.querySelector(a.getAttribute('href') ?? '');
-      if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('click', onHashClick);
-    return () => { obs.disconnect(); window.removeEventListener('scroll', onScroll); document.removeEventListener('click', onHashClick); };
-  }, []);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
-    window.addEventListener('scroll', close, { passive: true });
-    return () => window.removeEventListener('scroll', close);
-  }, [menuOpen]);
-
-  function closeFeedback() { setFeedbackOpen(false); setFeedbackDone(false); }
+export default async function HomePage() {
+  const stats = await getStats();
 
   return (
     <div>
       <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />
+
+      {/* Auth redirect + animations — renders null, client only */}
+      <LandingClient />
 
       {/* Nav */}
       <nav>
@@ -330,18 +278,7 @@ export default function HomePage() {
             <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" />
             Build Your Network
           </a>
-          <div className={`nav-links${menuOpen ? ' open' : ''}`}>
-            <a href="#trust" onClick={() => setMenuOpen(false)}>Trust</a>
-            <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
-            <a href="#how" onClick={() => setMenuOpen(false)}>How It Works</a>
-            <a href="/signup" className="nav-cta">Open Web App</a>
-            <a href="#download" onClick={() => setMenuOpen(false)} className="nav-cta" style={{ marginLeft: '8px', background: 'transparent', color: 'var(--primary)', border: '2px solid var(--primary)', boxShadow: 'none' }}>Download APK</a>
-          </div>
-          <button className="mobile-menu-btn" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+          <MobileNav />
         </div>
       </nav>
 
@@ -632,72 +569,10 @@ export default function HomePage() {
         <div className="footer-bottom"><span>&copy; 2026 Build Your Network. All rights reserved.</span><span>Early Access Product</span></div>
       </footer>
 
-      {/* Feedback tab */}
-      <button className="feedback-tab" onClick={() => setFeedbackOpen(true)}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-        <span>Feedback</span>
-      </button>
+      {/* Feedback widget — client island */}
+      <FeedbackWidget />
 
-      {/* Feedback modal */}
-      {feedbackOpen && (
-        <>
-          <div className="feedback-overlay" onClick={closeFeedback} />
-          <div className="feedback-modal">
-            <div className="feedback-header">
-              <h3>Share Your Thoughts</h3>
-              <button className="feedback-close" onClick={closeFeedback}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-            <div className="feedback-body">
-              {feedbackDone ? (
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <div className="success-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg></div>
-                  <h4 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'var(--text)' }}>Thank You</h4>
-                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.6' }}>Your feedback has been received. We review every submission personally.</p>
-                  <button className="feedback-done" onClick={closeFeedback}>Close</button>
-                </div>
-              ) : (
-                <form onSubmit={async e => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const category = (form.elements.namedItem('category') as HTMLSelectElement).value;
-                  const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
-                  try { await apiPost('/api/feedback', { category, message }); } catch {}
-                  setFeedbackDone(true);
-                }}>
-                  <p className="feedback-intro">Help us improve Build Your Network. Your feedback shapes the product.</p>
-                  <div className="feedback-field">
-                    <label>What is this about?</label>
-                    <select name="category" defaultValue="" required>
-                      <option value="" disabled>Select a topic</option>
-                      <option value="bug">Bug or issue</option>
-                      <option value="feature">Feature request</option>
-                      <option value="ux">User experience</option>
-                      <option value="install">Installation problem</option>
-                      <option value="other">Something else</option>
-                    </select>
-                  </div>
-                  <div className="feedback-field">
-                    <label>Your feedback</label>
-                    <textarea name="message" rows={5} required placeholder="Describe what you experienced, what you expected, and what happened instead..." />
-                  </div>
-                  <div className="feedback-field">
-                    <label>Email (optional)</label>
-                    <input type="email" placeholder="you@example.com" />
-                    <span className="field-hint">Only if you&apos;d like us to follow up</span>
-                  </div>
-                  <button type="submit" className="feedback-submit">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>
-                    Send Feedback
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        </>
-      )}
-
+      {/* JSON-LD schema — now server-rendered in initial HTML */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({
@@ -708,47 +583,19 @@ export default function HomePage() {
               'name': 'Build Your Network',
               'alternateName': 'BYN',
               'url': 'https://buildyournetwork.online',
-              'logo': {
-                '@type': 'ImageObject',
-                'url': 'https://buildyournetwork.online/assets/logo.png',
-                'width': 512,
-                'height': 512,
-              },
-              'description': 'Build Your Network (BYN) is the free intent-based professional networking platform. Connect with founders, freelancers, mentors, career changers, and collaborators based on what you actually want — not job titles. GPS-based discovery. No install required.',
+              'logo': { '@type': 'ImageObject', 'url': 'https://buildyournetwork.online/assets/logo.png', 'width': 512, 'height': 512 },
+              'description': 'Build Your Network (BYN) is the free intent-based professional networking platform. Connect with founders, freelancers, mentors, collaborators, and career connections based on declared intent — GPS-filtered, no cold email.',
               'foundingDate': '2024',
               'email': 'support@buildyournetwork.online',
               'areaServed': ['IN', 'US', 'GB', 'EU'],
-              'contactPoint': {
-                '@type': 'ContactPoint',
-                'email': 'support@buildyournetwork.online',
-                'contactType': 'Customer Support',
-                'availableLanguage': ['English'],
-              },
-              'sameAs': [
-                'https://www.producthunt.com/products/build-your-network',
-                'https://www.crunchbase.com/organization/build-your-network',
-                'https://www.linkedin.com/company/build-your-network',
-                'https://wellfound.com/company/build-your-network',
-                'https://www.g2.com/products/build-your-network',
-                'https://www.capterra.com/p/build-your-network',
-                'https://twitter.com/buildyournetwork',
-                'https://www.indiehackers.com/product/build-your-network',
-                'https://www.f6s.com/company/build-your-network',
-                'https://betalist.com/startups/build-your-network',
-              ],
+              'contactPoint': { '@type': 'ContactPoint', 'email': 'support@buildyournetwork.online', 'contactType': 'Customer Support', 'availableLanguage': ['English'] },
+              'sameAs': ['https://www.producthunt.com/products/build-your-network', 'https://www.crunchbase.com/organization/build-your-network', 'https://www.linkedin.com/company/build-your-network', 'https://wellfound.com/company/build-your-network', 'https://twitter.com/buildyournetwork', 'https://www.indiehackers.com/product/build-your-network'],
             },
             {
               '@type': 'WebSite',
               'name': 'Build Your Network',
               'url': 'https://buildyournetwork.online',
-              'potentialAction': {
-                '@type': 'SearchAction',
-                'target': {
-                  '@type': 'EntryPoint',
-                  'urlTemplate': 'https://buildyournetwork.online/discover?q={search_term_string}',
-                },
-                'query-input': 'required name=search_term_string',
-              },
+              'potentialAction': { '@type': 'SearchAction', 'target': { '@type': 'EntryPoint', 'urlTemplate': 'https://buildyournetwork.online/discover?q={search_term_string}' }, 'query-input': 'required name=search_term_string' },
             },
             {
               '@type': 'SoftwareApplication',
@@ -759,18 +606,8 @@ export default function HomePage() {
               'operatingSystem': 'Android, Web',
               'inLanguage': 'en',
               'description': 'Free intent-based professional networking platform. Find co-founders, freelancers, mentors, collaborators, and career connections based on declared intent — GPS-filtered, no cold email.',
-              'offers': {
-                '@type': 'Offer',
-                'price': '0',
-                'priceCurrency': 'USD',
-                'availability': 'https://schema.org/InStock',
-              },
-              'aggregateRating': {
-                '@type': 'AggregateRating',
-                'ratingValue': '4.8',
-                'ratingCount': '47',
-                'bestRating': '5',
-              },
+              'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD', 'availability': 'https://schema.org/InStock' },
+              'aggregateRating': { '@type': 'AggregateRating', 'ratingValue': '4.8', 'ratingCount': '47', 'bestRating': '5' },
             },
           ],
         }) }}
