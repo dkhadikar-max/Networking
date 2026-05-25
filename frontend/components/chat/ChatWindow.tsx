@@ -95,11 +95,20 @@ export default function ChatWindow({ connectionId }: Props) {
     if (!trimmed || sending) return;
     setSending(true);
     setText('');
+    const optimisticId = `opt-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: optimisticId,
+      from: user!.id,
+      text: trimmed,
+      created_at: new Date().toISOString(),
+      connection_id: connectionId,
+    }]);
     try {
       await apiPost(`/api/messages/${connectionId}`, { text: trimmed });
       await fetchMessages();
     } catch (err) {
       setText(trimmed);
+      setMessages(prev => prev.filter(m => m.id !== optimisticId));
       toast(err instanceof Error ? err.message : 'Failed to send', 'error');
     } finally {
       setSending(false);

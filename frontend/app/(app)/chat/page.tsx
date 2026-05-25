@@ -14,10 +14,19 @@ export default function ChatListPage() {
   const [showPriority, setShowPriority] = useState(false);
 
   useEffect(() => {
-    apiGet<Connection[]>('/api/connections')
-      .then(r => setConnections(r ?? []))
-      .catch(() => toast('Failed to load chats', 'error'))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    function fetchConnections(initial = false) {
+      apiGet<Connection[]>('/api/connections')
+        .then(r => { if (!cancelled) setConnections(r ?? []); })
+        .catch(() => { if (initial) toast('Failed to load chats', 'error'); })
+        .finally(() => { if (initial && !cancelled) setLoading(false); });
+    }
+
+    fetchConnections(true);
+
+    const timer = setInterval(() => fetchConnections(false), 10_000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

@@ -4730,12 +4730,18 @@ app.get('/api/connections', auth, async (req, res) => {
     const connIds = active.map(c => c.id);
     const lastMsgMap  = {};
     const msgCountMap = {};
+    const prioritySet = new Set();
     if (connIds.length > 0) {
-      const [{ data: recentMsgs }, ...countResults] = await Promise.all([
+      const [{ data: recentMsgs }, { data: priMsgs }, ...countResults] = await Promise.all([
         supabase.from('messages')
           .select('*').in('connection_id', connIds)
           .order('created_at', { ascending: false })
           .limit(connIds.length * 10),
+        supabase.from('priority_msgs')
+          .select('from_user')
+          .eq('to_user', req.user.id)
+          .in('from_user', otherIds)
+          .eq('read', false),
         ...connIds.map(cid =>
           supabase.from('messages')
             .select('*', { count: 'exact', head: true })
@@ -4749,6 +4755,7 @@ app.get('/api/connections', auth, async (req, res) => {
       connIds.forEach((cid, i) => {
         msgCountMap[cid] = countResults[i]?.count || 0;
       });
+      (priMsgs || []).forEach(p => prioritySet.add(p.from_user));
     }
 
     const result = active.map(c => {
@@ -4756,10 +4763,13 @@ app.get('/api/connections', auth, async (req, res) => {
       const other    = userMap[otherId];
       const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
       const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
+      const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
       return {
         connection: c, user: cleanPublic(other),
         lastMessage: lastMsg, hoursLeft, active: !!c.active,
-        msgCount: msgCountMap[c.id] || 0
+        msgCount: msgCountMap[c.id] || 0,
+        unread_count,
+        is_priority: prioritySet.has(otherId),
       };
     });
     res.json(result);
