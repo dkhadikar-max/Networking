@@ -43,7 +43,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     { url: APP_URL, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
-    { url: `${APP_URL}/onboarding`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     ...landingPages,
     ...cities,
     ...industries,

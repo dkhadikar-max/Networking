@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import CookieBanner from "@/components/ui/CookieBanner";
@@ -34,6 +35,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
           <CookieBanner />
         </AuthProvider>
+        <Script strategy="afterInteractive" src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ" />
+        <Script id="ga-init" strategy="afterInteractive">{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-5NQDBYG4CJ');
+        `}</Script>
       </body>
     </html>
   );

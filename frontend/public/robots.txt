@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Auth and app routes require login — no crawl budget needed
+Disallow: /login
+Disallow: /signup
+Disallow: /verify
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /onboarding
+Disallow: /discover
+Disallow: /chat
+Disallow: /profile
+Disallow: /likes
+Disallow: /upgrade
+Disallow: /admin.html
+Disallow: /api/
+
+Sitemap: https://buildyournetwork.online/sitemap.xml

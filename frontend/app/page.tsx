@@ -1,5 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import Script from 'next/script';
 import { APP_URL } from '@/lib/seo/data';
 import LandingClient from '@/components/landing/LandingClient';
 import MobileNav from '@/components/landing/MobileNav';
@@ -613,13 +612,6 @@ export default async function HomePage() {
         }) }}
       />
 
-      <Script strategy="afterInteractive" src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ" />
-      <Script id="ga-init" strategy="afterInteractive">{`
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-5NQDBYG4CJ');
-      `}</Script>
     </div>
   );
 }
