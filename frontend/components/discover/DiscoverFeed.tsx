@@ -100,14 +100,17 @@ export default function DiscoverFeed() {
     try {
       await apiPost('/api/connect', { userId: uid });
       toast('Connection request sent!', 'success');
-      handleSkip(profile);
+      handleSkip(profile, false); // connect already recorded in swipes table
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to connect', 'error');
     }
   }
 
-  function handleSkip(profile: DiscoverProfile) {
+  function handleSkip(profile: DiscoverProfile, save = true) {
     const uid = getUid(profile);
+    if (save && uid) {
+      apiPost('/api/skip', { targetId: uid }).catch(() => {});
+    }
     let remaining = 0;
     setProfiles(prev => {
       const next = prev.filter(p => getUid(p) !== uid);

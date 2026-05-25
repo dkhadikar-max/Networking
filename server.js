@@ -4609,6 +4609,28 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
   }
 });
 
+// ── SKIP (left-swipe — persisted to DB, does not consume daily connect limit) ──
+app.post('/api/skip', auth, async (req, res) => {
+  try {
+    const { targetId } = req.body;
+    if (!targetId) return res.status(400).json({ error: 'targetId required' });
+    if (targetId === req.user.id) return res.json({ ok: true });
+
+    const { data: existing } = await supabase.from('swipes')
+      .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
+    if (existing) return res.json({ ok: true });
+
+    await supabase.from('swipes').insert({
+      from_user: req.user.id, to_user: targetId, direction: 'left',
+      created_at: new Date().toISOString(),
+    });
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Skip error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── CONNECT (direct right-swipe from profile page or card button) ──
 app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
   try {
