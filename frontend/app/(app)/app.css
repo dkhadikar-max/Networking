@@ -595,7 +595,7 @@ textarea.pe-input { resize: none; }
   .discover-left    { overflow-y: auto !important; }
   .card-stack-area  { flex: none; overflow: visible; }
   .swipe-card       { max-height: none; }
-  .card-scroll-body { flex: none; overflow-y: visible; }
+  .card-scroll-body { flex: none; overflow-y: auto; max-height: 55vh; }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */
