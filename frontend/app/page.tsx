@@ -1,8 +1,13 @@
 /* eslint-disable @next/next/no-img-element */
+import type { Metadata } from 'next';
 import { APP_URL } from '@/lib/seo/data';
 import LandingClient from '@/components/landing/LandingClient';
 import MobileNav from '@/components/landing/MobileNav';
 import FeedbackWidget from '@/components/landing/FeedbackWidget';
+
+export const metadata: Metadata = {
+  alternates: { canonical: 'https://buildyournetwork.online' },
+};
 
 const LANDING_CSS = `
   :root {

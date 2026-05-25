@@ -23,7 +23,12 @@ export function webPageSchema(title: string, url: string, description: string, b
         name: APP_NAME,
         url: APP_URL,
         logo: OG_IMAGE,
-        sameAs: ['https://twitter.com/buildyournetwork'],
+        sameAs: [
+        'https://twitter.com/buildyournetwork',
+        'https://www.linkedin.com/company/build-your-network',
+        'https://www.producthunt.com/products/build-your-network',
+        'https://www.indiehackers.com/product/build-your-network',
+      ],
       },
     ],
   };
