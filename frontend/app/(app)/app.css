@@ -590,6 +590,12 @@ textarea.pe-input { resize: none; }
   /* Card sizing on desktop */
   .swipe-card { max-width: 416px; }
   .card-photo { height: 460px; max-height: 460px; }
+
+  /* Desktop discover: card flows naturally, page scrolls, buttons not pinned */
+  .discover-left    { overflow-y: auto !important; }
+  .card-stack-area  { flex: none; overflow: visible; }
+  .swipe-card       { max-height: none; }
+  .card-scroll-body { flex: none; overflow-y: visible; }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */
