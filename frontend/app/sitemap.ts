@@ -25,6 +25,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
+  const professionals = Object.keys(ROLES).map(slug => ({
+    url: `${APP_URL}/professionals/${slug}`,
+    lastModified: now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+
   const landingPages = [
     'networking-for-founders',
     'linkedin-alternative',
@@ -47,5 +54,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...cities,
     ...industries,
     ...roles,
+    ...professionals,
   ];
 }

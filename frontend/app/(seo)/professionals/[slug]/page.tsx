@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return buildMetadata({
     title: `${data.name} Professionals Network in India`,
     description: `Connect with ${data.name} professionals in India on Build Your Network. ${data.description}. Intent-based matching. Free to join.`,
-    canonical: `/professionals/${slug}`,
+    canonical: `/roles/${slug}`,
     keywords: [
       `${data.name} professional network India`,
       `connect with ${data.name}s India`,
