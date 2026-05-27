@@ -591,11 +591,12 @@ textarea.pe-input { resize: none; }
   .swipe-card { max-width: 416px; }
   .card-photo { height: 460px; max-height: 460px; }
 
-  /* Desktop discover: card flows naturally, page scrolls, buttons not pinned */
+  /* Desktop discover: page scrolls, header stays pinned, card body expands fully */
+  .disc-header      { position: sticky; top: 0; z-index: 10; }
   .discover-left    { overflow-y: auto !important; }
-  .card-stack-area  { flex: none; overflow: visible; }
+  .card-stack-area  { flex: none; overflow: visible; padding-bottom: 24px; }
   .swipe-card       { max-height: none; }
-  .card-scroll-body { flex: none; overflow-y: auto; max-height: 55vh; }
+  .card-scroll-body { flex: none; overflow-y: visible; max-height: none; }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */
