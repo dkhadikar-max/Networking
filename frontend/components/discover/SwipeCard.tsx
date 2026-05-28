@@ -69,6 +69,7 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.touches[0].clientX - touchStartX.current;
     const dy = e.touches[0].clientY - touchStartY.current;
+    if (Math.sqrt(dx * dx + dy * dy) < 8) return;
     if (Math.abs(dx) > Math.abs(dy)) {
       dragXRef.current = dx;
       if (cardRef.current) {
