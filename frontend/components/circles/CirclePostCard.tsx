@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import type { CirclePost } from '@/lib/types';
 import LinkPreviewCard from './LinkPreviewCard';
@@ -39,6 +40,7 @@ type Props = {
 
 export default function CirclePostCard({ post, onDelete }: Props) {
   const { user } = useAuth();
+  const router = useRouter();
   const { author, text, tags, structured_meta, links, created_at } = post;
   const initials = author.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
   const photo = author.photos?.[0];
@@ -49,12 +51,18 @@ export default function CirclePostCard({ post, onDelete }: Props) {
     <div className="circle-post">
       {/* Author row */}
       <div className="circle-post-author">
-        <div className="circle-post-avatar">
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+        <div
+          className="circle-post-avatar"
+          onClick={() => router.push(`/profile/${author.id}`)}
+          style={{ cursor: 'pointer' }}
+        >
           {photo
+            // eslint-disable-next-line @next/next/no-img-element
             ? <img src={photo} alt={author.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
             : initials}
         </div>
-        <div className="circle-post-identity">
+        <div className="circle-post-identity" style={{ cursor: 'pointer' }} onClick={() => router.push(`/profile/${author.id}`)}>
           <div className="circle-post-name">{author.name}</div>
           <div className="circle-post-meta">
             <span className="circle-trust">⭐ {author.trust_score}</span>
@@ -105,7 +113,7 @@ export default function CirclePostCard({ post, onDelete }: Props) {
 
       {/* Link previews */}
       {links.map((lp, i) => (
-        <LinkPreviewCard key={i} preview={lp} />
+        <LinkPreviewCard key={lp.url || i} preview={lp} />
       ))}
     </div>
   );

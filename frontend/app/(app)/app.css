@@ -794,7 +794,7 @@ textarea.pe-input { resize: none; }
 
 /* Desktop */
 @media (min-width: 1024px) {
-  .circles-wrap { max-width: 680px; }
+  .circles-wrap { max-width: 680px; margin: 0 auto; }
   .circles-compose-btn { bottom: 24px; right: 24px; }
   .compose-overlay { align-items: center; }
   .compose-sheet { max-width: 600px; margin: 0 auto; border-radius: var(--r-xl); max-height: 85dvh; }

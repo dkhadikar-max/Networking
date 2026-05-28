@@ -241,6 +241,7 @@ const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeade
 const authLimiter       = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const adminLimiter      = rateLimit({ windowMs: 15*60*1000, max: 60, message: { error: 'Too many requests' } });
 const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
+const linkPreviewLimiter = rateLimit({ windowMs: 60*1000, max: 15, message: { error: 'Link preview limit reached, slow down' } });
 const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' },
   keyGenerator: (req) => {
     try {
@@ -6609,32 +6610,38 @@ function circleWordCount(text) {
   return (text || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
+function decodeHtmlEntities(str) {
+  if (!str) return str;
+  return str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+}
+
 async function fetchLinkPreview(url) {
   try {
-    const { default: nodeFetch } = await import('node-fetch').catch(() => ({ default: null }));
-    if (!nodeFetch) return null;
-    const res = await nodeFetch(url, {
+    const res = await fetch(url, {
       headers: { 'User-Agent': 'BYNBot/1.0 (+https://buildyournetwork.online)' },
       signal: AbortSignal.timeout(6000),
       redirect: 'follow',
     });
     if (!res.ok) return null;
-    const html = await res.text();
+    // Cap at 500KB — OG tags are always in the <head>
+    const contentLength = parseInt(res.headers.get('content-length') || '0', 10);
+    if (contentLength > 500 * 1024) return null;
+    const html = (await res.text()).slice(0, 500 * 1024);
     const getOg = (prop) => {
       const m = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
              || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*property=["']og:${prop}["']`, 'i'));
-      return m?.[1]?.trim() || null;
+      return decodeHtmlEntities(m?.[1]?.trim() || null);
     };
     const getMeta = (name) => {
       const m = html.match(new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
              || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*name=["']${name}["']`, 'i'));
-      return m?.[1]?.trim() || null;
+      return decodeHtmlEntities(m?.[1]?.trim() || null);
     };
     const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
     const domain = new URL(url).hostname.replace(/^www\./, '');
     return {
       url,
-      title: getOg('title') || titleMatch?.[1]?.trim() || null,
+      title: getOg('title') || decodeHtmlEntities(titleMatch?.[1]?.trim()) || null,
       description: getOg('description') || getMeta('description') || null,
       image: getOg('image') || null,
       domain,
@@ -6642,7 +6649,7 @@ async function fetchLinkPreview(url) {
   } catch { return null; }
 }
 
-app.post('/api/circles/link-preview', auth, async (req, res) => {
+app.post('/api/circles/link-preview', auth, linkPreviewLimiter, async (req, res) => {
   try {
     const { url } = req.body;
     if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url required' });

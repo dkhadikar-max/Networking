@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { CIRCLE_TAGS, type CircleTag, type LinkPreview } from '@/lib/types';
 import { apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -30,9 +30,14 @@ export default function ComposePost({ onClose, onPosted }: Props) {
   const [fetchingLink, setFetchingLink] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showMeta, setShowMeta] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const words = wordCount(text);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const canPost = text.trim().length > 0 && selectedTags.length > 0 && words <= 250 && !submitting;
 
   function toggleTag(tag: CircleTag) {
@@ -92,7 +97,6 @@ export default function ComposePost({ onClose, onPosted }: Props) {
 
         <div className="compose-body">
           <textarea
-            ref={textareaRef}
             className="compose-textarea"
             placeholder="What are you building, learning, solving, seeking, or progressing toward?"
             value={text}
@@ -186,7 +190,12 @@ export default function ComposePost({ onClose, onPosted }: Props) {
           <div style={{ height: 16 }} />
         </div>
 
-        <div className="compose-footer">
+        <div className="compose-footer" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+          {!canPost && !submitting && (
+            <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginBottom: 8 }}>
+              {text.trim().length === 0 ? 'Write something to post' : words > 250 ? 'Keep it under 250 words' : 'Pick at least one tag'}
+            </div>
+          )}
           <button className="compose-post-btn" onClick={handleSubmit} disabled={!canPost}>
             {submitting ? 'Posting…' : 'Post to Circles'}
           </button>

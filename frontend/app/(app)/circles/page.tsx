@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CIRCLE_TAGS, type CircleTag, type CirclePost } from '@/lib/types';
 import { apiGet, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -16,9 +16,11 @@ export default function CirclesPage() {
   const [offset, setOffset] = useState(0);
   const [activeTag, setActiveTag] = useState<CircleTag | null>(null);
   const [composing, setComposing] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
+  const loadingMoreRef = useRef(false);
 
   const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean) => {
-    if (replace) setLoading(true); else setLoadingMore(true);
+    if (replace) { setLoading(true); setFetchError(false); } else { setLoadingMore(true); loadingMoreRef.current = true; }
     try {
       const params = new URLSearchParams({ offset: String(off), limit: '20' });
       if (tag) params.set('tags', tag);
@@ -27,10 +29,12 @@ export default function CirclesPage() {
       setHasMore(data.hasMore);
       setOffset(off + data.posts.length);
     } catch {
-      toast('Failed to load Circles', 'error');
+      if (replace) setFetchError(true);
+      else toast('Failed to load more', 'error');
     } finally {
       setLoading(false);
       setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
   }, [toast]);
 
@@ -54,7 +58,7 @@ export default function CirclesPage() {
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
-    if (!hasMore || loadingMore || loading) return;
+    if (!hasMore || loadingMoreRef.current || loading) return;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
       fetchPosts(activeTag, offset, false);
     }
@@ -112,7 +116,24 @@ export default function CirclesPage() {
           </div>
         )}
 
-        {!loading && posts.length === 0 && (
+        {!loading && fetchError && (
+          <div className="circles-empty">
+            <div className="circles-empty-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div className="circles-empty-title">Could not load posts</div>
+            <button
+              onClick={() => fetchPosts(activeTag, 0, true)}
+              style={{ padding: '8px 20px', borderRadius: 'var(--r-lg)', background: 'var(--primary)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !fetchError && posts.length === 0 && (
           <div className="circles-empty">
             <div className="circles-empty-icon">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +149,7 @@ export default function CirclesPage() {
           </div>
         )}
 
-        {!loading && posts.map(post => (
+        {!loading && !fetchError && posts.map(post => (
           <CirclePostCard key={post.id} post={post} onDelete={handleDelete} />
         ))}
 

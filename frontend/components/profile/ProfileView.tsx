@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiDelete } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import type { User } from '@/lib/types';
 
 function safeHref(url?: string | null): string | undefined {
@@ -30,6 +31,7 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
   const router = useRouter();
   const [photoIdx, setPhotoIdx] = useState(0);
   const [connecting, setConnecting] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -247,22 +249,41 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
               </div>
             </>
           ) : (
-            <button
-              onClick={handleConnect}
-              disabled={connected || connecting}
-              style={{
-                flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                background: connected ? 'var(--sur2)' : 'linear-gradient(135deg, var(--primary), var(--primary-2))',
-                color: connected ? 'var(--text-soft)' : 'white',
-                border: connected ? '1.5px solid var(--border)' : 'none',
-                fontSize: 14, fontWeight: 700,
-                cursor: connected || connecting ? 'not-allowed' : 'pointer',
-                fontFamily: 'inherit', opacity: connecting ? 0.7 : 1,
-                transition: 'opacity 0.15s',
-              }}
-            >
-              {connecting ? 'Sending…' : connected ? 'Connected' : 'Connect'}
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={handleConnect}
+                disabled={connected || connecting}
+                style={{
+                  flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
+                  background: connected ? 'var(--sur2)' : 'linear-gradient(135deg, var(--primary), var(--primary-2))',
+                  color: connected ? 'var(--text-soft)' : 'white',
+                  border: connected ? '1.5px solid var(--border)' : 'none',
+                  fontSize: 14, fontWeight: 700,
+                  cursor: connected || connecting ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit', opacity: connecting ? 0.7 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                {connecting ? 'Sending…' : connected ? 'Connected' : 'Connect'}
+              </button>
+              <button
+                onClick={() => setShowPriority(true)}
+                style={{
+                  padding: '13px 16px', borderRadius: 'var(--r-md)',
+                  background: 'linear-gradient(135deg,#FCD34D,#F59E0B)',
+                  color: '#78350F', border: '1px solid rgba(245,158,11,0.18)',
+                  fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                  fontFamily: 'inherit', whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 14px rgba(245,158,11,0.24)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                  <path d="M13 2 3 14h9l-1 8 10-12h-9z"/>
+                </svg>
+                Priority
+              </button>
+            </div>
           )}
           {!isSelf && connected && connectionId && connectionId !== 'pending' && (
             <Link href={`/chat/${connectionId}`} style={{ flex: 1, textDecoration: 'none' }}>
@@ -400,6 +421,15 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
         </div>
       )}
 
+      {showPriority && (
+        <PriorityMessageModal
+          open={showPriority}
+          onClose={() => setShowPriority(false)}
+          mode="compose"
+          targetId={user.id}
+          targetName={user.name ?? ''}
+        />
+      )}
     </div>
   );
 }

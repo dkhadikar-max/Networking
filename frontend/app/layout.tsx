@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://buildyournetwork.online"),
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon.png", type: "image/png", sizes: "512x512" },
       { url: "/favicon.ico", sizes: "256x256 64x64 32x32 16x16" },
     ],
