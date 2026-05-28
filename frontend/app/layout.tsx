@@ -11,6 +11,14 @@ export const metadata: Metadata = {
   title: "Build Your Network — High-Signal Networking for Builders",
   description: "Join ambitious founders, operators, creators, and investors building real professional relationships. Your next opportunity is one relationship away.",
   metadataBase: new URL("https://buildyournetwork.online"),
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.ico", sizes: "256x256 64x64 32x32 16x16" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Build Your Network — Relationship-Driven Professional Network",
     description: "Your next opportunity is probably one relationship away. Join 12,000+ founders, operators, and creators on BYN.",
