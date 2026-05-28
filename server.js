@@ -6599,6 +6599,140 @@ app.delete('/api/push/subscribe', auth, async (req, res) => {
   }
 });
 
+// ── INTENT CIRCLES ──────────────────────────────────────────────────────────
+const CIRCLE_TAGS = [
+  'Building','Learning','Solving','Seeking','Progress',
+  'Launching','Hiring','Fundraising','Collab','Open Source'
+];
+
+function circleWordCount(text) {
+  return (text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+async function fetchLinkPreview(url) {
+  try {
+    const { default: nodeFetch } = await import('node-fetch').catch(() => ({ default: null }));
+    if (!nodeFetch) return null;
+    const res = await nodeFetch(url, {
+      headers: { 'User-Agent': 'BYNBot/1.0 (+https://buildyournetwork.online)' },
+      signal: AbortSignal.timeout(6000),
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const getOg = (prop) => {
+      const m = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
+             || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*property=["']og:${prop}["']`, 'i'));
+      return m?.[1]?.trim() || null;
+    };
+    const getMeta = (name) => {
+      const m = html.match(new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
+             || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*name=["']${name}["']`, 'i'));
+      return m?.[1]?.trim() || null;
+    };
+    const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
+    const domain = new URL(url).hostname.replace(/^www\./, '');
+    return {
+      url,
+      title: getOg('title') || titleMatch?.[1]?.trim() || null,
+      description: getOg('description') || getMeta('description') || null,
+      image: getOg('image') || null,
+      domain,
+    };
+  } catch { return null; }
+}
+
+app.post('/api/circles/link-preview', auth, async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string') return res.status(400).json({ error: 'url required' });
+    let parsed;
+    try { parsed = new URL(url.trim()); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
+    if (!['http:', 'https:'].includes(parsed.protocol)) return res.status(400).json({ error: 'Invalid URL' });
+    const preview = await fetchLinkPreview(parsed.href);
+    if (!preview) return res.status(502).json({ error: 'Could not fetch preview' });
+    res.json(preview);
+  } catch (e) {
+    console.error('[link-preview]', e.message);
+    res.status(502).json({ error: 'Preview fetch failed' });
+  }
+});
+
+app.post('/api/circles/posts', auth, profileGuard, async (req, res) => {
+  try {
+    const { text, tags, structured_meta, links } = req.body;
+    if (!text || typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'Text required' });
+    if (circleWordCount(text) > 250) return res.status(400).json({ error: 'Post exceeds 250 words' });
+    if (!Array.isArray(tags) || tags.length === 0) return res.status(400).json({ error: 'Select at least one tag' });
+    if (tags.length > 3) return res.status(400).json({ error: 'Max 3 tags allowed' });
+    const validTags = tags.filter(t => CIRCLE_TAGS.includes(t));
+    if (validTags.length === 0) return res.status(400).json({ error: 'Invalid tags' });
+    if (Array.isArray(links) && links.length > 3) return res.status(400).json({ error: 'Max 3 links' });
+    const id = `cp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const { error } = await supabase.from('circle_posts').insert({
+      id,
+      user_id: req.user.id,
+      text: text.trim(),
+      tags: validTags,
+      structured_meta: structured_meta && typeof structured_meta === 'object' ? structured_meta : {},
+      links: Array.isArray(links) ? links.slice(0, 3) : [],
+      created_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+    res.status(201).json({ ok: true, id });
+  } catch (e) {
+    console.error('[circles/posts POST]', e.message);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+app.delete('/api/circles/posts/:id', auth, async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('circle_posts')
+      .select('user_id').eq('id', req.params.id).single();
+    if (error || !data) return res.status(404).json({ error: 'Post not found' });
+    if (data.user_id !== req.user.id && req.userData?.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await supabase.from('circle_posts').delete().eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+app.get('/api/circles/feed', auth, async (req, res) => {
+  try {
+    const { tags, offset = '0', limit = '20' } = req.query;
+    const off = Math.max(0, parseInt(offset) || 0);
+    const lim = Math.min(Math.max(1, parseInt(limit) || 20), 50);
+    let query = supabase.from('circle_posts')
+      .select(`id, text, tags, structured_meta, links, created_at, user_id,
+        author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline)`)
+      .order('created_at', { ascending: false })
+      .range(off, off + lim - 1);
+    if (tags) {
+      const tagArr = String(tags).split(',').map(t => t.trim()).filter(t => CIRCLE_TAGS.includes(t));
+      if (tagArr.length > 0) query = query.overlaps('tags', tagArr);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    const now = Date.now();
+    const ranked = (data || []).map(p => {
+      const trust = p.author?.trust_score || 0;
+      const ageHours = (now - new Date(p.created_at).getTime()) / 3600000;
+      const recency = 1 / (ageHours + 1);
+      const metaFill = Object.values(p.structured_meta || {}).filter(v => v && String(v).trim()).length;
+      p._score = trust * 0.3 + recency * 60 + metaFill * 2;
+      return p;
+    }).sort((a, b) => b._score - a._score).map(({ _score, ...p }) => p);
+    res.json({ posts: ranked, hasMore: (data || []).length === lim });
+  } catch (e) {
+    console.error('[circles/feed]', e.message);
+    res.status(500).json({ error: 'Failed to fetch feed' });
+  }
+});
+
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));

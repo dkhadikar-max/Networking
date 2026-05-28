@@ -147,6 +147,20 @@ CREATE TABLE IF NOT EXISTS feedback (
   created_at  timestamptz DEFAULT now()
 );
 
+-- CIRCLE POSTS  (Intent Circles — global feed)
+CREATE TABLE IF NOT EXISTS circle_posts (
+  id              text PRIMARY KEY,
+  user_id         text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text            text NOT NULL,
+  tags            text[] NOT NULL DEFAULT '{}',
+  structured_meta jsonb NOT NULL DEFAULT '{}',
+  links           jsonb NOT NULL DEFAULT '[]',
+  created_at      timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS circle_posts_user_id_idx    ON circle_posts(user_id);
+CREATE INDEX IF NOT EXISTS circle_posts_created_at_idx ON circle_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS circle_posts_tags_idx       ON circle_posts USING GIN(tags);
+
 -- ── ROW LEVEL SECURITY ───────────────────────────────────────────────────────
 -- service_role key (used by the backend) bypasses RLS entirely — no policies
 -- needed for it. Enabling RLS with no policies means anon/authenticated Supabase
@@ -163,3 +177,4 @@ ALTER TABLE blocks        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_views   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE priority_msgs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circle_posts  ENABLE ROW LEVEL SECURITY;

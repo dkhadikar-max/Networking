@@ -87,3 +87,46 @@ export type PriorityMessagesResponse = {
   remaining: number;
   limit: number;
 };
+
+export const CIRCLE_TAGS = [
+  'Building','Learning','Solving','Seeking','Progress',
+  'Launching','Hiring','Fundraising','Collab','Open Source',
+] as const;
+export type CircleTag = typeof CIRCLE_TAGS[number];
+
+export type LinkPreview = {
+  url: string;
+  title?: string | null;
+  description?: string | null;
+  image?: string | null;
+  domain: string;
+};
+
+export type CirclePost = {
+  id: string;
+  user_id: string;
+  text: string;
+  tags: CircleTag[];
+  structured_meta: {
+    looking_for?: string;
+    building?: string;
+    current_goal?: string;
+    open_to?: string;
+    industry?: string;
+    skill_level?: string;
+    location?: string;
+    timeline?: string;
+  };
+  links: LinkPreview[];
+  created_at: string;
+  author: {
+    id: string;
+    name: string;
+    photos: string[];
+    intent?: string;
+    trust_score: number;
+    verification?: { status: string; confidence: number };
+    last_active?: string;
+    headline?: string;
+  };
+};

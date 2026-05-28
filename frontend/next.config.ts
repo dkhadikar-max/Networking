@@ -22,6 +22,8 @@ const nextConfig: NextConfig = {
       { source: '/profile',            headers: NOINDEX_HEADER },
       { source: '/profile/:path*',     headers: NOINDEX_HEADER },
       { source: '/likes',              headers: NOINDEX_HEADER },
+      { source: '/circles',            headers: NOINDEX_HEADER },
+      { source: '/circles/:path*',     headers: NOINDEX_HEADER },
       { source: '/upgrade',            headers: NOINDEX_HEADER },
     ];
   },
