@@ -52,6 +52,10 @@ export default function CirclesPage() {
     }
   }
 
+  function handleEdit(id: string, newText: string) {
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, text: newText } : p));
+  }
+
   function handlePosted() {
     fetchPosts(activeTag, 0, true);
   }
@@ -150,7 +154,7 @@ export default function CirclesPage() {
         )}
 
         {!loading && !fetchError && posts.map(post => (
-          <CirclePostCard key={post.id} post={post} onDelete={handleDelete} />
+          <CirclePostCard key={post.id} post={post} onDelete={handleDelete} onEdit={handleEdit} />
         ))}
 
         {loadingMore && (

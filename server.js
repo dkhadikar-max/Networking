@@ -6618,35 +6618,53 @@ function decodeHtmlEntities(str) {
 async function fetchLinkPreview(url) {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'BYNBot/1.0 (+https://buildyournetwork.online)' },
-      signal: AbortSignal.timeout(6000),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; BYNBot/1.0; +https://buildyournetwork.online)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      signal: AbortSignal.timeout(8000),
       redirect: 'follow',
     });
-    if (!res.ok) return null;
-    // Cap at 500KB — OG tags are always in the <head>
+    if (!res.ok) {
+      console.log(`[link-preview] HTTP ${res.status} for ${url}`);
+      return null;
+    }
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('html')) {
+      console.log(`[link-preview] non-HTML (${ct}) for ${url}`);
+      return null;
+    }
     const contentLength = parseInt(res.headers.get('content-length') || '0', 10);
-    if (contentLength > 500 * 1024) return null;
-    const html = (await res.text()).slice(0, 500 * 1024);
+    if (contentLength > 512000) return null;
+    const html = (await res.text()).slice(0, 512000);
     const getOg = (prop) => {
-      const m = html.match(new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
-             || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*property=["']og:${prop}["']`, 'i'));
+      const m = html.match(new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, 'i'))
+             || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, 'i'));
       return decodeHtmlEntities(m?.[1]?.trim() || null);
     };
     const getMeta = (name) => {
-      const m = html.match(new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"'<>]+)["']`, 'i'))
-             || html.match(new RegExp(`<meta[^>]*content=["']([^"'<>]+)["'][^>]*name=["']${name}["']`, 'i'));
+      const m = html.match(new RegExp(`<meta[^>]+name=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
+             || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*name=["']${name}["']`, 'i'));
       return decodeHtmlEntities(m?.[1]?.trim() || null);
     };
     const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
     const domain = new URL(url).hostname.replace(/^www\./, '');
+    let image = getOg('image');
+    if (image && !image.startsWith('http')) {
+      try { image = new URL(image, url).href; } catch { image = null; }
+    }
     return {
       url,
       title: getOg('title') || decodeHtmlEntities(titleMatch?.[1]?.trim()) || null,
       description: getOg('description') || getMeta('description') || null,
-      image: getOg('image') || null,
+      image,
       domain,
     };
-  } catch { return null; }
+  } catch (e) {
+    console.error(`[link-preview] error for ${url}:`, e.message);
+    return null;
+  }
 }
 
 app.post('/api/circles/link-preview', auth, linkPreviewLimiter, async (req, res) => {
@@ -6705,6 +6723,27 @@ app.delete('/api/circles/posts/:id', auth, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+app.patch('/api/circles/posts/:id', auth, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'Text required' });
+    if (circleWordCount(text) > 250) return res.status(400).json({ error: 'Post exceeds 250 words' });
+    const { data, error } = await supabase.from('circle_posts')
+      .select('user_id, created_at').eq('id', req.params.id).single();
+    if (error || !data) return res.status(404).json({ error: 'Post not found' });
+    if (data.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    const ageMin = (Date.now() - new Date(data.created_at).getTime()) / 60000;
+    if (ageMin > 30) return res.status(403).json({ error: 'Edit window has closed (30 min limit)' });
+    const { error: updateError } = await supabase.from('circle_posts')
+      .update({ text: text.trim() }).eq('id', req.params.id);
+    if (updateError) throw updateError;
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[circles/posts PATCH]', e.message);
+    res.status(500).json({ error: 'Failed to update post' });
   }
 });
 

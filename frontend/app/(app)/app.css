@@ -652,6 +652,7 @@ textarea.pe-input { resize: none; }
 .circle-trust {
   font-size: 11px; font-weight: 600; color: var(--primary);
   background: var(--highlight); padding: 1px 6px; border-radius: var(--r-full);
+  display: inline-flex; align-items: center; gap: 3px;
 }
 .circle-intent-badge { font-size: 11px; color: var(--muted); font-weight: 500; }
 .circle-post-time { font-size: 11px; color: var(--text-soft); flex-shrink: 0; margin-left: auto; }
@@ -780,17 +781,51 @@ textarea.pe-input { resize: none; }
 /* Momentum indicator */
 .momentum-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: var(--r-full);
-  color: #92400E; background: linear-gradient(135deg,#FCD34D,#F59E0B);
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: var(--r-full);
+  color: #78350F; background: linear-gradient(135deg,#FCD34D,#F59E0B);
+  flex-shrink: 0;
 }
 
-/* Delete post button */
-.circle-post-delete {
+/* Post action buttons (edit + delete) */
+.circle-post-action-btn {
   background: none; border: none; cursor: pointer; color: var(--muted);
   padding: 4px; display: flex; align-items: center; opacity: 0.6;
-  transition: opacity 0.15s; border-radius: 4px;
+  transition: opacity 0.15s, color 0.15s; border-radius: 4px;
 }
-.circle-post-delete:hover { opacity: 1; color: var(--danger); }
+.circle-post-action-btn:hover { opacity: 1; }
+.circle-post-delete:hover { color: var(--danger); }
+
+/* Inline edit */
+.circle-edit-textarea {
+  width: 100%; border: 1.5px solid var(--primary); outline: none; resize: none;
+  font-size: 14px; line-height: 1.65; color: var(--text); background: var(--sur2);
+  border-radius: var(--r-sm); padding: 10px 12px; font-family: inherit;
+  min-height: 80px; box-sizing: border-box;
+}
+.circle-edit-actions {
+  display: flex; justify-content: space-between; align-items: center; margin-top: 6px;
+}
+.circle-edit-cancel {
+  padding: 6px 14px; border-radius: var(--r-full); border: 1.5px solid var(--border);
+  background: var(--sur2); color: var(--text-soft); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.circle-edit-save {
+  padding: 6px 14px; border-radius: var(--r-full); border: none;
+  background: var(--primary); color: white; font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: opacity 0.15s;
+}
+.circle-edit-save:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Collaborate button */
+.circle-collab-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--r-full);
+  border: 1.5px solid var(--border); background: var(--sur2);
+  color: var(--text-soft); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s; align-self: flex-start;
+}
+.circle-collab-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--highlight); }
 
 /* Desktop */
 @media (min-width: 1024px) {
