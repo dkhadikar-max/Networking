@@ -305,7 +305,7 @@ export default async function HomePage() {
               </div>
             )}
             <div className="cta-group animate delay-3">
-              <a href="/signup" className="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Open Web App — Free</a>
+              <a href="/signup" className="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Open Web App Free</a>
               <a href="#how" className="btn-secondary">See how it works<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg></a>
             </div>
           </div>
@@ -468,12 +468,12 @@ export default async function HomePage() {
       <section className="download-section" id="download">
         <div className="section-inner">
           <p className="section-label animate">Get Started</p>
-          <h2 className="section-title animate delay-1">Start in seconds — no install required</h2>
+          <h2 className="section-title animate delay-1">Start in seconds, no install required</h2>
           <p className="section-desc animate delay-2">The full Build Your Network experience runs directly in your browser. Sign up and start discovering in under a minute.</p>
           <div className="download-box animate delay-3">
             <a href="/signup" className="download-btn">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-              Open Web App — Free
+              Open Web App Free
             </a>
             <div className="download-meta">
               {['Works on all devices', 'No download needed', 'Instant access'].map(m => (
@@ -484,13 +484,6 @@ export default async function HomePage() {
               {[{ n: 1, title: 'Open in browser', body: 'Click the button above. Works on Chrome, Safari, Firefox — desktop or mobile.' }, { n: 2, title: 'Sign up free', body: 'Create your account and set your networking intent. Takes under 60 seconds.' }, { n: 3, title: 'Start discovering', body: 'Browse relevant profiles, connect with intent, and have real conversations.' }].map(s => (
                 <div key={s.n} className="install-step"><div className="num">{s.n}</div><h4>{s.title}</h4><p>{s.body}</p></div>
               ))}
-            </div>
-            <div style={{ marginTop: '32px', paddingTop: '28px', borderTop: '1px solid rgba(255,255,255,0.15)', textAlign: 'center' }}>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginBottom: '14px' }}>Prefer the native app? Android APK also available.</p>
-              <a href="/download/android" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'rgba(255,255,255,0.75)', fontSize: '13px', fontWeight: '600', textDecoration: 'none', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '8px', padding: '10px 20px' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                Download Android APK (v1.0.2)
-              </a>
             </div>
           </div>
         </div>
@@ -553,7 +546,7 @@ export default async function HomePage() {
           <div className="animate delay-2">
             <a href="/signup" className="btn-primary" style={{ fontSize: '17px', padding: '18px 40px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
-              Open Web App — Free
+              Open Web App Free
             </a>
           </div>
         </div>
@@ -568,7 +561,7 @@ export default async function HomePage() {
           </div>
           <div className="footer-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
           <div className="footer-col"><h4>Product</h4><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
-          <div className="footer-col"><h4>Support</h4><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a><a href="/download/android">Download APK</a></div>
+          <div className="footer-col"><h4>Support</h4><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a></div>
         </div>
         <div className="footer-bottom"><span>&copy; 2026 Build Your Network. All rights reserved.</span><span>Early Access Product</span></div>
       </footer>
