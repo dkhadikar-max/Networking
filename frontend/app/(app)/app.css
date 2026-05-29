@@ -652,6 +652,7 @@ textarea.pe-input { resize: none; }
 .circle-post {
   background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg);
   margin: 0 14px 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .circle-post-author { display: flex; align-items: flex-start; gap: 10px; }
 .circle-post-avatar {
