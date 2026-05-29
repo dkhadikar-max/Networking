@@ -6612,7 +6612,16 @@ function circleWordCount(text) {
 
 function decodeHtmlEntities(str) {
   if (!str) return str;
-  return str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+  return str
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+    .replace(/&mdash;/g, '—').replace(/&ndash;/g, '–').replace(/&hellip;/g, '…')
+    .replace(/&rsquo;/g, '’').replace(/&lsquo;/g, '‘')
+    .replace(/&rdquo;/g, '”').replace(/&ldquo;/g, '“')
+    .replace(/&nbsp;/g, ' ').replace(/&copy;/g, '©').replace(/&trade;/g, '™')
+    .replace(/&reg;/g, '®').replace(/&bull;/g, '•').replace(/&middot;/g, '·');
 }
 
 // In-memory link preview cache — max 200 entries, 5-min TTL
@@ -6622,6 +6631,30 @@ const LP_TTL  = 5 * 60 * 1000;
 async function fetchLinkPreview(url) {
   const cached = lpCache.get(url);
   if (cached && Date.now() - cached.ts < LP_TTL) return cached.data;
+
+  // YouTube oEmbed — free, no auth, returns title + thumbnail
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) {
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+      const oRes = await fetch(oembedUrl, { signal: AbortSignal.timeout(6000) });
+      if (oRes.ok) {
+        const d = await oRes.json();
+        const preview = {
+          url,
+          title: d.title || null,
+          description: null,
+          image: d.thumbnail_url || `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
+          domain: 'youtube.com',
+        };
+        if (lpCache.size >= 200) lpCache.delete(lpCache.keys().next().value);
+        lpCache.set(url, { data: preview, ts: Date.now() });
+        return preview;
+      }
+    } catch (e) {
+      console.error('[link-preview] YouTube oEmbed error:', e.message);
+    }
+  }
 
   try {
     const res = await fetch(url, {
