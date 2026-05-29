@@ -66,7 +66,7 @@ export default function CookieBanner() {
     <div
       role="dialog"
       aria-label="Cookie consent"
-      className="fixed bottom-0 inset-x-0 z-[9000] bg-white border-t border-[var(--border)] shadow-[var(--shadow-xl)]"
+      className="fixed bottom-0 inset-x-0 z-[150] bg-white border-t border-[var(--border)] shadow-[var(--shadow-xl)]"
       style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
     >
       <div className="max-w-3xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
