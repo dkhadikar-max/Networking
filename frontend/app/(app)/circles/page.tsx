@@ -8,6 +8,14 @@ import CirclePostCard from '@/components/circles/CirclePostCard';
 import ComposePost from '@/components/circles/ComposePost';
 import NotificationBell from '@/components/ui/NotificationBell';
 
+type FeedMode = 'for-you' | 'near-me' | 'all';
+
+const MODES: { key: FeedMode; label: string }[] = [
+  { key: 'for-you', label: 'For You' },
+  { key: 'near-me', label: 'Near Me' },
+  { key: 'all',     label: 'All' },
+];
+
 export default function CirclesPage() {
   const toast = useToast();
   const [posts, setPosts] = useState<CirclePost[]>([]);
@@ -16,16 +24,19 @@ export default function CirclesPage() {
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [activeTag, setActiveTag] = useState<CircleTag | null>(null);
+  const [mode, setMode] = useState<FeedMode>('for-you');
+  const [noLocation, setNoLocation] = useState(false);
   const [composing, setComposing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const loadingMoreRef = useRef(false);
 
-  const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean) => {
-    if (replace) { setLoading(true); setFetchError(false); } else { setLoadingMore(true); loadingMoreRef.current = true; }
+  const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean, feedMode: FeedMode) => {
+    if (replace) { setLoading(true); setFetchError(false); setNoLocation(false); } else { setLoadingMore(true); loadingMoreRef.current = true; }
     try {
-      const params = new URLSearchParams({ offset: String(off), limit: '20' });
+      const params = new URLSearchParams({ offset: String(off), limit: '20', mode: feedMode });
       if (tag) params.set('tags', tag);
-      const data = await apiGet<{ posts: CirclePost[]; hasMore: boolean }>(`/api/circles/feed?${params}`);
+      const data = await apiGet<{ posts: CirclePost[]; hasMore: boolean; noLocation?: boolean }>(`/api/circles/feed?${params}`);
+      if (data.noLocation) { setNoLocation(true); setPosts([]); setHasMore(false); return; }
       setPosts(prev => replace ? data.posts : [...prev, ...data.posts]);
       setHasMore(data.hasMore);
       setOffset(off + data.posts.length);
@@ -40,8 +51,8 @@ export default function CirclesPage() {
   }, [toast]);
 
   useEffect(() => {
-    fetchPosts(activeTag, 0, true);
-  }, [activeTag, fetchPosts]);
+    fetchPosts(activeTag, 0, true, mode);
+  }, [activeTag, mode, fetchPosts]);
 
   async function handleDelete(id: string) {
     try {
@@ -58,14 +69,14 @@ export default function CirclesPage() {
   }
 
   function handlePosted() {
-    fetchPosts(activeTag, 0, true);
+    fetchPosts(activeTag, 0, true, mode);
   }
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     if (!hasMore || loadingMoreRef.current || loading) return;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
-      fetchPosts(activeTag, offset, false);
+      fetchPosts(activeTag, offset, false, mode);
     }
   }
 
@@ -95,6 +106,19 @@ export default function CirclesPage() {
             + Post
           </button>
         </div>
+      </div>
+
+      {/* Mode selector */}
+      <div className="circles-mode-bar">
+        {MODES.map(m => (
+          <button
+            key={m.key}
+            className={`circles-mode-btn${mode === m.key ? ' active' : ''}`}
+            onClick={() => setMode(m.key)}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
 
       {/* Tag filter bar */}
@@ -133,7 +157,7 @@ export default function CirclesPage() {
             </div>
             <div className="circles-empty-title">Could not load posts</div>
             <button
-              onClick={() => fetchPosts(activeTag, 0, true)}
+              onClick={() => fetchPosts(activeTag, 0, true, mode)}
               style={{ padding: '8px 20px', borderRadius: 'var(--r-lg)', background: 'var(--primary)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}
             >
               Retry
@@ -141,7 +165,19 @@ export default function CirclesPage() {
           </div>
         )}
 
-        {!loading && !fetchError && posts.length === 0 && (
+        {!loading && !fetchError && noLocation && (
+          <div className="circles-empty">
+            <div className="circles-empty-icon">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div className="circles-empty-title">Add your location</div>
+            <div className="circles-empty-sub">Update your profile with a city to see posts from people near you.</div>
+          </div>
+        )}
+
+        {!loading && !fetchError && !noLocation && posts.length === 0 && (
           <div className="circles-empty">
             <div className="circles-empty-icon">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -149,7 +185,7 @@ export default function CirclesPage() {
               </svg>
             </div>
             <div className="circles-empty-title">
-              {activeTag ? `No ${activeTag} posts yet` : 'No posts yet'}
+              {activeTag ? `No ${activeTag} posts yet` : mode === 'near-me' ? 'No posts near you yet' : 'No posts yet'}
             </div>
             <div className="circles-empty-sub">
               Be the first to share what you&apos;re building, learning, or seeking.

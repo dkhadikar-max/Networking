@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiGet, apiPatch } from '@/lib/api';
 import type { CircleNotification } from '@/lib/types';
 
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export default function NotificationPanel({ onClose, onAllRead }: Props) {
+  const router = useRouter();
   const [notifs, setNotifs] = useState<CircleNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
@@ -47,20 +49,46 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
     }
   }
 
+  function goToProfile(actorId: string | null, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!actorId) return;
+    onClose();
+    router.push(`/profile/${actorId}`);
+  }
+
+  function goToPost(e: React.MouseEvent) {
+    e.stopPropagation();
+    onClose();
+    router.push('/circles');
+  }
+
   const hasUnread = notifs.some(n => !n.read);
 
   return (
-    <>
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="notif-overlay" onClick={onClose} />
-      <div className="notif-panel" role="dialog" aria-label="Notifications">
+    // Overlay IS the container — panel is flex child so align-items:flex-end works
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div
+      className="notif-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="notif-panel" role="dialog" aria-label="Notifications" onClick={e => e.stopPropagation()}>
+        {/* Drag handle */}
+        <div className="notif-drag-handle" />
+
         <div className="notif-panel-header">
           <span className="notif-panel-title">Notifications</span>
-          {hasUnread && (
-            <button className="notif-mark-read-btn" onClick={markAllRead} disabled={marking}>
-              Mark all read
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {hasUnread && (
+              <button className="notif-mark-read-btn" onClick={markAllRead} disabled={marking}>
+                Mark all read
+              </button>
+            )}
+            <button className="notif-close-btn" onClick={onClose} aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
             </button>
-          )}
+          </div>
         </div>
 
         <div className="notif-list">
@@ -85,8 +113,14 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
               : '?';
 
             return (
-              <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`}>
-                <div className="notif-avatar">
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+              <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`} onClick={goToPost}>
+                {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                <div
+                  className="notif-avatar"
+                  onClick={e => goToProfile(n.actor_id, e)}
+                  title={`View ${n.actor_name ?? 'profile'}`}
+                >
                   {n.actor_photo
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={n.actor_photo} alt={n.actor_name ?? ''} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
@@ -94,7 +128,13 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
                 </div>
                 <div className="notif-content">
                   <div className="notif-actor">
-                    <strong>{n.actor_name ?? 'Someone'}</strong>
+                    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                    <span
+                      className="notif-actor-name"
+                      onClick={e => goToProfile(n.actor_id, e)}
+                    >
+                      {n.actor_name ?? 'Someone'}
+                    </span>
                     <span className="notif-action"> wants to collaborate on your post</span>
                   </div>
                   {n.ref_text && (
@@ -107,6 +147,6 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 }

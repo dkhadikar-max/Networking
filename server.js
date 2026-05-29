@@ -6615,12 +6615,19 @@ function decodeHtmlEntities(str) {
   return str.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
+// In-memory link preview cache — max 200 entries, 5-min TTL
+const lpCache = new Map();
+const LP_TTL  = 5 * 60 * 1000;
+
 async function fetchLinkPreview(url) {
+  const cached = lpCache.get(url);
+  if (cached && Date.now() - cached.ts < LP_TTL) return cached.data;
+
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; BYNBot/1.0; +https://buildyournetwork.online)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },
       signal: AbortSignal.timeout(8000),
@@ -6643,6 +6650,11 @@ async function fetchLinkPreview(url) {
              || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, 'i'));
       return decodeHtmlEntities(m?.[1]?.trim() || null);
     };
+    const getTwitter = (name) => {
+      const m = html.match(new RegExp(`<meta[^>]+name=["']twitter:${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
+             || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*name=["']twitter:${name}["']`, 'i'));
+      return decodeHtmlEntities(m?.[1]?.trim() || null);
+    };
     const getMeta = (name) => {
       const m = html.match(new RegExp(`<meta[^>]+name=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'))
              || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*name=["']${name}["']`, 'i'));
@@ -6650,17 +6662,20 @@ async function fetchLinkPreview(url) {
     };
     const titleMatch = html.match(/<title[^>]*>([^<]{1,200})<\/title>/i);
     const domain = new URL(url).hostname.replace(/^www\./, '');
-    let image = getOg('image');
+    let image = getOg('image') || getTwitter('image');
     if (image && !image.startsWith('http')) {
       try { image = new URL(image, url).href; } catch { image = null; }
     }
-    return {
+    const preview = {
       url,
-      title: getOg('title') || decodeHtmlEntities(titleMatch?.[1]?.trim()) || null,
-      description: getOg('description') || getMeta('description') || null,
+      title:       getOg('title')       || getTwitter('title')       || decodeHtmlEntities(titleMatch?.[1]?.trim()) || null,
+      description: getOg('description') || getTwitter('description') || getMeta('description') || null,
       image,
       domain,
     };
+    if (lpCache.size >= 200) lpCache.delete(lpCache.keys().next().value);
+    lpCache.set(url, { data: preview, ts: Date.now() });
+    return preview;
   } catch (e) {
     console.error(`[link-preview] error for ${url}:`, e.message);
     return null;
@@ -6747,31 +6762,100 @@ app.patch('/api/circles/posts/:id', auth, async (req, res) => {
   }
 });
 
+function circleRelevanceScore(me, post) {
+  const ageHours = (Date.now() - new Date(post.created_at).getTime()) / 3600000;
+  const trust    = post.author?.trust_score || 0;
+  const metaFill = Object.values(post.structured_meta || {}).filter(v => v && String(v).trim()).length;
+  let score = trust * 0.3 + (1 / (ageHours + 1)) * 40 + metaFill * 2;
+  if (!me) return score;
+
+  const mySkills     = (me.skills    || []).map(s => s.toLowerCase());
+  const authorSkills = (post.author?.skills    || []).map(s => s.toLowerCase());
+  score += Math.min(mySkills.filter(s => authorSkills.includes(s)).length * 6, 18);
+
+  const lookingFor = (post.structured_meta?.looking_for || '').toLowerCase();
+  if (mySkills.length && mySkills.some(s => lookingFor.includes(s))) score += 22;
+
+  const myInterests     = (me.interests    || []).map(s => s.toLowerCase());
+  const authorInterests = (post.author?.interests || []).map(s => s.toLowerCase());
+  score += Math.min(myInterests.filter(s => authorInterests.includes(s)).length * 5, 15);
+
+  const meLat = parseFloat(me.lat);
+  const meLng = parseFloat(me.lng);
+  const aLat  = parseFloat(post.author?.lat);
+  const aLng  = parseFloat(post.author?.lng);
+  if (!isNaN(meLat) && !isNaN(meLng) && !isNaN(aLat) && !isNaN(aLng)) {
+    const d = haversine(meLat, meLng, aLat, aLng);
+    score += d < 10 ? 20 : d < 50 ? 15 : d < 200 ? 8 : 3;
+  } else if (me.location && post.author?.location &&
+             me.location.toLowerCase() === (post.author.location || '').toLowerCase()) {
+    score += 20;
+  }
+  return score;
+}
+
 app.get('/api/circles/feed', auth, async (req, res) => {
   try {
-    const { tags, offset = '0', limit = '20' } = req.query;
+    const { tags, offset = '0', limit = '20', mode = 'for-you' } = req.query;
     const off = Math.max(0, parseInt(offset) || 0);
     const lim = Math.min(Math.max(1, parseInt(limit) || 20), 50);
+    const me  = req.userData;
+
     let query = supabase.from('circle_posts')
       .select(`id, text, tags, structured_meta, links, created_at, user_id,
-        author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline)`)
+        author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline, skills, interests, lat, lng, location)`)
       .order('created_at', { ascending: false })
       .range(off, off + lim - 1);
+
     if (tags) {
       const tagArr = String(tags).split(',').map(t => t.trim()).filter(t => CIRCLE_TAGS.includes(t));
       if (tagArr.length > 0) query = query.overlaps('tags', tagArr);
     }
+
     const { data, error } = await query;
     if (error) throw error;
-    const now = Date.now();
-    const ranked = (data || []).map(p => {
-      const trust = p.author?.trust_score || 0;
-      const ageHours = (now - new Date(p.created_at).getTime()) / 3600000;
-      const recency = 1 / (ageHours + 1);
-      const metaFill = Object.values(p.structured_meta || {}).filter(v => v && String(v).trim()).length;
-      p._score = trust * 0.3 + recency * 60 + metaFill * 2;
-      return p;
-    }).sort((a, b) => b._score - a._score).map(({ _score, ...p }) => p);
+
+    let posts = data || [];
+
+    // Near Me: filter by haversine proximity (150km) or city string
+    if (mode === 'near-me') {
+      const meLat = parseFloat(me?.lat);
+      const meLng = parseFloat(me?.lng);
+      if (!isNaN(meLat) && !isNaN(meLng)) {
+        posts = posts.filter(p => {
+          const aLat = parseFloat(p.author?.lat);
+          const aLng = parseFloat(p.author?.lng);
+          if (isNaN(aLat) || isNaN(aLng)) return false;
+          return haversine(meLat, meLng, aLat, aLng) <= 150;
+        });
+      } else if (me?.location) {
+        const myCity = me.location.toLowerCase();
+        posts = posts.filter(p => (p.author?.location || '').toLowerCase() === myCity);
+      } else {
+        return res.json({ posts: [], hasMore: false, noLocation: true });
+      }
+    }
+
+    const ranked = posts.map(p => {
+      const s = mode === 'all'
+        ? (() => {
+            const ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
+            return (p.author?.trust_score || 0) * 0.3 + (1 / (ageHours + 1)) * 60
+              + Object.values(p.structured_meta || {}).filter(v => v && String(v).trim()).length * 2;
+          })()
+        : circleRelevanceScore(me, p);
+      return { ...p, _score: s };
+    }).sort((a, b) => b._score - a._score)
+      .map(({ _score, ...p }) => {
+        // Strip private author fields — never send lat/lng/skills/interests/location to client
+        if (p.author) {
+          // eslint-disable-next-line no-unused-vars
+          const { lat, lng, skills, interests, location, ...authorPublic } = p.author;
+          p = { ...p, author: authorPublic };
+        }
+        return p;
+      });
+
     res.json({ posts: ranked, hasMore: (data || []).length === lim });
   } catch (e) {
     console.error('[circles/feed]', e.message);

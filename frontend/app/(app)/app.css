@@ -619,8 +619,22 @@ textarea.pe-input { resize: none; }
   border-bottom: 1px solid rgba(226,232,240,0.5); flex-shrink: 0;
 }
 .circles-title { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
+.circles-mode-bar {
+  display: flex; gap: 4px; padding: 8px 14px 4px;
+  background: var(--sur); flex-shrink: 0;
+}
+.circles-mode-btn {
+  flex: 1; padding: 6px 0; border-radius: var(--r-sm);
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text-soft); cursor: pointer; transition: all 0.15s;
+}
+.circles-mode-btn.active {
+  background: var(--primary); border-color: var(--primary);
+  color: white;
+}
 .circles-filter-bar {
-  display: flex; gap: 7px; padding: 8px 14px 10px;
+  display: flex; gap: 7px; padding: 6px 14px 10px;
   overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
   border-bottom: 1px solid rgba(226,232,240,0.4);
 }
@@ -848,16 +862,21 @@ textarea.pe-input { resize: none; }
 .notif-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.42);
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
-  z-index: 200; display: flex; align-items: flex-end;
+  z-index: 400; display: flex; align-items: flex-end;
 }
 .notif-panel {
   background: var(--card); border-radius: var(--r-xl) var(--r-xl) 0 0;
   width: 100%; max-height: 80dvh; display: flex; flex-direction: column;
   overflow: hidden; animation: slideUp 0.28s cubic-bezier(0.22,1,0.36,1);
+  flex-shrink: 0;
+}
+.notif-drag-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border); margin: 10px auto 0; flex-shrink: 0;
 }
 .notif-panel-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  padding: 12px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .notif-panel-title { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
 .notif-mark-read-btn {
@@ -866,6 +885,13 @@ textarea.pe-input { resize: none; }
   border-radius: var(--r-sm); transition: background 0.15s;
 }
 .notif-mark-read-btn:hover { background: var(--highlight); }
+.notif-close-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: var(--sur2); color: var(--text-soft);
+  cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+}
+.notif-close-btn:hover { background: var(--border); color: var(--text); }
 .notif-list { flex: 1; overflow-y: auto; }
 .notif-item {
   display: flex; align-items: flex-start; gap: 12px;
@@ -883,15 +909,22 @@ textarea.pe-input { resize: none; }
   background: linear-gradient(135deg,#D8FAF2,#FEE9D1);
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 800; color: var(--primary); letter-spacing: -0.03em;
+  cursor: pointer; transition: opacity 0.15s;
 }
+.notif-avatar:hover { opacity: 0.85; }
 .notif-content { flex: 1; min-width: 0; }
-.notif-actor { font-size: 13px; font-weight: 700; color: var(--text); }
+.notif-actor { font-size: 13px; color: var(--text); line-height: 1.4; }
+.notif-actor-name {
+  font-weight: 700; color: var(--primary); cursor: pointer;
+  text-decoration: none; transition: opacity 0.15s;
+}
+.notif-actor-name:hover { opacity: 0.75; }
 .notif-action { font-size: 13px; color: var(--text-soft); font-weight: 400; }
 .notif-excerpt {
   font-size: 12px; color: var(--muted); margin-top: 3px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.notif-time { font-size: 11px; color: var(--muted); flex-shrink: 0; margin-top: 1px; }
+.notif-time { font-size: 11px; color: var(--muted); flex-shrink: 0; margin-top: 4px; }
 .notif-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 48px 24px; gap: 10px; text-align: center;
@@ -906,5 +939,6 @@ textarea.pe-input { resize: none; }
   .compose-overlay { align-items: center; }
   .compose-sheet { max-width: 600px; margin: 0 auto; border-radius: var(--r-xl); max-height: 85dvh; }
   .notif-overlay { align-items: center; }
-  .notif-panel { max-width: 480px; margin: 0 auto; border-radius: var(--r-xl); max-height: 70dvh; }
+  .notif-panel { max-width: 480px; width: 100%; margin: 0 auto; border-radius: var(--r-xl); max-height: 70dvh; }
+  .notif-drag-handle { display: none; }
 }
