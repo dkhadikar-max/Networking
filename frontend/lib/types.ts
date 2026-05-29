@@ -102,6 +102,20 @@ export type LinkPreview = {
   domain: string;
 };
 
+export type CircleNotification = {
+  id: string;
+  user_id: string;
+  type: 'circle_collaborate';
+  actor_id: string | null;
+  actor_name: string | null;
+  actor_photo: string | null;
+  ref_id: string | null;
+  ref_type: string;
+  ref_text: string | null;
+  read: boolean;
+  created_at: string;
+};
+
 export type CirclePost = {
   id: string;
   user_id: string;

@@ -6779,6 +6779,83 @@ app.get('/api/circles/feed', auth, async (req, res) => {
   }
 });
 
+// ── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+app.post('/api/circles/posts/:id/collaborate', auth, async (req, res) => {
+  try {
+    const { data: post, error: postErr } = await supabase
+      .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
+    if (postErr || !post) return res.status(404).json({ error: 'Post not found' });
+    if (post.user_id === req.user.id) return res.status(400).json({ error: 'Cannot collaborate on own post' });
+    const { data: actor } = await supabase
+      .from('users').select('name, photos').eq('id', req.user.id).single();
+    const actorName  = actor?.name  || 'Someone';
+    const actorPhoto = actor?.photos?.[0] || null;
+    const notifId = `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    await supabase.from('notifications').insert({
+      id: notifId,
+      user_id: post.user_id,
+      type: 'circle_collaborate',
+      actor_id: req.user.id,
+      actor_name: actorName,
+      actor_photo: actorPhoto,
+      ref_id: req.params.id,
+      ref_type: 'circle_post',
+      ref_text: post.text.slice(0, 120),
+      read: false,
+      created_at: new Date().toISOString(),
+    });
+    const pushTitle = `🤝 ${actorName} wants to collaborate`;
+    const pushBody  = post.text.slice(0, 80);
+    sendPush([post.user_id], pushTitle, pushBody, { screen: 'Circles' }).catch(() => {});
+    sendWebPush([post.user_id], pushTitle, pushBody, { screen: 'Circles' }).catch(() => {});
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[circles/collaborate]', e.message);
+    res.status(500).json({ error: 'Failed to record collaboration' });
+  }
+});
+
+app.get('/api/notifications', auth, async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('notifications')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    res.json({ notifications: data || [] });
+  } catch (e) {
+    console.error('[notifications GET]', e.message);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.get('/api/notifications/unread-count', auth, async (req, res) => {
+  try {
+    const { count, error } = await supabase.from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', req.user.id)
+      .eq('read', false);
+    if (error) throw error;
+    res.json({ count: count ?? 0 });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch count' });
+  }
+});
+
+app.patch('/api/notifications/read', auth, async (req, res) => {
+  try {
+    await supabase.from('notifications')
+      .update({ read: true })
+      .eq('user_id', req.user.id)
+      .eq('read', false);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to mark as read' });
+  }
+});
+
 // ── FALLBACK ──
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 app.get('*', (req, res) => res.status(404).json({ error: 'Not found' }));

@@ -6,6 +6,7 @@ import { apiGet, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import CirclePostCard from '@/components/circles/CirclePostCard';
 import ComposePost from '@/components/circles/ComposePost';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 export default function CirclesPage() {
   const toast = useToast();
@@ -85,12 +86,15 @@ export default function CirclesPage() {
           </div>
           <span className="circles-title">Circles</span>
         </div>
-        <button
-          onClick={() => setComposing(true)}
-          style={{ padding: '7px 14px', borderRadius: 'var(--r-lg)', background: 'linear-gradient(135deg,var(--primary),var(--primary-2))', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          + Post
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <NotificationBell />
+          <button
+            onClick={() => setComposing(true)}
+            style={{ padding: '7px 14px', borderRadius: 'var(--r-lg)', background: 'linear-gradient(135deg,var(--primary),var(--primary-2))', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            + Post
+          </button>
+        </div>
       </div>
 
       {/* Tag filter bar */}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { apiPatch } from '@/lib/api';
+import { apiPatch, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import type { CirclePost } from '@/lib/types';
@@ -205,7 +205,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
 
       {/* Collaborate — non-own posts only */}
       {!isOwn && (
-        <button className="circle-collab-btn" onClick={() => setShowCollaborate(true)}>
+        <button className="circle-collab-btn" onClick={() => { apiPost(`/api/circles/posts/${post.id}/collaborate`, {}).catch(() => {}); setShowCollaborate(true); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
