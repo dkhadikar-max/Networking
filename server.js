@@ -6904,6 +6904,13 @@ app.post('/api/circles/posts/:id/collaborate', auth, async (req, res) => {
       .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
     if (postErr || !post) return res.status(404).json({ error: 'Post not found' });
     if (post.user_id === req.user.id) return res.status(400).json({ error: 'Cannot collaborate on own post' });
+
+    // Deduplicate — one notification per (actor, post)
+    const { data: existing } = await supabase.from('notifications')
+      .select('id').eq('actor_id', req.user.id).eq('ref_id', req.params.id).eq('type', 'circle_collaborate')
+      .maybeSingle();
+    if (existing) return res.json({ ok: true });
+
     const { data: actor } = await supabase
       .from('users').select('name, photos').eq('id', req.user.id).single();
     const actorName  = actor?.name  || 'Someone';
