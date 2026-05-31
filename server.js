@@ -303,12 +303,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── API DOMAIN GATE: only /api/* and /uploads/* are served ──────────────────
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) return next();
-  return res.status(404).json({ error: 'Not found' });
-});
-
 // ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
 app.get('/sitemap.xml', (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
@@ -459,6 +453,10 @@ app.get('/business-networking-app',      (req, res) => sendSeoPage(res, 'busines
 app.get('/networking-for-investors',     (req, res) => sendSeoPage(res, 'networking-for-investors.html'));
 app.get('/find-cofounders',              (req, res) => sendSeoPage(res, 'find-cofounders.html'));
 app.get('/startup-founders-india',       (req, res) => sendSeoPage(res, 'startup-founders-india.html'));
+app.get('/professional-networking',      (req, res) => sendSeoPage(res, 'professional-networking.html'));
+app.get('/build-professional-network',   (req, res) => sendSeoPage(res, 'build-professional-network.html'));
+app.get('/startup-networking-us',        (req, res) => sendSeoPage(res, 'startup-networking-us.html'));
+app.get('/startup-networking-europe',    (req, res) => sendSeoPage(res, 'startup-networking-europe.html'));
 
 // ── PHASE 4 — Programmatic SEO: City landing pages ──────────────────────────
 
