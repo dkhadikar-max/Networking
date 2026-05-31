@@ -344,6 +344,7 @@ app.get('/sitemap.xml', (req, res) => {
     ...categoryUrls,
     { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly'  },
     ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly', lastmod: a.date })),
+    { loc: BASE + '/llms.txt',                       priority: '0.5', freq: 'monthly' },
     { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
@@ -355,6 +356,12 @@ app.get('/sitemap.xml', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(xml);
 });
+app.get('/llms.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.sendFile(path.join(__dirname, 'public', 'llms.txt'));
+});
+
 app.get('/robots.txt', (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -389,6 +396,7 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /privacy',
     'Allow: /support',
     'Allow: /sitemap.xml',
+    'Allow: /llms.txt',
     'Disallow: /api/',
     'Disallow: /app',
     'Disallow: /admin',
