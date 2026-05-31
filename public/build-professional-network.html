@@ -40,7 +40,7 @@
         "url": "https://buildyournetwork.online/build-professional-network",
         "description": "A founder's guide to building a professional network that drives startup growth — using intent-based networking on Build Your Network.",
         "inLanguage": "en-IN",
-        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".know-block", ".lead"] },
+        "speakable": { "@type": "SpeakableSpecification", "cssSelector": [".direct-answer", ".know-block"] },
         "breadcrumb": {
           "@type": "BreadcrumbList",
           "itemListElement": [
@@ -158,6 +158,9 @@
     .know-block p { font-size: 15px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
     .know-block p:last-child { margin-bottom: 0; }
 
+    .direct-answer { background: var(--card); border-left: 4px solid var(--primary); border-radius: 0 12px 12px 0; padding: 22px 26px; margin-bottom: 32px; font-size: 16px; line-height: 1.75; color: var(--text); }
+    .direct-answer strong { color: var(--primary); }
+
     .faq-section { margin-bottom: 64px; }
     details.faq-item { border: 1px solid var(--bg-secondary); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
     details.faq-item summary { padding: 18px 20px; font-weight: 600; font-size: 15px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--card); }
@@ -231,6 +234,11 @@
   <span class="tag">Founder Guide</span>
   <h1>How to <span>Build a Professional Network</span> as a Founder</h1>
   <p class="lead">Most networking advice is written for job-seekers. Founders need something different: a targeted network of co-founders, mentors, investors, and collaborators — people aligned by intent, not proximity. Build Your Network is built for exactly this.</p>
+
+  <!-- Direct answer — speakable, AI-extractable -->
+  <div class="direct-answer" itemscope itemtype="https://schema.org/Article">
+    <p itemprop="description"><strong>The fastest way to build a professional network as a founder is to lead with intent — knowing exactly who you need and making that visible.</strong> Build Your Network is built on this principle: every profile declares what the person is actively seeking, so every connection starts with shared context rather than cold guessing. A founder with 50 high-intent connections (co-founders, mentors, warm investor introductions) has more leverage than one with 5,000 random LinkedIn contacts. Free to join. Works in-browser across all Indian cities.</p>
+  </div>
 
   <div class="cta-row">
     <a href="/app" class="btn-primary">
