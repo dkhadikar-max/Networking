@@ -2016,7 +2016,7 @@ function generateCategoryPage(citySlug, city, BASE, catKey) {
   const head = `
   <title>${E(title)}</title>
   <meta name="description" content="${E(metaDesc)}">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
   <link rel="canonical" href="${canonical}">
   <meta property="og:title" content="${E(title)}">
   <meta property="og:description" content="${E(metaDesc)}">
@@ -2571,7 +2571,9 @@ ${body.css || ''}
   <a href="/app" class="nav-cta">Join Free</a>
 </div></nav>
 <div class="wrap">${body.html}</div>
-<footer><p>&copy; 2025 Build Your Network &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a> &bull; <a href="/blog">Blog</a></p></footer>
+<footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/blog">Blog</a></p></footer>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');</script>
 </body></html>`;
 }
 
@@ -2583,7 +2585,7 @@ app.get('/blog', (req, res) => {
 <title>Startup Networking &amp; Founder Growth Blog | Build Your Network</title>
 <link rel="canonical" href="${BASE}/blog">
 <meta name="description" content="Practical guides for startup founders in India — co-founder search, investor networking, city ecosystem guides, and founder growth strategies.">
-<meta name="robots" content="index, follow">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
 <meta property="og:type" content="website">
 <meta property="og:url" content="${BASE}/blog">
 <meta property="og:title" content="Startup Networking &amp; Founder Growth Blog | Build Your Network">
@@ -2675,7 +2677,7 @@ app.get('/blog/:slug', (req, res) => {
 <link rel="canonical" href="${canonical}">
 <meta name="description" content="${E(article.metaDesc)}">
 <meta name="keywords" content="${E(article.keywords)}">
-<meta name="robots" content="index, follow, max-snippet:-1">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
 <meta property="og:type" content="article">
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${E(article.title)}">
@@ -2864,7 +2866,7 @@ footer a{color:var(--primary);text-decoration:none}
     <a href="/app">Join BYN Free &#8594;</a>
   </div>
 </div>
-<footer><p>&copy; 2025 Build Your Network &bull; <a href="/terms">Terms</a> &bull; <a href="/privacy">Privacy</a></p></footer>
+<footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></p></footer>
 </body></html>`;
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
