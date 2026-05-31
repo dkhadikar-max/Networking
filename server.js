@@ -319,6 +319,7 @@ app.get('/sitemap.xml', (req, res) => {
   const categoryUrls = CATEGORY_SLUGS.flatMap(cat => citySlugs.map(slug => ({ loc: BASE + '/' + cat + '-' + slug, priority: '0.7', freq: 'monthly' })));
   const urls = [
     { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
+    { loc: BASE + '/what-is-byn',                    priority: '1.0', freq: 'monthly' },
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/linkedin-alternative',                    priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/linkedin-vs-byn',                        priority: '0.8', freq: 'weekly'  },
@@ -453,6 +454,7 @@ app.get('/business-networking-app',      (req, res) => sendSeoPage(res, 'busines
 app.get('/networking-for-investors',     (req, res) => sendSeoPage(res, 'networking-for-investors.html'));
 app.get('/find-cofounders',              (req, res) => sendSeoPage(res, 'find-cofounders.html'));
 app.get('/startup-founders-india',       (req, res) => sendSeoPage(res, 'startup-founders-india.html'));
+app.get('/what-is-byn',                  (req, res) => sendSeoPage(res, 'what-is-byn.html'));
 app.get('/professional-networking',      (req, res) => sendSeoPage(res, 'professional-networking.html'));
 app.get('/build-professional-network',   (req, res) => sendSeoPage(res, 'build-professional-network.html'));
 app.get('/startup-networking-us',        (req, res) => sendSeoPage(res, 'startup-networking-us.html'));
