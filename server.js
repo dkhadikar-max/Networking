@@ -335,8 +335,11 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
     { loc: BASE + '/professional-networking',        priority: '0.9', freq: 'weekly'  },
     { loc: BASE + '/build-professional-network',     priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/startup-networking-us',     priority: '0.9', freq: 'weekly' },
-    { loc: BASE + '/startup-networking-europe', priority: '0.9', freq: 'weekly' },
+    { loc: BASE + '/startup-networking-us',       priority: '0.9', freq: 'weekly' },
+    { loc: BASE + '/startup-networking-europe',   priority: '0.9', freq: 'weekly' },
+    { loc: BASE + '/find-startup-mentor',         priority: '0.9', freq: 'weekly' },
+    { loc: BASE + '/angel-investors-india',       priority: '0.9', freq: 'weekly' },
+    { loc: BASE + '/startup-networking-events',   priority: '0.8', freq: 'weekly' },
     ...cityUrls,
     ...globalCityUrls,
     ...intentUrls,
@@ -392,6 +395,9 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /professional-networking-',
     'Allow: /professional-networking',
     'Allow: /build-professional-network',
+    'Allow: /find-startup-mentor',
+    'Allow: /angel-investors-india',
+    'Allow: /startup-networking-events',
     'Allow: /terms',
     'Allow: /privacy',
     'Allow: /support',
@@ -467,6 +473,9 @@ app.get('/professional-networking',      (req, res) => sendSeoPage(res, 'profess
 app.get('/build-professional-network',   (req, res) => sendSeoPage(res, 'build-professional-network.html'));
 app.get('/startup-networking-us',        (req, res) => sendSeoPage(res, 'startup-networking-us.html'));
 app.get('/startup-networking-europe',    (req, res) => sendSeoPage(res, 'startup-networking-europe.html'));
+app.get('/find-startup-mentor',          (req, res) => sendSeoPage(res, 'find-startup-mentor.html'));
+app.get('/angel-investors-india',        (req, res) => sendSeoPage(res, 'angel-investors-india.html'));
+app.get('/startup-networking-events',    (req, res) => sendSeoPage(res, 'startup-networking-events.html'));
 
 // ── PHASE 4 — Programmatic SEO: City landing pages ──────────────────────────
 
