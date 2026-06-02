@@ -627,7 +627,8 @@ async function loadSeo(){
       <div class="stat-grid" style="margin-bottom:28px">
         <div class="stat-card"><div class="lbl">Static Landing</div><div class="val cb">${seg.static_landing_pages||0}</div><div class="sub">comparison + intent pages</div></div>
         <div class="stat-card"><div class="lbl">City Pages</div><div class="val ct">${seg.city_pages||0}</div><div class="sub">networking-in-:city</div></div>
-        <div class="stat-card"><div class="lbl">Intent Pages</div><div class="val cp">${seg.intent_pages||0}</div><div class="sub">4 patterns × 12 cities</div></div>
+        <div class="stat-card"><div class="lbl">Intent Pages</div><div class="val cp">${seg.intent_pages||0}</div><div class="sub">6 patterns × ${seg.city_pages||0} cities</div></div>
+        <div class="stat-card"><div class="lbl">Category Pages</div><div class="val" style="color:var(--purple)">${seg.category_pages||0}</div><div class="sub">7 intents × ${seg.city_pages||0} cities</div></div>
         <div class="stat-card"><div class="lbl">Blog Articles</div><div class="val ca">${seg.blog_pages||0}</div><div class="sub">${(seg.blog_views||0).toLocaleString()} views · ${seg.blog_signups||0} signups</div></div>
       </div>`;
 
@@ -687,6 +688,24 @@ async function loadSeo(){
         <tbody>${blogRows}</tbody>
       </table></div>`;
 
+    // ── Top Category Pages ──
+    const catPages=(d.pages||[]).filter(p=>p.slug&&/^(founder|entrepreneur|cofounder-matching|freelancer|creator|investor|startup-ecosystem)-networking-|^(founder|entrepreneur|cofounder-matching|freelancer|creator|investor-networking|startup-ecosystem)-/.test(p.slug)&&p.views>0).slice(0,10);
+    const catMax=Math.max(...catPages.map(p=>p.views),1);
+    const catRows=catPages.length?catPages.map(p=>`
+      <tr>
+        <td><a href="${esc(p.url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:12px">${esc(p.label)}</a></td>
+        <td>${seoBar(p.views,catMax,'var(--purple)')}</td>
+        <td style="text-align:right;font-size:12px">${p.signups}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:${p.views>0?'var(--green)':'var(--muted)'}">${p.cvr}</td>
+      </tr>`).join('')
+    :'<tr><td colspan="4" class="empty" style="padding:20px">No category page traffic yet</td></tr>';
+    const catSection=`
+      <div class="sh"><span class="st">Top Category Pages</span></div>
+      <div class="tw" style="margin-bottom:24px"><table>
+        <thead><tr><th>Page</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th></tr></thead>
+        <tbody>${catRows}</tbody>
+      </table></div>`;
+
     // ── Schema Coverage ──
     const sc=d.schema_coverage||{};
     const scEntries=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
@@ -704,28 +723,29 @@ async function loadSeo(){
         <tbody>${schemaRows||'<tr><td colspan="3" class="empty">No schema data</td></tr>'}</tbody>
       </table></div>`;
 
-    // ── All Pages (full list, sorted by views) ──
-    const allMax=Math.max(...pages.map(p=>p.views),1);
-    const allRows=pages.map(p=>`
+    // ── Top Pages with traffic (filter out zero-view rows for readability) ──
+    const withTraffic=pages.filter(p=>p.views>0);
+    const allMax=Math.max(...withTraffic.map(p=>p.views),1);
+    const allRows=withTraffic.map(p=>`
       <tr>
         <td><a href="${esc(p.url)}" target="_blank" style="color:var(--blue);text-decoration:none;font-size:12px">${esc(p.label)}</a></td>
         <td style="font-size:11px;color:var(--muted);text-align:center">${esc(p.priority)}</td>
         <td>${seoBar(p.views,allMax)}</td>
         <td style="text-align:right;font-size:12px">${p.signups}</td>
-        <td style="text-align:right;font-size:12px;font-weight:600;color:${p.views>0?'var(--green)':'var(--muted)'}">${p.cvr}</td>
+        <td style="text-align:right;font-size:12px;font-weight:600;color:var(--green)">${p.cvr}</td>
         <td style="font-size:10px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.schema)}</td>
       </tr>`).join('');
     const allSection=`
-      <div class="sh"><span class="st">All Pages <span style="font-size:12px;font-weight:400;color:var(--muted)">${pages.length} total · sorted by views</span></span></div>
+      <div class="sh"><span class="st">Pages with Traffic <span style="font-size:12px;font-weight:400;color:var(--muted)">${withTraffic.length} of ${pages.length} total · sorted by views</span></span></div>
       <div class="tw"><table>
         <thead><tr><th>Page</th><th style="text-align:center">Priority</th><th>Views</th><th style="text-align:right">Signups</th><th style="text-align:right">CVR</th><th>Schema</th></tr></thead>
-        <tbody>${allRows||'<tr><td colspan="6" class="empty">No pages found</td></tr>'}</tbody>
+        <tbody>${allRows||'<tr><td colspan="6" class="empty" style="padding:20px">No page traffic recorded yet — counts reset on each deploy</td></tr>'}</tbody>
       </table></div>`;
 
     const ts=d.as_of?new Date(d.as_of).toLocaleTimeString():'unknown';
     const note=`<div style="margin-top:16px;font-size:11px;color:var(--muted);padding:0 4px">Refreshed at ${ts} · ${esc(d.note||'')}</div>`;
 
-    wrap.innerHTML=coreCards+segCards+citiesSection+intentsSection+blogSection+schemaSection+allSection+note;
+    wrap.innerHTML=coreCards+segCards+citiesSection+intentsSection+blogSection+catSection+schemaSection+allSection+note;
   }catch(e){wrap.innerHTML=`<div class="empty">Failed to load SEO data: ${esc(e.message)}</div>`}
 }
 

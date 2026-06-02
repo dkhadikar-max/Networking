@@ -545,50 +545,61 @@ const EU_CITIES = {
 
 // SEO page metadata for /api/admin/seo (defined after CITIES so city pages auto-populate)
 const SEO_PAGES = [
+  // ── Core brand pages ──
   { slug: '',                             label: 'Homepage',                   schema: 'WebSite+SoftwareApplication+FAQPage', priority: '1.0' },
+  { slug: 'what-is-byn',                 label: 'What is BYN',                schema: 'WebPage+FAQPage',                     priority: '1.0' },
+  // ── High-intent landing pages ──
   { slug: 'networking-for-founders',      label: 'Networking for Founders',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
-  { slug: 'linkedin-alternative',                    label: 'LinkedIn Alternative',               schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
-  { slug: 'linkedin-vs-byn',                        label: 'LinkedIn vs BYN',                    schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.8' },
-  { slug: 'meetup-alternative',                     label: 'Meetup Alternative',                 schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.8' },
-  { slug: 'best-networking-platform-for-founders',  label: 'Best Networking Platform Founders',  schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
-  { slug: 'networking-for-entrepreneurs',           label: 'Networking for Entrepreneurs',       schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'linkedin-alternative',         label: 'LinkedIn Alternative',       schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'best-networking-platform-for-founders', label: 'Best Networking Platform', schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'networking-for-entrepreneurs', label: 'Networking for Entrepreneurs',schema: 'WebPage+FAQPage+BreadcrumbList',      priority: '0.9' },
   { slug: 'startup-community-india',      label: 'Startup Community India',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
   { slug: 'find-cofounders',              label: 'Find Co-founders',           schema: 'WebPage+HowTo+FAQPage+BreadcrumbList', priority: '0.9' },
+  { slug: 'professional-networking',      label: 'Professional Networking',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'build-professional-network',   label: 'Build Professional Network', schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'find-startup-mentor',          label: 'Find Startup Mentor',        schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'angel-investors-india',        label: 'Angel Investors India',      schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'linkedin-vs-byn',             label: 'LinkedIn vs BYN',            schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'meetup-alternative',           label: 'Meetup Alternative',         schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
   { slug: 'networking-for-creators',      label: 'Networking for Creators',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
   { slug: 'networking-for-freelancers',   label: 'Networking for Freelancers', schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
   { slug: 'business-networking-app',      label: 'Business Networking App',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
   { slug: 'networking-for-investors',     label: 'Networking for Investors',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
   { slug: 'startup-founders-india',       label: 'Startup Founders India',     schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-networking-events',    label: 'Startup Networking Events',  schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  // ── International hub pages ──
+  { slug: 'startup-networking-us',        label: 'Startup Networking US',      schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'startup-networking-europe',    label: 'Startup Networking Europe',  schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
+  { slug: 'startup-networking-uk',        label: 'Startup Networking UK',      schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-networking-australia', label: 'Startup Networking AU',      schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-networking-singapore', label: 'Startup Networking SG',      schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-networking-dubai',     label: 'Startup Networking Dubai',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.8' },
+  { slug: 'startup-networking-kenya',     label: 'Startup Networking Kenya',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
+  { slug: 'startup-networking-south-africa', label: 'Startup Networking ZA',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
+  { slug: 'startup-networking-turkey',    label: 'Startup Networking Turkey',  schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
+  // ── Blog ──
+  { slug: 'blog', label: 'Blog Index', schema: 'WebPage+Blog', priority: '0.8' },
+  ...ARTICLES.map(a => ({ slug: 'blog/' + a.slug, label: a.title, schema: 'WebPage+BlogPosting', priority: '0.7' })),
+  // ── Programmatic: Indian city hub pages ──
   ...Object.keys(CITIES).map(s => ({
     slug: 'networking-in-' + s,
     label: 'Networking in ' + CITIES[s].name,
     schema: 'WebPage+FAQPage+BreadcrumbList',
     priority: '0.8',
   })),
-  ...Object.keys(CITIES).map(s => ({
-    slug: 'founders-in-' + s,
-    label: 'Founders in ' + CITIES[s].name,
+  // ── Programmatic: Indian city intent pages (6 patterns) ──
+  ...Object.keys(CITIES).map(s => ({ slug: 'founders-in-' + s,              label: 'Founders in ' + CITIES[s].name,           schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
+  ...Object.keys(CITIES).map(s => ({ slug: 'startup-founders-' + s,         label: 'Startup Founders ' + CITIES[s].name,       schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
+  ...Object.keys(CITIES).map(s => ({ slug: 'find-cofounders-' + s,          label: 'Find Co-founders ' + CITIES[s].name,       schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
+  ...Object.keys(CITIES).map(s => ({ slug: 'startup-networking-' + s,       label: 'Startup Networking ' + CITIES[s].name,     schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
+  ...Object.keys(CITIES).map(s => ({ slug: 'professional-networking-' + s,  label: 'Professional Networking ' + CITIES[s].name,schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
+  // ── Programmatic: category × city pages ──
+  ...CATEGORY_SLUGS.flatMap(cat => Object.keys(CITIES).map(s => ({
+    slug: cat + '-' + s,
+    label: cat.replace(/-/g, ' ') + ' · ' + CITIES[s].name,
     schema: 'WebPage+FAQPage+BreadcrumbList',
     priority: '0.7',
-  })),
-  ...Object.keys(CITIES).map(s => ({
-    slug: 'startup-founders-' + s,
-    label: 'Startup Founders ' + CITIES[s].name,
-    schema: 'WebPage+FAQPage+BreadcrumbList',
-    priority: '0.7',
-  })),
-  ...Object.keys(CITIES).map(s => ({
-    slug: 'find-cofounders-' + s,
-    label: 'Find Co-founders ' + CITIES[s].name,
-    schema: 'WebPage+FAQPage+BreadcrumbList',
-    priority: '0.7',
-  })),
-  ...Object.keys(CITIES).map(s => ({
-    slug: 'startup-networking-' + s,
-    label: 'Startup Networking ' + CITIES[s].name,
-    schema: 'WebPage+FAQPage+BreadcrumbList',
-    priority: '0.7',
-  })),
+  }))),
 ];
 
 function escHtml(s) {
@@ -5666,8 +5677,9 @@ app.get('/api/admin/seo', adminAuth, (req, res) => {
     // Page segment counts
     segments: {
       static_landing_pages: staticLandingPages.length,
-      city_pages:           12,
-      intent_pages:         48,
+      city_pages:           Object.keys(CITIES).length,
+      intent_pages:         6 * Object.keys(CITIES).length,
+      category_pages:       CATEGORY_SLUGS.length * Object.keys(CITIES).length,
       blog_pages:           blogPages.length,
       blog_views:           blogViews,
       blog_signups:         blogSignups,
