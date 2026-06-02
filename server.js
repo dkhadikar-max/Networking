@@ -272,7 +272,9 @@ const profileViewLimiter = rateLimit({ windowMs: 60*1000, max: 30, message: { er
 const forgotPasswordLimiter = rateLimit({ windowMs: 60*60*1000, max: 3, message: { error: 'Too many reset requests — try again in an hour' } });
 const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many reset attempts — wait 15 minutes' } });
 // Strict limiter for DSA illegal-content reports — prevents mass auto-ban abuse
-const dsaReportLimiter  = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: 'Report limit reached — try again in an hour' } });
+const dsaReportLimiter  = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Report limit reached — try again in an hour' } });
+const feedbackLimiter   = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Feedback limit reached — try again later' } });
+const circlePostLimiter = rateLimit({ windowMs: 5*60*1000,  max: 10, message: { error: 'Post rate limit reached — slow down' } });
 
 // ── PER-ACCOUNT LOGIN LOCKOUT ──
 const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
@@ -3373,7 +3375,7 @@ async function adminAuth(req, res, next) {
 
   try {
     const { data: user, error } = await supabase.from('users')
-      .select('role,banned,password_changed_at').eq('id', decoded.id).maybeSingle();
+      .select('*').eq('id', decoded.id).maybeSingle();
     if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
     if (!user || user.banned) return res.status(403).json({ error: 'Access denied' });
     if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
@@ -4446,7 +4448,8 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
       .eq('email_verified', true)
       .gte('trust_score', 10)
       .neq('id', req.user.id)
-      .limit(500);
+      .order('last_active', { ascending: false })
+      .limit(200);
 
     let candidates = (allUsers || []).filter(u => !excluded.has(u.id));
 
@@ -4969,7 +4972,7 @@ app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
 });
 
 // ── FEEDBACK / SUPPORT ──
-app.post('/api/feedback', auth, async (req, res) => {
+app.post('/api/feedback', auth, feedbackLimiter, async (req, res) => {
   try {
     const { category, message } = req.body;
     if (!message || message.trim().length < 5)
@@ -6688,6 +6691,18 @@ const CIRCLE_TAGS = [
   'Launching','Hiring','Fundraising','Collab','Open Source'
 ];
 
+// Exact fields ComposePost.tsx sends — nothing else is stored
+const ALLOWED_META_KEYS = ['looking_for','building','current_goal','open_to','industry','skill_level','location','timeline'];
+function sanitizeStructuredMeta(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out = {};
+  for (const key of ALLOWED_META_KEYS) {
+    const val = raw[key];
+    if (val && typeof val === 'string' && val.trim()) out[key] = val.trim().slice(0, 200);
+  }
+  return out;
+}
+
 function circleWordCount(text) {
   return (text || '').trim().split(/\s+/).filter(Boolean).length;
 }
@@ -6837,7 +6852,7 @@ app.post('/api/circles/link-preview', auth, linkPreviewLimiter, async (req, res)
   }
 });
 
-app.post('/api/circles/posts', auth, profileGuard, async (req, res) => {
+app.post('/api/circles/posts', auth, profileGuard, circlePostLimiter, async (req, res) => {
   try {
     const { text, tags, structured_meta, links } = req.body;
     if (!text || typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'Text required' });
@@ -6853,7 +6868,7 @@ app.post('/api/circles/posts', auth, profileGuard, async (req, res) => {
       user_id: req.user.id,
       text: text.trim(),
       tags: validTags,
-      structured_meta: structured_meta && typeof structured_meta === 'object' ? structured_meta : {},
+      structured_meta: sanitizeStructuredMeta(structured_meta),
       links: Array.isArray(links) ? links.filter(l => typeof l === 'string' && /^https?:\/\//i.test(l)).slice(0, 3) : [],
       created_at: new Date().toISOString(),
     });
