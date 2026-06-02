@@ -580,9 +580,6 @@ const SEO_PAGES = [
   { slug: 'startup-networking-kenya',     label: 'Startup Networking Kenya',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
   { slug: 'startup-networking-south-africa', label: 'Startup Networking ZA',   schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
   { slug: 'startup-networking-turkey',    label: 'Startup Networking Turkey',  schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.7' },
-  // ── Blog ──
-  { slug: 'blog', label: 'Blog Index', schema: 'WebPage+Blog', priority: '0.8' },
-  ...ARTICLES.map(a => ({ slug: 'blog/' + a.slug, label: a.title, schema: 'WebPage+BlogPosting', priority: '0.7' })),
   // ── Programmatic: Indian city hub pages ──
   ...Object.keys(CITIES).map(s => ({
     slug: 'networking-in-' + s,
@@ -596,14 +593,8 @@ const SEO_PAGES = [
   ...Object.keys(CITIES).map(s => ({ slug: 'find-cofounders-' + s,          label: 'Find Co-founders ' + CITIES[s].name,       schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
   ...Object.keys(CITIES).map(s => ({ slug: 'startup-networking-' + s,       label: 'Startup Networking ' + CITIES[s].name,     schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
   ...Object.keys(CITIES).map(s => ({ slug: 'professional-networking-' + s,  label: 'Professional Networking ' + CITIES[s].name,schema: 'WebPage+FAQPage+BreadcrumbList', priority: '0.7' })),
-  // ── Programmatic: category × city pages ──
-  ...CATEGORY_SLUGS.flatMap(cat => Object.keys(CITIES).map(s => ({
-    slug: cat + '-' + s,
-    label: cat.replace(/-/g, ' ') + ' · ' + CITIES[s].name,
-    schema: 'WebPage+FAQPage+BreadcrumbList',
-    priority: '0.7',
-  }))),
 ];
+// Category × city pages pushed after CATEGORY_SLUGS is defined (line ~2547)
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -4660,7 +4651,16 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
           user1_responded: false, user2_responded: false,
           active: false, status: 'pending'
         });
-        if (connErr) throw connErr;
+        if (connErr) {
+          // 23505 = unique_violation: other request won the race and already created
+          // the connection. Fetch it so we can return the correct connectionId.
+          if (connErr.code === '23505') {
+            const { data: existing } = await supabase.from('connections')
+              .select('id').or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
+              .maybeSingle();
+            if (existing) { connectionId = existing.id; } else throw connErr;
+          } else throw connErr;
+        }
         match = true;
 
         const [{ data: me2 }, { data: them }] = await Promise.all([
@@ -4760,7 +4760,14 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
         user1_responded: false, user2_responded: false,
         active: false, status: 'pending',
       });
-      if (connErr) throw connErr;
+      if (connErr) {
+        if (connErr.code === '23505') {
+          const { data: existing } = await supabase.from('connections')
+            .select('id').or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
+            .maybeSingle();
+          if (existing) { connectionId = existing.id; } else throw connErr;
+        } else throw connErr;
+      }
       match = true;
 
       const [{ data: me2 }, { data: them }] = await Promise.all([
