@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import SwipeCard from './SwipeCard';
@@ -48,6 +49,8 @@ async function fetchProfiles(filters: FilterState, offset: number): Promise<{ pr
   return { profiles: merged.slice(0, 20), exhausted: merged.length < 20 };
 }
 
+type DailySignal = { count: number; city: string };
+
 export default function DiscoverFeed() {
   const toast = useToast();
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
@@ -57,8 +60,16 @@ export default function DiscoverFeed() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
+  const [dailySignal, setDailySignal] = useState<DailySignal | null>(null);
 
   useEffect(() => { filtersRef.current = filters; }, [filters]);
+
+  // Fetch daily signal once on mount — fire-and-forget, no error shown
+  useEffect(() => {
+    apiGet<DailySignal>('/api/discover/daily-signal')
+      .then(d => { if (d.count > 0) setDailySignal(d); })
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async (reset = false) => {
     try {
@@ -120,6 +131,7 @@ export default function DiscoverFeed() {
     if (remaining <= 3 && !exhausted && !loading) load(false);
   }
 
+  const router = useRouter();
   const current = profiles[0] ?? null;
   const filterCount = activeFilterCount(filters);
 
@@ -156,6 +168,13 @@ export default function DiscoverFeed() {
           </button>
         </div>
 
+        {/* Daily signal — shown only when count > 0 */}
+        {dailySignal && (
+          <div style={{ padding: '4px 16px 0', fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+            {dailySignal.count} new founder{dailySignal.count !== 1 ? 's' : ''}{dailySignal.city ? ` in ${dailySignal.city}` : ''} today
+          </div>
+        )}
+
         {/* Filter sheet */}
         <DiscoverFilters
           open={showFilters}
@@ -178,8 +197,15 @@ export default function DiscoverFeed() {
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
-              <h3>You&apos;re all caught up</h3>
-              <p>No more profiles to show right now. Check back later or adjust your filters.</p>
+              <h3>You&apos;ve seen everyone nearby for now</h3>
+              <p>Check back later or widen your filters — new members join every day.</p>
+              <button
+                className="retry-btn"
+                style={{ marginBottom: 10 }}
+                onClick={() => router.push('/circles')}
+              >
+                Explore Circles →
+              </button>
               <button className="retry-btn" onClick={() => load(true)}>Refresh</button>
             </div>
           )}

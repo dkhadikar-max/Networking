@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import dns from 'dns';
 
 const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
@@ -270,6 +271,8 @@ const worksLimiter      = rateLimit({ windowMs: 60*1000, max: 5, message: { erro
 const profileViewLimiter = rateLimit({ windowMs: 60*1000, max: 30, message: { error: 'Too many profile requests' } });
 const forgotPasswordLimiter = rateLimit({ windowMs: 60*60*1000, max: 3, message: { error: 'Too many reset requests — try again in an hour' } });
 const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many reset attempts — wait 15 minutes' } });
+// Strict limiter for DSA illegal-content reports — prevents mass auto-ban abuse
+const dsaReportLimiter  = rateLimit({ windowMs: 60*60*1000, max: 5, message: { error: 'Report limit reached — try again in an hour' } });
 
 // ── PER-ACCOUNT LOGIN LOCKOUT ──
 const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
@@ -3379,10 +3382,12 @@ async function adminAuth(req, res, next) {
 
   try {
     const { data: user, error } = await supabase.from('users')
-      .select('role,banned').eq('id', decoded.id).maybeSingle();
+      .select('role,banned,password_changed_at').eq('id', decoded.id).maybeSingle();
     if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
     if (!user || user.banned) return res.status(403).json({ error: 'Access denied' });
     if (user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    if (user.password_changed_at && decoded.iat * 1000 < new Date(user.password_changed_at).getTime())
+      return res.status(401).json({ error: 'Session expired — please log in again' });
     req.user = decoded;
     next();
   } catch (e) {
@@ -4524,6 +4529,53 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
   }
 });
 
+// ── DAILY SIGNAL ──
+// Returns count of users active or created in the last 24h near the requesting user.
+// Used by the Discover screen to show "X new founders in [city] today".
+app.get('/api/discover/daily-signal', auth, async (req, res) => {
+  try {
+    const me = req.userData;
+    if (!me) return res.status(404).json({ error: 'User not found' });
+
+    const since24h = new Date(Date.now() - 24 * 3600000).toISOString();
+    const city = (me.location || '').trim();
+
+    // Fetch users active or created in the last 24h (excluding self)
+    const { data: recentUsers } = await supabase.from('users')
+      .select('id, location, lat, lng')
+      .neq('id', me.id)
+      .eq('email_verified', true)
+      .or(`last_active.gte.${since24h},created_at.gte.${since24h}`);
+
+    if (!recentUsers || recentUsers.length === 0) return res.json({ count: 0, city });
+
+    // Filter: same city string OR within 200km if coordinates available
+    let count = 0;
+    const meLat = parseFloat(me.lat);
+    const meLng = parseFloat(me.lng);
+    const hasCoords = !isNaN(meLat) && !isNaN(meLng);
+
+    for (const u of recentUsers) {
+      if (city && u.location && u.location.toLowerCase().includes(city.toLowerCase())) {
+        count++;
+        continue;
+      }
+      if (hasCoords && u.lat != null && u.lng != null) {
+        const uLat = parseFloat(u.lat);
+        const uLng = parseFloat(u.lng);
+        if (!isNaN(uLat) && !isNaN(uLng) && haversine(meLat, meLng, uLat, uLng) <= 200) {
+          count++;
+        }
+      }
+    }
+
+    res.json({ count, city });
+  } catch (e) {
+    console.error('[DailySignal] Error:', e.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── SEARCH ──
 app.get('/api/search', auth, discoverGuard, async (req, res) => {
   try {
@@ -4559,6 +4611,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
     const { targetId, direction } = req.body;
     if (!targetId || !['right','left'].includes(direction))
       return res.status(400).json({ error: 'Invalid swipe data' });
+    if (targetId === req.user.id) return res.json({ ok: true });
 
     const swiper = req.userData;
     const SWIPE_LIMIT = swiper.premium ? 200 : 30;
@@ -4602,7 +4655,7 @@ app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
         const { error: connErr } = await supabase.from('connections').insert({
           id: connectionId, user1: req.user.id, user2: targetId,
           created_at: now.toISOString(),
-          expires_at: new Date(now.getTime() + 5*24*3600000).toISOString(),
+          expires_at: new Date(now.getTime() + 7*24*3600000).toISOString(),
           first_response_deadline: new Date(now.getTime() + 48*3600000).toISOString(),
           user1_responded: false, user2_responded: false,
           active: false, status: 'pending'
@@ -4702,7 +4755,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
       const { error: connErr } = await supabase.from('connections').insert({
         id: connectionId, user1: req.user.id, user2: targetId,
         created_at: now.toISOString(),
-        expires_at: new Date(now.getTime() + 5 * 24 * 3600000).toISOString(),
+        expires_at: new Date(now.getTime() + 7 * 24 * 3600000).toISOString(),
         first_response_deadline: new Date(now.getTime() + 48 * 3600000).toISOString(),
         user1_responded: false, user2_responded: false,
         active: false, status: 'pending',
@@ -4721,7 +4774,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
       sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
       sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
     } else {
-      sendLikeNotification(req.user.id, targetId);
+      sendLikeNotification(req.user.id, targetId).catch(() => {});
     }
 
     res.json({ ok: true, match, connectionId });
@@ -5109,7 +5162,7 @@ app.post('/api/report', auth, async (req, res) => {
 
 // ── DSA ILLEGAL CONTENT REPORT (Art. 16 — separate channel from social reports) ──
 const DSA_CATEGORIES = ['CSAM','Terrorism','Hate Speech','Fraud','Non-Consensual Intimate Images','Violence','Other'];
-app.post('/api/report/illegal-content', auth, async (req, res) => {
+app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res) => {
   try {
     const { targetId, category, description } = req.body;
     if (!targetId || !category || !DSA_CATEGORIES.includes(category))
@@ -6650,9 +6703,33 @@ function decodeHtmlEntities(str) {
 const lpCache = new Map();
 const LP_TTL  = 5 * 60 * 1000;
 
+// SSRF guard: resolve hostname and reject private/loopback/link-local IPs
+function isPrivateIPv4(ip) {
+  const p = ip.split('.').map(Number);
+  if (p.length !== 4 || p.some(isNaN)) return false;
+  return p[0] === 127 || p[0] === 10 ||
+    (p[0] === 172 && p[1] >= 16 && p[1] <= 31) ||
+    (p[0] === 192 && p[1] === 168) ||
+    (p[0] === 169 && p[1] === 254) ||
+    p[0] === 0;
+}
+async function isBlockedHost(hostname) {
+  try {
+    const addresses = await dns.promises.resolve(hostname);
+    return addresses.some(ip => isPrivateIPv4(ip) || ip === '::1');
+  } catch {
+    return true; // unresolvable — block it
+  }
+}
+
 async function fetchLinkPreview(url) {
   const cached = lpCache.get(url);
   if (cached && Date.now() - cached.ts < LP_TTL) return cached.data;
+
+  // SSRF guard — block private/loopback/link-local IPs before any network call
+  try {
+    if (await isBlockedHost(new URL(url).hostname)) return null;
+  } catch { return null; }
 
   // YouTube oEmbed — free, no auth, returns title + thumbnail
   const ytMatch = url.match(/(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -6770,7 +6847,7 @@ app.post('/api/circles/posts', auth, profileGuard, async (req, res) => {
       text: text.trim(),
       tags: validTags,
       structured_meta: structured_meta && typeof structured_meta === 'object' ? structured_meta : {},
-      links: Array.isArray(links) ? links.slice(0, 3) : [],
+      links: Array.isArray(links) ? links.filter(l => typeof l === 'string' && /^https?:\/\//i.test(l)).slice(0, 3) : [],
       created_at: new Date().toISOString(),
     });
     if (error) throw error;
@@ -7012,6 +7089,148 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// ── 24H EXPIRY WARNING ──
+// Runs hourly alongside sendProfileNudges.
+// Finds pending connections expiring in 23–25h and sends one push to BOTH
+// users. Tracks warned connection IDs in-memory — resets on redeploy (acceptable:
+// worst case the notification is sent again after a restart, which is harmless).
+const _expiryWarnedIds = new Set();
+async function sendExpiryWarnings() {
+  try {
+    const now = Date.now();
+    const lo  = new Date(now + 23 * 3600000).toISOString(); // expires > now+23h
+    const hi  = new Date(now + 25 * 3600000).toISOString(); // expires < now+25h
+    const { data: conns } = await supabase.from('connections')
+      .select('id, user1, user2')
+      .eq('status', 'pending')
+      .eq('active', false)
+      .gt('expires_at', lo)
+      .lt('expires_at', hi);
+    if (!conns || conns.length === 0) return;
+
+    // Fetch names for all involved users
+    const userIds = [...new Set(conns.flatMap(c => [c.user1, c.user2]))];
+    const { data: usersData } = await supabase.from('users')
+      .select('id, name').in('id', userIds);
+    const nameMap = Object.fromEntries((usersData || []).map(u => [u.id, u.name || 'Someone']));
+
+    let warned = 0;
+    for (const conn of conns) {
+      if (_expiryWarnedIds.has(conn.id)) continue;
+      _expiryWarnedIds.add(conn.id);
+      const name1 = nameMap[conn.user1] || 'Someone';
+      const name2 = nameMap[conn.user2] || 'Someone';
+      sendPush([conn.user1], '⏰ Connection expiring soon',
+        `Your connection with ${name2} expires in 24 hours — start the conversation.`,
+        { screen: 'Chat', connectionId: conn.id }).catch(() => {});
+      sendPush([conn.user2], '⏰ Connection expiring soon',
+        `Your connection with ${name1} expires in 24 hours — start the conversation.`,
+        { screen: 'Chat', connectionId: conn.id }).catch(() => {});
+      sendWebPush([conn.user1], '⏰ Connection expiring soon',
+        `Your connection with ${name2} expires in 24 hours — start the conversation.`,
+        { screen: 'Chat', connectionId: conn.id }).catch(() => {});
+      sendWebPush([conn.user2], '⏰ Connection expiring soon',
+        `Your connection with ${name1} expires in 24 hours — start the conversation.`,
+        { screen: 'Chat', connectionId: conn.id }).catch(() => {});
+      warned++;
+    }
+    if (warned) console.log(`[ExpiryWarn] Sent 24h warning to ${warned} connection(s)`);
+  } catch (e) {
+    console.error('[ExpiryWarn] Error:', e.message);
+  }
+}
+
+// ── CONVERSATION NUDGE (48h silence) ──
+// Runs daily. Finds active connections where the last message was sent >48h ago
+// and the connection has at least 1 message. Sends one push to the user who sent
+// the last message.
+// Tracks nudged connections in-memory (Map of connectionId → lastNudgedAt).
+// NOTE: This map resets on every redeploy — worst case a nudge is resent after
+// restart, which is acceptable. Add a DB column (e.g. last_nudge_sent_at on
+// connections) to make it fully persistent.
+const _conversationNudgeMap = new Map(); // connectionId → timestamp of last nudge
+const NUDGE_COOLDOWN_MS = 72 * 3600000; // 72h — don't nudge same connection again within 3 days
+async function sendConversationNudges() {
+  try {
+    const now       = Date.now();
+    const cutoff48h = new Date(now - 48 * 3600000).toISOString();
+
+    // Find active connections that have at least 1 message
+    const { data: activeConns } = await supabase.from('connections')
+      .select('id, user1, user2')
+      .eq('active', true);
+    if (!activeConns || activeConns.length === 0) return;
+
+    // Gather the last message for each active connection
+    const connIds = activeConns.map(c => c.id);
+    const { data: lastMsgs } = await supabase.from('messages')
+      .select('connection_id, sender_id, created_at')
+      .in('connection_id', connIds)
+      .order('created_at', { ascending: false })
+      .limit(connIds.length * 5); // one per connection is enough; oversample for safety
+
+    // Build map: connectionId → most recent message
+    const lastMsgMap = {};
+    for (const m of (lastMsgs || [])) {
+      if (!lastMsgMap[m.connection_id]) lastMsgMap[m.connection_id] = m;
+    }
+
+    // Collect sender names for all last-message senders
+    const senderIds = [...new Set(Object.values(lastMsgMap).map(m => m.sender_id))];
+    let nameMap = {};
+    if (senderIds.length > 0) {
+      const { data: senders } = await supabase.from('users')
+        .select('id, name').in('id', senderIds);
+      nameMap = Object.fromEntries((senders || []).map(u => [u.id, u.name || 'Someone']));
+    }
+
+    // Also need the recipient name per connection
+    const recipientIds = [];
+    for (const conn of activeConns) {
+      const last = lastMsgMap[conn.id];
+      if (!last) continue;
+      const recipientId = last.sender_id === conn.user1 ? conn.user2 : conn.user1;
+      recipientIds.push(recipientId);
+    }
+    const uniqueRecipientIds = [...new Set(recipientIds)];
+    let recipientNameMap = {};
+    if (uniqueRecipientIds.length > 0) {
+      const { data: recs } = await supabase.from('users')
+        .select('id, name').in('id', uniqueRecipientIds);
+      recipientNameMap = Object.fromEntries((recs || []).map(u => [u.id, u.name || 'Someone']));
+    }
+
+    let nudged = 0;
+    for (const conn of activeConns) {
+      const last = lastMsgMap[conn.id];
+      if (!last) continue; // no messages at all — skip
+      if (new Date(last.created_at).getTime() >= now - 48 * 3600000) continue; // active within 48h — skip
+      if (new Date(last.created_at).getTime() < now - 14 * 24 * 3600000) continue; // >14 days stale — too cold, skip
+
+      const lastNudge = _conversationNudgeMap.get(conn.id);
+      if (lastNudge && (now - lastNudge) < NUDGE_COOLDOWN_MS) continue; // cooled down — skip
+
+      const senderId    = last.sender_id;
+      const recipientId = senderId === conn.user1 ? conn.user2 : conn.user1;
+      const recipientName = recipientNameMap[recipientId] || 'your connection';
+
+      _conversationNudgeMap.set(conn.id, now);
+      sendPush([senderId],
+        '💬 Don\'t let it go cold',
+        `Continue your conversation with ${recipientName} — keep the momentum going.`,
+        { screen: 'ChatDetail', connectionId: conn.id }).catch(() => {});
+      sendWebPush([senderId],
+        '💬 Don\'t let it go cold',
+        `Continue your conversation with ${recipientName} — keep the momentum going.`,
+        { screen: 'ChatDetail', connectionId: conn.id }).catch(() => {});
+      nudged++;
+    }
+    if (nudged) console.log(`[ConvNudge] Sent conversation nudge to ${nudged} connection(s)`);
+  } catch (e) {
+    console.error('[ConvNudge] Error:', e.message);
+  }
+}
+
 // ── START SERVER ──
 app.listen(PORT, () => {
   console.log(`[${new Date().toISOString()}] Server on port ${PORT}`);
@@ -7021,6 +7240,10 @@ app.listen(PORT, () => {
   // Profile nudge: run immediately then every hour
   sendProfileNudges();
   setInterval(sendProfileNudges, 60 * 60 * 1000);
+
+  // 24h expiry warning: run hourly alongside profile nudge
+  sendExpiryWarnings();
+  setInterval(sendExpiryWarnings, 60 * 60 * 1000);
 
   // Data retention: GDPR Art. 5(1)(e) storage limitation — runs every 24 hours
   async function runRetentionCycle() {
@@ -7091,6 +7314,10 @@ app.listen(PORT, () => {
   }
   runRetentionCycle();
   setInterval(runRetentionCycle, 24 * 60 * 60 * 1000);
+
+  // Conversation nudge: run daily
+  sendConversationNudges();
+  setInterval(sendConversationNudges, 24 * 60 * 60 * 1000);
 
   // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
   if (INDEXNOW_KEY) {

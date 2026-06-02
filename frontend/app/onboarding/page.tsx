@@ -91,9 +91,9 @@ export default function OnboardingPage() {
       await apiPost('/api/onboarding/profile', { ...rest, interests });
       // Refresh full user so AuthContext has the saved bio/interests/scores, not stale onboarding data
       await refreshUser();
-      const res = await apiGet<{ profiles: DiscoverProfile[] }>('/api/discover?limit=5')
+      const res = await apiGet<{ profiles: DiscoverProfile[] }>('/api/discover?limit=3')
         .catch(() => ({ profiles: [] }));
-      setSuggestions(res.profiles ?? []);
+      setSuggestions((res.profiles ?? []).slice(0, 3));
       setStage('complete');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');

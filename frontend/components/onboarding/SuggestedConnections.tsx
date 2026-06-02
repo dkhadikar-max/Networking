@@ -74,7 +74,7 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
           </svg>
         </div>
         <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.4px', marginBottom: 6 }}>
-          You&apos;re in.
+          {profiles.length > 0 ? 'Your first matches' : 'You\'re in.'}
         </h2>
         <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
           {profiles.length > 0
@@ -86,7 +86,7 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
       {/* Suggested profiles */}
       {profiles.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {profiles.slice(0, 5).map((p, i) => {
+          {profiles.slice(0, 3).map((p, i) => {
             const shared = (p.interests ?? []).filter(t => userInterests.includes(t));
             const initials = p.name.slice(0, 2).toUpperCase();
             return (
@@ -227,7 +227,7 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
             fontFamily: 'inherit',
           }}
         >
-          Go to my feed →
+          Start Discovering →
         </button>
         <p style={{ textAlign: 'center', fontSize: 12, color: '#94A3B8' }}>
           Add a photo to unlock full discovery and connections

@@ -148,10 +148,10 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
                 transition: 'width 0.6s ease',
               }} />
             </div>
-            {/* Completion tips — show until score hits 70 */}
+            {/* Completion hint — three tiers */}
             {(user.profile_score ?? 0) < 70 && (
               <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Complete to unlock discover</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Complete your profile to appear in discovery</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {!user.intent && (
                     <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -190,6 +190,16 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {(user.profile_score ?? 0) >= 70 && (user.profile_score ?? 0) < 90 && (
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-soft)', textAlign: 'center' }}>
+                Great profile — add more to stand out
+              </div>
+            )}
+            {(user.profile_score ?? 0) >= 90 && (
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--primary)', fontWeight: 600, textAlign: 'center' }}>
+                Profile complete ✓
               </div>
             )}
           </div>
