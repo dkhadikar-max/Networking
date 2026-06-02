@@ -305,62 +305,67 @@ app.use((req, res, next) => {
 
 // ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
 app.get('/sitemap.xml', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
+  // Stable per-tier dates — prevents crawlers from seeing 709 pages as "changed today"
+  // on every sitemap fetch, which wastes crawl budget.
+  const D_CORE  = '2026-05-20'; // core brand + existing landing pages (Phase 1/2 rewrites)
+  const D_NEW   = '2026-06-01'; // Phase 3 P2/P3/P4 new pages + international expansion
+  const D_PROG  = '2026-05-18'; // programmatic city/intent/category pages (deployed Phase 1 AI OS)
+  const D_UTIL  = '2026-05-01'; // utility/policy pages
   const citySlugs   = Object.keys(CITIES);
   const usSlugs     = Object.keys(US_CITIES);
   const euSlugs     = Object.keys(EU_CITIES);
   const allGlobal   = [...usSlugs, ...euSlugs];
-  const cityUrls    = citySlugs.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
-  const globalCityUrls = allGlobal.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly' }));
+  const cityUrls    = citySlugs.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly', lastmod: D_PROG }));
+  const globalCityUrls = allGlobal.map(slug => ({ loc: BASE + '/networking-in-' + slug, priority: '0.8', freq: 'monthly', lastmod: D_PROG }));
   const intentPatterns = ['founders-in-', 'startup-founders-', 'find-cofounders-', 'startup-networking-', 'professional-networking-'];
-  const intentUrls = intentPatterns.flatMap(p => citySlugs.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
-  const globalIntentUrls = intentPatterns.flatMap(p => allGlobal.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly' })));
-  const categoryUrls = CATEGORY_SLUGS.flatMap(cat => citySlugs.map(slug => ({ loc: BASE + '/' + cat + '-' + slug, priority: '0.7', freq: 'monthly' })));
+  const intentUrls = intentPatterns.flatMap(p => citySlugs.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly', lastmod: D_PROG })));
+  const globalIntentUrls = intentPatterns.flatMap(p => allGlobal.map(slug => ({ loc: BASE + '/' + p + slug, priority: '0.7', freq: 'monthly', lastmod: D_PROG })));
+  const categoryUrls = CATEGORY_SLUGS.flatMap(cat => citySlugs.map(slug => ({ loc: BASE + '/' + cat + '-' + slug, priority: '0.7', freq: 'monthly', lastmod: D_PROG })));
   const urls = [
-    { loc: BASE + '/',                               priority: '1.0', freq: 'weekly'  },
-    { loc: BASE + '/what-is-byn',                    priority: '1.0', freq: 'monthly' },
-    { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/linkedin-alternative',                    priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/linkedin-vs-byn',                        priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/meetup-alternative',                     priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/best-networking-platform-for-founders',  priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-entrepreneurs',           priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/business-networking-app',        priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly'  },
-    { loc: BASE + '/professional-networking',        priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/build-professional-network',     priority: '0.9', freq: 'weekly'  },
-    { loc: BASE + '/startup-networking-us',       priority: '0.9', freq: 'weekly' },
-    { loc: BASE + '/startup-networking-europe',   priority: '0.9', freq: 'weekly' },
-    { loc: BASE + '/find-startup-mentor',             priority: '0.9', freq: 'weekly' },
-    { loc: BASE + '/angel-investors-india',           priority: '0.9', freq: 'weekly' },
-    { loc: BASE + '/startup-networking-events',       priority: '0.8', freq: 'weekly' },
-    { loc: BASE + '/startup-networking-uk',           priority: '0.8', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-dubai',        priority: '0.8', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-turkey',       priority: '0.7', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-kenya',        priority: '0.7', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-south-africa', priority: '0.7', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-australia',    priority: '0.8', freq: 'monthly' },
-    { loc: BASE + '/startup-networking-singapore',    priority: '0.8', freq: 'monthly' },
+    { loc: BASE + '/',                               priority: '1.0', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/what-is-byn',                    priority: '1.0', freq: 'monthly', lastmod: D_CORE },
+    { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/linkedin-vs-byn',                priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/meetup-alternative',             priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/best-networking-platform-for-founders', priority: '0.9', freq: 'weekly', lastmod: D_CORE },
+    { loc: BASE + '/networking-for-entrepreneurs',   priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/networking-for-creators',        priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/networking-for-freelancers',     priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/startup-community-india',        priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/business-networking-app',        priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/networking-for-investors',       priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/find-cofounders',                priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/startup-founders-india',         priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/professional-networking',        priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/build-professional-network',     priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/startup-networking-us',          priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/startup-networking-europe',      priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
+    { loc: BASE + '/find-startup-mentor',            priority: '0.9', freq: 'weekly',  lastmod: D_NEW  },
+    { loc: BASE + '/angel-investors-india',          priority: '0.9', freq: 'weekly',  lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-events',      priority: '0.8', freq: 'weekly',  lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-uk',          priority: '0.8', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-dubai',       priority: '0.8', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-turkey',      priority: '0.7', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-kenya',       priority: '0.7', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-south-africa',priority: '0.7', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-australia',   priority: '0.8', freq: 'monthly', lastmod: D_NEW  },
+    { loc: BASE + '/startup-networking-singapore',   priority: '0.8', freq: 'monthly', lastmod: D_NEW  },
     ...cityUrls,
     ...globalCityUrls,
     ...intentUrls,
     ...globalIntentUrls,
     ...categoryUrls,
-    { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly'  },
+    { loc: BASE + '/blog',                           priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
     ...ARTICLES.map(a => ({ loc: BASE + '/blog/' + a.slug, priority: '0.7', freq: 'monthly', lastmod: a.date })),
-    { loc: BASE + '/llms.txt',                       priority: '0.5', freq: 'monthly' },
-    { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly' },
-    { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly' },
-    { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly' },
+    { loc: BASE + '/llms.txt',                       priority: '0.5', freq: 'monthly', lastmod: D_CORE },
+    { loc: BASE + '/terms',                          priority: '0.3', freq: 'monthly', lastmod: D_UTIL },
+    { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly', lastmod: D_UTIL },
+    { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly', lastmod: D_UTIL },
   ];
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + (u.lastmod || today) + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
+    urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + u.lastmod + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
     '\n</urlset>';
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -401,6 +406,9 @@ app.get('/robots.txt', (req, res) => {
     'Allow: /',
     '',
     'User-agent: Googlebot',
+    'Crawl-delay: 1',
+    '',
+    'User-agent: Bingbot',
     'Crawl-delay: 1',
     '',
     'Sitemap: ' + BASE + '/sitemap.xml',
