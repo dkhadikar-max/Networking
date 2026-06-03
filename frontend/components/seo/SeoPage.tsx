@@ -21,7 +21,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <a href={APP_URL} className="font-bold text-[var(--primary)] text-lg">BYN</a>
           <a
-            href={`${APP_URL}/webapp.html`}
+            href="/signup"
             className="px-4 py-2 rounded-lg bg-[var(--primary)] text-white text-sm font-semibold hover:bg-[var(--primary-dark)] transition-colors"
           >
             Join free →
@@ -107,7 +107,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           <h2 className="text-2xl font-bold">{cta ?? 'Join the network'}</h2>
           <p className="text-teal-100 text-sm">Free to join. No app download needed.</p>
           <a
-            href={`${APP_URL}/webapp.html`}
+            href="/signup"
             className="inline-block px-8 py-3 rounded-xl bg-white text-[var(--primary)] font-bold hover:bg-teal-50 transition-colors"
           >
             Get started free →
