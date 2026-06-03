@@ -1443,7 +1443,7 @@
             <a href="#trust">Trust</a>
             <a href="#features">Features</a>
             <a href="#how">How It Works</a>
-            <a href="/app" class="nav-cta">Open Web App</a>
+            <a href="/signup" class="nav-cta">Open Web App</a>
             <a href="#download" class="nav-cta" style="margin-left:8px;background:transparent;color:var(--primary)!important;border:2px solid var(--primary);box-shadow:none">Download APK</a>
         </div>
         <button class="mobile-menu-btn" aria-label="Menu">
@@ -1488,7 +1488,7 @@
               </span>
             </div>
             <div class="cta-group animate delay-3">
-                <a href="/app" class="btn-primary">
+                <a href="/signup" class="btn-primary">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                     Open Web App — Free
                 </a>
@@ -1765,7 +1765,7 @@
         <p class="section-desc animate delay-2">The full BuildYourNetwork experience runs directly in your browser. Sign up and start discovering in under a minute.</p>
         <div class="download-box animate delay-3">
             <!-- Primary: Web App -->
-            <a href="/app" class="download-btn">
+            <a href="/signup" class="download-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Open Web App — Free
             </a>
@@ -1914,7 +1914,7 @@
         <h2 class="animate">Your network defines your trajectory.</h2>
         <p class="animate delay-1">Stop collecting contacts. Start building connections that matter.</p>
         <div class="animate delay-2">
-            <a href="/app" class="btn-primary" style="font-size: 17px; padding: 18px 40px;">
+            <a href="/signup" class="btn-primary" style="font-size: 17px; padding: 18px 40px;">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Open Web App — Free
             </a>
@@ -1944,7 +1944,7 @@
             <a href="#features">Features</a>
             <a href="#how">How It Works</a>
             <a href="#faq">FAQ</a>
-            <a href="/app">Open Web App</a>
+            <a href="/signup">Open Web App</a>
         </div>
         <div class="footer-col">
             <h4>Support</h4>
@@ -2019,7 +2019,7 @@
       const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);
       if(ref.length>=6){
         try{sessionStorage.setItem('byn_ref',ref);}catch(_){}
-        document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{
+        document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{
           const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;
         });
       }

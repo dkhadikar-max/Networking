@@ -4,6 +4,14 @@ const NOINDEX_HEADER = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  async redirects() {
+    return [
+      // /app was the old Express webapp route — redirect to /signup permanently
+      { source: '/app', destination: '/signup', permanent: true },
+      { source: '/webapp', destination: '/signup', permanent: true },
+      { source: '/webapp.html', destination: '/signup', permanent: true },
+    ];
+  },
   async headers() {
     return [
       // Auth routes — no value being indexed

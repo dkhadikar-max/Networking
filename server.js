@@ -766,7 +766,7 @@ function generateCityPage(slug, city, BASE) {
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network" loading="lazy">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 
 <div class="page-wrap">
@@ -775,7 +775,7 @@ function generateCityPage(slug, city, BASE) {
   <h1>Build Your <span>Professional Network</span> in ${escHtml(city.name)}</h1>
   <p class="lead">Build Your Network is the free intent-based networking platform for professionals in ${escHtml(city.name)}. Whether you are a founder seeking a co-founder, a freelancer finding clients, a professional changing careers, or an expert open to mentoring — connect with the right people based on what you actually want.</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p">
+    <a href="/signup" class="btn-p">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Start Networking in ${escHtml(city.name)} — Free
     </a>
@@ -858,7 +858,7 @@ function generateCityPage(slug, city, BASE) {
   <div class="cta-block">
     <h2>Start building your network in ${escHtml(city.name)}</h2>
     <p>Join Build Your Network free. Declare your intent. Meet the right people. GPS-based discovery across ${escHtml(city.name)} and all of India.</p>
-    <a href="/app" class="btn">
+    <a href="/signup" class="btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Join Free — Network in ${escHtml(city.name)}
     </a>
@@ -867,7 +867,7 @@ function generateCityPage(slug, city, BASE) {
 
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
 ${COOKIE_BANNER_SNIPPET}
-<script>(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()</script>
+<script>(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()</script>
 </body>
 </html>`;
 }
@@ -986,7 +986,7 @@ function generateGlobalCityPage(slug, city, BASE) {
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network" loading="lazy">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 <div class="page-wrap">
   <p class="breadcrumb"><a href="/">Home</a> › <a href="/${E(city.hubPage)}">${E(city.hubLabel)}</a> › ${E(city.name)}</p>
@@ -994,7 +994,7 @@ function generateGlobalCityPage(slug, city, BASE) {
   <h1>Build Your <span>Professional Network</span> in ${E(city.name)}</h1>
   <p class="lead">Build Your Network is the free intent-based professional networking platform for ${E(city.name)}. Whether you are a founder, freelancer, career professional, mentor, or investor — declare your intent and connect with the right people in your city.</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Start Networking in ${E(city.name)} — Free</a>
+    <a href="/signup" class="btn-p"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Start Networking in ${E(city.name)} — Free</a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
   <section class="quick-answer" aria-label="Quick answer">
@@ -1048,7 +1048,7 @@ function generateGlobalCityPage(slug, city, BASE) {
   <div class="cta-block">
     <h2>Start building your network in ${E(city.name)}</h2>
     <p>Join Build Your Network free. Declare your intent. Meet the right people. GPS-based discovery, no install required.</p>
-    <a href="/app" class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Join Free — Network in ${E(city.name)}</a>
+    <a href="/signup" class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Join Free — Network in ${E(city.name)}</a>
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
@@ -1223,7 +1223,7 @@ function generateGlobalCityIntentPage(slug, city, BASE, pattern) {
   <h1>${cfg.h1}</h1>
   <p class="lead">${E(cfg.lead)}</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p">Join Free in ${E(cn)}</a>
+    <a href="/signup" class="btn-p">Join Free in ${E(cn)}</a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
   <div class="answer-block">
@@ -1262,7 +1262,7 @@ function generateGlobalCityIntentPage(slug, city, BASE, pattern) {
   <div class="cta-block">
     <h2>${E(cfg.ctaH)}</h2>
     <p>${E(cfg.ctaP)}</p>
-    <a href="/app" class="btn">Get Started — Free</a>
+    <a href="/signup" class="btn">Get Started — Free</a>
   </div>
 </div>`;
 
@@ -1392,7 +1392,7 @@ function generateHubPage(region, cities, BASE) {
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network" loading="lazy">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 <div class="wrap">
   <span class="tag">Startup Networking · ${E(h1label)}</span>
@@ -1402,7 +1402,7 @@ function generateHubPage(region, cities, BASE) {
     : 'Build Your Network connects startup founders, co-founders, mentors, and investors across Europe — with GPS-based intent discovery in every major European startup hub. Free to join. No install required.'
   }</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p">Join Free — Start Networking</a>
+    <a href="/signup" class="btn-p">Join Free — Start Networking</a>
     <a href="#cities" class="btn-s">Browse Cities</a>
   </div>
 
@@ -1442,7 +1442,7 @@ function generateHubPage(region, cities, BASE) {
   <div class="cta-block">
     <h2>Start networking with founders ${isUS ? 'across the US' : 'across Europe'}</h2>
     <p>Free. GPS-based. No install. Works in every major ${E(h1label)} startup city.</p>
-    <a href="/app" class="btn">Join Free — Find Founders</a>
+    <a href="/signup" class="btn">Join Free — Find Founders</a>
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
@@ -1581,7 +1581,7 @@ function cityPageShell(head, body, BASE) {
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network" loading="lazy">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 ${body}
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
@@ -1771,7 +1771,7 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
   <h1>${cfg.h1}</h1>
   <p class="lead">${E(cfg.lead)}</p>
   <div class="cta-row">
-    <a href="/app" class="btn-p">Join Free in ${E(cn)}</a>
+    <a href="/signup" class="btn-p">Join Free in ${E(cn)}</a>
     <a href="#faq" class="btn-s">How it works</a>
   </div>
 
@@ -1816,7 +1816,7 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
   <div class="cta-block">
     <h2>${E(cfg.ctaH)}</h2>
     <p>${E(cfg.ctaP)}</p>
-    <a href="/app" class="btn">Get Started — Free</a>
+    <a href="/signup" class="btn">Get Started — Free</a>
   </div>
 </div>`;
 
@@ -2054,7 +2054,7 @@ function generateCategoryPage(citySlug, city, BASE, catKey) {
     <h1>${E(h1text)}</h1>
     <p class="lead">${E(lead)}</p>
     <div class="cta-row">
-      <a href="/app" class="btn">Join Free — No App Required</a>
+      <a href="/signup" class="btn">Join Free — No App Required</a>
       <a href="/networking-in-${citySlug}" class="btn-sec">All ${E(city.name)} Networking</a>
     </div>
     <section class="quick-answer" aria-label="Quick answer">
@@ -2083,7 +2083,7 @@ function generateCategoryPage(citySlug, city, BASE, catKey) {
   <div class="cta-block">
     <h2>Start Networking in ${E(city.name)} — Free</h2>
     <p>Join Build Your Network and connect with the right people in ${E(city.name)} based on what you're building and who you need.</p>
-    <a href="/app" class="btn">Get Started — Free</a>
+    <a href="/signup" class="btn">Get Started — Free</a>
   </div>
 </div>`;
 
@@ -2589,7 +2589,7 @@ ${body.css || ''}
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 <div class="wrap">${body.html}</div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/blog">Blog</a></p></footer>
@@ -2750,7 +2750,7 @@ ${sectionsHtml}
 <div class="cta-inline">
   <h3>${E(article.ctaText)}</h3>
   <p>Free to join. No install. Works in your browser.</p>
-  <a href="/app">${E(article.ctaBtn)} &#8594;</a>
+  <a href="/signup">${E(article.ctaBtn)} &#8594;</a>
 </div>
 ${relatedHtml}
 ${cityHtml}`;
@@ -2865,7 +2865,7 @@ footer a{color:var(--primary);text-decoration:none}
 <body>
 <nav><div class="nav-inner">
   <a href="/" class="logo"><img src="/assets/logo.png" alt="Build Your Network">BuildYourNetwork</a>
-  <a href="/app" class="nav-cta">Join Free</a>
+  <a href="/signup" class="nav-cta">Join Free</a>
 </div></nav>
 <div class="wrap">
   <p class="bc"><a href="/">Home</a> › <a href="/networking-for-founders">Founder Network</a> › ${name}</p>
@@ -2884,7 +2884,7 @@ footer a{color:var(--primary);text-decoration:none}
   <div class="cta-block">
     <h2>Connect with ${name} on Build Your Network</h2>
     <p>Join free to send a connection request. Intent-based matching — no cold DMs.</p>
-    <a href="/app">Join BYN Free &#8594;</a>
+    <a href="/signup">Join BYN Free &#8594;</a>
   </div>
 </div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></p></footer>

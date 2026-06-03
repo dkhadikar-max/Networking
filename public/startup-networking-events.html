@@ -225,7 +225,7 @@
       <img src="/assets/logo.png" alt="Build Your Network">
       BuildYourNetwork
     </a>
-    <a href="/app" class="nav-cta">Join Free</a>
+    <a href="/signup" class="nav-cta">Join Free</a>
   </div>
 </nav>
 
@@ -242,7 +242,7 @@
   </div>
 
   <div class="cta-row">
-    <a href="/app" class="btn-primary">
+    <a href="/signup" class="btn-primary">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Start Networking — Free
     </a>
@@ -433,7 +433,7 @@
   <div class="cta-block">
     <h2>Don't wait for the next startup event.</h2>
     <p>Build Your Network connects you with founders, investors, and mentors 24/7. Free. No install. India-wide.</p>
-    <a href="/app" class="btn">
+    <a href="/signup" class="btn">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Join Free — Start Networking
     </a>
@@ -452,7 +452,7 @@
   const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);
   if(ref.length>=6){
     try{sessionStorage.setItem('byn_ref',ref);}catch(_){}
-    document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{
+    document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{
       const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;
     });
   }

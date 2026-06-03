@@ -237,7 +237,7 @@
       <img src="/assets/logo.png" alt="Build Your Network">
       BuildYourNetwork
     </a>
-    <a href="/app" class="nav-cta">Join Free</a>
+    <a href="/signup" class="nav-cta">Join Free</a>
   </div>
 </nav>
 
@@ -255,7 +255,7 @@
   </div>
 
   <div class="cta-row">
-    <a href="/app" class="btn-primary">Try the #1 Ranked — BYN Free</a>
+    <a href="/signup" class="btn-primary">Try the #1 Ranked — BYN Free</a>
     <a href="#comparison" class="btn-secondary">See full comparison</a>
   </div>
 
@@ -550,7 +550,7 @@
   <div class="cta-block">
     <h2>The #1 networking platform for founders in India is free.</h2>
     <p>No install. No recruiter spam. Intent-based co-founder discovery across 43 Indian cities.</p>
-    <a href="/app" class="btn">Join BYN Free &#8594;</a>
+    <a href="/signup" class="btn">Join BYN Free &#8594;</a>
   </div>
 
 </div>
@@ -566,7 +566,7 @@
   const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);
   if(ref.length>=6){
     try{sessionStorage.setItem('byn_ref',ref);}catch(_){}
-    document.querySelectorAll('a[href="/app"],a[href^="/app?"]').forEach(a=>{
+    document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{
       const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;
     });
   }
