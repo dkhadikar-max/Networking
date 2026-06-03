@@ -12,7 +12,7 @@ interface Props {
   faqs: Faq[];
   cta?: string;
   breadcrumb: { label: string; href: string }[];
-  stats?: { users: number; connections: number };
+  stats?: unknown; // accepted but not displayed — real user counts unavailable
 }
 
 // Express brand tokens
@@ -85,25 +85,6 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           {subheadline}
         </p>
 
-        {/* Stats row */}
-        {stats && (
-          <div style={{ display: 'flex', gap: 32, marginBottom: 36 }}>
-            <div>
-              <p style={{ fontSize: 24, fontWeight: 800, color: C.primary }}>{stats.users.toLocaleString()}+</p>
-              <p style={{ fontSize: 13, color: C.textMuted }}>professionals</p>
-            </div>
-            <div style={{ width: 1, background: C.bgSecondary }} />
-            <div>
-              <p style={{ fontSize: 24, fontWeight: 800, color: C.primary }}>{stats.connections.toLocaleString()}+</p>
-              <p style={{ fontSize: 13, color: C.textMuted }}>connections made</p>
-            </div>
-            <div style={{ width: 1, background: C.bgSecondary }} />
-            <div>
-              <p style={{ fontSize: 24, fontWeight: 800, color: C.primary }}>Free</p>
-              <p style={{ fontSize: 13, color: C.textMuted }}>to join</p>
-            </div>
-          </div>
-        )}
 
         {/* CTA buttons */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 64 }}>
