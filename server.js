@@ -521,6 +521,9 @@ const CITIES = {
   trichy:         { name: 'Tiruchirappalli',   state: 'Tamil Nadu',      ecosystem: 'aerospace and defence, manufacturing, engineering, and religious tourism', hubs: 'NIT Tiruchirappalli, Anna University Regional Campus, and BHEL Trichy Incubation', excerpt: "Tiruchirappalli (Trichy) is Tamil Nadu's aerospace and manufacturing hub — home to BHEL's largest plant and NIT Trichy, one of India's top engineering colleges. The city's aerospace ecosystem, strong engineering talent, and role as a major religious tourism destination (Srirangam) create opportunities across deep-tech and tourism sectors." }
 };
 
+// Top 10 Indian cities — always indexed. All other Indian city pages get noindex to preserve crawl budget.
+const TOP_CITIES = new Set(['bengaluru','mumbai','delhi','hyderabad','pune','chennai','gurgaon','noida','kochi','jaipur']);
+
 // ── US CITIES ────────────────────────────────────────────────────────────────
 const US_CITIES = {
   sanfrancisco: { name: 'San Francisco', region: 'California', ecosystem: 'AI/ML, SaaS, fintech, consumer apps, and deep tech', hubs: 'Y Combinator, Andreessen Horowitz, First Round Capital, and the Caltrain corridor', excerpt: "San Francisco is the world's premier startup ecosystem — home to Y Combinator, the highest density of venture capital on Earth, and a talent pool of engineers, designers, and product leaders who have built products used by billions. It's the benchmark city for AI/ML, SaaS, and consumer technology.", geoRegion: 'US-CA', locale: 'en_US', currency: 'USD', countryName: 'United States', hubPage: 'startup-networking-us', hubLabel: 'Startup Networking US' },
@@ -684,7 +687,7 @@ function generateCityPage(slug, city, BASE) {
   <link rel="icon" href="/assets/logo.png" type="image/png">
   <link rel="canonical" href="${escHtml(canonical)}">
   <meta name="description" content="${escHtml(metaDesc)}">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="robots" content="${TOP_CITIES.has(slug) ? 'index, follow, max-snippet:-1, max-image-preview:large' : 'noindex, follow'}">
   <meta name="geo.region" content="IN">
   <meta name="geo.placename" content="${escHtml(city.name)}">
   <meta property="og:type" content="website">
@@ -1740,7 +1743,7 @@ function generateCityIntentPage(slug, city, BASE, pattern) {
   <title>${E(cfg.title)}</title>
   <link rel="canonical" href="${E(cfg.canonical)}">
   <meta name="description" content="${E(cfg.metaDesc)}">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="robots" content="${TOP_CITIES.has(slug) ? 'index, follow, max-snippet:-1, max-image-preview:large' : 'noindex, follow'}">
   <meta name="geo.region" content="IN">
   <meta name="geo.placename" content="${E(cn)}">
   <meta property="og:type" content="website">
@@ -2031,7 +2034,7 @@ function generateCategoryPage(citySlug, city, BASE, catKey) {
   const head = `
   <title>${E(title)}</title>
   <meta name="description" content="${E(metaDesc)}">
-  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="robots" content="${TOP_CITIES.has(citySlug) ? 'index, follow, max-snippet:-1, max-image-preview:large' : 'noindex, follow'}">
   <link rel="canonical" href="${canonical}">
   <meta property="og:title" content="${E(title)}">
   <meta property="og:description" content="${E(metaDesc)}">

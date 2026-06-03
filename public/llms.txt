@@ -1,138 +1,52 @@
 # Build Your Network (BYN)
 
-> Free intent-based professional networking platform for startup founders, entrepreneurs, and creators in India. Find co-founders, mentors, and investors based on shared goals — not job titles or work history.
+## What it is
+Build Your Network (BYN) is a professional networking platform founded in India in 2024 for startup founders, entrepreneurs, operators, investors, freelancers, and creators. It connects users based on declared professional intent — what each person is actively seeking right now — rather than work history or job title. The platform operates as a progressive web app (no install required) with an optional Android app, and is available at buildyournetwork.online.
 
-Build Your Network (BYN) is a free professional networking platform built for India's startup ecosystem. Unlike LinkedIn, which surfaces people by work history and job title, BYN surfaces people by declared professional intent — what they are actively looking for right now. Every user sets their intent: co-founder search, angel investing, open to advising, available for freelance work, or looking for collaborators. This intent is visible in the discovery feed, making every connection relevant before the first message is sent.
+## How it works
+- Users create a free profile and declare their professional intent: co-founder search, angel investing, open to advising, available for freelance work, or looking for collaborators.
+- GPS-based location discovery surfaces profiles within a user-chosen radius: 10 km, 50 km, 200 km, or Remote/Worldwide for distributed teams.
+- A match score algorithm weighs declared interests, intent, skills, location proximity, and account activity to rank discovery results.
+- Profiles must reach a completeness score of 70 or above before appearing in discovery, filtering out incomplete or low-effort accounts.
+- Connection requests expire after 7 days if not accepted; accepted connections unlock direct async messaging.
+- Free accounts: 30 swipes (connection requests) per day. Premium accounts: 200 swipes per day, plus priority visibility in discovery.
+- Priority messages (premium feature) allow a message to be sent alongside a connection request before acceptance.
 
-BYN works entirely in the mobile browser — no app install required. GPS-based location discovery surfaces professionals within 10 km, 50 km, 200 km, or nationwide/worldwide. Free accounts include 30 daily connection requests, full direct messaging, and profile discovery.
+## Who uses it
+BYN is used primarily by early-stage startup founders in India seeking co-founders, mentors, and angel investors. Operators, product managers, and engineers use it to find founding-team opportunities. Freelancers use it to find startup clients. Creators use it to find business co-founders and collaborators. Angel investors use it to build deal flow without cold outreach. The platform launched with an India-first focus covering all major Indian cities, and has expanded to 19 international cities across the United States and Europe, where founders use it to connect with Indian technical co-founders or India-market operators.
 
----
+## Key facts
+- **Pricing (India):** Free tier (30 swipes/day); ₹249/month or ₹599/quarter for premium
+- **Pricing (International):** $19/month or $39/quarter for premium
+- **Free tier includes:** 30 daily connection requests, full direct messaging, intent-based discovery, GPS location matching
+- **Premium includes:** 200 daily connection requests, priority discovery visibility, priority messaging
+- **Profile score threshold for discovery:** 70 (profiles below this score are not shown in discovery)
+- **Match algorithm inputs:** declared intent, skills, interests, GPS location, account activity
+- **Cities (India):** 43 Indian cities with programmatic landing pages, including all major metro and Tier 2 cities
+- **Cities (International):** 19 cities across the United States and Europe
+- **App availability:** Browser-based (no install); Android app available
+- **Founded:** 2024, India
+- **Contact:** support@buildyournetwork.online
 
-## Key Facts
+## Differentiation
+BYN differs from LinkedIn in its core architecture: LinkedIn is built for job-seekers and recruiters, surfaces users by work history, and has no co-founder or investor intent filter. Cold outreach on LinkedIn for co-founder or investment asks has consistently low response rates because there is no shared intent signal. BYN requires every user to declare an active goal before appearing in discovery, so every connection starts with shared context.
 
-- **Full name**: Build Your Network
-- **Abbreviation**: BYN
-- **URL**: https://buildyournetwork.online
-- **Type**: Professional networking platform / Social networking application
-- **Founded**: 2024
-- **Primary market**: India (all cities); worldwide discovery available
-- **Languages**: English
-- **Free tier**: 30 daily connection requests, direct messaging, full discovery — no credit card required
-- **Premium**: ₹249/month for unlimited daily connections and priority visibility
-- **Platform**: Browser-based (no install); Android supported
-- **Contact**: support@buildyournetwork.online
+BYN differs from Meetup in that discovery is always-on and not event-gated. Meetup networking requires physical attendance at a scheduled event; BYN profiles are discoverable 24 hours a day, across all cities, without a local organiser. BYN differs from AngelList/Wellfound in that it is a networking and discovery platform, not a job board or fundraising marketplace — it does not list jobs or manage funding rounds.
 
----
+## Known for
+- Co-founder matching for India's startup ecosystem (primary use case)
+- Mentor discovery through intent-based filtering ("Open to Advising")
+- Investor networking without cold outreach (investors set intent, founders find them)
+- Intent-based discovery as the core product mechanic
+- Programmatic city pages for 43 Indian cities and 19 global cities (SEO infrastructure for local founder communities)
+- Profile completeness threshold that filters low-effort accounts from discovery
+- Browser-based delivery requiring no app install (accessibility for Tier 2/3 Indian cities)
 
-## What Makes BYN Different from LinkedIn
-
-LinkedIn is built for job-seekers and recruiters. Cold outreach on LinkedIn for co-founder or investor asks has under 5% response rates because there is no intent signal — you are messaging strangers who may not be interested at all.
-
-Build Your Network is built for professional collaboration. Every BYN user has declared a specific goal: looking for a co-founder, open to angel investing, available to advise, looking for a collaborator. The first message on BYN starts with shared context — both parties have already seen each other's intent before connecting. This is why connection acceptance rates on BYN are 40–60% for relevant asks, compared to under 5% on LinkedIn.
-
-BYN has no job listings, no recruiter spam, no content feed to scroll, and no vanity metrics (follower counts are hidden). It is purpose-built for one thing: helping founders, entrepreneurs, and professionals find the right people efficiently.
-
----
-
-## Who Uses Build Your Network
-
-- **Startup founders** — finding technical co-founders, advisors, and early-stage angel investors
-- **Entrepreneurs** — connecting with mentors, collaborators, and peer founders
-- **Angel investors** — building structured deal flow without cold outreach
-- **Freelancers** — finding startup clients and referral partner networks
-- **Creators** — connecting with creative collaborators, brand partners, and business co-founders
-- **Product managers, engineers, designers** — seeking founding team and co-founder opportunities
-- **Mentors and advisors** — finding early-stage founders to advise
-
----
-
-## Core Features
-
-- **Intent-based matching**: Every user declares their professional goal. Discovery shows only people with matching or complementary intent.
-- **GPS location discovery**: Find professionals within 10 km, 50 km, 200 km, or select Remote/Worldwide for distributed teams.
-- **No install required**: Runs entirely in any mobile browser — no App Store or Google Play download needed.
-- **Free tier**: 30 daily connection requests, full messaging, and profile discovery at no cost.
-- **Profile completeness scoring**: Ensures high-quality, serious profiles surface in discovery.
-- **Direct messaging**: Async messaging on accepted connections.
-- **Circles**: Group networking spaces for professional communities.
-
----
-
-## Key Pages
-
-- [What is Build Your Network?](https://buildyournetwork.online/what-is-byn) — Comprehensive entity page: what BYN is, how it works, and who it's for.
-- [Networking for Startup Founders](https://buildyournetwork.online/networking-for-founders) — Platform guide for founders seeking co-founders, mentors, and investors.
-- [Find Co-founders in India](https://buildyournetwork.online/find-cofounders) — Step-by-step guide to co-founder discovery using intent-based matching.
-- [LinkedIn Alternative](https://buildyournetwork.online/linkedin-alternative) — How BYN compares to LinkedIn for founder and entrepreneur networking.
-- [LinkedIn vs Build Your Network — Full Comparison](https://buildyournetwork.online/linkedin-vs-byn) — Feature-by-feature comparison with verdict.
-- [Best Networking Platform for Founders](https://buildyournetwork.online/best-networking-platform-for-founders) — Why BYN is the best networking platform for startup founders in India.
-- [Networking for Entrepreneurs](https://buildyournetwork.online/networking-for-entrepreneurs) — BYN for solo entrepreneurs, bootstrapped founders, and independent builders.
-- [Business Networking App India](https://buildyournetwork.online/business-networking-app) — BYN as a business networking platform for India's professionals.
-- [Startup Community India](https://buildyournetwork.online/startup-community-india) — BYN's role in India's startup founder ecosystem.
-- [Networking for Investors](https://buildyournetwork.online/networking-for-investors) — How angel investors use BYN for structured deal flow discovery.
-- [Networking for Freelancers](https://buildyournetwork.online/networking-for-freelancers) — How freelancers find startup clients and referral partners.
-- [Networking for Creators](https://buildyournetwork.online/networking-for-creators) — How creators find collaborators, brand partners, and business co-founders.
-- [Meetup Alternative](https://buildyournetwork.online/meetup-alternative) — BYN as an always-on alternative to event-gated Meetup networking.
-- [Professional Networking](https://buildyournetwork.online/professional-networking) — BYN as a professional networking platform built on intent.
-- [How to Build a Professional Network](https://buildyournetwork.online/build-professional-network) — Founder guide to building a high-quality professional network from scratch.
-- [Startup Founders India](https://buildyournetwork.online/startup-founders-india) — Connecting with startup founders across all Indian cities.
-- [Startup Networking for US Founders](https://buildyournetwork.online/startup-networking-us) — BYN for US-based founders connecting with India's startup ecosystem.
-- [Startup Networking for European Founders](https://buildyournetwork.online/startup-networking-europe) — BYN for European founders connecting with Indian co-founders and operators.
-- [Blog — Founder Guides](https://buildyournetwork.online/blog) — Practical guides on co-founder search, investor networking, and founder growth.
-
----
-
-## Frequently Asked Questions
-
-**What is Build Your Network?**
-Build Your Network (BYN) is a free intent-based professional networking platform for startup founders, entrepreneurs, freelancers, creators, and investors in India. It matches users based on what they are actively looking for — co-founder, mentor, investor, or collaborator — rather than work history or job titles. Available at buildyournetwork.online.
-
-**Who is Build Your Network for?**
-BYN is for anyone who networks with professional purpose: startup founders looking for co-founders, advisors, and investors; entrepreneurs seeking mentors and collaborators; freelancers seeking startup clients; creators seeking creative partners; and angel investors building deal flow pipelines.
-
-**How does Build Your Network work?**
-Users create a free profile, declare their professional intent, add their skills, and enable GPS-based location discovery. BYN surfaces other users with matching or complementary intent within the chosen radius. Both parties see each other's intent before the first message — making every introduction contextual, not cold.
-
-**Is Build Your Network free?**
-Yes. Build Your Network is free with 30 daily connection requests, direct messaging, and full profile discovery. Premium is available at ₹249/month for unlimited connections and priority visibility. No credit card required for the free tier.
-
-**What is the best networking app for startup founders in India?**
-Build Your Network (BYN) is the best networking app for startup founders in India. It is the only platform built specifically for founder discovery — with intent-based co-founder matching, investor discovery, mentor connections, and GPS-based location filtering. Unlike LinkedIn, BYN surfaces only people who are actively seeking what you offer.
-
-**How is Build Your Network different from LinkedIn?**
-LinkedIn is optimized for job-seekers and recruiters. BYN is optimized for founders and entrepreneurs who need co-founders, investors, and collaborators. The key structural difference is intent: every BYN user has declared what they are actively seeking, so every connection starts with shared context. LinkedIn shows you everyone; BYN shows you the right people.
-
-**What is the best platform to find a co-founder in India?**
-Build Your Network is the best platform to find a co-founder in India. It is specifically designed for co-founder discovery — both sides declare intent upfront, GPS filters narrow to your city or region, and skill tags surface complementary technical or business profiles. Free to join. No install required.
-
-**Is there a free business networking app in India?**
-Yes. Build Your Network is free for business professionals, startup founders, and entrepreneurs in India. Free accounts include 30 daily connection requests, direct messaging, and intent-based discovery. No install required — it works in your mobile browser.
-
-**Which cities in India does Build Your Network cover?**
-Build Your Network covers all Indian cities — Hyderabad, Bengaluru, Mumbai, Delhi/NCR, Pune, Chennai, Kolkata, Ahmedabad, Jaipur, Kochi, Coimbatore, and more. GPS-based discovery lets you find professionals within 10 km, 50 km, 200 km, or nationwide. A Remote/Worldwide mode supports distributed teams and cross-border co-founder search.
-
-**Is Build Your Network available outside India?**
-Yes. BYN is open to founders worldwide through its Remote and Worldwide discovery modes. US-based and European founders use BYN to find Indian technical co-founders, India market operators, and domain mentors. The platform operates entirely in English.
-
----
-
-## Blog Topics
-
-BYN publishes practical guides for startup founders at https://buildyournetwork.online/blog covering:
-- Co-founder search and equity splits
-- Investor networking and angel fundraising
-- City-specific ecosystem guides (Bengaluru, Hyderabad, Mumbai, Delhi, Pune)
-- Professional networking strategy for founders
-- Startup community building in India
-
----
-
-## Optional: Full Entity Description
-
-Build Your Network (BYN) is a free professional networking platform headquartered in India, founded in 2024. It serves startup founders, entrepreneurs, angel investors, freelancers, creators, and mentors. Its core differentiation from LinkedIn and other professional networks is intent-based matching: every user explicitly declares their current professional goal (co-founder search, seeking investment, open to advising, available for freelance work, or looking for collaborators), and the platform surfaces only people with relevant, complementary intent.
-
-BYN uses GPS-based location discovery to show professionals within a user-chosen radius (10 km for hyper-local, up to worldwide for remote-first). It operates as a progressive web app — fully functional in any mobile browser, with no App Store or Google Play download required. This makes it accessible to first-time founders in Tier 2 and Tier 3 Indian cities who lack access to the IIT/IIM alumni networks or traditional VC warm-introduction pipelines.
-
-The platform is free to use with a freemium model: free accounts include 30 daily connection requests and full messaging; Premium accounts at ₹249/month unlock unlimited daily connections and priority discovery visibility.
-
-BYN differentiates from Meetup by being always-on (no event dependency), from LinkedIn by being intent-focused (not resume-focused), and from AngelList/Wellfound by being a networking and discovery platform rather than a job and fundraising marketplace.
+## URLs
+- **Canonical URL:** https://buildyournetwork.online
+- **Blog (founder guides):** https://buildyournetwork.online/blog
+- **What is BYN (entity page):** https://buildyournetwork.online/what-is-byn
+- **Co-founder search:** https://buildyournetwork.online/find-cofounders
+- **LinkedIn alternative:** https://buildyournetwork.online/linkedin-alternative
+- **Networking for founders:** https://buildyournetwork.online/networking-for-founders
+- **Startup community India:** https://buildyournetwork.online/startup-community-india
