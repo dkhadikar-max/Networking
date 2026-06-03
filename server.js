@@ -330,6 +330,7 @@ app.get('/sitemap.xml', (req, res) => {
   const urls = [
     { loc: BASE + '/',                               priority: '1.0', freq: 'weekly',  lastmod: D_CORE },
     { loc: BASE + '/what-is-byn',                    priority: '1.0', freq: 'monthly', lastmod: D_CORE },
+    { loc: BASE + '/intent-based-networking',        priority: '0.9', freq: 'monthly', lastmod: '2026-06-03' },
     { loc: BASE + '/networking-for-founders',        priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
     { loc: BASE + '/linkedin-alternative',           priority: '0.9', freq: 'weekly',  lastmod: D_CORE },
     { loc: BASE + '/linkedin-vs-byn',                priority: '0.8', freq: 'weekly',  lastmod: D_CORE },
@@ -458,6 +459,7 @@ app.get('/networking-for-investors',     (req, res) => sendSeoPage(res, 'network
 app.get('/find-cofounders',              (req, res) => sendSeoPage(res, 'find-cofounders.html'));
 app.get('/startup-founders-india',       (req, res) => sendSeoPage(res, 'startup-founders-india.html'));
 app.get('/what-is-byn',                  (req, res) => sendSeoPage(res, 'what-is-byn.html'));
+app.get('/intent-based-networking',      (req, res) => sendSeoPage(res, 'intent-based-networking.html'));
 app.get('/professional-networking',      (req, res) => sendSeoPage(res, 'professional-networking.html'));
 app.get('/build-professional-network',   (req, res) => sendSeoPage(res, 'build-professional-network.html'));
 app.get('/startup-networking-us',        (req, res) => sendSeoPage(res, 'startup-networking-us.html'));
@@ -556,6 +558,7 @@ const SEO_PAGES = [
   // ── Core brand pages ──
   { slug: '',                             label: 'Homepage',                   schema: 'WebSite+SoftwareApplication+FAQPage', priority: '1.0' },
   { slug: 'what-is-byn',                 label: 'What is BYN',                schema: 'WebPage+FAQPage',                     priority: '1.0' },
+  { slug: 'intent-based-networking',     label: 'Intent-Based Networking',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
   // ── High-intent landing pages ──
   { slug: 'networking-for-founders',      label: 'Networking for Founders',    schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
   { slug: 'linkedin-alternative',         label: 'LinkedIn Alternative',       schema: 'WebPage+FAQPage+BreadcrumbList',       priority: '0.9' },
@@ -648,7 +651,7 @@ function generateCityPage(slug, city, BASE) {
         'url': canonical,
         'description': metaDesc,
         'inLanguage': 'en-IN',
-        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.quick-answer', '.lead'] },
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.direct-answer'] },
         'breadcrumb': {
           '@type': 'BreadcrumbList',
           'itemListElement': [
@@ -891,7 +894,7 @@ function generateGlobalCityPage(slug, city, BASE) {
 
   const faqJsonLd = JSON.stringify({ '@context': 'https://schema.org', '@graph': [
     { '@type': 'WebPage', 'name': title, 'url': canonical, 'description': metaDesc, 'inLanguage': city.locale.replace('_','-'),
-      'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.quick-answer', '.lead'] },
+      'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.direct-answer'] },
       'breadcrumb': { '@type': 'BreadcrumbList', 'itemListElement': [
         { '@type': 'ListItem', 'position': 1, 'name': 'Home', 'item': BASE + '/' },
         { '@type': 'ListItem', 'position': 2, 'name': city.hubLabel, 'item': BASE + '/' + city.hubPage },
@@ -1058,7 +1061,7 @@ ${COOKIE_BANNER_SNIPPET}
 function globalCityIntentSchema(title, canonical, BASE, city, faqs, breadLabel, breadPath) {
   return JSON.stringify({ '@context': 'https://schema.org', '@graph': [
     { '@type': 'WebPage', 'name': title, 'url': canonical, 'inLanguage': city.locale.replace('_','-'),
-      'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.answer-block', '.lead'] },
+      'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.direct-answer'] },
       'breadcrumb': { '@type': 'BreadcrumbList', 'itemListElement': [
         { '@type': 'ListItem', 'position': 1, 'name': 'Home',      'item': BASE + '/' },
         { '@type': 'ListItem', 'position': 2, 'name': breadLabel,   'item': BASE + '/' + breadPath },
@@ -1484,7 +1487,7 @@ function cityIntentSchema(title, canonical, BASE, city, faqs, breadLabel, breadP
       {
         '@type': 'WebPage', 'name': title, 'url': canonical,
         'inLanguage': 'en-IN',
-        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.answer-block', '.lead'] },
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.direct-answer'] },
         'breadcrumb': {
           '@type': 'BreadcrumbList',
           'itemListElement': [
@@ -2006,7 +2009,7 @@ function generateCategoryPage(citySlug, city, BASE, catKey) {
     description: metaDesc,
     url: canonical,
     inLanguage: 'en-IN',
-    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.quick-answer', '.lead'] },
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.direct-answer'] },
     breadcrumb: {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -2676,7 +2679,7 @@ app.get('/blog/:slug', (req, res) => {
         'inLanguage': 'en-IN',
         'keywords': article.keywords,
         'about': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
-        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.intro', '.takeaways'] },
+        'speakable': { '@type': 'SpeakableSpecification', 'cssSelector': ['.direct-answer'] },
         'mainEntityOfPage': { '@type': 'WebPage', '@id': canonical },
       },
       {
