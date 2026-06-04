@@ -36,11 +36,10 @@ export default function ChatWindow({ connectionId }: Props) {
     async function init() {
       try {
         setLoading(true);
-        const [conns, msgs] = await Promise.all([
-          apiGet<Connection[]>('/api/connections'),
+        const [conn, msgs] = await Promise.all([
+          apiGet<Connection>(`/api/connections/${connectionId}`),
           apiGet<Message[]>(`/api/messages/${connectionId}`),
         ]);
-        const conn = conns.find(c => c.connection.id === connectionId);
         setConnection(conn ?? null);
         setMessages(msgs ?? []);
       } catch {

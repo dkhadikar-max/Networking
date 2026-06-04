@@ -4823,11 +4823,16 @@ app.get('/api/connections', auth, async (req, res) => {
     const msgCountMap = {};
     const prioritySet = new Set();
     if (connIds.length > 0) {
-      const [{ data: recentMsgs }, { data: priMsgs }, ...countResults] = await Promise.all([
-        supabase.from('messages')
-          .select('*').in('connection_id', connIds)
-          .order('created_at', { ascending: false })
-          .limit(connIds.length * 10),
+      const [lastMsgResults, { data: priMsgs }, ...countResults] = await Promise.all([
+        Promise.all(connIds.map(cid =>
+          supabase.from('messages')
+            .select('*')
+            .eq('connection_id', cid)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            .then(r => r.data)
+        )),
         supabase.from('priority_msgs')
           .select('from_user')
           .eq('to_user', req.user.id)
@@ -4840,8 +4845,8 @@ app.get('/api/connections', auth, async (req, res) => {
         ),
       ]);
 
-      (recentMsgs || []).forEach(m => {
-        if (!lastMsgMap[m.connection_id]) lastMsgMap[m.connection_id] = m;
+      lastMsgResults.forEach((m, i) => {
+        if (m) lastMsgMap[connIds[i]] = m;
       });
       connIds.forEach((cid, i) => {
         msgCountMap[cid] = countResults[i]?.count || 0;
@@ -4866,6 +4871,44 @@ app.get('/api/connections', auth, async (req, res) => {
     res.json(result);
   } catch(e) {
     console.error('Connections error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── CONNECTION DETAIL ──
+app.get('/api/connections/:connId', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const { data: conn } = await supabase.from('connections')
+      .select('*').eq('id', req.params.connId).maybeSingle();
+    if (!conn || (conn.user1 !== req.user.id && conn.user2 !== req.user.id))
+      return res.status(403).json({ error: 'Access denied' });
+
+    const otherId = conn.user1 === req.user.id ? conn.user2 : conn.user1;
+    const [{ data: other }, { data: lastMsgRow }, { data: priMsgs }] = await Promise.all([
+      supabase.from('users').select('*').eq('id', otherId).maybeSingle(),
+      supabase.from('messages').select('*').eq('connection_id', conn.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('priority_msgs').select('from_user')
+        .eq('to_user', req.user.id).eq('from_user', otherId).eq('read', false),
+    ]);
+    if (!other) return res.status(404).json({ error: 'User not found' });
+
+    const lastMsg = lastMsgRow ? mapMessage(lastMsgRow) : null;
+    const hoursLeft = conn.active ? null : Math.max(0, Math.round((new Date(conn.expires_at) - now) / 3600000));
+    const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
+    res.json({
+      connection: conn,
+      user: cleanPublic(other),
+      lastMessage: lastMsg,
+      hoursLeft,
+      active: !!conn.active,
+      msgCount: 0,
+      unread_count,
+      is_priority: (priMsgs || []).length > 0,
+    });
+  } catch(e) {
+    console.error('Connection detail error:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
