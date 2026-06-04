@@ -34,7 +34,7 @@ export default function Avatar({ src, name, size = 40, className, online }: Prop
         )}
       </div>
       {online && (
-        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[var(--green)] border-2 border-white" />
+        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-[var(--green)] border-2 border-[var(--bg)]" />
       )}
     </div>
   );

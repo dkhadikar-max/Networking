@@ -15,18 +15,28 @@ export default function ChatListPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let errors = 0;
+    let timer: ReturnType<typeof setTimeout>;
 
-    function fetchConnections(initial = false) {
-      apiGet<Connection[]>('/api/connections')
-        .then(r => { if (!cancelled) setConnections(r ?? []); })
-        .catch(() => { if (initial) toast('Failed to load chats', 'error'); })
-        .finally(() => { if (initial && !cancelled) setLoading(false); });
+    async function poll(initial = false) {
+      if (cancelled) return;
+      let delay = 10_000;
+      try {
+        const r = await apiGet<Connection[]>('/api/connections');
+        if (!cancelled) { setConnections(r ?? []); errors = 0; }
+        delay = document.hidden ? 30_000 : 10_000;
+      } catch {
+        if (initial && !cancelled) toast('Failed to load chats', 'error');
+        errors = Math.min(errors + 1, 5);
+        delay = Math.min(10_000 * 2 ** errors, 60_000);
+      } finally {
+        if (initial && !cancelled) setLoading(false);
+      }
+      if (!cancelled) timer = setTimeout(() => poll(), delay);
     }
 
-    fetchConnections(true);
-
-    const timer = setInterval(() => fetchConnections(false), 10_000);
-    return () => { cancelled = true; clearInterval(timer); };
+    poll(true);
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -36,7 +46,7 @@ export default function ChatListPage() {
           <h1>Chat</h1>
           {!loading && (
             <p className="chat-list-sub">
-              {connections.length} active {connections.length === 1 ? 'conversation' : 'conversations'}
+              {connections.length} {connections.length === 1 ? 'conversation' : 'conversations'}
             </p>
           )}
         </div>

@@ -4814,7 +4814,15 @@ app.get('/api/connections', auth, async (req, res) => {
 
     // Batch fetch other users
     const otherIds = active.map(c => c.user1 === req.user.id ? c.user2 : c.user1);
-    const { data: otherUsers } = await supabase.from('users').select('*').in('id', otherIds);
+    const CONNECTION_USER_FIELDS = [
+      'id','name','photos','location','headline',
+      'intent','interests','skills','currently_exploring','working_on',
+      'trust_score','profile_score','is_profile_complete','premium',
+      'banned','role','last_active','verification',
+      'instagram','linkedin','website','created_at',
+      'is_online','is_recently_active',
+    ].join(',');
+    const { data: otherUsers } = await supabase.from('users').select(CONNECTION_USER_FIELDS).in('id', otherIds);
     const userMap = Object.fromEntries((otherUsers || []).map(u => [u.id, u]));
 
     // Fetch only the last message and count per connection (no full message history load)
