@@ -7093,7 +7093,7 @@ app.post('/api/circles/posts/:id/collaborate', auth, async (req, res) => {
       .from('users').select('name, photos').eq('id', req.user.id).single();
     const actorName  = actor?.name  || 'Someone';
     const actorPhoto = actor?.photos?.[0] || null;
-    const notifId = `notif_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const notifId = uuidv4();
     await supabase.from('notifications').insert({
       id: notifId,
       user_id: post.user_id,
@@ -7148,10 +7148,11 @@ app.get('/api/notifications/unread-count', auth, async (req, res) => {
 
 app.patch('/api/notifications/read', auth, async (req, res) => {
   try {
-    await supabase.from('notifications')
+    const { error } = await supabase.from('notifications')
       .update({ read: true })
       .eq('user_id', req.user.id)
       .eq('read', false);
+    if (error) throw error;
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to mark as read' });

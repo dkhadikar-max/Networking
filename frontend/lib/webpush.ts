@@ -20,6 +20,7 @@ export async function registerWebPush(): Promise<void> {
     await navigator.serviceWorker.ready;
 
     let subscription = await registration.pushManager.getSubscription();
+    const isNew = !subscription;
 
     if (!subscription) {
       const permission = await Notification.requestPermission();
@@ -31,12 +32,14 @@ export async function registerWebPush(): Promise<void> {
       });
     }
 
-    await fetch('/api/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ subscription }),
-    });
+    if (isNew) {
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ subscription }),
+      });
+    }
   } catch (e) {
     console.warn('[push] registration failed:', e);
   }

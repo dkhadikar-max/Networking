@@ -9,23 +9,53 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
 
   const fetchCount = useCallback(async () => {
-    try {
-      const d = await apiGet<{ count: number }>('/api/notifications/unread-count');
-      setCount(d.count ?? 0);
-    } catch {
-      // silent
-    }
+    const d = await apiGet<{ count: number }>('/api/notifications/unread-count');
+    setCount(d.count ?? 0);
   }, []);
 
+  // Bug 6 fix: exponential backoff + tab-visibility awareness
   useEffect(() => {
-    fetchCount();
-    const id = setInterval(fetchCount, 30_000);
-    return () => clearInterval(id);
+    let cancelled = false;
+    let errors = 0;
+    let timer: ReturnType<typeof setTimeout>;
+
+    async function tick() {
+      if (cancelled) return;
+      if (!document.hidden) {
+        try { await fetchCount(); errors = 0; }
+        catch { errors = Math.min(errors + 1, 5); }
+      }
+      if (!cancelled) {
+        const delay = document.hidden ? 60_000 : Math.min(30_000 * 2 ** errors, 120_000);
+        timer = setTimeout(tick, delay);
+      }
+    }
+
+    function onVisible() {
+      if (!document.hidden && !cancelled) {
+        clearTimeout(timer);
+        timer = setTimeout(tick, 0);
+      }
+    }
+
+    fetchCount().catch(() => {});
+    timer = setTimeout(tick, 30_000);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [fetchCount]);
 
+  // Bug 3 fix: don't clear badge on open — only clear when explicitly marked read
   function handleOpen() {
     setOpen(true);
-    setCount(0); // optimistic clear
+  }
+
+  function handleClose() {
+    setOpen(false);
+    fetchCount().catch(() => {}); // re-sync badge after browsing panel without marking read
   }
 
   return (
@@ -42,7 +72,7 @@ export default function NotificationBell() {
 
       {open && (
         <NotificationPanel
-          onClose={() => setOpen(false)}
+          onClose={handleClose}
           onAllRead={() => setCount(0)}
         />
       )}

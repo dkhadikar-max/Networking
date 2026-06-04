@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPatch } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
 import type { CircleNotification } from '@/lib/types';
 
 function timeAgo(iso: string): string {
@@ -24,17 +25,25 @@ type Props = {
 
 export default function NotificationPanel({ onClose, onAllRead }: Props) {
   const router = useRouter();
+  const toast = useToast();
   const [notifs, setNotifs] = useState<CircleNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [marking, setMarking] = useState(false);
 
-  useEffect(() => {
+  // Bug 4 fix: track error state and expose it in the UI
+  function load() {
+    setLoading(true);
+    setError(false);
     apiGet<{ notifications: CircleNotification[] }>('/api/notifications')
-      .then(d => setNotifs(d.notifications))
-      .catch(() => {})
+      .then(d => setNotifs(d.notifications ?? []))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
-  }, []);
+  }
 
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Bug 8 fix: toast on markAllRead failure
   async function markAllRead() {
     if (marking) return;
     setMarking(true);
@@ -43,7 +52,7 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
       setNotifs(prev => prev.map(n => ({ ...n, read: true })));
       onAllRead();
     } catch {
-      // silent
+      toast('Failed to mark notifications as read', 'error');
     } finally {
       setMarking(false);
     }
@@ -56,10 +65,11 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
     router.push(`/profile/${actorId}`);
   }
 
-  function goToPost(e: React.MouseEvent) {
+  // Bug 2 fix: pass ref_id so circles page can scroll to the specific post
+  function goToPost(refId: string | null, e: React.MouseEvent) {
     e.stopPropagation();
     onClose();
-    router.push('/circles');
+    router.push(refId ? `/circles?post=${refId}` : '/circles');
   }
 
   const hasUnread = notifs.some(n => !n.read);
@@ -98,7 +108,20 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
             </div>
           )}
 
-          {!loading && notifs.length === 0 && (
+          {/* Bug 4 fix: show error state with retry */}
+          {!loading && error && (
+            <div className="notif-empty">
+              <div className="notif-empty-title">Could not load notifications</div>
+              <button
+                onClick={load}
+                style={{ marginTop: 8, padding: '8px 20px', borderRadius: 'var(--r-lg)', background: 'var(--primary)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!loading && !error && notifs.length === 0 && (
             <div className="notif-empty">
               <div className="notif-empty-title">No notifications yet</div>
               <div className="notif-empty-sub">
@@ -107,14 +130,14 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
             </div>
           )}
 
-          {!loading && notifs.map(n => {
+          {!loading && !error && notifs.map(n => {
             const initials = n.actor_name
               ? n.actor_name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
               : '?';
 
             return (
               // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
-              <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`} onClick={goToPost}>
+              <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`} onClick={e => goToPost(n.ref_id, e)}>
                 {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
                 <div
                   className="notif-avatar"

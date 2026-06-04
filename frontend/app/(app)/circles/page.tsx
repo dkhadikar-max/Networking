@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CIRCLE_TAGS, type CircleTag, type CirclePost } from '@/lib/types';
 import { apiGet, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -18,13 +19,15 @@ const MODES: { key: FeedMode; label: string }[] = [
 
 export default function CirclesPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const highlightPostId = searchParams.get('post');
   const [posts, setPosts] = useState<CirclePost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [activeTag, setActiveTag] = useState<CircleTag | null>(null);
-  const [mode, setMode] = useState<FeedMode>('for-you');
+  const [mode, setMode] = useState<FeedMode>(highlightPostId ? 'all' : 'for-you');
   const [noLocation, setNoLocation] = useState(false);
   const [composing, setComposing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -53,6 +56,13 @@ export default function CirclesPage() {
   useEffect(() => {
     fetchPosts(activeTag, 0, true, mode);
   }, [activeTag, mode, fetchPosts]);
+
+  // Bug 2 fix: scroll to the referenced post once the feed has loaded
+  useEffect(() => {
+    if (!highlightPostId || loading) return;
+    const el = document.getElementById(`post-${highlightPostId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightPostId, loading]);
 
   async function handleDelete(id: string) {
     try {
@@ -194,7 +204,9 @@ export default function CirclesPage() {
         )}
 
         {!loading && !fetchError && posts.map(post => (
-          <CirclePostCard key={post.id} post={post} onDelete={handleDelete} onEdit={handleEdit} />
+          <div key={post.id} id={`post-${post.id}`}>
+            <CirclePostCard post={post} onDelete={handleDelete} onEdit={handleEdit} />
+          </div>
         ))}
 
         {loadingMore && (
