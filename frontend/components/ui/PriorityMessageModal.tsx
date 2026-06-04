@@ -45,7 +45,7 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
     setLoadingInbox(true);
     apiGet<PriorityMessagesResponse>('/api/priority-messages')
       .then(r => setData(r))
-      .catch(() => toast('Failed to load priority messages', 'error'))
+      .catch(() => { if (mode === 'inbox') toast('Failed to load priority messages', 'error'); })
       .finally(() => setLoadingInbox(false));
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -78,7 +78,7 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
       onClick={onClose}
     >
       <div
-        style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
+        style={{ width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Drag handle */}

@@ -41,7 +41,7 @@ async function fetchProfiles(filters: FilterState, offset: number): Promise<{ pr
   const merged: DiscoverProfile[] = [];
   for (const batch of results) {
     for (const p of batch) {
-      const uid = (p as { id?: string }).id ?? '';
+      const uid = getUid(p);
       if (uid && !seen.has(uid)) { seen.add(uid); merged.push(p); }
     }
   }
@@ -77,7 +77,11 @@ export default function DiscoverFeed() {
       const offset = reset ? 0 : page * 10;
       const { profiles: incoming, exhausted: done } = await fetchProfiles(filtersRef.current, offset);
       if (done) setExhausted(true);
-      setProfiles(prev => reset ? incoming : [...prev, ...incoming]);
+      setProfiles(prev => {
+        if (reset) return incoming;
+        const existingIds = new Set(prev.map(getUid));
+        return [...prev, ...incoming.filter(p => !existingIds.has(getUid(p)))];
+      });
       if (!reset) setPage(p => p + 1);
     } catch (e) {
       const code = (e as { code?: string }).code;
@@ -122,13 +126,9 @@ export default function DiscoverFeed() {
     if (save && uid) {
       apiPost('/api/skip', { targetId: uid }).catch(() => {});
     }
-    let remaining = 0;
-    setProfiles(prev => {
-      const next = prev.filter(p => getUid(p) !== uid);
-      remaining = next.length;
-      return next;
-    });
-    if (remaining <= 3 && !exhausted && !loading) load(false);
+    const next = profiles.filter(p => getUid(p) !== uid);
+    setProfiles(next);
+    if (next.length <= 3 && !exhausted && !loading) load(false);
   }
 
   const router = useRouter();

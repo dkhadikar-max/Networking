@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { DiscoverProfile } from '@/lib/types';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 
@@ -18,8 +18,7 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const headline = (user as { headline?: string }).headline ?? '';
   const location = (user as { location?: string }).location ?? '';
   const bio = (user as { bio?: string }).bio ?? '';
-  const intentsRaw = user as { intents?: string[]; intent?: string };
-  const intents: string[] = intentsRaw.intents ?? (intentsRaw.intent ? [intentsRaw.intent] : []);
+  const intents: string[] = (user as { intent?: string }).intent ? [(user as { intent: string }).intent] : [];
   const interests: string[] = (user as { interests?: string[] }).interests ?? [];
   const skills: string[] = (user as { skills?: string[] }).skills ?? [];
   const working_on = (user as { working_on?: string }).working_on ?? '';
@@ -41,6 +40,8 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const dragXRef = useRef(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -95,6 +96,7 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
         cardRef.current.style.transform = `translateX(${flyX}px) rotate(${dx > 0 ? 25 : -25}deg)`;
       }
       await new Promise<void>(r => setTimeout(r, 260));
+      if (!mountedRef.current) return;
       if (dx > 0) await triggerConnect();
       else onSkip();
     } else {

@@ -74,7 +74,7 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
   const intentHint = draft.intents.length === 0
     ? 'Select up to 3'
     : draft.intents.length === 1
-      ? '1 selected — add 1 more to broaden'
+      ? '1 of 3 — add up to 2 more to broaden'
       : `${draft.intents.length} selected`;
 
   return (
@@ -83,7 +83,7 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
       onClick={onClose}
     >
       <div
-        style={{ width: '100%', maxWidth: 480, background: 'white', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}
+        style={{ width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
