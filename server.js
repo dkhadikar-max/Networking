@@ -275,6 +275,8 @@ const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message
 const dsaReportLimiter  = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Report limit reached — try again in an hour' } });
 const feedbackLimiter   = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Feedback limit reached — try again later' } });
 const circlePostLimiter = rateLimit({ windowMs: 5*60*1000,  max: 10, message: { error: 'Post rate limit reached — slow down' } });
+const circleGroupCreateLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Too many circles created — try again in an hour' } });
+const circleGroupActionLimiter = rateLimit({ windowMs: 60*1000,     max: 20, message: { error: 'Slow down' } });
 
 // ── PER-ACCOUNT LOGIN LOCKOUT ──
 const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
@@ -6834,6 +6836,28 @@ async function isBlockedHost(hostname) {
   }
 }
 
+// SSRF-safe fetch — re-checks isBlockedHost() on every redirect hop instead of
+// only the initial URL. `fetch(url, {redirect:'follow'})` alone doesn't do this:
+// a public URL that 302s to http://169.254.169.254/... or an internal hostname
+// would sail through the one-time check and get fetched anyway.
+async function safeFetchFollowingRedirects(startUrl, options = {}, maxRedirects = 5) {
+  let currentUrl = startUrl;
+  for (let i = 0; i <= maxRedirects; i++) {
+    const parsed = new URL(currentUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+    if (await isBlockedHost(parsed.hostname)) return null;
+    const res = await fetch(currentUrl, { ...options, redirect: 'manual' });
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      const location = res.headers.get('location');
+      if (!location) return null;
+      currentUrl = new URL(location, currentUrl).href;
+      continue;
+    }
+    return res;
+  }
+  return null; // too many redirects
+}
+
 async function fetchLinkPreview(url) {
   const cached = lpCache.get(url);
   if (cached && Date.now() - cached.ts < LP_TTL) return cached.data;
@@ -6868,17 +6892,16 @@ async function fetchLinkPreview(url) {
   }
 
   try {
-    const res = await fetch(url, {
+    const res = await safeFetchFollowingRedirects(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },
       signal: AbortSignal.timeout(8000),
-      redirect: 'follow',
     });
-    if (!res.ok) {
-      console.log(`[link-preview] HTTP ${res.status} for ${url}`);
+    if (!res || !res.ok) {
+      console.log(`[link-preview] ${res ? `HTTP ${res.status}` : 'blocked or unreachable'} for ${url}`);
       return null;
     }
     const ct = res.headers.get('content-type') || '';
@@ -7166,7 +7189,7 @@ async function attachMyRole(groups, userId) {
   return groups.map(g => ({ ...g, my_role: roleByGroup[g.id] || null, member_count: countByGroup[g.id] || 0 }));
 }
 
-app.post('/api/circle-groups', auth, profileGuard, async (req, res) => {
+app.post('/api/circle-groups', circleGroupCreateLimiter, auth, profileGuard, async (req, res) => {
   try {
     const { name, description, privacy } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name required' });
@@ -7246,7 +7269,7 @@ app.get('/api/circle-groups/:id/members', auth, async (req, res) => {
   }
 });
 
-app.post('/api/circle-groups/:id/join', auth, profileGuard, async (req, res) => {
+app.post('/api/circle-groups/:id/join', circleGroupActionLimiter, auth, profileGuard, async (req, res) => {
   try {
     const { data: group } = await supabase.from('circle_groups').select('privacy').eq('id', req.params.id).maybeSingle();
     if (!group) return res.status(404).json({ error: 'Circle not found' });
@@ -7264,7 +7287,7 @@ app.post('/api/circle-groups/:id/join', auth, profileGuard, async (req, res) => 
   }
 });
 
-app.post('/api/circle-groups/:id/leave', auth, async (req, res) => {
+app.post('/api/circle-groups/:id/leave', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     const { data: members, error } = await supabase.from('circle_group_members')
       .select('id, user_id, role').eq('group_id', req.params.id);
@@ -7294,7 +7317,7 @@ async function requireGroupAdmin(groupId, userId) {
   return membership?.role === 'admin';
 }
 
-app.post('/api/circle-groups/:id/members/:userId/promote', auth, async (req, res) => {
+app.post('/api/circle-groups/:id/members/:userId/promote', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
     const { error } = await supabase.from('circle_group_members')
@@ -7306,7 +7329,7 @@ app.post('/api/circle-groups/:id/members/:userId/promote', auth, async (req, res
   }
 });
 
-app.post('/api/circle-groups/:id/members/:userId/demote', auth, async (req, res) => {
+app.post('/api/circle-groups/:id/members/:userId/demote', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
     const { data: members } = await supabase.from('circle_group_members')
@@ -7324,7 +7347,7 @@ app.post('/api/circle-groups/:id/members/:userId/demote', auth, async (req, res)
   }
 });
 
-app.post('/api/circle-groups/:id/members/:userId/remove', auth, async (req, res) => {
+app.post('/api/circle-groups/:id/members/:userId/remove', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
     const { data: group } = await supabase.from('circle_groups').select('creator_id').eq('id', req.params.id).maybeSingle();
@@ -7353,7 +7376,7 @@ app.delete('/api/circle-groups/:id', auth, async (req, res) => {
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────────────────
 
-app.post('/api/circles/posts/:id/like', auth, async (req, res) => {
+app.post('/api/circles/posts/:id/like', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     const { data: post, error: postErr } = await supabase
       .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
