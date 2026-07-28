@@ -3527,6 +3527,17 @@ app.get('/api/health', (req, res) => {
 // ── FIXED: SIGNUP with email validation ──
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// User-supplied IDs (targetId, reviewedId, etc.) get interpolated straight into
+// PostgREST .or() filter strings in several places — .eq()/.in() are parameterized
+// by the client and safe, but .or() takes a raw string, so an unvalidated ID could
+// inject extra filter clauses. Every ID this app generates is a uuidv4(), so
+// rejecting anything that isn't UUID-shaped before it reaches a query closes that
+// off without having to rewrite each .or() call.
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidId(id) {
+  return typeof id === 'string' && UUID_REGEX.test(id);
+}
+
 // ── OTP HELPER ──
 function generateOtp() {
   // crypto is imported at the top — randomInt is cryptographically secure
@@ -4344,6 +4355,7 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
 app.post('/api/users/:id/review', auth, async (req, res) => {
   try {
     const reviewedId = req.params.id;
+    if (!isValidId(reviewedId)) return res.status(400).json({ error: 'Invalid user id' });
     if (reviewedId === req.user.id)
       return res.status(400).json({ error: 'Cannot review yourself' });
 
@@ -4741,6 +4753,7 @@ app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
   try {
     const { userId: targetId } = req.body;
     if (!targetId) return res.status(400).json({ error: 'userId required' });
+    if (!isValidId(targetId)) return res.status(400).json({ error: 'Invalid user id' });
     if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot connect with yourself' });
 
     const swiper = req.userData;
@@ -5282,6 +5295,7 @@ app.post('/api/block', auth, async (req, res) => {
   try {
     const { targetId } = req.body;
     if (!targetId) return res.status(400).json({ error: 'targetId required' });
+    if (!isValidId(targetId)) return res.status(400).json({ error: 'Invalid user id' });
     if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot block yourself' });
 
     const { data: existing } = await supabase.from('blocks')
@@ -5483,6 +5497,7 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
 app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!isValidId(id)) return res.status(400).json({ error: 'Invalid user id' });
     if (id === req.user.id) return res.status(400).json({ error: 'Cannot delete your own account' });
     const { data: user } = await supabase.from('users').select('id, role').eq('id', id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
