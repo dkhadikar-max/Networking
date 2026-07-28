@@ -64,6 +64,13 @@ export default function DiscoverFeed() {
   const [exhausted, setExhausted] = useState(false);
   const [blockReason, setBlockReason] = useState<'NO_PHOTO' | 'TRUST_TOO_LOW' | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // TEMP — visual QA only, remove before finishing
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('__testmatch') === '1') {
+      setMatchInfo({ connectionId: null, theirPhoto: null, theirName: 'Lovedeep Sharma' });
+    }
+  }, []);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
   const [dailySignal, setDailySignal] = useState<DailySignal | null>(null);
