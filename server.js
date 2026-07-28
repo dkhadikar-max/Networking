@@ -4476,7 +4476,7 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
       .order('last_active', { ascending: false })
       .limit(200);
 
-    let candidates = (allUsers || []).filter(u => !excluded.has(u.id));
+    let candidates = (allUsers || []).filter(u => !excluded.has(u.id) && u.photos && u.photos.length > 0);
 
     // Apply filters
     if (skill)    candidates = candidates.filter(u => (u.skills||[]).some(s => s.toLowerCase().includes(skill.toLowerCase())));
