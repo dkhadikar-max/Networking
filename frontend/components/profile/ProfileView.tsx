@@ -232,27 +232,11 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
           {isSelf ? (
             <>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  onClick={onEdit}
-                  style={{
-                    flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                    background: 'linear-gradient(135deg, var(--primary), var(--primary-2))',
-                    border: 'none', color: 'white', fontSize: 14, fontWeight: 700,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
+                <button onClick={onEdit} className="profile-action-btn profile-action-primary">
                   Edit profile
                 </button>
                 {!(user.premium || user.is_premium) && (
-                  <button
-                    onClick={() => router.push('/upgrade')}
-                    style={{
-                      flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                      border: '1.5px solid #F4A259', background: 'white',
-                      color: '#B8641F', fontSize: 14, fontWeight: 700,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
+                  <button onClick={() => router.push('/upgrade')} className="profile-action-btn profile-action-pro">
                     ⭐ Go Pro
                   </button>
                 )}

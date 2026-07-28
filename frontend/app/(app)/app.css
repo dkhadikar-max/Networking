@@ -305,6 +305,17 @@
 }
 .action-connect:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(21,122,110,0.38); transform: translateY(-1px); }
 .action-connect:disabled { opacity: 0.6; cursor: not-allowed; }
+.disc-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+.disc-empty-icon--muted { background: var(--sur2); }
+.disc-empty-icon--action { background: linear-gradient(135deg,#D5F5EE,#BBF0E7); box-shadow: var(--shadow-xs); }
 .disc-empty {
   flex: 1;
   display: flex;
@@ -445,6 +456,30 @@
 }
 .hero-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
 .hero-intent { font-size: 13px; color: var(--text-soft); margin-top: 5px; }
+.profile-action-btn {
+  flex: 1;
+  padding: 13px 16px;
+  border-radius: var(--r-md);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.profile-action-btn:active { transform: scale(0.97); }
+.profile-action-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: none;
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+.profile-action-primary:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.profile-action-pro {
+  background: linear-gradient(135deg,#FFF4E7,#FFEAD1);
+  border: 1px solid rgba(244,162,89,0.35);
+  color: #B8641F;
+}
+.profile-action-pro:hover { background: linear-gradient(135deg,#FFEAD1,#FFDFB8); box-shadow: var(--shadow-xs); transform: translateY(-1px); }
 .profile-panel {
   background: var(--card);
   border-radius: var(--r-lg);

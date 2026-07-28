@@ -198,9 +198,11 @@ export default function DiscoverFeed() {
 
           {!loading && !current && blockReason && (
             <div className="disc-empty">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="12" cy="10" r="3" /><path d="M6 20c1-3 4-4 6-4s5 1 6 4" />
-              </svg>
+              <div className="disc-empty-icon disc-empty-icon--action">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="10" r="2.75" /><path d="M7 19c0.8-2.6 2.9-4 5-4s4.2 1.4 5 4" />
+                </svg>
+              </div>
               <h3>{blockReason === 'NO_PHOTO' ? 'Add a photo to start discovering people' : 'Set your networking goal to unlock Discovery'}</h3>
               <p>{blockReason === 'NO_PHOTO'
                 ? "A photo is required so the people you match with know who they're talking to."
@@ -216,9 +218,11 @@ export default function DiscoverFeed() {
 
           {!loading && !current && !blockReason && (
             <div className="disc-empty">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
+              <div className="disc-empty-icon disc-empty-icon--muted">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
+                </svg>
+              </div>
               <h3>You&apos;ve seen everyone nearby for now</h3>
               <p>Check back later or widen your filters — new members join every day.</p>
               <button
