@@ -82,10 +82,10 @@ export default function ProfileScreen({ navigation }) {
     } catch (e) { Alert.alert('Error', e.response?.data?.error || e.message); }
   }
 
-  async function removePhoto(idx) {
+  async function removePhoto(url) {
     Alert.alert('Remove photo?','',[ {text:'Cancel',style:'cancel'}, {text:'Remove',style:'destructive',onPress:async()=>{
-      try { await api.delete(`/api/me/photos/${idx}`); load(); }
-      catch (e) { Alert.alert('Error', e.message); }
+      try { await api.delete('/api/me/photos', { data: { url } }); load(); }
+      catch (e) { Alert.alert('Error', e.response?.data?.error || e.message); }
     }}]);
   }
 
@@ -115,9 +115,9 @@ export default function ProfileScreen({ navigation }) {
         <Text style={s.panelTitle}>Photos <Text style={s.panelSub}>(min 4 for full trust)</Text></Text>
         <View style={s.photoGrid}>
           {photos.map((url, i) => (
-            <TouchableOpacity key={i} onLongPress={()=>removePhoto(i)} style={s.photoWrap}>
+            <TouchableOpacity key={i} onLongPress={()=>removePhoto(url)} style={s.photoWrap}>
               <Image source={{uri:url}} style={s.photoThumb} />
-              <TouchableOpacity style={s.photoRm} onPress={()=>removePhoto(i)}>
+              <TouchableOpacity style={s.photoRm} onPress={()=>removePhoto(url)}>
                 <Text style={{color:'#fff',fontSize:10}}>×</Text>
               </TouchableOpacity>
             </TouchableOpacity>

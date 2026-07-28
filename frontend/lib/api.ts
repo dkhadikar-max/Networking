@@ -19,6 +19,12 @@ function authHeaders(): Record<string, string> {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
+    if (res.status === 401 && typeof window !== 'undefined') {
+      // Session expired/invalidated mid-use — notify AuthContext so it clears
+      // user state and the existing (app)/layout.tsx guard redirects to /login,
+      // instead of every caller just showing a generic error toast forever.
+      window.dispatchEvent(new Event('byn:unauthorized'));
+    }
     throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status, code: err.code });
   }
   return res.json();

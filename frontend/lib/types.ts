@@ -142,5 +142,5 @@ export type CirclePost = {
     verification?: { status: string; confidence: number };
     last_active?: string;
     headline?: string;
-  };
+  } | null; // author is a LEFT JOIN server-side — can be null if the account was deleted
 };

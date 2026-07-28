@@ -6258,6 +6258,18 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     if (expected !== razorpay_signature)
       return res.status(400).json({ error: 'Invalid payment signature — possible tampering' });
 
+    // SECURITY: Order-ownership check — a valid signature only proves the
+    // {order_id, payment_id} pair was really paid, not that the caller is who
+    // paid. Without this, anyone who captures another user's client-side
+    // Razorpay callback (order_id/payment_id/signature are all visible in the
+    // browser) could race their own /verify call in first and get premium
+    // activated on their own account for someone else's payment.
+    const { data: orderRec } = await supabase.from('payments')
+      .select('user_id').eq('id', razorpay_order_id).maybeSingle();
+    if (!orderRec) return res.status(404).json({ error: 'Order not found' });
+    if (orderRec.user_id !== req.user.id)
+      return res.status(403).json({ error: 'This order does not belong to you' });
+
     // BUG FIX 1: Replay-attack guard — reject any payment_id already consumed by a DIFFERENT user.
     // Without this, anyone holding a valid {order_id, payment_id, signature} tuple can
     // replay it on a different account and get free premium.
@@ -7028,7 +7040,9 @@ app.get('/api/circles/feed', auth, async (req, res) => {
     const { data, error } = await query;
     if (error) throw error;
 
-    let posts = data || [];
+    // author is a LEFT JOIN (no !inner) — filter out posts whose author
+    // account no longer exists rather than shipping author: null to clients.
+    let posts = (data || []).filter(p => p.author);
 
     // Near Me: filter by haversine proximity (150km) or city string
     if (mode === 'near-me') {

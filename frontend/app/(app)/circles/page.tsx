@@ -216,7 +216,7 @@ export default function CirclesPage() {
           </div>
         )}
 
-        {!loading && !fetchError && posts.map(post => (
+        {!loading && !fetchError && posts.filter(post => post.author).map(post => (
           <div key={post.id} id={`post-${post.id}`}>
             <CirclePostCard post={post} onDelete={handleDelete} onEdit={handleEdit} />
           </div>

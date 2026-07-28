@@ -17,6 +17,7 @@ export default function ChatListScreen({ navigation }) {
   const [list, setList]         = useState([]);
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useFocusEffect(useCallback(() => {
     load();
@@ -29,7 +30,8 @@ export default function ChatListScreen({ navigation }) {
     try {
       const { data } = await api.get('/api/connections');
       setList(Array.isArray(data) ? data : []);
-    } catch {}
+      setLoadError(false);
+    } catch { setLoadError(true); }
     finally { setLoading(false); setRefreshing(false); }
   }
 
@@ -79,8 +81,8 @@ export default function ChatListScreen({ navigation }) {
       {!list.length ? (
         <View style={s.center}>
           <Text style={s.emptyIcon}>◎</Text>
-          <Text style={s.emptyH}>No conversations yet</Text>
-          <Text style={s.emptySub}>Swipe right on Discover to connect with people.</Text>
+          <Text style={s.emptyH}>{loadError ? 'Could not load chats' : 'No conversations yet'}</Text>
+          <Text style={s.emptySub}>{loadError ? 'Check your connection and try again shortly.' : 'Swipe right on Discover to connect with people.'}</Text>
         </View>
       ) : (
         <FlatList

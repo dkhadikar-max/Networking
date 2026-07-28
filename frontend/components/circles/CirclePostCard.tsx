@@ -52,6 +52,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
   const router = useRouter();
   const toast = useToast();
   const { author, text, tags, structured_meta, links, created_at } = post;
+  if (!author) return null; // author account no longer exists — post is filtered upstream, this is defense in depth
   const initials = author.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
   const photo = author.photos?.[0];
   const metaEntries = Object.entries(structured_meta || {}).filter(([, v]) => v && String(v).trim());

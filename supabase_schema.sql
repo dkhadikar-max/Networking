@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS connections (
   active                   boolean DEFAULT false,
   status                   text DEFAULT 'active'
 );
+CREATE INDEX IF NOT EXISTS connections_user1_idx ON connections(user1);
+CREATE INDEX IF NOT EXISTS connections_user2_idx ON connections(user2);
 
 -- MESSAGES  (sender_id to avoid SQL reserved word "from")
 CREATE TABLE IF NOT EXISTS messages (
@@ -198,3 +200,103 @@ CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_
 CREATE INDEX IF NOT EXISTS notifications_unread_idx       ON notifications(user_id) WHERE read = FALSE;
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- The following tables were live in production and actively queried by
+-- server.js but had never been added to this schema file — reconstructed
+-- from actual usage (2026-07-28 architecture audit) so this file is a
+-- reliable source of truth. Verify column types/constraints against the
+-- live database before relying on this to recreate production from scratch.
+-- ══════════════════════════════════════════════════════════════════════════
+
+-- ── PAYMENTS (Razorpay) ──────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payments (
+  id                 TEXT        PRIMARY KEY, -- = razorpay_order_id
+  user_id            TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  razorpay_order_id  TEXT        NOT NULL,
+  razorpay_payment_id TEXT,
+  plan               TEXT        NOT NULL,
+  currency           TEXT        NOT NULL,
+  amount             INTEGER     NOT NULL,
+  status             TEXT        NOT NULL DEFAULT 'created', -- created | paid
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS payments_user_id_idx ON payments(user_id);
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+-- ── PUSH SUBSCRIPTIONS (Web Push) ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  user_id      TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint     TEXT        NOT NULL,
+  subscription JSONB       NOT NULL,
+  updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, endpoint)
+);
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- ── USER ACQUISITION (onboarding source/referral) ────────────────────────────
+CREATE TABLE IF NOT EXISTS user_acquisition (
+  user_id    TEXT        PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  source     TEXT,
+  referral   TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE user_acquisition ENABLE ROW LEVEL SECURITY;
+
+-- ── USER EDUCATION (onboarding) ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_education (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  school     TEXT,
+  university TEXT,
+  degree     TEXT,
+  field      TEXT
+);
+CREATE INDEX IF NOT EXISTS user_education_user_id_idx ON user_education(user_id);
+ALTER TABLE user_education ENABLE ROW LEVEL SECURITY;
+
+-- ── USER WORK (onboarding) ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_work (
+  id              TEXT PRIMARY KEY,
+  user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  company         TEXT,
+  job_title       TEXT,
+  industry        TEXT,
+  employment_type TEXT
+);
+CREATE INDEX IF NOT EXISTS user_work_user_id_idx ON user_work(user_id);
+ALTER TABLE user_work ENABLE ROW LEVEL SECURITY;
+
+-- ── USER INTENTS (multi-intent onboarding) ───────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_intents (
+  id         TEXT        PRIMARY KEY,
+  user_id    TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  intent     TEXT        NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, intent)
+);
+ALTER TABLE user_intents ENABLE ROW LEVEL SECURITY;
+
+-- ── USER REVIEWS (peer trust reviews) ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS user_reviews (
+  id           TEXT        PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  reviewer_id  TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reviewed_id  TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating       INTEGER     NOT NULL,
+  tags         TEXT[]      DEFAULT '{}',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (reviewer_id, reviewed_id)
+);
+CREATE INDEX IF NOT EXISTS user_reviews_reviewed_id_idx ON user_reviews(reviewed_id);
+ALTER TABLE user_reviews ENABLE ROW LEVEL SECURITY;
+
+-- ── AUDIT LOGS (admin actions) ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id         BIGSERIAL   PRIMARY KEY,
+  admin_id   TEXT        NOT NULL,
+  action     TEXT        NOT NULL,
+  target_id  TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS audit_logs_admin_id_idx ON audit_logs(admin_id, created_at DESC);
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;

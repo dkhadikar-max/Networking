@@ -41,6 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    function onUnauthorized() { clearToken(); setUser(null); }
+    window.addEventListener('byn:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('byn:unauthorized', onUnauthorized);
+  }, []);
+
   async function login(email: string, password: string) {
     const r = await apiPost<{ token: string; user: User }>('/api/login', { email, password });
     if (r.token) setToken(r.token);

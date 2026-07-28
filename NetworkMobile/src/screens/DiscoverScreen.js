@@ -121,7 +121,12 @@ export default function DiscoverScreen() {
     try {
       const { data } = await api.post('/api/swipe', { targetId: profileId, direction });
       if (data.match) Alert.alert('🎉 Connection!', 'You both connected. Check your Chat tab.');
-    } catch {}
+    } catch (e) {
+      // Card has already visually advanced — still tell the user it didn't
+      // register (daily limit, incomplete profile, network error, etc.)
+      // rather than letting them believe a Connect silently went through.
+      Alert.alert('Error', e.response?.data?.error || e.message || 'That action did not go through');
+    }
   }
 
   if (loading) return (
