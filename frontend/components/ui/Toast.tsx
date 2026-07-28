@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import clsx from 'clsx';
 
 type ToastItem = { id: number; message: string; type: 'success' | 'error' | 'info' };
 type ToastCtx = { toast: (msg: string, type?: ToastItem['type']) => void };
@@ -24,12 +23,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map(t => (
           <div
             key={t.id}
-            className={clsx(
-              'px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg text-white toast-enter',
-              t.type === 'success' && 'bg-[var(--green)]',
-              t.type === 'error'   && 'bg-[var(--danger)]',
-              t.type === 'info'    && 'bg-[var(--text)]'
-            )}
+            className="px-4 py-2.5 rounded-xl text-sm font-medium shadow-lg text-white toast-enter border border-white/15"
+            style={{
+              background: t.type === 'success' ? 'var(--green)' : t.type === 'error' ? 'var(--danger)' : 'var(--text)',
+            }}
           >
             {t.message}
           </div>

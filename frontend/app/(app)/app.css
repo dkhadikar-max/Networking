@@ -622,6 +622,11 @@ textarea.pe-input { resize: none; }
   }
   .bottom-nav { display: none !important; }
   .profile-signout-mobile { display: none !important; } /* DesktopNav sidebar already has Sign Out */
+  /* sidebar's own brand mark (.desk-brand) already shows the logo — hide the
+     page-header duplicate. .disc-logo keeps visibility:hidden (not display:none)
+     because its flex:1 is what pushes .filter-btn to the right edge. */
+  .disc-logo { visibility: hidden; }
+  .circles-header-icon { display: none; }
 
   /* Desktop sidebar nav */
   .desk-nav {

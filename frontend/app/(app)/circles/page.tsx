@@ -117,7 +117,7 @@ export default function CirclesPage() {
       {/* Header */}
       <div className="circles-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="byn-logo-box-sm" style={{ width: 32, height: 32, borderRadius: 10 }}>
+          <div className="byn-logo-box-sm circles-header-icon" style={{ width: 32, height: 32, borderRadius: 10 }}>
             <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
               <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
               <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
