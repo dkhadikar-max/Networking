@@ -163,6 +163,17 @@ CREATE INDEX IF NOT EXISTS circle_posts_user_id_idx    ON circle_posts(user_id);
 CREATE INDEX IF NOT EXISTS circle_posts_created_at_idx ON circle_posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS circle_posts_tags_idx       ON circle_posts USING GIN(tags);
 
+-- CIRCLE POST LIKES  (lightweight reaction — see migrations/010_circle_post_likes.sql)
+CREATE TABLE IF NOT EXISTS circle_post_likes (
+  id         text PRIMARY KEY,
+  post_id    text NOT NULL REFERENCES circle_posts(id) ON DELETE CASCADE,
+  user_id    text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(post_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS circle_post_likes_post_id_idx ON circle_post_likes(post_id);
+CREATE INDEX IF NOT EXISTS circle_post_likes_user_id_idx ON circle_post_likes(user_id);
+
 -- ── ROW LEVEL SECURITY ───────────────────────────────────────────────────────
 -- service_role key (used by the backend) bypasses RLS entirely — no policies
 -- needed for it. Enabling RLS with no policies means anon/authenticated Supabase
@@ -180,6 +191,7 @@ ALTER TABLE daily_views   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE priority_msgs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE circle_posts  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circle_post_likes ENABLE ROW LEVEL SECURITY;
 
 -- ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS notifications (

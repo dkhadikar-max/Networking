@@ -158,7 +158,7 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
                     >
                       {n.actor_name ?? 'Someone'}
                     </span>
-                    <span className="notif-action"> wants to collaborate on your post</span>
+                    <span className="notif-action"> {n.type === 'circle_like' ? 'liked your post' : 'wants to collaborate on your post'}</span>
                   </div>
                   {n.ref_text && (
                     <div className="notif-excerpt">&ldquo;{n.ref_text}&rdquo;</div>

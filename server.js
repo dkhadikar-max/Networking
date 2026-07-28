@@ -7082,6 +7082,20 @@ app.get('/api/circles/feed', auth, async (req, res) => {
       }
     }
 
+    // Batch-fetch like counts + whether the current user liked each post —
+    // same pattern as /api/discover's batch works fetch, avoids N+1 queries.
+    const postIds = posts.map(p => p.id);
+    const likeCounts = {};
+    const likedByMe = new Set();
+    if (postIds.length > 0) {
+      const { data: allLikes } = await supabase.from('circle_post_likes')
+        .select('post_id, user_id').in('post_id', postIds);
+      (allLikes || []).forEach(l => {
+        likeCounts[l.post_id] = (likeCounts[l.post_id] || 0) + 1;
+        if (l.user_id === req.user.id) likedByMe.add(l.post_id);
+      });
+    }
+
     const ranked = posts.map(p => {
       const s = mode === 'all'
         ? (() => {
@@ -7099,7 +7113,7 @@ app.get('/api/circles/feed', auth, async (req, res) => {
           const { lat, lng, skills, interests, location, ...authorPublic } = p.author;
           p = { ...p, author: authorPublic };
         }
-        return p;
+        return { ...p, like_count: likeCounts[p.id] || 0, liked_by_me: likedByMe.has(p.id) };
       });
 
     res.json({ posts: ranked, hasMore: (data || []).length === lim });
@@ -7110,6 +7124,62 @@ app.get('/api/circles/feed', auth, async (req, res) => {
 });
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+app.post('/api/circles/posts/:id/like', auth, async (req, res) => {
+  try {
+    const { data: post, error: postErr } = await supabase
+      .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
+    if (postErr || !post) return res.status(404).json({ error: 'Post not found' });
+
+    const { data: existing } = await supabase.from('circle_post_likes')
+      .select('id').eq('post_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+
+    if (existing) {
+      await supabase.from('circle_post_likes').delete().eq('id', existing.id);
+    } else {
+      await supabase.from('circle_post_likes').insert({
+        id: uuidv4(), post_id: req.params.id, user_id: req.user.id,
+        created_at: new Date().toISOString(),
+      });
+      if (post.user_id !== req.user.id) {
+        // Dedupe — one notification per (actor, post), same as collaborate
+        const { data: existingNotif } = await supabase.from('notifications')
+          .select('id').eq('actor_id', req.user.id).eq('ref_id', req.params.id).eq('type', 'circle_like')
+          .maybeSingle();
+        if (!existingNotif) {
+          const { data: actor } = await supabase
+            .from('users').select('name, photos').eq('id', req.user.id).single();
+          const actorName  = actor?.name  || 'Someone';
+          const actorPhoto = actor?.photos?.[0] || null;
+          await supabase.from('notifications').insert({
+            id: uuidv4(),
+            user_id: post.user_id,
+            type: 'circle_like',
+            actor_id: req.user.id,
+            actor_name: actorName,
+            actor_photo: actorPhoto,
+            ref_id: req.params.id,
+            ref_type: 'circle_post',
+            ref_text: post.text.slice(0, 120),
+            read: false,
+            created_at: new Date().toISOString(),
+          });
+          const pushTitle = `❤️ ${actorName} liked your post`;
+          const pushBody  = post.text.slice(0, 80);
+          sendPush([post.user_id], pushTitle, pushBody, { screen: 'Circles' }).catch(() => {});
+          sendWebPush([post.user_id], pushTitle, pushBody, { screen: 'Circles' }).catch(() => {});
+        }
+      }
+    }
+
+    const { count } = await supabase.from('circle_post_likes')
+      .select('*', { count: 'exact', head: true }).eq('post_id', req.params.id);
+    res.json({ liked: !existing, likeCount: count ?? 0 });
+  } catch (e) {
+    console.error('[circles/like]', e.message);
+    res.status(500).json({ error: 'Failed to update like' });
+  }
+});
 
 app.post('/api/circles/posts/:id/collaborate', auth, async (req, res) => {
   try {

@@ -729,7 +729,16 @@ textarea.pe-input { resize: none; }
   content: ''; position: absolute; top: 0; right: 0; bottom: 10px; width: 28px;
   background: linear-gradient(to right, transparent, var(--sur));
   pointer-events: none;
+  opacity: 0; transition: opacity 0.15s ease;
 }
+.circles-filter-wrap::before {
+  content: ''; position: absolute; top: 0; left: 0; bottom: 10px; width: 28px;
+  background: linear-gradient(to left, transparent, var(--sur));
+  pointer-events: none; z-index: 1;
+  opacity: 0; transition: opacity 0.15s ease;
+}
+.circles-filter-wrap.can-scroll-right::after { opacity: 1; }
+.circles-filter-wrap.can-scroll-left::before { opacity: 1; }
 .circles-filter-bar {
   display: flex; gap: 7px; padding: 6px 14px 10px;
   overflow-x: auto; scrollbar-width: none;
@@ -931,14 +940,35 @@ textarea.pe-input { resize: none; }
 .circle-edit-save:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* Collaborate button */
+.circle-actions-row { display: flex; align-items: center; gap: 8px; }
 .circle-collab-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 7px 14px; border-radius: var(--r-full);
   border: 1.5px solid var(--border); background: var(--sur2);
   color: var(--text-soft); font-size: 12px; font-weight: 600;
-  cursor: pointer; font-family: inherit; transition: all 0.15s; align-self: flex-start;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
 }
 .circle-collab-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--highlight); }
+.circle-like-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: var(--r-full);
+  border: 1.5px solid var(--border); background: var(--sur2);
+  color: var(--text-soft); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.circle-like-btn:hover { border-color: var(--danger); color: var(--danger); }
+.circle-like-btn:disabled { opacity: 0.7; cursor: default; }
+.circle-like-btn.liked { border-color: var(--danger); background: rgba(220,38,38,0.08); color: var(--danger); }
+.circle-like-btn.liked svg { animation: circle-like-pop 0.3s ease; }
+@keyframes circle-like-pop {
+  0%   { transform: scale(0.7); }
+  50%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.circle-like-count-self {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 600; color: var(--text-soft);
+}
 
 /* ── NOTIFICATION BELL ───────────────────────────────────────────────────── */
 .notif-bell-btn {

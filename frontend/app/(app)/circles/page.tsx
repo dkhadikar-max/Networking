@@ -34,7 +34,19 @@ export default function CirclesPage() {
   const [fetchError, setFetchError] = useState(false);
   const loadingMoreRef = useRef(false);
   const hasPostsRef = useRef(false);
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const [tagScroll, setTagScroll] = useState({ canLeft: false, canRight: false });
   useEffect(() => { hasPostsRef.current = posts.length > 0; }, [posts]);
+
+  const updateTagScroll = useCallback(() => {
+    const el = filterBarRef.current;
+    if (!el) return;
+    setTagScroll({
+      canLeft: el.scrollLeft > 4,
+      canRight: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+    });
+  }, []);
+  useEffect(() => { updateTagScroll(); }, [updateTagScroll]);
 
   const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean, feedMode: FeedMode, hadPosts: boolean) => {
     // Only show the full-screen spinner on a genuinely empty feed — a tab/tag
@@ -143,8 +155,8 @@ export default function CirclesPage() {
       </div>
 
       {/* Tag filter bar */}
-      <div className="circles-filter-wrap">
-        <div className="circles-filter-bar">
+      <div className={`circles-filter-wrap${tagScroll.canLeft ? ' can-scroll-left' : ''}${tagScroll.canRight ? ' can-scroll-right' : ''}`}>
+        <div className="circles-filter-bar" ref={filterBarRef} onScroll={updateTagScroll}>
           <button
             className={`circles-filter-pill${activeTag === null ? ' active' : ''}`}
             onClick={() => setActiveTag(null)}

@@ -64,8 +64,31 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
   const [editText, setEditText] = useState(text);
   const [saving, setSaving] = useState(false);
   const [showCollaborate, setShowCollaborate] = useState(false);
+  const [liked, setLiked] = useState(post.liked_by_me);
+  const [likeCount, setLikeCount] = useState(post.like_count);
+  const [liking, setLiking] = useState(false);
 
   const editWords = wordCount(editText);
+
+  async function handleLike() {
+    if (liking) return;
+    setLiking(true);
+    const prevLiked = liked;
+    const prevCount = likeCount;
+    setLiked(!prevLiked);
+    setLikeCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    try {
+      const res = await apiPost<{ liked: boolean; likeCount: number }>(`/api/circles/posts/${post.id}/like`, {});
+      setLiked(res.liked);
+      setLikeCount(res.likeCount);
+    } catch (e) {
+      setLiked(prevLiked);
+      setLikeCount(prevCount);
+      toast(e instanceof Error ? e.message : 'Failed to like post', 'error');
+    } finally {
+      setLiking(false);
+    }
+  }
 
   async function handleSave() {
     if (!editText.trim() || editWords > 250 || saving) return;
@@ -205,18 +228,40 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
         <LinkPreviewCard key={lp.url || i} preview={lp} />
       ))}
 
-      {/* Collaborate — non-own posts only */}
-      {!isOwn && (
-        <button className="circle-collab-btn" onClick={() => { apiPost(`/api/circles/posts/${post.id}/collaborate`, {}).catch(e => toast(e instanceof Error ? e.message : 'Could not send collaborate signal', 'error')); setShowCollaborate(true); }}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          Collaborate
-        </button>
-      )}
+      {/* Action row — lightweight like (anyone but self) + heavyweight collaborate (non-own only) */}
+      <div className="circle-actions-row">
+        {!isOwn && (
+          <button
+            className={`circle-like-btn${liked ? ' liked' : ''}`}
+            onClick={handleLike}
+            disabled={liking}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            {likeCount > 0 ? likeCount : 'Like'}
+          </button>
+        )}
+        {!isOwn && (
+          <button className="circle-collab-btn" onClick={() => { apiPost(`/api/circles/posts/${post.id}/collaborate`, {}).catch(e => toast(e instanceof Error ? e.message : 'Could not send collaborate signal', 'error')); setShowCollaborate(true); }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Collaborate
+          </button>
+        )}
+        {isOwn && likeCount > 0 && (
+          <span className="circle-like-count-self">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--danger)" stroke="none">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            {likeCount} {likeCount === 1 ? 'like' : 'likes'}
+          </span>
+        )}
+      </div>
 
       {showCollaborate && (
         <PriorityMessageModal

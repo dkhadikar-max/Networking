@@ -105,7 +105,7 @@ export type LinkPreview = {
 export type CircleNotification = {
   id: string;
   user_id: string;
-  type: 'circle_collaborate';
+  type: 'circle_collaborate' | 'circle_like';
   actor_id: string | null;
   actor_name: string | null;
   actor_photo: string | null;
@@ -133,6 +133,8 @@ export type CirclePost = {
   };
   links: LinkPreview[];
   created_at: string;
+  like_count: number;
+  liked_by_me: boolean;
   author: {
     id: string;
     name: string;
