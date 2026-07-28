@@ -113,7 +113,7 @@ export default function SignupPage() {
           Build Your Network
         </div>
         <div style={{ fontSize: 13, color: '#64748B', marginTop: 5, letterSpacing: '0.1px' }}>
-          Your next opportunity is one relationship away
+          Professional networking — by intent
         </div>
       </div>
 

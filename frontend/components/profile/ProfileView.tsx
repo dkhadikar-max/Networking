@@ -236,8 +236,8 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
                   onClick={onEdit}
                   style={{
                     flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                    border: '1.5px solid var(--border)', background: 'white',
-                    color: 'var(--text)', fontSize: 14, fontWeight: 700,
+                    background: 'linear-gradient(135deg, var(--primary), var(--primary-2))',
+                    border: 'none', color: 'white', fontSize: 14, fontWeight: 700,
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}
                 >
@@ -248,10 +248,9 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
                     onClick={() => router.push('/upgrade')}
                     style={{
                       flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                      background: 'linear-gradient(135deg, #F4A259, #e8923f)',
-                      border: 'none', color: 'white', fontSize: 14, fontWeight: 700,
+                      border: '1.5px solid #F4A259', background: 'white',
+                      color: '#B8641F', fontSize: 14, fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'inherit',
-                      boxShadow: '0 4px 14px rgba(244,162,89,0.35)',
                     }}
                   >
                     ⭐ Go Pro

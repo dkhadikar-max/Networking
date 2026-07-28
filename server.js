@@ -2994,15 +2994,14 @@ async function deleteCloudinaryPhoto(url) {
 }
 
 // ── FIXED: SANITIZATION ──
+// Trims/length-limits only — does NOT HTML-encode. Output encoding is the
+// consumer's job (React auto-escapes JSX text; public/webapp.html uses its
+// own esc()/escA()). Escaping here corrupted stored text — e.g. an interest
+// of `Band: "The Doors"` was persisted as `Band: &quot;The Doors&quot;` and
+// every consumer displayed the literal entity instead of a quote character.
 function sanitize(s) {
   if (typeof s !== 'string') return s;
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .trim()
-    .slice(0, 1000);
+  return s.trim().slice(0, 1000);
 }
 
 // FIXED: Recursively sanitize strings inside arrays

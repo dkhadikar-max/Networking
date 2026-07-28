@@ -57,6 +57,7 @@ export default function DiscoverFeed() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [exhausted, setExhausted] = useState(false);
+  const [blockReason, setBlockReason] = useState<'NO_PHOTO' | 'TRUST_TOO_LOW' | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
@@ -76,6 +77,7 @@ export default function DiscoverFeed() {
       setLoading(true);
       const offset = reset ? 0 : page * 10;
       const { profiles: incoming, exhausted: done } = await fetchProfiles(filtersRef.current, offset);
+      setBlockReason(null);
       if (done) setExhausted(true);
       setProfiles(prev => {
         if (reset) return incoming;
@@ -86,9 +88,11 @@ export default function DiscoverFeed() {
     } catch (e) {
       const code = (e as { code?: string }).code;
       if (code === 'NO_PHOTO') {
-        toast('Add a profile photo to start discovering people', 'error');
+        setBlockReason('NO_PHOTO');
+        toast('Add a profile photo to start discovering people', 'info');
       } else if (code === 'TRUST_TOO_LOW') {
-        toast('Set your networking goal in your profile to unlock Discovery', 'error');
+        setBlockReason('TRUST_TOO_LOW');
+        toast('Set your networking goal in your profile to unlock Discovery', 'info');
       } else {
         toast('Failed to load profiles', 'error');
       }
@@ -192,7 +196,25 @@ export default function DiscoverFeed() {
             </div>
           )}
 
-          {!loading && !current && (
+          {!loading && !current && blockReason && (
+            <div className="disc-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="12" cy="10" r="3" /><path d="M6 20c1-3 4-4 6-4s5 1 6 4" />
+              </svg>
+              <h3>{blockReason === 'NO_PHOTO' ? 'Add a photo to start discovering people' : 'Set your networking goal to unlock Discovery'}</h3>
+              <p>{blockReason === 'NO_PHOTO'
+                ? "A photo is required so the people you match with know who they're talking to."
+                : 'Discovery uses your goal to find people who match what you\'re looking for.'}</p>
+              <button
+                className="retry-btn"
+                onClick={() => router.push('/profile')}
+              >
+                Go to Profile →
+              </button>
+            </div>
+          )}
+
+          {!loading && !current && !blockReason && (
             <div className="disc-empty">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
