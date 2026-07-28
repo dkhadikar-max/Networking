@@ -5,12 +5,15 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/AuthContext';
 import SwipeCard from './SwipeCard';
+import MatchModal from './MatchModal';
 import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
 import type { FilterState } from './DiscoverFilters';
 import type { DiscoverProfile } from '@/lib/types';
 
 type ApiResponse = { profiles: DiscoverProfile[] };
+type MatchInfo = { connectionId: string | null; theirPhoto?: string | null; theirName: string };
 
 function getUid(p: DiscoverProfile): string {
   return (p.user as { id?: string } | undefined)?.id ?? (p as { id?: string }).id ?? '';
@@ -53,6 +56,8 @@ type DailySignal = { count: number; city: string };
 
 export default function DiscoverFeed() {
   const toast = useToast();
+  const { user } = useAuth();
+  const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -117,8 +122,13 @@ export default function DiscoverFeed() {
     const uid = getUid(profile);
     if (!uid) return;
     try {
-      const res = await apiPost<{ match?: boolean }>('/api/connect', { userId: uid });
-      toast(res.match ? "It's a match! Start the conversation." : 'Interest sent — you\'ll be notified if they connect back', 'success');
+      const res = await apiPost<{ match?: boolean; connectionId?: string | null }>('/api/connect', { userId: uid });
+      if (res.match) {
+        const pu = (profile.user ?? profile) as { name?: string; photos?: string[] };
+        setMatchInfo({ connectionId: res.connectionId ?? null, theirPhoto: pu.photos?.[0], theirName: pu.name ?? 'Someone' });
+      } else {
+        toast('Interest sent — you\'ll be notified if they connect back', 'success');
+      }
       handleSkip(profile, false); // connect already recorded in swipes table
     } catch (e) {
       toast(e instanceof Error ? e.message : 'Failed to connect', 'error');
@@ -248,6 +258,15 @@ export default function DiscoverFeed() {
         </div>
       </div>
 
+      <MatchModal
+        open={!!matchInfo}
+        onClose={() => setMatchInfo(null)}
+        connectionId={matchInfo?.connectionId ?? null}
+        myPhoto={user?.photos?.[0]}
+        myName={user?.name ?? 'You'}
+        theirPhoto={matchInfo?.theirPhoto}
+        theirName={matchInfo?.theirName ?? 'Someone'}
+      />
     </div>
   );
 }
