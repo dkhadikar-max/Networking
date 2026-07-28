@@ -32,10 +32,6 @@ export default async function CityPage({ params }: Props) {
   const data = CITIES[city];
   if (!data) notFound();
 
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
   const faqs = [
     { q: `How do I network with professionals in ${data.name}?`, a: `Create a free profile on Build Your Network, set your location to ${data.name}, and enable discovery. BYN matches you with professionals in ${data.name}'s ${data.ecosystem} ecosystem based on your skills and intent.` },
     { q: `How do I find a co-founder in ${data.name}?`, a: `On BYN, set your intent to "Find Co-founder", add your skills, and set your location to ${data.name}. You will be matched with complementary founders in ${data.state}.` },
@@ -55,7 +51,6 @@ export default async function CityPage({ params }: Props) {
         faqs={faqs}
         cta={`Join ${data.name}'s professional network`}
         breadcrumb={[{ label: 'Cities', href: `${APP_URL}/cities` }, { label: data.name, href: `${APP_URL}/cities/${city}` }]}
-        stats={stats}
       />
     </>
   );

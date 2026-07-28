@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free for creators?', a: 'Yes — 30 daily swipes, mutual messaging, and city-based discovery are free. Premium (₹249/mo) unlocks 200 daily swipes and priority messages to reach anyone directly.' },
 ];
 
-export default async function NetworkingForCreatorsPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function NetworkingForCreatorsPage() {
   const slug = 'networking-for-creators';
   const title = 'Networking for Creators';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function NetworkingForCreatorsPage() {
         faqs={faqs}
         cta="Join BYN as a creator — free"
         breadcrumb={[{ label: 'Networking for Creators', href: url }]}
-        stats={stats}
       />
     </>
   );

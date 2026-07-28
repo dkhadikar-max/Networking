@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free for freelancers?', a: 'Yes — 30 daily connections, mutual messaging, and location-based discovery are free. Premium (₹249/mo) unlocks 200 daily connections and priority messages so you can reach clients directly without waiting for a match.' },
 ];
 
-export default async function NetworkingForFreelancersPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function NetworkingForFreelancersPage() {
   const slug = 'networking-for-freelancers';
   const title = 'Networking for Freelancers';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function NetworkingForFreelancersPage() {
         faqs={faqs}
         cta="Find your next client on BYN — free"
         breadcrumb={[{ label: 'Networking for Freelancers', href: url }]}
-        stats={stats}
       />
     </>
   );

@@ -32,10 +32,6 @@ export default async function IndustryPage({ params }: Props) {
   const data = INDUSTRIES[industry];
   if (!data) notFound();
 
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
   const defaultFaqs = [
     { q: `How do I find ${data.name} co-founders on Build Your Network?`, a: `Create a free profile, add ${data.name} and related skills, set your intent to "Find Co-founder", and enable discovery. BYN matches you with complementary ${data.name} builders based on your goals.` },
     { q: `Can I find ${data.name} investors on BYN?`, a: `Yes. Set intent to "Investment Opportunities" on BYN to surface angel investors and VCs actively looking for ${data.name} deals in India.` },
@@ -55,7 +51,6 @@ export default async function IndustryPage({ params }: Props) {
         faqs={faqs}
         cta={`Join the ${data.name} community on BYN`}
         breadcrumb={[{ label: 'Industries', href: `${APP_URL}/industries` }, { label: data.name, href: `${APP_URL}/industries/${industry}` }]}
-        stats={stats}
       />
     </>
   );

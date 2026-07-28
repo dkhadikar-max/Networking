@@ -22,11 +22,7 @@ const faqs = [
   { q: 'How much does BYN cost for entrepreneurs?', a: 'BYN is free for core networking — 30 swipes per day, mutual messaging, and city-based discovery. Premium (₹249/mo) gives 200 daily swipes and priority messages for faster outreach.' },
 ];
 
-export default async function NetworkingForEntrepreneursPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function NetworkingForEntrepreneursPage() {
   const slug = 'networking-for-entrepreneurs';
   const title = 'Networking for Entrepreneurs';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function NetworkingForEntrepreneursPage() {
         faqs={faqs}
         cta="Join India's entrepreneur network — free"
         breadcrumb={[{ label: 'Networking for Entrepreneurs', href: url }]}
-        stats={stats}
       />
     </>
   );

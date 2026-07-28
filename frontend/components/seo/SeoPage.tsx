@@ -1,5 +1,4 @@
 'use client';
-import { APP_URL } from '@/lib/seo/data';
 import { useState } from 'react';
 
 interface Faq { q: string; a: string }
@@ -12,7 +11,6 @@ interface Props {
   faqs: Faq[];
   cta?: string;
   breadcrumb: { label: string; href: string }[];
-  stats?: unknown; // accepted but not displayed — real user counts unavailable
 }
 
 // Express brand tokens
@@ -27,7 +25,7 @@ const C = {
   textMuted:   '#9CA3AF',
 };
 
-export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, breadcrumb, stats }: Props) {
+export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, breadcrumb }: Props) {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (

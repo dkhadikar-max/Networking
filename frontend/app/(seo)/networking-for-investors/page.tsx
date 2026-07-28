@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free for investors?', a: 'Yes — basic discovery, mutual messaging, and city-based search are free. Premium (₹249/mo) unlocks 200 daily swipes and priority messages to reach founders directly without waiting for a mutual match.' },
 ];
 
-export default async function NetworkingForInvestorsPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function NetworkingForInvestorsPage() {
   const slug = 'networking-for-investors';
   const title = 'Networking for Investors';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function NetworkingForInvestorsPage() {
         faqs={faqs}
         cta="Discover Indian founders — join BYN free"
         breadcrumb={[{ label: 'Networking for Investors', href: url }]}
-        stats={stats}
       />
     </>
   );

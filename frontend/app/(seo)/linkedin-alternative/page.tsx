@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free to use?', a: 'Yes — 30 daily swipes, direct messaging after matching, and city-based discovery are all free. Premium (₹249/mo) unlocks 200 daily swipes and priority messages that bypass the match requirement.' },
 ];
 
-export default async function LinkedinAlternativePage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function LinkedinAlternativePage() {
   const slug = 'linkedin-alternative';
   const title = 'LinkedIn Alternative for Professionals in India';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function LinkedinAlternativePage() {
         faqs={faqs}
         cta="Try BYN free — no LinkedIn noise"
         breadcrumb={[{ label: 'LinkedIn Alternative', href: url }]}
-        stats={stats}
       />
     </>
   );

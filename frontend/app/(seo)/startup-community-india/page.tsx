@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free for startup community members?', a: 'Yes. Core features — 30 daily connections, mutual messaging, and city-based discovery — are free. Premium (₹249/mo) unlocks 200 daily connections and priority messages for faster outreach across the community.' },
 ];
 
-export default async function StartupCommunityIndiaPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function StartupCommunityIndiaPage() {
   const slug = 'startup-community-india';
   const title = 'Startup Community India';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function StartupCommunityIndiaPage() {
         faqs={faqs}
         cta="Join India's startup community — free"
         breadcrumb={[{ label: 'Startup Community India', href: url }]}
-        stats={stats}
       />
     </>
   );

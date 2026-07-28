@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free for founders?', a: 'Yes. BYN is free — 30 daily swipes, direct messaging after matching, and location-based discovery. Premium (₹249/mo) unlocks 200 daily swipes and priority messages that reach anyone directly.' },
 ];
 
-export default async function NetworkingForFoundersPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function NetworkingForFoundersPage() {
   const slug = 'networking-for-founders';
   const title = 'Networking for Startup Founders';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function NetworkingForFoundersPage() {
         faqs={faqs}
         cta="Join India's founder network — free"
         breadcrumb={[{ label: 'Networking for Founders', href: url }]}
-        stats={stats}
       />
     </>
   );

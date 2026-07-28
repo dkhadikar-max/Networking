@@ -32,10 +32,6 @@ export default async function RolePage({ params }: Props) {
   const data = ROLES[role];
   if (!data) notFound();
 
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema(`Networking for ${data.name}s in India`, `${APP_URL}/roles/${role}`, data.description, [{ name: 'Roles', url: `${APP_URL}/roles` }, { name: data.name, url: `${APP_URL}/roles/${role}` }])) }} />
@@ -48,7 +44,6 @@ export default async function RolePage({ params }: Props) {
         faqs={data.faqs}
         cta={`Join thousands of ${data.name}s on BYN`}
         breadcrumb={[{ label: 'Roles', href: `${APP_URL}/roles` }, { label: data.name, href: `${APP_URL}/roles/${role}` }]}
-        stats={stats}
       />
     </>
   );

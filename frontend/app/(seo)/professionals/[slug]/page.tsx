@@ -38,10 +38,6 @@ export default async function ProfessionalPage({ params }: Props) {
   const data = ROLES[slug];
   if (!data) notFound();
 
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
   const faqs = [
     ...data.faqs,
     { q: `Is Build Your Network free for ${data.name}s?`, a: `Yes. BYN is free to join and use. ${data.name}s can create a profile, discover people, and start connecting at no cost. A premium tier is available for power users who want more daily swipes and advanced filters.` },
@@ -59,7 +55,6 @@ export default async function ProfessionalPage({ params }: Props) {
         faqs={faqs}
         cta={`Join India's ${data.name} network`}
         breadcrumb={[{ label: 'Professionals', href: `${APP_URL}/professionals` }, { label: data.name, href: `${APP_URL}/professionals/${slug}` }]}
-        stats={stats}
       />
     </>
   );

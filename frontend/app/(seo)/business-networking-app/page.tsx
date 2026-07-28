@@ -22,11 +22,7 @@ const faqs = [
   { q: 'Is BYN free to use for business networking?', a: 'Yes — 30 daily connections, mutual messaging, and city/nationwide discovery are all free. Premium (₹249/mo) gives 200 daily connections, priority messages, and advanced filters for higher-velocity networking.' },
 ];
 
-export default async function BusinessNetworkingAppPage() {
-  const stats = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } })
-    .then(r => r.json())
-    .catch(() => ({ users: 5000, connections: 12000 }));
-
+export default function BusinessNetworkingAppPage() {
   const slug = 'business-networking-app';
   const title = 'Business Networking App India';
   const url = `${APP_URL}/${slug}`;
@@ -43,7 +39,6 @@ export default async function BusinessNetworkingAppPage() {
         faqs={faqs}
         cta="Start networking with intent — free"
         breadcrumb={[{ label: 'Business Networking App', href: url }]}
-        stats={stats}
       />
     </>
   );
