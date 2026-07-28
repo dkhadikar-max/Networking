@@ -6944,7 +6944,7 @@ app.post('/api/circles/link-preview', auth, linkPreviewLimiter, async (req, res)
 
 app.post('/api/circles/posts', auth, profileGuard, circlePostLimiter, async (req, res) => {
   try {
-    const { text, tags, structured_meta, links } = req.body;
+    const { text, tags, structured_meta, links, group_id } = req.body;
     if (!text || typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'Text required' });
     if (circleWordCount(text) > 250) return res.status(400).json({ error: 'Post exceeds 250 words' });
     if (!Array.isArray(tags) || tags.length === 0) return res.status(400).json({ error: 'Select at least one tag' });
@@ -6952,6 +6952,15 @@ app.post('/api/circles/posts', auth, profileGuard, circlePostLimiter, async (req
     const validTags = tags.filter(t => CIRCLE_TAGS.includes(t));
     if (validTags.length === 0) return res.status(400).json({ error: 'Invalid tags' });
     if (Array.isArray(links) && links.length > 3) return res.status(400).json({ error: 'Max 3 links' });
+
+    let groupId = null;
+    if (group_id) {
+      const { data: membership } = await supabase.from('circle_group_members')
+        .select('id').eq('group_id', group_id).eq('user_id', req.user.id).maybeSingle();
+      if (!membership) return res.status(403).json({ error: 'Join this circle before posting to it' });
+      groupId = group_id;
+    }
+
     const id = `cp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const { error } = await supabase.from('circle_posts').insert({
       id,
@@ -6960,6 +6969,7 @@ app.post('/api/circles/posts', auth, profileGuard, circlePostLimiter, async (req
       tags: validTags,
       structured_meta: sanitizeStructuredMeta(structured_meta),
       links: Array.isArray(links) ? links.filter(l => typeof l === 'string' && /^https?:\/\//i.test(l)).slice(0, 3) : [],
+      group_id: groupId,
       created_at: new Date().toISOString(),
     });
     if (error) throw error;
@@ -7040,16 +7050,28 @@ function circleRelevanceScore(me, post) {
 
 app.get('/api/circles/feed', auth, async (req, res) => {
   try {
-    const { tags, offset = '0', limit = '20', mode = 'for-you' } = req.query;
+    const { tags, offset = '0', limit = '20', mode = 'for-you', group_id } = req.query;
     const off = Math.max(0, parseInt(offset) || 0);
     const lim = Math.min(Math.max(1, parseInt(limit) || 20), 50);
     const me  = req.userData;
 
+    if (group_id) {
+      const { data: group } = await supabase.from('circle_groups').select('privacy').eq('id', group_id).maybeSingle();
+      if (!group) return res.status(404).json({ error: 'Circle not found' });
+      if (group.privacy === 'private') {
+        const { data: membership } = await supabase.from('circle_group_members')
+          .select('id').eq('group_id', group_id).eq('user_id', req.user.id).maybeSingle();
+        if (!membership) return res.status(403).json({ error: 'This circle is private' });
+      }
+    }
+
     let query = supabase.from('circle_posts')
-      .select(`id, text, tags, structured_meta, links, created_at, user_id,
+      .select(`id, text, tags, structured_meta, links, created_at, user_id, group_id,
         author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline, skills, interests, lat, lng, location)`)
       .order('created_at', { ascending: false })
       .range(off, off + lim - 1);
+
+    query = group_id ? query.eq('group_id', group_id) : query.is('group_id', null);
 
     if (tags) {
       const tagArr = String(tags).split(',').map(t => t.trim()).filter(t => CIRCLE_TAGS.includes(t));
@@ -7096,7 +7118,9 @@ app.get('/api/circles/feed', auth, async (req, res) => {
       });
     }
 
-    const ranked = posts.map(p => {
+    // Group feeds stay chronological (members already opted in by joining) —
+    // relevance ranking is for the open global feed, not a joined community.
+    const ranked = (group_id ? posts.map(p => ({ ...p, _score: 0 })) : posts.map(p => {
       const s = mode === 'all'
         ? (() => {
             const ageHours = (Date.now() - new Date(p.created_at).getTime()) / 3600000;
@@ -7105,7 +7129,7 @@ app.get('/api/circles/feed', auth, async (req, res) => {
           })()
         : circleRelevanceScore(me, p);
       return { ...p, _score: s };
-    }).sort((a, b) => b._score - a._score)
+    })).sort((a, b) => group_id ? 0 : b._score - a._score)
       .map(({ _score, ...p }) => {
         // Strip private author fields — never send lat/lng/skills/interests/location to client
         if (p.author) {
@@ -7120,6 +7144,210 @@ app.get('/api/circles/feed', auth, async (req, res) => {
   } catch (e) {
     console.error('[circles/feed]', e.message);
     res.status(500).json({ error: 'Failed to fetch feed' });
+  }
+});
+
+// ── CIRCLE GROUPS ────────────────────────────────────────────────────────────
+// Joinable communities within Circles. A group has members with role
+// 'admin'|'member'; the creator is auto-added as the first admin. Posts with
+// group_id set live in that group's own feed (see /api/circles/feed above),
+// not the global one.
+
+async function attachMyRole(groups, userId) {
+  if (groups.length === 0) return groups;
+  const groupIds = groups.map(g => g.id);
+  const [{ data: myMemberships }, { data: allMembers }] = await Promise.all([
+    supabase.from('circle_group_members').select('group_id, role').eq('user_id', userId).in('group_id', groupIds),
+    supabase.from('circle_group_members').select('group_id').in('group_id', groupIds),
+  ]);
+  const roleByGroup = Object.fromEntries((myMemberships || []).map(m => [m.group_id, m.role]));
+  const countByGroup = {};
+  (allMembers || []).forEach(m => { countByGroup[m.group_id] = (countByGroup[m.group_id] || 0) + 1; });
+  return groups.map(g => ({ ...g, my_role: roleByGroup[g.id] || null, member_count: countByGroup[g.id] || 0 }));
+}
+
+app.post('/api/circle-groups', auth, profileGuard, async (req, res) => {
+  try {
+    const { name, description, privacy } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name required' });
+    if (name.trim().length > 60) return res.status(400).json({ error: 'Name too long (60 char max)' });
+    if (description && String(description).length > 300) return res.status(400).json({ error: 'Description too long (300 char max)' });
+    const priv = privacy === 'private' ? 'private' : 'public';
+
+    const id = uuidv4();
+    const { error: groupErr } = await supabase.from('circle_groups').insert({
+      id, name: sanitize(name).slice(0, 60), description: description ? sanitize(String(description)).slice(0, 300) : null,
+      privacy: priv, creator_id: req.user.id, created_at: new Date().toISOString(),
+    });
+    if (groupErr) throw groupErr;
+    const { error: memberErr } = await supabase.from('circle_group_members').insert({
+      id: uuidv4(), group_id: id, user_id: req.user.id, role: 'admin', joined_at: new Date().toISOString(),
+    });
+    if (memberErr) throw memberErr;
+    res.status(201).json({ ok: true, id });
+  } catch (e) {
+    console.error('[circle-groups POST]', e.message);
+    res.status(500).json({ error: 'Failed to create circle' });
+  }
+});
+
+app.get('/api/circle-groups', auth, async (req, res) => {
+  try {
+    const { mine } = req.query;
+    if (mine === 'true') {
+      const { data: memberships } = await supabase.from('circle_group_members')
+        .select('group_id').eq('user_id', req.user.id);
+      const groupIds = (memberships || []).map(m => m.group_id);
+      if (groupIds.length === 0) return res.json({ groups: [] });
+      const { data: groups, error } = await supabase.from('circle_groups')
+        .select('id, name, description, photo_url, privacy, creator_id, created_at')
+        .in('id', groupIds).order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json({ groups: await attachMyRole(groups || [], req.user.id) });
+    }
+    // Discover: public groups only
+    const { data: groups, error } = await supabase.from('circle_groups')
+      .select('id, name, description, photo_url, privacy, creator_id, created_at')
+      .eq('privacy', 'public').order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    res.json({ groups: await attachMyRole(groups || [], req.user.id) });
+  } catch (e) {
+    console.error('[circle-groups GET]', e.message);
+    res.status(500).json({ error: 'Failed to fetch circles' });
+  }
+});
+
+app.get('/api/circle-groups/:id', auth, async (req, res) => {
+  try {
+    const { data: group, error } = await supabase.from('circle_groups')
+      .select('id, name, description, photo_url, privacy, creator_id, created_at')
+      .eq('id', req.params.id).maybeSingle();
+    if (error || !group) return res.status(404).json({ error: 'Circle not found' });
+    const [withRole] = await attachMyRole([group], req.user.id);
+    if (group.privacy === 'private' && !withRole.my_role) return res.status(403).json({ error: 'This circle is private' });
+    res.json(withRole);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch circle' });
+  }
+});
+
+app.get('/api/circle-groups/:id/members', auth, async (req, res) => {
+  try {
+    const { data: membership } = await supabase.from('circle_group_members')
+      .select('id').eq('group_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    if (!membership) return res.status(403).json({ error: 'Join this circle to see its members' });
+    const { data: members, error } = await supabase.from('circle_group_members')
+      .select('user_id, role, joined_at, user:users!circle_group_members_user_id_fkey(id, name, photos, headline, trust_score)')
+      .eq('group_id', req.params.id).order('joined_at', { ascending: true });
+    if (error) throw error;
+    res.json({ members: (members || []).filter(m => m.user) });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch members' });
+  }
+});
+
+app.post('/api/circle-groups/:id/join', auth, profileGuard, async (req, res) => {
+  try {
+    const { data: group } = await supabase.from('circle_groups').select('privacy').eq('id', req.params.id).maybeSingle();
+    if (!group) return res.status(404).json({ error: 'Circle not found' });
+    if (group.privacy === 'private') return res.status(403).json({ error: 'This circle is invite-only' });
+    const { data: existing } = await supabase.from('circle_group_members')
+      .select('id').eq('group_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
+    if (existing) return res.json({ ok: true });
+    const { error } = await supabase.from('circle_group_members').insert({
+      id: uuidv4(), group_id: req.params.id, user_id: req.user.id, role: 'member', joined_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to join circle' });
+  }
+});
+
+app.post('/api/circle-groups/:id/leave', auth, async (req, res) => {
+  try {
+    const { data: members, error } = await supabase.from('circle_group_members')
+      .select('id, user_id, role').eq('group_id', req.params.id);
+    if (error) throw error;
+    const me = (members || []).find(m => m.user_id === req.user.id);
+    if (!me) return res.status(404).json({ error: 'Not a member of this circle' });
+
+    if ((members || []).length === 1) {
+      // Last member leaving — delete the group entirely rather than orphan it.
+      await supabase.from('circle_groups').delete().eq('id', req.params.id);
+      return res.json({ ok: true, groupDeleted: true });
+    }
+    const admins = (members || []).filter(m => m.role === 'admin');
+    if (me.role === 'admin' && admins.length === 1) {
+      return res.status(400).json({ error: 'Promote another member to admin before leaving' });
+    }
+    await supabase.from('circle_group_members').delete().eq('id', me.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to leave circle' });
+  }
+});
+
+async function requireGroupAdmin(groupId, userId) {
+  const { data: membership } = await supabase.from('circle_group_members')
+    .select('role').eq('group_id', groupId).eq('user_id', userId).maybeSingle();
+  return membership?.role === 'admin';
+}
+
+app.post('/api/circle-groups/:id/members/:userId/promote', auth, async (req, res) => {
+  try {
+    if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
+    const { error } = await supabase.from('circle_group_members')
+      .update({ role: 'admin' }).eq('group_id', req.params.id).eq('user_id', req.params.userId);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to promote member' });
+  }
+});
+
+app.post('/api/circle-groups/:id/members/:userId/demote', auth, async (req, res) => {
+  try {
+    if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
+    const { data: members } = await supabase.from('circle_group_members')
+      .select('user_id, role').eq('group_id', req.params.id);
+    const admins = (members || []).filter(m => m.role === 'admin');
+    if (admins.length === 1 && admins[0].user_id === req.params.userId) {
+      return res.status(400).json({ error: 'A circle must have at least one admin' });
+    }
+    const { error } = await supabase.from('circle_group_members')
+      .update({ role: 'member' }).eq('group_id', req.params.id).eq('user_id', req.params.userId);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to demote member' });
+  }
+});
+
+app.post('/api/circle-groups/:id/members/:userId/remove', auth, async (req, res) => {
+  try {
+    if (!await requireGroupAdmin(req.params.id, req.user.id)) return res.status(403).json({ error: 'Admins only' });
+    const { data: group } = await supabase.from('circle_groups').select('creator_id').eq('id', req.params.id).maybeSingle();
+    if (group?.creator_id === req.params.userId) return res.status(400).json({ error: "Can't remove the circle's creator" });
+    if (req.params.userId === req.user.id) return res.status(400).json({ error: 'Use leave instead of remove for yourself' });
+    const { error } = await supabase.from('circle_group_members')
+      .delete().eq('group_id', req.params.id).eq('user_id', req.params.userId);
+    if (error) throw error;
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
+app.delete('/api/circle-groups/:id', auth, async (req, res) => {
+  try {
+    const { data: group } = await supabase.from('circle_groups').select('creator_id').eq('id', req.params.id).maybeSingle();
+    if (!group) return res.status(404).json({ error: 'Circle not found' });
+    if (group.creator_id !== req.user.id) return res.status(403).json({ error: "Only the circle's creator can delete it" });
+    await supabase.from('circle_groups').delete().eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to delete circle' });
   }
 });
 

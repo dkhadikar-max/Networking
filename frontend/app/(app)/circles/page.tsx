@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CIRCLE_TAGS, type CircleTag, type CirclePost } from '@/lib/types';
 import { apiGet, apiDelete } from '@/lib/api';
@@ -129,6 +130,15 @@ export default function CirclesPage() {
           <span className="circles-title">Circles</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link
+            href="/circles/groups"
+            title="Browse circles"
+            style={{ color: 'var(--text-soft)', display: 'flex', padding: 6, borderRadius: '50%' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </Link>
           <NotificationBell />
           <button
             onClick={() => setComposing(true)}

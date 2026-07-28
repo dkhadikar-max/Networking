@@ -174,6 +174,30 @@ CREATE TABLE IF NOT EXISTS circle_post_likes (
 CREATE INDEX IF NOT EXISTS circle_post_likes_post_id_idx ON circle_post_likes(post_id);
 CREATE INDEX IF NOT EXISTS circle_post_likes_user_id_idx ON circle_post_likes(user_id);
 
+-- CIRCLE GROUPS  (joinable communities — see migrations/011_circle_groups.sql)
+CREATE TABLE IF NOT EXISTS circle_groups (
+  id          text PRIMARY KEY,
+  name        text NOT NULL,
+  description text,
+  photo_url   text,
+  privacy     text NOT NULL DEFAULT 'public' CHECK (privacy IN ('public','private')),
+  creator_id  text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at  timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS circle_groups_creator_id_idx ON circle_groups(creator_id);
+
+CREATE TABLE IF NOT EXISTS circle_group_members (
+  id        text PRIMARY KEY,
+  group_id  text NOT NULL REFERENCES circle_groups(id) ON DELETE CASCADE,
+  user_id   text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role      text NOT NULL DEFAULT 'member' CHECK (role IN ('admin','member')),
+  joined_at timestamptz DEFAULT now(),
+  UNIQUE(group_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS circle_group_members_group_id_idx ON circle_group_members(group_id);
+CREATE INDEX IF NOT EXISTS circle_group_members_user_id_idx ON circle_group_members(user_id);
+-- circle_posts.group_id (nullable FK to circle_groups) added by migration 011
+
 -- ── ROW LEVEL SECURITY ───────────────────────────────────────────────────────
 -- service_role key (used by the backend) bypasses RLS entirely — no policies
 -- needed for it. Enabling RLS with no policies means anon/authenticated Supabase
@@ -192,6 +216,8 @@ ALTER TABLE priority_msgs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE circle_posts  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE circle_post_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circle_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE circle_group_members ENABLE ROW LEVEL SECURITY;
 
 -- ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS notifications (

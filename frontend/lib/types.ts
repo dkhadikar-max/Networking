@@ -116,6 +116,31 @@ export type CircleNotification = {
   created_at: string;
 };
 
+export type CircleGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  photo_url: string | null;
+  privacy: 'public' | 'private';
+  creator_id: string;
+  created_at: string;
+  my_role: 'admin' | 'member' | null;
+  member_count: number;
+};
+
+export type CircleGroupMember = {
+  user_id: string;
+  role: 'admin' | 'member';
+  joined_at: string;
+  user: {
+    id: string;
+    name: string;
+    photos: string[];
+    headline?: string;
+    trust_score: number;
+  } | null;
+};
+
 export type CirclePost = {
   id: string;
   user_id: string;
@@ -135,6 +160,7 @@ export type CirclePost = {
   created_at: string;
   like_count: number;
   liked_by_me: boolean;
+  group_id: string | null;
   author: {
     id: string;
     name: string;
