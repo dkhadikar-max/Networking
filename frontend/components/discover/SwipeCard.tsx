@@ -4,6 +4,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { DiscoverProfile } from '@/lib/types';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
+import { formatIntent } from '@/lib/intent';
 
 type Props = {
   profile: DiscoverProfile;
@@ -18,7 +19,7 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const headline = (user as { headline?: string }).headline ?? '';
   const location = (user as { location?: string }).location ?? '';
   const bio = (user as { bio?: string }).bio ?? '';
-  const intents: string[] = (user as { intent?: string }).intent ? [(user as { intent: string }).intent] : [];
+  const intents: string[] = (user as { intent?: string }).intent ? [formatIntent((user as { intent: string }).intent)] : [];
   const interests: string[] = (user as { interests?: string[] }).interests ?? [];
   const skills: string[] = (user as { skills?: string[] }).skills ?? [];
   const working_on = (user as { working_on?: string }).working_on ?? '';

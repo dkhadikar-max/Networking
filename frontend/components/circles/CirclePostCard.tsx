@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiPatch, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
+import { formatIntent } from '@/lib/intent';
 import type { CirclePost } from '@/lib/types';
 import LinkPreviewCard from './LinkPreviewCard';
 
@@ -112,7 +113,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
               {author.trust_score}
             </span>
             {author.intent && (
-              <span className="circle-intent-badge">· {author.intent.replace(/-/g, ' ')}</span>
+              <span className="circle-intent-badge">· {formatIntent(author.intent)}</span>
             )}
             {isActive(author.last_active) && (
               <span className="momentum-badge">

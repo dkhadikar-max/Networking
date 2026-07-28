@@ -3197,6 +3197,26 @@ function matchScore(a, b) {
   return Math.min(Math.max(interest+intent+context+location+5, 1), 99);
 }
 
+// Legacy intent slugs → human-readable labels. `users.intent` is written either
+// as one of these slugs (onboarding, see INTENT_LEGACY_MAP) or as a plain label
+// already (ProfileEdit's intent chips) — mirrors frontend/lib/intent.ts, keep
+// both in sync if this map changes.
+const INTENT_DISPLAY_LABELS = {
+  'explore-network': 'Exploring network',
+  'exchange-ideas': 'Exchanging ideas',
+  'learn-mentorship': 'Learning / Mentorship',
+  'build-relationships': 'Building relationships',
+  'collaborate': 'Collaborate on projects',
+  'find-cofounder': 'Finding a co-founder',
+  'find-mentor': 'Finding a mentor',
+  'hire': 'Hiring talent',
+  'find-investors': 'Finding investors',
+};
+function formatIntent(intent) {
+  if (!intent) return '';
+  return INTENT_DISPLAY_LABELS[intent] || intent;
+}
+
 function getInsight(a, b) {
   const shared = (a.interests||[]).filter(s=>(b.interests||[]).map(x=>x.toLowerCase()).includes(s.toLowerCase()));
   if (shared.length) return 'Shared curiosity in ' + shared.slice(0,2).join(' & ');
@@ -3204,7 +3224,7 @@ function getInsight(a, b) {
     const w = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
     if (w.some(x=>b.working_on.toLowerCase().includes(x))) return "Their work connects with what you're exploring";
   }
-  return b.intent ? 'Looking to ' + b.intent.replace(/-/g,' ') : 'Could be worth a conversation';
+  return b.intent ? 'Looking to ' + formatIntent(b.intent).toLowerCase() : 'Could be worth a conversation';
 }
 
 function getMatchReasons(a, b) {
@@ -3222,8 +3242,8 @@ function getMatchReasons(a, b) {
 
   // Intent — shared or theirs
   if (b.intent) {
-    const bIntent = b.intent.replace(/-/g,' ');
-    const aIntent = (a.intent||'').replace(/-/g,' ').toLowerCase();
+    const bIntent = formatIntent(b.intent);
+    const aIntent = formatIntent(a.intent).toLowerCase();
     if (aIntent && aIntent === bIntent.toLowerCase()) {
       reasons.push(`Both looking for ${bIntent.toLowerCase()}`);
     } else {

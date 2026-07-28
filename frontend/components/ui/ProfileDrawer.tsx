@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
+import { formatIntent } from '@/lib/intent';
 
 function safeHref(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -168,7 +169,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
           {raw?.intent && (
             <div style={{ padding: '10px 14px', borderRadius: 12, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 5 }}>Looking for</div>
-              <span style={{ padding: '4px 12px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{raw.intent}</span>
+              <span style={{ padding: '4px 12px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700 }}>{formatIntent(raw.intent)}</span>
             </div>
           )}
           {insight && (

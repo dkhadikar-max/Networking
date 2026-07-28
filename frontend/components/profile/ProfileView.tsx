@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { apiDelete } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
+import { formatIntent } from '@/lib/intent';
 import type { User } from '@/lib/types';
 
 function safeHref(url?: string | null): string | undefined {
@@ -113,7 +114,7 @@ export default function ProfileView({ user, isSelf = false, onConnect, connected
           <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 12, background: 'rgba(21,122,110,0.07)', border: '1px solid rgba(21,122,110,0.18)', textAlign: 'center' }}>
             {user.intent && (
               <span style={{ display: 'inline-block', padding: '3px 14px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 700, marginBottom: user.working_on ? 8 : 0 }}>
-                {user.intent}
+                {formatIntent(user.intent)}
               </span>
             )}
             {user.working_on && (
