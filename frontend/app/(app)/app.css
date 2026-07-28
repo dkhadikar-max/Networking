@@ -712,15 +712,15 @@ textarea.pe-input { resize: none; }
   background: var(--sur); flex-shrink: 0;
 }
 .circles-mode-btn {
-  flex: 1; padding: 6px 0; border-radius: var(--r-sm);
+  position: relative; flex: 1; padding: 6px 0; border-radius: var(--r-sm);
   font-size: 12px; font-weight: 700; font-family: inherit;
   border: 1.5px solid var(--border); background: transparent;
-  color: var(--text-soft); cursor: pointer; transition: all 0.15s;
+  color: var(--text-soft); cursor: pointer; transition: color 0.15s, border-color 0.15s;
+  overflow: hidden;
 }
-.circles-mode-btn.active {
-  background: var(--primary); border-color: var(--primary);
-  color: white;
-}
+.circles-mode-btn.active { border-color: transparent; color: white; }
+.circles-mode-pill-bg { position: absolute; inset: 0; background: var(--primary); border-radius: var(--r-sm); z-index: 0; }
+.circles-mode-btn-label { position: relative; z-index: 1; }
 .circles-filter-wrap {
   position: relative; flex-shrink: 0;
   border-bottom: 1px solid rgba(226,232,240,0.4);

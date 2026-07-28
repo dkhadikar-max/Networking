@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export type FilterState = {
   sort: 'relevance' | 'recent';
@@ -69,8 +70,6 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
     });
   }
 
-  if (!open) return null;
-
   const intentHint = draft.intents.length === 0
     ? 'Select up to 3'
     : draft.intents.length === 1
@@ -78,11 +77,21 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
       : `${draft.intents.length} selected`;
 
   return (
-    <div
+    <AnimatePresence>
+      {open && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={onClose}
     >
-      <div
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 32, stiffness: 300 }}
         style={{ width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}
         onClick={e => e.stopPropagation()}
       >
@@ -146,7 +155,9 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
         >
           Show Matches
         </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

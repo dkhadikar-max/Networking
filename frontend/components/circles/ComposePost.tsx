@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { CIRCLE_TAGS, type CircleTag, type LinkPreview } from '@/lib/types';
 import { apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -11,13 +12,13 @@ type StructuredMeta = {
   industry: string; skill_level: string; location: string; timeline: string;
 };
 
-type Props = { onClose: () => void; onPosted: () => void; };
+type Props = { onClose: () => void; onPosted: () => void; groupId?: string; groupName?: string };
 
 function wordCount(t: string) {
   return t.trim().split(/\s+/).filter(Boolean).length;
 }
 
-export default function ComposePost({ onClose, onPosted }: Props) {
+export default function ComposePost({ onClose, onPosted, groupId, groupName }: Props) {
   const toast = useToast();
   const [text, setText] = useState('');
   const [selectedTags, setSelectedTags] = useState<CircleTag[]>([]);
@@ -73,8 +74,9 @@ export default function ComposePost({ onClose, onPosted }: Props) {
         tags: selectedTags,
         structured_meta: cleanMeta,
         links: linkPreview ? [linkPreview] : [],
+        group_id: groupId,
       });
-      toast('Posted to Circles', 'success');
+      toast(groupName ? `Posted to ${groupName}` : 'Posted to Circles', 'success');
       onPosted();
       onClose();
     } catch (e: unknown) {
@@ -86,10 +88,23 @@ export default function ComposePost({ onClose, onPosted }: Props) {
   }
 
   return (
-    <div className="compose-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="compose-sheet">
+    <motion.div
+      className="compose-overlay"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="compose-sheet"
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+      >
         <div className="compose-header">
-          <span className="compose-title">Share to Circles</span>
+          <span className="compose-title">{groupName ? `Share to ${groupName}` : 'Share to Circles'}</span>
           <button className="compose-close" onClick={onClose}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -197,10 +212,10 @@ export default function ComposePost({ onClose, onPosted }: Props) {
             </div>
           )}
           <button className="compose-post-btn" onClick={handleSubmit} disabled={!canPost}>
-            {submitting ? 'Posting…' : 'Post to Circles'}
+            {submitting ? 'Posting…' : groupName ? `Post to ${groupName}` : 'Post to Circles'}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

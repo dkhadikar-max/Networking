@@ -67,9 +67,9 @@
 
   /* Radius */
   --r-xs:            8px;
-  --r-sm:            12px;
-  --r-md:            16px;
-  --r-lg:            24px;
+  --r-sm:            14px;
+  --r-md:            18px;
+  --r-lg:            26px;
   --r-xl:            34px;
   --r-full:          999px;
 
@@ -88,7 +88,7 @@
   --glass-blur-sm:   blur(12px) saturate(160%);
 
   /* Typography */
-  --font-sans:       var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans:       var(--font-jakarta), 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Easing curves */
   --ease-spring:     cubic-bezier(0.22,1,0.36,1);

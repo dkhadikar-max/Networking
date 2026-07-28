@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CIRCLE_TAGS, type CircleTag, type CirclePost } from '@/lib/types';
 import { apiGet, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
@@ -146,7 +147,10 @@ export default function CirclesPage() {
             className={`circles-mode-btn${mode === m.key ? ' active' : ''}`}
             onClick={() => setMode(m.key)}
           >
-            {m.label}
+            {mode === m.key && (
+              <motion.div layoutId="circles-mode-pill" className="circles-mode-pill-bg" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />
+            )}
+            <span className="circles-mode-btn-label">{m.label}</span>
           </button>
         ))}
         {switching && (
@@ -248,7 +252,9 @@ export default function CirclesPage() {
       </div>
 
       {/* Compose sheet */}
-      {composing && <ComposePost onClose={() => setComposing(false)} onPosted={handlePosted} />}
+      <AnimatePresence>
+        {composing && <ComposePost onClose={() => setComposing(false)} onPosted={handlePosted} />}
+      </AnimatePresence>
     </div>
   );
 }
