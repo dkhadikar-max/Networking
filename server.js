@@ -3951,14 +3951,17 @@ app.get('/api/me', auth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Not found' });
 
     const ps = calcProfileScore(user);
-    await supabase.from('users').update({
-      profile_score: ps, is_profile_complete: ps >= 70
-    }).eq('id', user.id);
-    user.profile_score       = ps;
-    user.is_profile_complete = ps >= 70;
+    const isComplete = ps >= 70;
+    const scoreChanged = user.profile_score !== ps || user.is_profile_complete !== isComplete;
 
-    const { data: worksData } = await supabase.from('works')
-      .select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+    const [, { data: worksData }] = await Promise.all([
+      scoreChanged
+        ? supabase.from('users').update({ profile_score: ps, is_profile_complete: isComplete }).eq('id', user.id)
+        : Promise.resolve(),
+      supabase.from('works').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    ]);
+    user.profile_score       = ps;
+    user.is_profile_complete = isComplete;
 
     const u = clean(user);
     u.trust_steps = trustSteps(user);
@@ -4417,20 +4420,17 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
     if (swipedToday >= DAILY_LIMIT)
       return res.json({ limited: true, remaining: 0, profiles: [] });
 
-    // Build exclusion sets
-    const { data: swipedData } = await supabase.from('swipes')
-      .select('to_user').eq('from_user', req.user.id);
+    // Build exclusion sets — independent queries, run concurrently
+    const [{ data: swipedData }, { data: connData }, { data: blockData }] = await Promise.all([
+      supabase.from('swipes').select('to_user').eq('from_user', req.user.id),
+      supabase.from('connections').select('user1, user2')
+        .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`),
+      supabase.from('blocks').select('from_user, to_user')
+        .or(`from_user.eq.${req.user.id},to_user.eq.${req.user.id}`),
+    ]);
     const swiped = new Set((swipedData || []).map(s => s.to_user));
-
-    const { data: connData } = await supabase.from('connections')
-      .select('user1, user2')
-      .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`);
     const connected = new Set((connData || [])
       .map(c => c.user1 === req.user.id ? c.user2 : c.user1));
-
-    const { data: blockData } = await supabase.from('blocks')
-      .select('from_user, to_user')
-      .or(`from_user.eq.${req.user.id},to_user.eq.${req.user.id}`);
     const blocked = new Set((blockData || [])
       .map(b => b.from_user === req.user.id ? b.to_user : b.from_user));
 
