@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Build Your Network — Relationship-Driven Professional Network",
-    description: "Your next opportunity is probably one relationship away. Join 12,000+ founders, operators, and creators on BYN.",
+    description: "Your next opportunity is probably one relationship away. Join founders, operators, and creators building real professional relationships on BYN.",
     url: "https://buildyournetwork.online",
     siteName: "Build Your Network",
     type: "website",

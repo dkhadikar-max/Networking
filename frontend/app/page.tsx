@@ -604,7 +604,6 @@ export default async function HomePage() {
               'inLanguage': 'en',
               'description': 'Free intent-based professional networking platform. Find co-founders, freelancers, mentors, collaborators, and career connections based on declared intent — GPS-filtered, no cold email.',
               'offers': { '@type': 'Offer', 'price': '0', 'priceCurrency': 'USD', 'availability': 'https://schema.org/InStock' },
-              'aggregateRating': { '@type': 'AggregateRating', 'ratingValue': '4.8', 'ratingCount': '47', 'bestRating': '5' },
             },
           ],
         }) }}
