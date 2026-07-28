@@ -27,18 +27,18 @@ export default function ChatListScreen({ navigation }) {
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
     try {
-      const { data } = await api.get('/api/matches');
+      const { data } = await api.get('/api/connections');
       setList(Array.isArray(data) ? data : []);
     } catch {}
     finally { setLoading(false); setRefreshing(false); }
   }
 
   function renderItem({ item }) {
-    const u = item.other_user || {};
+    const u = item.user || {};
     const photo = (u.photos||[])[0];
     const unread = item.unread_count || 0;
-    const preview = item.last_message?.text || 'Start the conversation…';
-    const time    = item.last_message?.created_at;
+    const preview = item.lastMessage?.text || 'Start the conversation…';
+    const time    = item.lastMessage?.created_at;
 
     return (
       <TouchableOpacity style={s.row} onPress={() => navigation.navigate('Chat', { match: item, user: u })}>
@@ -58,10 +58,10 @@ export default function ChatListScreen({ navigation }) {
           {unread > 0 && (
             <View style={s.badge}><Text style={s.badgeTxt}>{unread > 9 ? '9+' : unread}</Text></View>
           )}
-          {item.is_persistent
+          {item.active
             ? <View style={s.timerGold}><Text style={s.timerTxt}>Active</Text></View>
-            : item.hours_left != null
-              ? <View style={item.hours_left < 12 ? s.timerRed : s.timerGold}><Text style={s.timerTxt}>{item.hours_left}h</Text></View>
+            : item.hoursLeft != null
+              ? <View style={item.hoursLeft < 12 ? s.timerRed : s.timerGold}><Text style={s.timerTxt}>{item.hoursLeft}h</Text></View>
               : null
           }
         </View>
@@ -85,7 +85,7 @@ export default function ChatListScreen({ navigation }) {
       ) : (
         <FlatList
           data={list}
-          keyExtractor={i => i.match_id}
+          keyExtractor={i => i.connection.id}
           renderItem={renderItem}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={()=>load(true)} tintColor={C.gold} />}
         />

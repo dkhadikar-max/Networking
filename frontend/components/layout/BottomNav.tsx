@@ -55,6 +55,10 @@ const TABS = [
 export default function BottomNav() {
   const path = usePathname();
 
+  // Hide the tab bar inside an open conversation — matches standard chat UX
+  // and frees up space for the message input above the mobile keyboard.
+  if (/^\/chat\/[^/]+/.test(path)) return null;
+
   return (
     <nav className="bottom-nav">
       {TABS.map(tab => {

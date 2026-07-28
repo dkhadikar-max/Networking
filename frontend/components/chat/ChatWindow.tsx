@@ -220,7 +220,11 @@ export default function ChatWindow({ connectionId }: Props) {
       </div>
 
       {/* Input */}
-      <form onSubmit={sendMessage} className="flex items-end gap-2 px-4 py-3 border-t border-[var(--border)] bg-[var(--bg)] shrink-0">
+      <form
+        onSubmit={sendMessage}
+        className="flex items-end gap-2 px-4 py-3 border-t border-[var(--border)] bg-[var(--bg)] shrink-0"
+        style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="flex-1 flex flex-col gap-1">
           <textarea
             value={text}

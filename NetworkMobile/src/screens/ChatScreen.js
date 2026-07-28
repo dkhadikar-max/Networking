@@ -11,7 +11,7 @@ function fmtTime(iso) { return new Date(iso).toLocaleTimeString([],{hour:'2-digi
 export default function ChatScreen({ route, navigation }) {
   const { match, user: chatUser } = route.params;
   const { user: me } = useAuth();
-  const connId = match.match_id;
+  const connId = match.connection.id;
   const [msgs, setMsgs]     = useState([]);
   const [text, setText]     = useState('');
   const [loading, setLoading] = useState(true);
