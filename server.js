@@ -4862,20 +4862,22 @@ app.get('/api/connections', auth, async (req, res) => {
       (priMsgs || []).forEach(p => prioritySet.add(p.from_user));
     }
 
-    const result = active.map(c => {
-      const otherId  = c.user1 === req.user.id ? c.user2 : c.user1;
-      const other    = userMap[otherId];
-      const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
-      const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
-      const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
-      return {
-        connection: c, user: cleanPublic(other),
-        lastMessage: lastMsg, hoursLeft, active: !!c.active,
-        msgCount: msgCountMap[c.id] || 0,
-        unread_count,
-        is_priority: prioritySet.has(otherId),
-      };
-    });
+    const result = active
+      .filter(c => userMap[c.user1 === req.user.id ? c.user2 : c.user1])
+      .map(c => {
+        const otherId  = c.user1 === req.user.id ? c.user2 : c.user1;
+        const other    = userMap[otherId];
+        const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
+        const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
+        const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
+        return {
+          connection: c, user: cleanPublic(other),
+          lastMessage: lastMsg, hoursLeft, active: !!c.active,
+          msgCount: msgCountMap[c.id] || 0,
+          unread_count,
+          is_priority: prioritySet.has(otherId),
+        };
+      });
     res.json(result);
   } catch(e) {
     console.error('Connections error:', e);

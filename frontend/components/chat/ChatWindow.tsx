@@ -122,7 +122,7 @@ export default function ChatWindow({ connectionId }: Props) {
     );
   }
 
-  if (!connection) {
+  if (!connection || !connection.user) {
     return (
       <div className="flex-1 flex items-center justify-center text-center p-8 text-[var(--muted)]">
         <p className="text-sm">Conversation not found</p>

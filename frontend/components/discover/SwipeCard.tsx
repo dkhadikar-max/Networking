@@ -117,8 +117,8 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
       style={{ position: 'relative' }}
     >
       {/* Swipe indicators */}
-      <div ref={connectLabelRef} style={{ position: 'absolute', top: 14, left: 16, zIndex: 20, background: 'rgba(21,184,166,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>CONNECT ✓</div>
-      <div ref={skipLabelRef} style={{ position: 'absolute', top: 14, right: 16, zIndex: 20, background: 'rgba(239,68,68,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>SKIP ✗</div>
+      <div ref={connectLabelRef} aria-hidden="true" style={{ position: 'absolute', top: 14, left: 16, zIndex: 20, background: 'rgba(21,184,166,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>CONNECT ✓</div>
+      <div ref={skipLabelRef} aria-hidden="true" style={{ position: 'absolute', top: 14, right: 16, zIndex: 20, background: 'rgba(239,68,68,0.95)', color: 'white', padding: '5px 14px', borderRadius: 8, fontWeight: 800, fontSize: 13, border: '2px solid rgba(255,255,255,0.5)', opacity: 0, pointerEvents: 'none' }}>SKIP ✗</div>
 
       {/* 1. INTENT — top, full-width banner */}
       {intents[0] ? (

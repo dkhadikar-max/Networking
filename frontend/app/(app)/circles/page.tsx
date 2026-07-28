@@ -23,6 +23,7 @@ export default function CirclesPage() {
   const highlightPostId = searchParams.get('post');
   const [posts, setPosts] = useState<CirclePost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [switching, setSwitching] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -32,9 +33,15 @@ export default function CirclesPage() {
   const [composing, setComposing] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const loadingMoreRef = useRef(false);
+  const hasPostsRef = useRef(false);
+  useEffect(() => { hasPostsRef.current = posts.length > 0; }, [posts]);
 
-  const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean, feedMode: FeedMode) => {
-    if (replace) { setLoading(true); setFetchError(false); setNoLocation(false); } else { setLoadingMore(true); loadingMoreRef.current = true; }
+  const fetchPosts = useCallback(async (tag: CircleTag | null, off: number, replace: boolean, feedMode: FeedMode, hadPosts: boolean) => {
+    // Only show the full-screen spinner on a genuinely empty feed — a tab/tag
+    // switch when posts are already on screen should keep them visible instead
+    // of flashing to blank, otherwise every switch reads as "did nothing".
+    if (replace) { if (!hadPosts) setLoading(true); setSwitching(hadPosts); setFetchError(false); setNoLocation(false); }
+    else { setLoadingMore(true); loadingMoreRef.current = true; }
     try {
       const params = new URLSearchParams({ offset: String(off), limit: '20', mode: feedMode });
       if (tag) params.set('tags', tag);
@@ -48,13 +55,14 @@ export default function CirclesPage() {
       else toast('Failed to load more', 'error');
     } finally {
       setLoading(false);
+      setSwitching(false);
       setLoadingMore(false);
       loadingMoreRef.current = false;
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchPosts(activeTag, 0, true, mode);
+    fetchPosts(activeTag, 0, true, mode, hasPostsRef.current);
   }, [activeTag, mode, fetchPosts]);
 
   // Bug 2 fix: scroll to the referenced post once the feed has loaded
@@ -79,14 +87,14 @@ export default function CirclesPage() {
   }
 
   function handlePosted() {
-    fetchPosts(activeTag, 0, true, mode);
+    fetchPosts(activeTag, 0, true, mode, hasPostsRef.current);
   }
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
     if (!hasMore || loadingMoreRef.current || loading) return;
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 300) {
-      fetchPosts(activeTag, offset, false, mode);
+      fetchPosts(activeTag, offset, false, mode, hasPostsRef.current);
     }
   }
 
@@ -119,7 +127,7 @@ export default function CirclesPage() {
       </div>
 
       {/* Mode selector */}
-      <div className="circles-mode-bar">
+      <div className="circles-mode-bar" style={{ position: 'relative' }}>
         {MODES.map(m => (
           <button
             key={m.key}
@@ -129,25 +137,30 @@ export default function CirclesPage() {
             {m.label}
           </button>
         ))}
+        {switching && (
+          <div className="w-4 h-4 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }} />
+        )}
       </div>
 
       {/* Tag filter bar */}
-      <div className="circles-filter-bar">
-        <button
-          className={`circles-filter-pill${activeTag === null ? ' active' : ''}`}
-          onClick={() => setActiveTag(null)}
-        >
-          All
-        </button>
-        {CIRCLE_TAGS.map(tag => (
+      <div className="circles-filter-wrap">
+        <div className="circles-filter-bar">
           <button
-            key={tag}
-            className={`circles-filter-pill${activeTag === tag ? ' active' : ''}`}
-            onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            className={`circles-filter-pill${activeTag === null ? ' active' : ''}`}
+            onClick={() => setActiveTag(null)}
           >
-            {tag}
+            All
           </button>
-        ))}
+          {CIRCLE_TAGS.map(tag => (
+            <button
+              key={tag}
+              className={`circles-filter-pill${activeTag === tag ? ' active' : ''}`}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Feed */}
@@ -167,7 +180,7 @@ export default function CirclesPage() {
             </div>
             <div className="circles-empty-title">Could not load posts</div>
             <button
-              onClick={() => fetchPosts(activeTag, 0, true, mode)}
+              onClick={() => fetchPosts(activeTag, 0, true, mode, false)}
               style={{ padding: '8px 20px', borderRadius: 'var(--r-lg)', background: 'var(--primary)', color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}
             >
               Retry

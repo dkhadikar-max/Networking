@@ -35,7 +35,7 @@ export default function ConversationList({ connections }: Props) {
 
   return (
     <>
-      {connections.map(c => {
+      {connections.filter(c => c.user).map(c => {
         const { connection, user, lastMessage, unread_count, hoursLeft } = c;
         const unread = (unread_count ?? 0) > 0;
         const photo = user.photos?.[0];

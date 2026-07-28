@@ -30,8 +30,8 @@ export default function LikesPage() {
   async function handleConnect(uid: string) {
     setConnecting(uid);
     try {
-      await apiPost('/api/connect', { userId: uid });
-      toast('Connection request sent!', 'success');
+      const res = await apiPost<{ match?: boolean }>('/api/connect', { userId: uid });
+      toast(res.match ? "It's a match! Start the conversation." : 'Interest sent — you\'ll be notified if they connect back', 'success');
       setData(prev => prev ? {
         ...prev,
         profiles: prev.profiles?.filter(p => p.id !== uid),
