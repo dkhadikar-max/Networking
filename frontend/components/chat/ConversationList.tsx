@@ -66,7 +66,7 @@ export default function ConversationList({ connections }: Props) {
                 {lastMessage?.text ?? 'Say hello!'}
               </p>
               {hoursLeft != null && hoursLeft <= 24 && (
-                <p style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>
+                <p style={{ fontSize: 10, color: 'var(--accent-text)', fontWeight: 600, marginTop: 2 }}>
                   ⏱ {hoursLeft}h left
                 </p>
               )}

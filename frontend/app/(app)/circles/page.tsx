@@ -14,7 +14,7 @@ type FeedMode = 'for-you' | 'near-me' | 'all';
 const MODES: { key: FeedMode; label: string }[] = [
   { key: 'for-you', label: 'For You' },
   { key: 'near-me', label: 'Near Me' },
-  { key: 'all',     label: 'All' },
+  { key: 'all',     label: 'Everyone' }, // was "All" — collided with the tag filter row's own "All" chip
 ];
 
 export default function CirclesPage() {

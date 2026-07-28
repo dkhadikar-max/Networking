@@ -12,8 +12,8 @@ interface Props {
 
 function MomentumLabel(score: number) {
   if (score >= 80) return { label: 'Strong',        color: 'text-emerald-600' };
-  if (score >= 55) return { label: 'Growing',       color: 'text-[var(--teal)]' };
-  if (score >= 30) return { label: 'Getting there', color: 'text-[var(--accent)]' };
+  if (score >= 55) return { label: 'Growing',       color: 'text-[var(--primary-2)]' };
+  if (score >= 30) return { label: 'Getting there', color: 'text-[var(--accent-text)]' };
   return              { label: 'Just starting',  color: 'text-[var(--text-muted)]' };
 }
 

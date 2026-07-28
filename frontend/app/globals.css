@@ -24,6 +24,7 @@
   --accent-light:    #FFF4E7;
   --accent-glow:     rgba(244,162,89,0.2);
   --accent-lt:       var(--accent-light); /* compat — used in likes/page.tsx */
+  --accent-text:     #92400E; /* WCAG AA-passing (6.5:1) text color for accent-tinted backgrounds — raw --accent is only 1.9:1 on #FFF4E7 */
 
   /* Surfaces */
   --bg:              #F6F8FA;
@@ -56,6 +57,7 @@
   /* State */
   --danger:          #EF4444;
   --danger-soft:     rgba(239,68,68,0.08);
+  --danger-text:     #B91C1C; /* WCAG AA-passing text color for danger-tinted backgrounds — raw --danger is only ~3.4:1 on light red tints */
   --green:           #22C55E;
   --green-soft:      rgba(34,197,94,0.1);
   --gold:            #F4A259;
@@ -135,6 +137,15 @@ body {
 }
 
 #__next, main { height: 100%; }
+
+/* ── Focus visibility (keyboard users) ──────────────────────
+   No component in the app defines its own focus-visible state,
+   so keyboard navigation had no consistent visual indicator. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 /* ── Scrollbar ───────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }

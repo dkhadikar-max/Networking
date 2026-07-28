@@ -154,7 +154,7 @@ export default function DiscoverFeed() {
                 <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
               </svg>
             </div>
-            <span>Build Your Network</span>
+            <span>BYN</span>
           </div>
           <button className="filter-btn" onClick={() => setShowFilters(true)}>
             ⚡ Filters&nbsp;

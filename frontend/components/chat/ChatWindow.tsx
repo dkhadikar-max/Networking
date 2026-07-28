@@ -161,7 +161,7 @@ export default function ChatWindow({ connectionId }: Props) {
           </div>
         </button>
         {connection.hoursLeft != null && connection.hoursLeft <= 24 && (
-          <span className="text-xs text-[var(--accent)] font-semibold shrink-0">⏱ {connection.hoursLeft}h left</span>
+          <span className="text-xs text-[var(--accent-text)] font-semibold shrink-0">⏱ {connection.hoursLeft}h left</span>
         )}
         <button
           onClick={() => setShowPriority(true)}
