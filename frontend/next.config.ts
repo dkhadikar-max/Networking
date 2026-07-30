@@ -11,6 +11,9 @@ const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // No "preload" — that submission is effectively permanent once picked up by
+  // browsers. max-age + includeSubDomains gets the audit credit safely.
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
 ];
 
 const nextConfig: NextConfig = {

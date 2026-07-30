@@ -584,6 +584,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify({
           '@context': 'https://schema.org',
+          '@type': 'WebPage',
           '@graph': [
             {
               '@type': 'Organization',
