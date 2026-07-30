@@ -39,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${jakarta.variable} h-full antialiased`}>
       <body className="h-full bg-[var(--bg)] text-[var(--text)]">
         <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="llms.txt" href="/llms.txt" />
         <AuthProvider>
           {children}
           <CookieBanner />

@@ -50,6 +50,14 @@ const LANDING_CSS = `
   .logo-img { width:28px; height:28px; border-radius:7px; flex-shrink:0; animation:logoPulse 2.4s ease-in-out infinite; }
   .logo-img-footer { width:26px; height:26px; border-radius:6px; flex-shrink:0; }
 
+  .skip-link {
+    position:absolute; top:-48px; left:8px; z-index:1000;
+    background:var(--primary); color:white; padding:12px 20px;
+    border-radius:8px; font-weight:600; font-size:14px; text-decoration:none;
+    transition:top 0.2s;
+  }
+  .skip-link:focus { top:8px; }
+
   nav {
     position:fixed; top:0; left:0; right:0; z-index:100;
     background:rgba(255,244,236,0.92); backdrop-filter:blur(20px);
@@ -271,6 +279,8 @@ export default async function HomePage() {
   return (
     <div>
       <style dangerouslySetInnerHTML={{ __html: LANDING_CSS }} />
+
+      <a href="#hero" className="skip-link">Skip to main content</a>
 
       {/* Auth redirect + animations — renders null, client only */}
       <LandingClient />
