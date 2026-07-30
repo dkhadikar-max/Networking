@@ -2,6 +2,17 @@ import type { NextConfig } from "next";
 
 const NOINDEX_HEADER = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 
+// Applied to every route. Not a full CSP — this app loads GA4 (consent-gated),
+// Razorpay's checkout script/iframe, Cloudinary images, and Google Fonts, so a
+// script-src-restrictive CSP needs a proper resource audit + nonce plan before
+// it can be added without breaking checkout. These are the safe, non-breaking
+// baseline headers in the meantime.
+const SECURITY_HEADERS = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+];
+
 const nextConfig: NextConfig = {
   output: "standalone",
   async redirects() {
@@ -14,6 +25,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      { source: '/:path*', headers: SECURITY_HEADERS },
       // Auth routes — no value being indexed
       { source: '/login',              headers: NOINDEX_HEADER },
       { source: '/signup',             headers: NOINDEX_HEADER },
