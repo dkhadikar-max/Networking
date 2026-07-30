@@ -89,7 +89,7 @@ const LANDING_CSS = `
   .filter-pill { padding:6px 14px; background:var(--highlight); border-radius:20px; font-size:11px; font-weight:600; color:var(--primary); }
   .profile-card { background:var(--bg); border-radius:16px; padding:16px; margin-bottom:12px; display:flex; gap:12px; align-items:center; }
   .profile-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:16px; flex-shrink:0; }
-  .profile-info h4 { font-size:14px; font-weight:600; margin-bottom:2px; }
+  .profile-info .mock-name { font-size:14px; font-weight:600; margin-bottom:2px; }
   .profile-info p { font-size:11px; color:var(--text-secondary); }
   .intent-tag { display:inline-block; padding:3px 10px; background:var(--highlight); color:var(--primary); border-radius:12px; font-size:10px; font-weight:600; margin-top:4px; }
   .trust-score { margin-left:auto; text-align:center; }
@@ -133,12 +133,12 @@ const LANDING_CSS = `
   .mini-phone { width:100%; max-width:240px; margin:0 auto; background:var(--text); border-radius:24px; padding:12px 12px 16px; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
   .mini-screen { background:var(--bg); border-radius:16px; padding:16px; min-height:320px; }
   .mini-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-  .mini-header h4 { font-size:14px; font-weight:700; }
+  .mini-header .mock-title { font-size:14px; font-weight:700; }
   .mini-header .dots { display:flex; gap:4px; }
   .mini-header .dots span { width:6px; height:6px; background:var(--text-muted); border-radius:50%; }
   .mini-profile { background:var(--card); border-radius:12px; padding:12px; margin-bottom:10px; display:flex; gap:10px; align-items:center; }
   .mini-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); flex-shrink:0; }
-  .mini-info h5 { font-size:12px; font-weight:600; }
+  .mini-info .mock-name { font-size:12px; font-weight:600; }
   .mini-info p { font-size:10px; color:var(--text-secondary); }
   .mini-chat { display:flex; flex-direction:column; gap:10px; }
   .chat-bubble { padding:10px 14px; border-radius:14px; font-size:12px; max-width:80%; }
@@ -146,7 +146,7 @@ const LANDING_CSS = `
   .chat-bubble.received { background:var(--card); color:var(--text); align-self:flex-start; border-bottom-left-radius:4px; }
   .profile-detail { text-align:center; padding:20px 0; }
   .profile-detail .big-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); margin:0 auto 12px; }
-  .profile-detail h4 { font-size:16px; font-weight:700; margin-bottom:4px; }
+  .profile-detail .mock-name { font-size:16px; font-weight:700; margin-bottom:4px; }
   .profile-detail p { font-size:12px; color:var(--text-secondary); }
   .profile-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
   .stat-box { background:var(--card); padding:10px; border-radius:10px; text-align:center; }
@@ -181,7 +181,7 @@ const LANDING_CSS = `
   .install-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:40px; text-align:left; }
   .install-step { background:rgba(255,255,255,0.08); padding:24px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); }
   .install-step .num { width:36px; height:36px; background:var(--accent); color:white; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; margin-bottom:12px; }
-  .install-step h4 { font-size:15px; font-weight:600; margin-bottom:6px; color:white; }
+  .install-step h3 { font-size:15px; font-weight:600; margin-bottom:6px; color:white; }
   .install-step p { font-size:13px; color:rgba(255,255,255,0.7); line-height:1.6; }
 
   .final-cta { text-align:center; padding:120px 24px; }
@@ -192,7 +192,7 @@ const LANDING_CSS = `
   .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; }
   .footer-brand { font-size:20px; font-weight:800; color:var(--highlight); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .footer-desc { font-size:14px; color:var(--text-muted); line-height:1.7; }
-  .footer-col h4 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:20px; }
+  .footer-col h3 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:20px; }
   .footer-col a { display:block; color:rgba(255,255,255,0.7); text-decoration:none; font-size:14px; margin-bottom:12px; transition:color 0.2s; }
   .footer-col a:hover { color:white; }
   .footer-bottom { max-width:1100px; margin:40px auto 0; padding-top:24px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--text-muted); }
@@ -317,7 +317,7 @@ export default async function HomePage() {
                 {[{ i: 'SK', n: 'Sarah Kim', r: 'Climate tech founder, ex-McKinsey', t: 'Looking for: Co-founder', s: 94 }, { i: 'JM', n: 'James Miller', r: 'Senior engineer, exploring freelance', t: 'Looking for: Clients', s: 88 }, { i: 'AL', n: 'Aisha Lopez', r: 'Marketing lead, career pivot', t: 'Looking for: Mentor', s: 91 }].map(p => (
                   <div key={p.i} className="profile-card">
                     <div className="profile-avatar">{p.i}</div>
-                    <div className="profile-info"><h4>{p.n}</h4><p>{p.r}</p><span className="intent-tag">{p.t}</span></div>
+                    <div className="profile-info"><p className="mock-name">{p.n}</p><p>{p.r}</p><span className="intent-tag">{p.t}</span></div>
                     <div className="trust-score"><div className="score">{p.s}</div><div className="label">Trust</div></div>
                   </div>
                 ))}
@@ -399,17 +399,17 @@ export default async function HomePage() {
             <div className="preview-card animate">
               <p className="preview-label">Discover Screen</p>
               <div className="mini-phone"><div className="mini-screen">
-                <div className="mini-header"><h4>Discover</h4><div className="dots"><span /><span /><span /></div></div>
+                <div className="mini-header"><p className="mock-title">Discover</p><div className="dots"><span /><span /><span /></div></div>
                 {[{ n: 'MC', name: 'Marcus Chen', role: 'AI researcher · Looking for: PM' }, { n: 'ER', name: 'Elena Rossi', role: 'Designer · Looking for: Dev' }, { n: 'DP', name: 'David Park', role: 'Founder · Looking for: Advisor' }].map(p => (
-                  <div key={p.n} className="mini-profile"><div className="mini-avatar" /><div className="mini-info"><h5>{p.name}</h5><p>{p.role}</p></div></div>
+                  <div key={p.n} className="mini-profile"><div className="mini-avatar" /><div className="mini-info"><p className="mock-name">{p.name}</p><p>{p.role}</p></div></div>
                 ))}
               </div></div>
             </div>
             <div className="preview-card animate delay-1">
               <p className="preview-label">Profile Screen</p>
               <div className="mini-phone"><div className="mini-screen">
-                <div className="mini-header"><h4>Profile</h4><div className="dots"><span /><span /><span /></div></div>
-                <div className="profile-detail"><div className="big-avatar" /><h4>Alex Morgan</h4><p>Building in fintech · Series A</p></div>
+                <div className="mini-header"><p className="mock-title">Profile</p><div className="dots"><span /><span /><span /></div></div>
+                <div className="profile-detail"><div className="big-avatar" /><p className="mock-name">Alex Morgan</p><p>Building in fintech · Series A</p></div>
                 <div className="profile-stats">
                   {[{ n: '96', l: 'Trust' }, { n: '12', l: 'Connections' }, { n: '3', l: 'Intents' }].map(s => <div key={s.l} className="stat-box"><div className="num">{s.n}</div><div className="lbl">{s.l}</div></div>)}
                 </div>
@@ -418,7 +418,7 @@ export default async function HomePage() {
             <div className="preview-card animate delay-2">
               <p className="preview-label">Chat Screen</p>
               <div className="mini-phone"><div className="mini-screen">
-                <div className="mini-header"><h4>Alex Morgan</h4><div className="dots"><span /><span /><span /></div></div>
+                <div className="mini-header"><p className="mock-title">Alex Morgan</p><div className="dots"><span /><span /><span /></div></div>
                 <div className="mini-chat">
                   <div className="chat-bubble received">Hi! I saw you&apos;re looking for a technical co-founder. I&apos;m building something similar in the climate space.</div>
                   <div className="chat-bubble sent">Hey Alex — yes, exactly. Would love to hear more about your background.</div>
@@ -482,7 +482,7 @@ export default async function HomePage() {
             </div>
             <div className="install-steps">
               {[{ n: 1, title: 'Open in browser', body: 'Click the button above. Works on Chrome, Safari, Firefox — desktop or mobile.' }, { n: 2, title: 'Sign up free', body: 'Create your account and set your networking intent. Takes under 60 seconds.' }, { n: 3, title: 'Start discovering', body: 'Browse relevant profiles, connect with intent, and have real conversations.' }].map(s => (
-                <div key={s.n} className="install-step"><div className="num">{s.n}</div><h4>{s.title}</h4><p>{s.body}</p></div>
+                <div key={s.n} className="install-step"><div className="num">{s.n}</div><h3>{s.title}</h3><p>{s.body}</p></div>
               ))}
             </div>
           </div>
@@ -559,9 +559,9 @@ export default async function HomePage() {
             <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" />Build Your Network</div>
             <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
           </div>
-          <div className="footer-col"><h4>Legal</h4><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
-          <div className="footer-col"><h4>Product</h4><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
-          <div className="footer-col"><h4>Support</h4><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a></div>
+          <div className="footer-col"><h3>Legal</h3><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
+          <div className="footer-col"><h3>Product</h3><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
+          <div className="footer-col"><h3>Support</h3><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a></div>
         </div>
         <div className="footer-bottom"><span>&copy; 2026 Build Your Network. All rights reserved.</span><span>Early Access Product</span></div>
       </footer>
