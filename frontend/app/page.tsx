@@ -279,7 +279,7 @@ export default async function HomePage() {
       <nav>
         <div className="nav-inner">
           <a href="#" className="logo">
-            <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" />
+            <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" width={28} height={28} />
             Build Your Network
           </a>
           <MobileNav />
@@ -556,7 +556,7 @@ export default async function HomePage() {
       <footer>
         <div className="footer-inner">
           <div>
-            <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" />Build Your Network</div>
+            <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" width={26} height={26} />Build Your Network</div>
             <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
           </div>
           <div className="footer-col"><h3>Legal</h3><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
