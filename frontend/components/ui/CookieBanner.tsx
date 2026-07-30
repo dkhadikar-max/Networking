@@ -72,7 +72,7 @@ export default function CookieBanner() {
       <div className="max-w-3xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <p className="text-sm text-[var(--sub)] flex-1 leading-relaxed">
           We use cookies to improve your experience. Analytics cookies (Google Analytics) are only loaded with your consent.{' '}
-          <Link href="/privacy" className="text-[var(--primary)] hover:underline underline-offset-2">Learn more</Link>
+          <Link href="/privacy" className="text-[var(--primary)] hover:underline underline-offset-2">Learn more about our privacy policy</Link>
         </p>
         <div className="flex gap-2 shrink-0">
           <button

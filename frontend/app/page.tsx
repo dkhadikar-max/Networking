@@ -288,7 +288,7 @@ export default async function HomePage() {
       {/* Nav */}
       <nav>
         <div className="nav-inner">
-          <a href="#" className="logo">
+          <a href="/" className="logo">
             <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" width={28} height={28} />
             Build Your Network
           </a>
