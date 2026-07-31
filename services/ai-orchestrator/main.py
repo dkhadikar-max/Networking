@@ -253,14 +253,14 @@ async def _execute_and_persist(execution_id: str, task_type: str, payload: dict)
 
 @app.get("/health")
 async def health():
-    """Railway health check — always 200. Error surfaced in body if degraded."""
+    """Railway health check — always 200. Startup error details are logged
+    server-side only (see lifespan()) — never echoed in this public, unauthenticated body."""
     return {
         "status":  "degraded" if _STARTUP_ERROR else "ok",
         "service": "byn-ai-orchestrator",
         "version": "2.0.0",
         "runtime": "python3.11",
         "graph_ready": _GRAPH is not None,
-        **({"error": _STARTUP_ERROR} if _STARTUP_ERROR else {}),
     }
 
 
