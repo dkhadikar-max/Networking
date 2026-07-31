@@ -289,7 +289,7 @@ export default async function HomePage() {
       <nav>
         <div className="nav-inner">
           <a href="/" className="logo">
-            <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" width={28} height={28} />
+            <img src="/assets/logo.png" className="logo-img" alt="Build Your Network" width={28} height={28} fetchPriority="high" />
             Build Your Network
           </a>
           <MobileNav />
