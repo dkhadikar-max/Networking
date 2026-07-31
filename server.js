@@ -3084,6 +3084,24 @@ function timingSafeStringEqual(a, b) {
   return aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf);
 }
 
+// Anonymizes a users row in place of a hard delete — connections and the
+// other party's messages stay resolvable (see migrations/012_soft_delete_users.sql).
+// Original email is freed up for reuse; login is blocked via deleted_at.
+function anonymizeUser(id) {
+  return {
+    email: `deleted-${id}@deleted.buildyournetwork.online`,
+    password: bcrypt.hashSync(crypto.randomUUID(), 12),
+    name: 'Deleted User',
+    bio: '', headline: '', photos: [], instagram: '', linkedin: '', website: '',
+    location: '', lat: null, lng: null,
+    skills: [], interests: [],
+    currently_exploring: '', working_on: '', interested_in: '',
+    push_token: null,
+    verification: { status: 'none', confidence: 0 },
+    deleted_at: new Date().toISOString(),
+  };
+}
+
 // Masks an email for logs — keeps enough to correlate support tickets without storing PII in plaintext log aggregation.
 function maskEmail(email) {
   const s = String(email || '');
@@ -3776,7 +3794,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
     // Timing-safe rejection — always run bcrypt so response time doesn't
     // reveal whether the email exists in the database.
-    if (!user) {
+    if (!user || user.deleted_at) {
       await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -4077,12 +4095,8 @@ app.post('/api/logout', (_req, res) => {
 app.delete('/api/me', auth, async (req, res) => {
   try {
     const id = req.user.id;
-    const { data: selfConns } = await supabase.from('connections').select('id').or(`user1.eq.${id},user2.eq.${id}`);
-    const selfConnIds = (selfConns || []).map(c => c.id);
-    if (selfConnIds.length > 0) {
-      await supabase.from('messages').delete().in('connection_id', selfConnIds);
-    }
-    await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
+    // Only the deleting user's own messages are removed -- connections and
+    // the other party's messages are left intact (see anonymizeUser below).
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -4095,7 +4109,7 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('user_acquisition').delete().eq('user_id', id);
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
     await supabase.from('payments').delete().eq('user_id', id);
-    const { error: selfDelErr } = await supabase.from('users').delete().eq('id', id);
+    const { error: selfDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (selfDelErr) { console.error('Self-delete error:', selfDelErr); return res.status(500).json({ error: 'Failed to delete account' }); }
     await auditLog(id, 'self_delete', id);
     res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
@@ -4559,6 +4573,7 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
     const { data: allUsers } = await supabase.from('users')
       .select(DISCOVER_FIELDS)
       .or('banned.is.null,banned.eq.false')
+      .is('deleted_at', null)
       .eq('email_verified', true)
       .gte('trust_score', 10)
       .neq('id', req.user.id)
@@ -5581,8 +5596,8 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id, role').eq('id', id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(403).json({ error: 'Cannot delete another admin' });
-    // Cascade: remove all related records first
-    await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
+    // Cascade: remove the target's own records. Connections and the other
+    // party's messages are left intact (see anonymizeUser).
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -5595,7 +5610,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     await supabase.from('user_acquisition').delete().eq('user_id', id);
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
     await supabase.from('payments').delete().eq('user_id', id);
-    const { error: adminDelErr } = await supabase.from('users').delete().eq('id', id);
+    const { error: adminDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (adminDelErr) { console.error('Admin delete error:', adminDelErr); return res.status(500).json({ error: 'Failed to delete user' }); }
     await auditLog(req.user.id, 'delete_user', id);
     res.json({ ok: true });
@@ -7814,12 +7829,8 @@ app.listen(PORT, () => {
 
       for (const u of (toDelete || [])) {
         const id = u.id;
-        const { data: retConns } = await supabase.from('connections').select('id').or(`user1.eq.${id},user2.eq.${id}`);
-        const retConnIds = (retConns || []).map(c => c.id);
-        if (retConnIds.length > 0) {
-          await supabase.from('messages').delete().in('connection_id', retConnIds);
-        }
-        await supabase.from('connections').delete().or(`user1.eq.${id},user2.eq.${id}`);
+        // Only this user's own messages are removed -- connections and the
+        // other party's messages are left intact (see anonymizeUser).
         await supabase.from('messages').delete().eq('sender_id', id);
         await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
         await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -7832,7 +7843,7 @@ app.listen(PORT, () => {
         await supabase.from('user_acquisition').delete().eq('user_id', id);
         await supabase.from('push_subscriptions').delete().eq('user_id', id);
         await supabase.from('payments').delete().eq('user_id', id);
-        await supabase.from('users').delete().eq('id', id);
+        await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
         console.log(`[Retention] Deleted inactive account ${id}`);
       }
 

@@ -51,7 +51,9 @@ CREATE TABLE IF NOT EXISTS users (
   do_not_sell           boolean DEFAULT false,
   -- referrals
   referred_by           text,
-  created_at            timestamptz DEFAULT now()
+  created_at            timestamptz DEFAULT now(),
+  -- soft delete (see migrations/012_soft_delete_users.sql)
+  deleted_at            timestamptz
 );
 
 -- SWIPES  (from_user / to_user to avoid SQL reserved word "from")
