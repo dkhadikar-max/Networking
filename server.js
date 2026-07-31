@@ -4060,7 +4060,7 @@ app.get('/api/me', auth, async (req, res) => {
       { expiresIn: '24h' }
     );
     res.cookie('byn_token', freshToken, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
-    res.json({ ...u, _token: freshToken });
+    res.json(u);
   } catch(e) {
     console.error('Get me error:', e);
     res.status(500).json({ error: 'Internal server error' });

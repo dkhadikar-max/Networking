@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { apiGet, getToken } from '@/lib/api';
+import { apiGet } from '@/lib/api';
 import { computeSignals, networkMomentumScore } from '@/lib/retention/signals';
 import { buildRecommendations } from '@/lib/retention/recommendations';
 import { requestNotificationPermission, scheduleRetentionCheck } from '@/lib/retention/notifications';
@@ -27,8 +27,6 @@ export default function RetentionPage() {
   const [error, setError]                   = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) { window.location.href = '/'; return; }
-
     Promise.all([
       apiGet<UserProfile>('/api/me'),
       apiGet<ProfileStatus>('/api/profile-status'),
@@ -49,7 +47,10 @@ export default function RetentionPage() {
 
         requestNotificationPermission().then(() => scheduleRetentionCheck(recs));
       })
-      .catch(e => setError(e.message))
+      .catch(e => {
+        if (e?.status === 401) { window.location.href = '/'; return; }
+        setError(e.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 

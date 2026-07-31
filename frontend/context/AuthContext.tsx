@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { apiGet, apiPost, clearToken, setToken } from '@/lib/api';
+import { apiGet, apiPost, clearToken } from '@/lib/api';
 import type { User } from '@/lib/types';
 
 type AuthCtx = {
@@ -22,21 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const data = await apiGet<User & { _token?: string }>('/api/me');
-      if (data._token) setToken(data._token);
+      const data = await apiGet<User>('/api/me');
       setUser(data);
-      return data as User;
+      return data;
     } catch {
       setUser(null);
     }
   }, []);
 
   useEffect(() => {
-    apiGet<User & { _token?: string }>('/api/me')
-      .then(data => {
-        if (data._token) setToken(data._token);
-        setUser(data);
-      })
+    // One-time purge of a token a pre-fix browser may still have in
+    // localStorage -- auth now runs solely on the httpOnly cookie.
+    clearToken();
+    apiGet<User>('/api/me')
+      .then(setUser)
       .catch(() => { /* not authenticated */ })
       .finally(() => setLoading(false));
   }, []);
@@ -49,14 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(email: string, password: string) {
     const r = await apiPost<{ token: string; user: User }>('/api/login', { email, password });
-    if (r.token) setToken(r.token);
     setUser(r.user);
     return r;
   }
 
   async function signup(name: string, email: string, password: string, extra?: Record<string, unknown>) {
     const r = await apiPost<{ token: string; user: User }>('/api/signup', { name, email, password, ...extra });
-    if (r.token) setToken(r.token);
     setUser(r.user);
     return r;
   }
