@@ -2,11 +2,34 @@ import type { NextConfig } from "next";
 
 const NOINDEX_HEADER = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 
-// Applied to every route. Not a full CSP — this app loads GA4 (consent-gated),
-// Razorpay's checkout script/iframe, Cloudinary images, and Google Fonts, so a
-// script-src-restrictive CSP needs a proper resource audit + nonce plan before
-// it can be added without breaking checkout. These are the safe, non-breaking
-// baseline headers in the meantime.
+// /login, /signup, /upgrade get their OWN, stricter, nonce-based CSP from
+// proxy.ts instead (script-src with no unsafe-inline) — excluded here so
+// there's never a chance of two CSP headers landing on the same response.
+// Everywhere else keeps 'unsafe-inline' for script/style deliberately:
+// Next.js injects its own inline hydration scripts on every page, and a
+// nonce-based CSP (the only way to remove unsafe-inline) requires the page to
+// render dynamically, which would kill static generation/ISR/CDN caching for
+// the programmatic SEO pages (cities/roles/industries/professionals) that
+// exist specifically for that. Everything else here is real: frame-ancestors,
+// object-src, base-uri, and a resource allowlist scoped to what this app
+// actually loads (verified 2026-08-01) — Razorpay checkout, GA4
+// (consent-gated), Cloudinary images. No external fonts/Tailwind CDN —
+// next/font self-hosts, no CDN is used here.
+const CSP_HEADER = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com" + (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com",
+  "font-src 'self'",
+  "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com",
+  "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "upgrade-insecure-requests",
+].join('; ');
+
 const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -29,6 +52,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },
+      // Static CSP for every route except the 3 that get a nonce-based one
+      // from proxy.ts (login/signup/upgrade) — see CSP_HEADER comment above.
+      { source: '/((?!login$|signup$|upgrade$).*)', headers: [{ key: 'Content-Security-Policy', value: CSP_HEADER }] },
       // Auth routes — no value being indexed
       { source: '/login',              headers: NOINDEX_HEADER },
       { source: '/signup',             headers: NOINDEX_HEADER },

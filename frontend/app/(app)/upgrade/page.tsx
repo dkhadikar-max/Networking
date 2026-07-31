@@ -7,6 +7,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import type { User } from '@/lib/types';
 
+// Required for the nonce-based CSP in proxy.ts to apply — nonces can only be
+// injected during server-side rendering at request time.
+export const dynamic = 'force-dynamic';
+
 type PlanKey = 'monthly' | 'quarterly';
 type CurrencyKey = 'INR' | 'USD';
 

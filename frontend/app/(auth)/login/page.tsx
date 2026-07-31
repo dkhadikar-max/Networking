@@ -7,6 +7,10 @@ import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
 
+// Required for the nonce-based CSP in proxy.ts to apply — nonces can only be
+// injected during server-side rendering at request time.
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();

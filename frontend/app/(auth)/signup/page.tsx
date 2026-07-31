@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import NetworkBackground from '@/components/NetworkBackground';
 
+// Required for the nonce-based CSP in proxy.ts to apply — nonces can only be
+// injected during server-side rendering at request time.
+export const dynamic = 'force-dynamic';
+
 export default function SignupPage() {
   const { signup } = useAuth();
   const router = useRouter();
