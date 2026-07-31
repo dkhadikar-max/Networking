@@ -1,3 +1,7 @@
+-- Moved from supabase/migrations/007_push_subscriptions.sql -- that directory
+-- was a second, unsynced migrations location; consolidating everything into
+-- this one. Already applied to production (verified live 2026-07-31).
+
 create table if not exists push_subscriptions (
   id           uuid primary key default gen_random_uuid(),
   user_id      text not null references users(id) on delete cascade,
