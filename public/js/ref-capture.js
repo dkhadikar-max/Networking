@@ -1,0 +1,1 @@
+(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()

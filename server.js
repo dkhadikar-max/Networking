@@ -179,12 +179,14 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'",    // unsafe-inline required until inline JS is extracted
+      scriptSrc:      ["'self'",                        // all inline JS extracted to /public/js/*.js — no unsafe-inline needed
                        'https://checkout.razorpay.com', // Razorpay Standard Checkout script
                        'https://cdn.tailwindcss.com',   // Tailwind CDN used on upgrade page
                        'https://www.googletagmanager.com', // Google Analytics / GTM
                        'https://www.google-analytics.com'], // GA direct
-      scriptSrcAttr:  ["'unsafe-inline'"],              // allow onclick/oninput attrs — Helmet sets 'none' by default which blocks all inline handlers
+      // scriptSrcAttr intentionally omitted -- falls back to scriptSrc (no
+      // unsafe-inline), blocking onclick="..."-style attributes. None exist
+      // in the codebase (verified 2026-07-31).
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com',
                        'https://cdnjs.cloudflare.com'], // Font Awesome CSS on upgrade page
       fontSrc:        ["'self'", 'https://fonts.gstatic.com',
@@ -457,6 +459,7 @@ app.get('/robots.txt', (req, res) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
 // ── PHASE 5 — Crawl budget: X-Robots-Tag on private routes ──────────────────
 app.use(['/api', '/app', '/admin', '/upgrade'], (req, res, next) => {
@@ -901,7 +904,7 @@ function generateCityPage(slug, city, BASE) {
 
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
 ${COOKIE_BANNER_SNIPPET}
-<script>(function(){const ref=(new URLSearchParams(location.search).get('ref')||'').replace(/[^a-f0-9]/gi,'').slice(0,8);if(ref.length>=6){try{sessionStorage.setItem('byn_ref',ref);}catch(_){}document.querySelectorAll('a[href="/signup"],a[href^="/app?"]').forEach(a=>{const u=new URL(a.href,location.origin);u.searchParams.set('ref',ref);a.href=u.pathname+'?'+u.searchParams;});}})()</script>
+<script src="/js/ref-capture.js" defer></script>
 </body>
 </html>`;
 }
@@ -1087,7 +1090,7 @@ function generateGlobalCityPage(slug, city, BASE) {
 </div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
 ${COOKIE_BANNER_SNIPPET}
-<script>(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();</script>
+<script src="/js/ref-capture-simple.js" defer></script>
 </body></html>`;
 }
 
@@ -1481,7 +1484,7 @@ function generateHubPage(region, cities, BASE) {
 </div>
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
 ${COOKIE_BANNER_SNIPPET}
-<script>(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();</script>
+<script src="/js/ref-capture-simple.js" defer></script>
 </body></html>`;
 }
 
@@ -1550,7 +1553,7 @@ function otherCityPills(slug, pattern, cities) {
 }
 
 const COOKIE_BANNER_SNIPPET = `<div id="byn-ck" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9000;background:#fff;border-top:1px solid #e2e8f0;box-shadow:0 -2px 16px rgba(0,0,0,.08)"><div style="max-width:900px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><p style="flex:1;font-size:13px;color:#475569;margin:0;line-height:1.5">We use analytics cookies to improve your experience. <a href="/privacy" style="color:#0F766E;text-decoration:underline">Privacy Policy</a></p><div style="display:flex;gap:8px;flex-shrink:0"><button id="byn-ck-d" style="padding:8px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Decline</button><button id="byn-ck-a" style="padding:8px 16px;border-radius:8px;border:none;background:#0F766E;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Accept</button></div></div></div>
-<script>(function(){var GA='G-5NQDBYG4CJ',CK='byn_consent',MAX=31536000;function read(){var m=document.cookie.match(/(?:^|;\\s*)byn_consent=([^;]+)/);return m?m[1]:null;}function write(v){document.cookie=CK+'='+v+';path=/;max-age='+MAX+';SameSite=Lax';}function ga(){if(window.__byn_ga)return;window.__byn_ga=1;window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};var s=document.createElement('script');s.async=1;s.src='https://www.googletagmanager.com/gtag/js?id='+GA;document.head.appendChild(s);gtag('js',new Date());gtag('config',GA);}var c=read(),b=document.getElementById('byn-ck');if(c==='analytics'){ga();return;}if(c){return;}if(b)b.style.display='block';document.getElementById('byn-ck-a').onclick=function(){write('analytics');ga();b.style.display='none';};document.getElementById('byn-ck-d').onclick=function(){write('none');b.style.display='none';};})();</script>`;
+<script src="/js/cookie-consent.js" defer></script>`;
 
 const CITY_PAGE_CSS = `
     :root{--bg:#FFF4EC;--bg2:#FDE8D7;--card:#fff;--primary:#0F766E;--hl:#CCFBF1;--text:#1F2937;--muted:#6B7280;--dim:#9CA3AF}
@@ -1620,9 +1623,7 @@ function cityPageShell(head, body, BASE) {
 ${body}
 <footer><p>&copy; 2026 <a href="/">Build Your Network</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="mailto:support@buildyournetwork.online">Support</a></p></footer>
 ${COOKIE_BANNER_SNIPPET}
-<script>
-(function(){const r=sessionStorage.getItem('byn_ref');if(!r){const p=new URLSearchParams(location.search).get('ref');if(p)sessionStorage.setItem('byn_ref',p);}})();
-</script>
+<script src="/js/ref-capture-simple.js" defer></script>
 </body></html>`;
 }
 
