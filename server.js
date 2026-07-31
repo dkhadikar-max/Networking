@@ -207,6 +207,13 @@ app.use(helmet({
   },
 }));
 
+// Camera/mic/geolocation are unused anywhere in this app — 'payment' is deliberately
+// left unrestricted since the Razorpay checkout modal (see CSP above) needs it.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
+
 // ── CORS ──
 const ALLOWED_ORIGINS = [
   'https://buildyournetwork.online',
@@ -242,6 +249,7 @@ const globalLimiter     = rateLimit({ windowMs: 60*1000, max: 120, standardHeade
 const authLimiter       = rateLimit({ windowMs: 15*60*1000, max: 50, skipSuccessfulRequests: true, message: { error: 'Too many login attempts, please wait 15 minutes' } });
 const adminLimiter      = rateLimit({ windowMs: 15*60*1000, max: 60, message: { error: 'Too many requests' } });
 const uploadLimiter     = rateLimit({ windowMs: 60*1000, max: 10, message: { error: 'Upload limit reached' } });
+const eventsLimiter     = rateLimit({ windowMs: 60*1000, max: 60, message: { error: 'Too many events' } });
 const linkPreviewLimiter = rateLimit({ windowMs: 60*1000, max: 15, message: { error: 'Link preview limit reached, slow down' } });
 const verifyLimiter     = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Too many verification attempts — wait 15 minutes' },
   keyGenerator: (req) => {
@@ -2619,8 +2627,7 @@ ${body.css || ''}
 </div></nav>
 <div class="wrap">${body.html}</div>
 <footer><p>&copy; 2026 <a href="/">BuildYourNetwork</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a> &middot; <a href="/blog">Blog</a></p></footer>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-5NQDBYG4CJ');</script>
+${COOKIE_BANNER_SNIPPET}
 </body></html>`;
 }
 
@@ -2831,7 +2838,7 @@ app.get('/founders/:id', async (req, res) => {
       'memberOf': { '@type': 'Organization', 'name': 'Build Your Network', 'url': BASE },
       ...(photo ? { 'image': photo } : {}),
       ...(user.linkedin ? { 'sameAs': [user.linkedin] } : {}),
-    });
+    }).replace(/</g, '\\u003c');
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -2988,17 +2995,27 @@ const cloudinaryStorage = USE_CLOUDINARY ? new CloudinaryStorage({
   },
 }) : null;
 
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
 const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, 'public/uploads')),
-  filename:    (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname))
+  filename:    (req, file, cb) => cb(null, uuidv4() + path.extname(file.originalname).toLowerCase())
 });
 
 const upload = multer({
   storage: cloudinaryStorage || diskStorage,
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (ALLOWED_MIMETYPES.includes(file.mimetype)) cb(null, true);
-    else cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    // Fail closed in production if Cloudinary isn't configured — never silently
+    // fall back to the less-validated local-disk storage path on a live deploy.
+    if (!USE_CLOUDINARY && process.env.NODE_ENV === 'production') {
+      return cb(new Error('Uploads are temporarily unavailable'));
+    }
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_MIMETYPES.includes(file.mimetype) || !ALLOWED_EXTENSIONS.has(ext)) {
+      return cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+    }
+    cb(null, true);
   }
 });
 
@@ -3030,6 +3047,19 @@ function sanitize(s) {
   return s.trim().slice(0, 1000);
 }
 
+// Only http(s) links may be stored for user-supplied profile URLs — blocks
+// javascript:/data:/vbscript: URI injection via linkedin/website fields.
+function sanitizeUrlField(v) {
+  if (typeof v !== 'string' || !v.trim()) return '';
+  const trimmed = v.trim();
+  try {
+    const u = new URL(trimmed);
+    return (u.protocol === 'http:' || u.protocol === 'https:') ? trimmed : '';
+  } catch {
+    return '';
+  }
+}
+
 // FIXED: Recursively sanitize strings inside arrays
 function sanitizeObj(obj, fields) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -3047,6 +3077,24 @@ function sanitizeObj(obj, fields) {
 
 const URL_PATTERN = /https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(\/[^\s]*)?/gi;
 
+// Constant-time string comparison — prevents timing attacks on shared secrets (webhook sigs, admin bootstrap secret).
+function timingSafeStringEqual(a, b) {
+  const aBuf = Buffer.from(String(a ?? ''), 'utf8');
+  const bBuf = Buffer.from(String(b ?? ''), 'utf8');
+  return aBuf.length === bBuf.length && crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+// Masks an email for logs — keeps enough to correlate support tickets without storing PII in plaintext log aggregation.
+function maskEmail(email) {
+  const s = String(email || '');
+  const at = s.indexOf('@');
+  if (at <= 0) return '***';
+  const user = s.slice(0, at);
+  const domain = s.slice(at + 1);
+  const maskedUser = user.length <= 2 ? user[0] + '*' : user[0] + '*'.repeat(user.length - 2) + user[user.length - 1];
+  return `${maskedUser}@${domain}`;
+}
+
 // ── CLEAN HELPERS ──
 function cleanPublic(u) {
   if (!u) return null;
@@ -3063,6 +3111,7 @@ function cleanPublic(u) {
   delete r.lockout_until;
   r.is_recently_active = !!(u.last_active &&
     (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000);
+  delete r.last_active;
   return r;
 }
 
@@ -3577,7 +3626,7 @@ async function sendOtpEmail(toEmail, otp, name) {
   // Resend account owner's email. For production, set RESEND_FROM to an address
   // on a verified domain (e.g. noreply@buildyournetwork.online).
   const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
-  console.log(`[OTP] Sending from="${FROM}" to="${toEmail}"`);
+  console.log(`[OTP] Sending from="${FROM}" to="${maskEmail(toEmail)}"`);
   try {
     await ResendClient.emails.send({
       from: FROM,
@@ -3614,7 +3663,7 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
-    if (password.length < 6) return res.status(400).json({ error: 'Password min 6 chars' });
+    if (password.length < 8) return res.status(400).json({ error: 'Password min 8 chars' });
 
     // Check email uniqueness
     const { data: existing } = await supabase.from('users')
@@ -3717,7 +3766,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
     let { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Missing credentials' });
     email = String(email).trim().toLowerCase();
-    console.log(`${tag} step1 OK — email=${email}`);
+    console.log(`${tag} step1 OK — email=${maskEmail(email)}`);
 
     // Step 2: fetch user from Supabase
     const { data: user, error: fetchErr } = await supabase.from('users')
@@ -3784,7 +3833,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
     // Step 6: sign JWT and respond
     const token = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
-    console.log(`${tag} step6 OK — login successful for ${email}`);
+    console.log(`${tag} step6 OK — login successful for ${maskEmail(email)}`);
     res.cookie('byn_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
     // NOTE: OTP is NOT auto-sent on login. The client calls /api/auth/send-otp
     // explicitly when it detects email_verified === false, so the user sees a
@@ -3883,7 +3932,7 @@ app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) =>
       // Send email (non-blocking — don't fail the request if email fails)
       if (ResendClient) {
         const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
-        console.log(`[Reset] Sending from="${FROM}" to="${user.email}"`);
+        console.log(`[Reset] Sending from="${FROM}" to="${maskEmail(user.email)}"`);
         ResendClient.emails.send({
           from:    FROM,
           to:      user.email,
@@ -3926,8 +3975,8 @@ app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
 
     if (!email || !code || !newPassword)
       return res.status(400).json({ error: 'email, code, and newPassword are required' });
-    if (String(newPassword).length < 6)
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (String(newPassword).length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
     const normalized = String(email).trim().toLowerCase();
     const { data: user } = await supabase.from('users')
@@ -4047,7 +4096,7 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
     await supabase.from('payments').delete().eq('user_id', id);
     const { error: selfDelErr } = await supabase.from('users').delete().eq('id', id);
-    if (selfDelErr) return res.status(500).json({ error: 'Failed to delete account: ' + selfDelErr.message });
+    if (selfDelErr) { console.error('Self-delete error:', selfDelErr); return res.status(500).json({ error: 'Failed to delete account' }); }
     await auditLog(id, 'self_delete', id);
     res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
     res.json({ ok: true });
@@ -4177,6 +4226,8 @@ app.put('/api/me', auth, async (req, res) => {
 
     sanitizeObj(req.body, ['name','bio','instagram','linkedin','website','location',
       'currently_exploring','working_on','interested_in']);
+    if (req.body.linkedin !== undefined) req.body.linkedin = sanitizeUrlField(req.body.linkedin);
+    if (req.body.website !== undefined) req.body.website = sanitizeUrlField(req.body.website);
 
     if (req.body.lat != null) req.body.lat = Math.round(parseFloat(req.body.lat) * 100) / 100;
     if (req.body.lng != null) req.body.lng = Math.round(parseFloat(req.body.lng) * 100) / 100;
@@ -5120,6 +5171,10 @@ app.post('/api/priority-message', auth, async (req, res) => {
       .select('*').eq('id', req.user.id).maybeSingle();
     if (!sender) return res.status(404).json({ error: 'Not found' });
 
+    const { data: target } = await supabase.from('users')
+      .select('id').eq('id', targetId).maybeSingle();
+    if (!target) return res.status(404).json({ error: 'Recipient not found' });
+
     const month = thisMonthKey();
     const { data: monthMsgs } = await supabase.from('priority_msgs')
       .select('id').eq('from_user', req.user.id).eq('month', month);
@@ -5541,7 +5596,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
     await supabase.from('payments').delete().eq('user_id', id);
     const { error: adminDelErr } = await supabase.from('users').delete().eq('id', id);
-    if (adminDelErr) return res.status(500).json({ error: 'Failed to delete user: ' + adminDelErr.message });
+    if (adminDelErr) { console.error('Admin delete error:', adminDelErr); return res.status(500).json({ error: 'Failed to delete user' }); }
     await auditLog(req.user.id, 'delete_user', id);
     res.json({ ok: true });
   } catch(e) {
@@ -6193,7 +6248,7 @@ app.get('/api/admin/langgraph/execution/:id', adminAuth, async (req, res) => {
 app.post('/api/admin/bootstrap', bootstrapLimiter, async (req, res) => {
   try {
     let { email, secret } = req.body;
-    if (secret !== ADMIN_SECRET) return res.status(403).json({ error: 'Invalid secret' });
+    if (!timingSafeStringEqual(secret, ADMIN_SECRET)) return res.status(403).json({ error: 'Invalid secret' });
     if (!email) return res.status(400).json({ error: 'Email required' });
     email = String(email).trim().toLowerCase();
     const { data: user } = await supabase.from('users')
@@ -6418,7 +6473,7 @@ app.post('/api/payments/webhook', async (req, res) => {
     const body = req.rawBody; // raw Buffer captured by express.json verify callback
     const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
 
-    if (sig !== expected) return res.status(400).json({ error: 'Invalid webhook signature' });
+    if (!timingSafeStringEqual(sig, expected)) return res.status(400).json({ error: 'Invalid webhook signature' });
 
     const event = JSON.parse(body.toString());
     if (event.event === 'payment.captured') {
@@ -6755,7 +6810,7 @@ const EVENT_ALLOWLIST = new Set([
   'cta_click', 'signup_opened', 'signup_completed',
   'profile_completed', 'upgrade_clicked',
 ]);
-app.post('/api/events', (req, res) => {
+app.post('/api/events', eventsLimiter, (req, res) => {
   try {
     const { event, props = {} } = req.body || {};
     if (!event || !EVENT_ALLOWLIST.has(event)) {
@@ -6769,10 +6824,11 @@ app.post('/api/events', (req, res) => {
       );
       if (decoded?.id) userId = decoded.id;
     } catch(_) {}
+    const sanitize = (v) => String(v).slice(0, 50).replace(/[\r\n]/g, ' ');
     const parts = [`[Event] event=${event}`, `userId=${userId}`];
-    if (props.source) parts.push(`source=${String(props.source).slice(0, 50)}`);
-    if (props.button) parts.push(`button=${String(props.button).slice(0, 50)}`);
-    if (props.screen) parts.push(`screen=${String(props.screen).slice(0, 50)}`);
+    if (props.source) parts.push(`source=${sanitize(props.source)}`);
+    if (props.button) parts.push(`button=${sanitize(props.button)}`);
+    if (props.screen) parts.push(`screen=${sanitize(props.screen)}`);
     console.log(parts.join(' '));
     res.json({ ok: true });
   } catch(e) {
@@ -7196,7 +7252,7 @@ app.get('/api/circles/feed', auth, async (req, res) => {
         // Strip private author fields — never send lat/lng/skills/interests/location to client
         if (p.author) {
           // eslint-disable-next-line no-unused-vars
-          const { lat, lng, skills, interests, location, ...authorPublic } = p.author;
+          const { lat, lng, skills, interests, location, last_active, ...authorPublic } = p.author;
           p = { ...p, author: authorPublic };
         }
         return { ...p, like_count: likeCounts[p.id] || 0, liked_by_me: likedByMe.has(p.id) };
@@ -7471,7 +7527,7 @@ app.post('/api/circles/posts/:id/like', circleGroupActionLimiter, auth, async (r
   }
 });
 
-app.post('/api/circles/posts/:id/collaborate', auth, async (req, res) => {
+app.post('/api/circles/posts/:id/collaborate', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     const { data: post, error: postErr } = await supabase
       .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
