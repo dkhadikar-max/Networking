@@ -197,7 +197,7 @@ const LANDING_CSS = `
   .final-cta p { font-size:18px; color:var(--text-secondary); margin-bottom:40px; }
 
   footer { background:var(--text); color:white; padding:60px 24px 40px; }
-  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:48px; }
+  .footer-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:48px; }
   .footer-brand { font-size:20px; font-weight:800; color:var(--highlight); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .footer-desc { font-size:14px; color:var(--text-muted); line-height:1.7; }
   .footer-col h3 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:20px; }
@@ -569,6 +569,7 @@ export default async function HomePage() {
             <div className="footer-brand"><img src="/assets/logo.png" className="logo-img-footer" alt="Build Your Network" loading="lazy" width={26} height={26} />Build Your Network</div>
             <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
           </div>
+          <div className="footer-col"><h3>Company</h3><a href="/about">About</a><a href="/contact">Contact</a></div>
           <div className="footer-col"><h3>Legal</h3><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
           <div className="footer-col"><h3>Product</h3><a href="#features">Features</a><a href="#how">How It Works</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
           <div className="footer-col"><h3>Support</h3><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a></div>
