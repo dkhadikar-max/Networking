@@ -25,7 +25,7 @@ export default function SignupScreen({ navigation }) {
     if (!name.trim())  { setErr('Please enter your full name'); return; }
     if (!email.trim()) { setErr('Please enter your email address'); return; }
     if (!pw)           { setErr('Please create a password'); return; }
-    if (pw.length < 6) { setErr('Password must be at least 6 characters'); return; }
+    if (pw.length < 8) { setErr('Password must be at least 8 characters'); return; }
     if (!consent) {
       setErr('You must agree to the Terms & Conditions and Privacy Policy to continue');
       return;
@@ -89,7 +89,7 @@ export default function SignupScreen({ navigation }) {
           <Text style={s.label}>Password</Text>
           <TextInput
             style={s.input}
-            placeholder="Min. 6 characters"
+            placeholder="Min. 8 characters"
             placeholderTextColor={C.dim}
             value={pw}
             onChangeText={setPw}

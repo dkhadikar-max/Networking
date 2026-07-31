@@ -48,7 +48,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
 
   async function handleReset() {
     if (code.trim().length !== 6) { setErr('Enter the 6-digit code'); return; }
-    if (newPw.length < 6)         { setErr('Password must be at least 6 characters'); return; }
+    if (newPw.length < 8)         { setErr('Password must be at least 8 characters'); return; }
     if (newPw !== confirmPw)      { setErr('Passwords do not match'); return; }
     setErr('');
     setSuccess('');
@@ -64,7 +64,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
     }
   }
 
-  const canSubmit = code.trim().length === 6 && newPw.length >= 6 && newPw === confirmPw;
+  const canSubmit = code.trim().length === 6 && newPw.length >= 8 && newPw === confirmPw;
 
   return (
     <KeyboardAvoidingView style={s.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -100,7 +100,7 @@ export default function ResetPasswordScreen({ navigation, route }) {
         <View style={s.pwWrap}>
           <TextInput
             style={s.pwInput}
-            placeholder="Min 6 characters"
+            placeholder="Min 8 characters"
             placeholderTextColor={C.dim}
             value={newPw}
             onChangeText={v => { setNewPw(v); setErr(''); }}
