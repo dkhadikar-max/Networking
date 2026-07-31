@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useColorScheme, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 
 // FIXED: Conditional gesture handler import — won't crash in Expo Go or web
 let GestureHandlerRootView;
@@ -72,6 +73,10 @@ function ThemedStatusBar() {
 
 // ── MAIN APP ──
 export default function App() {
+  // Blocks/detects screenshots + screen recording app-wide. On Android this
+  // also sets FLAG_SECURE, which blanks the Recents/app-switcher thumbnail.
+  usePreventScreenCapture();
+
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={styles.flex}>
