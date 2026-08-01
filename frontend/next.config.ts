@@ -2,10 +2,16 @@ import type { NextConfig } from "next";
 
 const NOINDEX_HEADER = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 
-// /login, /signup, /upgrade get their OWN, stricter, nonce-based CSP from
-// proxy.ts instead (script-src with no unsafe-inline) — excluded here so
-// there's never a chance of two CSP headers landing on the same response.
-// Everywhere else keeps 'unsafe-inline' for script/style deliberately:
+// Tried a nonce-based CSP (via proxy.ts) on login/signup/upgrade for real
+// script-src hardening with no unsafe-inline. Reverted 2026-08-01: Next.js
+// 16.2.6's automatic nonce injection (attaching nonce="..." to its own
+// hydration scripts) never actually worked, even matching the documented
+// request-header pattern exactly -- verified zero nonce attributes in the
+// rendered HTML despite a correctly-formed CSP header. Result was a fully
+// broken login/signup page: React never hydrated, forms silently fell back
+// to native GET submission (which also leaked email/password into the URL).
+// Reverting to the same static CSP as every other page until this is
+// revisited properly. script-src/style-src keep 'unsafe-inline' deliberately:
 // Next.js injects its own inline hydration scripts on every page, and a
 // nonce-based CSP (the only way to remove unsafe-inline) requires the page to
 // render dynamically, which would kill static generation/ISR/CDN caching for
@@ -56,9 +62,7 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },
-      // Static CSP for every route except the 3 that get a nonce-based one
-      // from proxy.ts (login/signup/upgrade) — see CSP_HEADER comment above.
-      { source: '/((?!login$|signup$|upgrade$).*)', headers: [{ key: 'Content-Security-Policy', value: CSP_HEADER }] },
+      { source: '/:path*', headers: [{ key: 'Content-Security-Policy', value: CSP_HEADER }] },
       // Auth routes — no value being indexed
       { source: '/login',              headers: NOINDEX_HEADER },
       { source: '/signup',             headers: NOINDEX_HEADER },
