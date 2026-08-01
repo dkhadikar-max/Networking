@@ -171,10 +171,8 @@ const LANDING_CSS = `
   .diff-card h3 { font-size:20px; font-weight:700; margin-bottom:12px; }
   .diff-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
 
-  .coming-soon-card { background:linear-gradient(135deg,#f8f9fa,#e9ecef); border:2px dashed var(--text-muted); border-radius:20px; padding:48px 32px; text-align:center; margin-top:48px; cursor:default; position:relative; opacity:0.85; }
-  .coming-soon-card .cs-badge { display:inline-block; padding:6px 16px; background:var(--text-muted); color:white; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:16px; }
-  .coming-soon-card h3 { font-size:22px; font-weight:700; color:var(--text-secondary); margin-bottom:8px; }
-  .coming-soon-card p { font-size:15px; color:var(--text-muted); }
+  .circles-showcase { margin-top:48px; background:var(--card); border-radius:24px; padding:16px; box-shadow:var(--shadow-soft); border:1px solid rgba(253,232,215,0.5); text-align:center; }
+  .circles-preview-img { width:100%; max-width:760px; border-radius:16px; display:block; margin:0 auto 28px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
 
   .download-section { background:linear-gradient(135deg,var(--primary),#0d5f58); color:white; text-align:center; }
   .download-section .section-label { color:var(--highlight); }
@@ -461,15 +459,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Coming Soon */}
-      <section id="coming-soon">
+      {/* Circles */}
+      <section id="circles">
         <div className="section-inner">
-          <p className="section-label animate">On The Horizon</p>
-          <h2 className="section-title animate delay-1">What&apos;s Next</h2>
-          <div className="coming-soon-card animate delay-2">
-            <span className="cs-badge">Coming Soon</span>
-            <h3>Intent Circles</h3>
-            <p>Join focused circles based on intent — launching soon.</p>
+          <p className="section-label animate">Now Live</p>
+          <h2 className="section-title animate delay-1">Intent Circles are live</h2>
+          <p className="section-desc animate delay-2">Post what you&apos;re building, hiring for, or stuck on — get discovered by the whole network filtered by intent, not just your one-to-one matches.</p>
+          <div className="circles-showcase animate delay-2">
+            <img src="/assets/circles-preview.jpg" alt="A real post in the Build Your Network Circles feed" className="circles-preview-img" />
+            <a href="/signup" className="btn-primary">Explore Circles Free</a>
           </div>
         </div>
       </section>

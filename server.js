@@ -6791,10 +6791,19 @@ app.get('/api/stats/public', async (req, res) => {
   if (_pubStats && Date.now() - _pubStatsTs < 300_000) return res.json(_pubStats);
   try {
     const [{ count: users }, { count: connections }] = await Promise.all([
+      // Real total headcount, not just fully-discoverable profiles -- was
+      // undercounting real signups (is_profile_complete=true only) by more
+      // than half. Excludes soft-deleted and banned accounts, which aren't
+      // real active professionals to claim publicly.
       supabase.from('users').select('*', { count: 'exact', head: true })
-        .eq('is_profile_complete', true),
-      supabase.from('connections').select('*', { count: 'exact', head: true })
-        .eq('status', 'connected'),
+        .is('deleted_at', null)
+        .or('banned.is.null,banned.eq.false'),
+      // A connections row only ever exists because a mutual match happened --
+      // 'connected' is not a real status value anywhere in this codebase
+      // (only 'pending' and legacy 'active' text are used), so this always
+      // returned 0 regardless of actual matches made. Count every row: this
+      // is a cumulative "matches made" stat, not a "currently active" one.
+      supabase.from('connections').select('*', { count: 'exact', head: true }),
     ]);
     _pubStats = { users: users || 0, connections: connections || 0 };
     _pubStatsTs = Date.now();
