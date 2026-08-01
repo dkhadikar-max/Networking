@@ -34,6 +34,10 @@ const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  // Matches server.js's Permissions-Policy — camera/mic/geolocation are
+  // unused anywhere in this app; 'payment' stays unrestricted for the
+  // Razorpay checkout modal on /upgrade.
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   // No "preload" — that submission is effectively permanent once picked up by
   // browsers. max-age + includeSubDomains gets the audit credit safely.
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
