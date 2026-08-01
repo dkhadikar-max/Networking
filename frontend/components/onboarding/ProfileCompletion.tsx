@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useState, useRef, KeyboardEvent } from 'react';
 import { apiUpload } from '@/lib/api';
 import OpportunityTags from './OpportunityTags';
+import { IconCamera } from './icons';
 
 const EXP_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
 
@@ -92,14 +93,21 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
           }}>
             {photoUrl ? (
               <img src={photoUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : uploading ? (
+              <div style={{ width: 22, height: 22, borderRadius: '50%', border: '2.5px solid #157A6E', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 26, marginBottom: 2 }}>{uploading ? '⏳' : '📷'}</div>
-              </div>
+              <div style={{ color: '#157A6E' }}><IconCamera /></div>
             )}
           </div>
         </label>
-        <label htmlFor="ob-photo-input" style={{ cursor: 'pointer', fontSize: 12, color: '#157A6E', fontWeight: 700, letterSpacing: '0.2px' }}>
+        <label
+          htmlFor="ob-photo-input"
+          style={{
+            cursor: 'pointer', fontSize: 12, color: '#157A6E', fontWeight: 700, letterSpacing: '0.2px',
+            padding: '6px 14px', borderRadius: 999, background: 'rgba(21,122,110,0.08)',
+            border: '1.5px solid rgba(21,122,110,0.25)',
+          }}
+        >
           {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
         </label>
         <input

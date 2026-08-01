@@ -2,18 +2,19 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { IconNetwork, IconCompass, IconRocket, IconTeam, IconBriefcase, IconTarget, IconGraduate, IconBook, IconGlobe, IconTrendUp } from './icons';
 
 const INTENTS = [
-  { label: 'Networking',                icon: '🤝', desc: 'Expand your professional circle' },
-  { label: 'Find Opportunities',        icon: '🔍', desc: 'Discover jobs, projects & gigs' },
-  { label: 'Build Startup Connections', icon: '🚀', desc: 'Connect with founders & builders' },
-  { label: 'Find Co-founder',           icon: '👥', desc: 'Find your perfect business partner' },
-  { label: 'Hiring',                    icon: '💼', desc: 'Source talent for your team' },
-  { label: 'Find Clients',              icon: '🎯', desc: 'Grow your customer base' },
-  { label: 'Mentorship',                icon: '🎓', desc: 'Give or receive guidance' },
-  { label: 'Learn from People',         icon: '📚', desc: 'Absorb knowledge from experts' },
-  { label: 'Community',                 icon: '🌐', desc: 'Be part of something bigger' },
-  { label: 'Investment Opportunities',  icon: '💰', desc: 'Find deals or raise capital' },
+  { label: 'Networking',                icon: <IconNetwork />, desc: 'Expand your professional circle' },
+  { label: 'Find Opportunities',        icon: <IconCompass />, desc: 'Discover jobs, projects & gigs' },
+  { label: 'Build Startup Connections', icon: <IconRocket />,  desc: 'Connect with founders & builders' },
+  { label: 'Find Co-founder',           icon: <IconTeam />,    desc: 'Find your perfect business partner' },
+  { label: 'Hiring',                    icon: <IconBriefcase />, desc: 'Source talent for your team' },
+  { label: 'Find Clients',              icon: <IconTarget />,  desc: 'Grow your customer base' },
+  { label: 'Mentorship',                icon: <IconGraduate />, desc: 'Give or receive guidance' },
+  { label: 'Learn from People',         icon: <IconBook />,    desc: 'Absorb knowledge from experts' },
+  { label: 'Community',                 icon: <IconGlobe />,   desc: 'Be part of something bigger' },
+  { label: 'Investment Opportunities',  icon: <IconTrendUp />, desc: 'Find deals or raise capital' },
 ];
 
 interface Props {
@@ -62,7 +63,7 @@ export default function IntentSelector({ onNext, loading }: Props) {
                 fontFamily: 'inherit',
               }}
             >
-              <span style={{ fontSize: 18, lineHeight: 1, marginTop: 1, flexShrink: 0 }}>{intent.icon}</span>
+              <span style={{ display: 'flex', marginTop: 1, flexShrink: 0, color: active ? '#157A6E' : '#94A3B8' }}>{intent.icon}</span>
               <div>
                 <p style={{ fontSize: 13, fontWeight: 700, color: active ? '#157A6E' : '#0F172A', marginBottom: 2 }}>
                   {intent.label}

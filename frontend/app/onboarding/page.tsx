@@ -9,17 +9,18 @@ import IntentSelector from '@/components/onboarding/IntentSelector';
 import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
 import NetworkBackground from '@/components/NetworkBackground';
+import { IconLinkedIn, IconInstagram, IconX, IconWhatsApp, IconWave, IconSearch, IconCalendarUsers, IconPlay, IconSparkle } from '@/components/onboarding/icons';
 
 const SOURCES = [
-  { label: 'LinkedIn',        icon: '💼' },
-  { label: 'Instagram',       icon: '📸' },
-  { label: 'Twitter/X',       icon: '🐦' },
-  { label: 'WhatsApp',        icon: '💬' },
-  { label: 'Friend/Referral', icon: '👋' },
-  { label: 'Google Search',   icon: '🔍' },
-  { label: 'Community/Event', icon: '🎪' },
-  { label: 'YouTube',         icon: '▶️' },
-  { label: 'Other',           icon: '✨' },
+  { label: 'LinkedIn',        icon: <IconLinkedIn /> },
+  { label: 'Instagram',       icon: <IconInstagram /> },
+  { label: 'Twitter/X',       icon: <IconX /> },
+  { label: 'WhatsApp',        icon: <IconWhatsApp /> },
+  { label: 'Friend/Referral', icon: <IconWave /> },
+  { label: 'Google Search',   icon: <IconSearch /> },
+  { label: 'Community/Event', icon: <IconCalendarUsers /> },
+  { label: 'YouTube',         icon: <IconPlay /> },
+  { label: 'Other',           icon: <IconSparkle /> },
 ];
 
 const STAGE_ORDER = ['acquisition', 'intent', 'profile', 'complete'] as const;
@@ -211,7 +212,7 @@ export default function OnboardingPage() {
                               fontFamily: 'inherit',
                             }}
                           >
-                            <span style={{ fontSize: 20, lineHeight: 1 }}>{s.icon}</span>
+                            <span style={{ display: 'flex', color: source === s.label ? '#157A6E' : '#94A3B8' }}>{s.icon}</span>
                             <span style={{
                               fontSize: 11, fontWeight: 600, textAlign: 'center', lineHeight: 1.3,
                               color: source === s.label ? '#157A6E' : '#64748B',

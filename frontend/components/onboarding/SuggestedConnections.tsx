@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import WhyThisMatch from './WhyThisMatch';
 import { apiGet } from '@/lib/api';
+import { IconPin } from './icons';
 
 interface Profile {
   id: string;
@@ -123,7 +124,9 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
                     {p.headline ?? p.profession ?? 'BYN member'}
                   </p>
                   {p.location && (
-                    <p style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>📍 {p.location}</p>
+                    <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                      <IconPin size={11} />{p.location}
+                    </p>
                   )}
                   <WhyThisMatch
                     sharedInterests={shared}
@@ -186,8 +189,11 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
               onClick={handleCopy}
               style={{
                 fontSize: 12, fontWeight: 700, color: copied ? '#22C55E' : '#157A6E',
-                flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: 'inherit', transition: 'color 0.15s',
+                flexShrink: 0, cursor: 'pointer', fontFamily: 'inherit',
+                padding: '6px 14px', borderRadius: 999,
+                background: copied ? 'rgba(34,197,94,0.1)' : 'rgba(21,122,110,0.08)',
+                border: `1.5px solid ${copied ? 'rgba(34,197,94,0.35)' : 'rgba(21,122,110,0.25)'}`,
+                transition: 'color 0.15s, background 0.15s, border-color 0.15s',
               }}
             >
               {copied ? 'Copied!' : 'Copy'}

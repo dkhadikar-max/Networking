@@ -27,7 +27,7 @@ const LANDING_CSS = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
@@ -172,7 +172,10 @@ const LANDING_CSS = `
   .diff-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
 
   .circles-showcase { margin-top:48px; background:var(--card); border-radius:24px; padding:16px; box-shadow:var(--shadow-soft); border:1px solid rgba(253,232,215,0.5); text-align:center; }
-  .circles-preview-img { width:100%; max-width:760px; border-radius:16px; display:block; margin:0 auto 28px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
+  .circles-preview-img { width:100%; max-width:760px; border-radius:16px; display:block; margin:0 auto 20px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
+  .circles-caption { max-width:520px; margin:0 auto 24px; color:var(--text-muted); font-size:14px; line-height:1.6; }
+  .demo-video-wrap { margin-top:40px; max-width:860px; margin-left:auto; margin-right:auto; border-radius:24px; overflow:hidden; box-shadow:var(--shadow-hover); border:1px solid rgba(253,232,215,0.5); background:#0F172A; }
+  .demo-video { width:100%; aspect-ratio:16/9; display:block; background:#0F172A; }
 
   .download-section { background:linear-gradient(135deg,var(--primary),#0d5f58); color:white; text-align:center; }
   .download-section .section-label { color:var(--highlight); }
@@ -335,6 +338,20 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Demo Video — drop the real screen recording at /public/assets/demo.mp4 to go live */}
+      <section id="demo">
+        <div className="section-inner">
+          <p className="section-label animate">See It In Action</p>
+          <h2 className="section-title animate delay-1">A 60-second look at how it actually works.</h2>
+          <p className="section-desc animate delay-2">No slides, no script — just the real product.</p>
+          <div className="demo-video-wrap animate delay-2">
+            <video controls playsInline preload="metadata" poster="/assets/circles-preview.jpg" className="demo-video">
+              <source src="/assets/demo.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      </section>
+
       {/* Trust */}
       <section className="trust-section" id="trust">
         <div className="section-inner">
@@ -463,10 +480,11 @@ export default async function HomePage() {
       <section id="circles">
         <div className="section-inner">
           <p className="section-label animate">Now Live</p>
-          <h2 className="section-title animate delay-1">Intent Circles are live</h2>
-          <p className="section-desc animate delay-2">Post what you&apos;re building, hiring for, or stuck on — get discovered by the whole network filtered by intent, not just your one-to-one matches.</p>
+          <h2 className="section-title animate delay-1">Post what you need. Skip the waiting.</h2>
+          <p className="section-desc animate delay-2">Discover is 1:1 — you get matched, then you talk. Circles skips that part: post exactly what you&apos;re after (a co-founder, an intro, an answer to something you&apos;re stuck on) and it lands in front of everyone tracking that, not just the handful of people you&apos;d have matched with anyway.</p>
           <div className="circles-showcase animate delay-2">
             <img src="/assets/circles-preview.jpg" alt="A real post in the Build Your Network Circles feed" className="circles-preview-img" />
+            <p className="circles-caption">One post, real replies — from people actually looking for that right now.</p>
             <a href="/signup" className="btn-primary">Explore Circles Free</a>
           </div>
         </div>

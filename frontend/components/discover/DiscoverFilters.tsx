@@ -103,7 +103,11 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
           <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Filters</span>
           <button
             onClick={reset}
-            style={{ fontSize: 13, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit' }}
+            style={{
+              fontSize: 12, color: 'var(--primary)', background: 'var(--highlight)',
+              border: '1.5px solid rgba(21,122,110,0.28)', borderRadius: 999,
+              padding: '6px 14px', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit',
+            }}
           >
             Reset
           </button>
