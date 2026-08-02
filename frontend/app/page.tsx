@@ -185,7 +185,7 @@ const LANDING_CSS = `
   .demo-window { position:relative; width:68%; max-width:520px; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.5); background:#fff; }
   .demo-window-bar { display:flex; align-items:center; gap:6px; padding:10px 14px; background:#EEF1F5; }
   .demo-window-bar span { width:9px; height:9px; border-radius:50%; background:#D8DEE6; }
-  .demo-window-screen { position:relative; width:100%; aspect-ratio:673/480; overflow:hidden; }
+  .demo-window-screen { position:relative; width:100%; aspect-ratio:4/3; overflow:hidden; background:var(--bg); }
   .demo-scene { position:absolute; inset:0; opacity:0; }
   .demo-scene-1 { animation:demoScene1 9s ease-in-out infinite; }
   .demo-scene-2 { animation:demoScene2 9s ease-in-out infinite; }
@@ -194,7 +194,7 @@ const LANDING_CSS = `
   @keyframes demoScene2 { 0%,32%{opacity:0} 36%,63%{opacity:1} 67%,100%{opacity:0} }
   @keyframes demoScene3 { 0%,65%{opacity:0} 69%,96%{opacity:1} 99%,100%{opacity:0} }
 
-  .demo-scene-img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; transform-origin:center; }
+  .demo-scene-img { width:100%; height:100%; object-fit:contain; padding:20px; box-sizing:border-box; display:block; transform-origin:center; filter:drop-shadow(0 10px 30px rgba(0,0,0,0.15)); }
   .demo-scene-1 .demo-scene-img { animation:demoZoom1 9s ease-in-out infinite; }
   .demo-scene-2 .demo-scene-img { animation:demoZoom2 9s ease-in-out infinite; }
   .demo-scene-3 .demo-scene-img { animation:demoZoom3 9s ease-in-out infinite; }
