@@ -172,54 +172,119 @@ const LANDING_CSS = `
   .diff-card p { font-size:15px; color:var(--text-secondary); line-height:1.7; }
 
   .circles-showcase { margin-top:48px; background:var(--card); border-radius:24px; padding:16px; box-shadow:var(--shadow-soft); border:1px solid rgba(253,232,215,0.5); text-align:center; }
-  .circles-preview-img { width:100%; max-width:760px; border-radius:16px; display:block; margin:0 auto 20px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
+  .circles-card { background:#fff; border-radius:20px; padding:22px; text-align:left; max-width:480px; margin:0 auto 20px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
+  .circles-card-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .circles-card-avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); flex-shrink:0; }
+  .circles-card-name { font-size:14px; font-weight:700; color:var(--text); }
+  .circles-card-meta { font-size:11px; color:var(--text-muted); }
+  .circles-card-tag { margin-left:auto; font-size:10px; font-weight:700; padding:4px 10px; border-radius:999px; background:var(--highlight); color:var(--primary); white-space:nowrap; }
+  .circles-card-text { font-size:14px; color:var(--text); line-height:1.6; margin-bottom:16px; }
+  .circles-card-actions { display:flex; gap:8px; }
+  .circles-card-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:999px; border:1.5px solid var(--bg-secondary); background:var(--bg); color:var(--text-secondary); font-size:12px; font-weight:600; }
+  .circles-card-btn svg { width:13px; height:13px; flex-shrink:0; }
+  .circles-card-btn.collab { border-color:rgba(21,184,166,0.35); color:var(--primary); background:var(--highlight); }
   .circles-caption { max-width:520px; margin:0 auto 24px; color:var(--text-muted); font-size:14px; line-height:1.6; }
   .demo-video-wrap { margin-top:40px; max-width:860px; margin-left:auto; margin-right:auto; border-radius:24px; overflow:hidden; box-shadow:var(--shadow-hover); border:1px solid rgba(253,232,215,0.5); background:#0F172A; }
 
-  /* ── Animated motion graphic built from real product screenshots ── */
+  /* ── Feature-accurate animated motion graphic (crisp CSS, not screenshots) ── */
   .demo-stage { position:relative; width:100%; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; background:radial-gradient(ellipse at 50% 15%,rgba(21,184,166,0.28),transparent 60%),radial-gradient(circle at 12% 88%,rgba(253,232,215,0.14),transparent 45%),#0F172A; }
   .demo-badge { position:absolute; top:20px; left:20px; display:flex; align-items:center; gap:7px; padding:6px 13px; border-radius:999px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.75); font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; z-index:2; }
   .demo-badge .dot { width:6px; height:6px; border-radius:50%; background:#4ADE80; box-shadow:0 0 0 3px rgba(74,222,128,0.25); animation:demoLive 1.6s ease-in-out infinite; }
   @keyframes demoLive { 0%,100%{opacity:1} 50%{opacity:0.35} }
 
-  .demo-window { position:relative; width:68%; max-width:520px; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.5); background:#fff; }
+  .demo-window { position:relative; width:78%; max-width:380px; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.5); background:#fff; }
   .demo-window-bar { display:flex; align-items:center; gap:6px; padding:10px 14px; background:#EEF1F5; }
   .demo-window-bar span { width:9px; height:9px; border-radius:50%; background:#D8DEE6; }
-  .demo-window-screen { position:relative; width:100%; aspect-ratio:4/3; overflow:hidden; background:var(--bg); }
-  .demo-scene { position:absolute; inset:0; opacity:0; }
-  .demo-scene-1 { animation:demoScene1 9s ease-in-out infinite; }
-  .demo-scene-2 { animation:demoScene2 9s ease-in-out infinite; }
-  .demo-scene-3 { animation:demoScene3 9s ease-in-out infinite; }
+  .demo-window-screen { position:relative; width:100%; aspect-ratio:5/4; overflow:hidden; background:var(--bg); }
+  .demo-scene { position:absolute; inset:0; opacity:0; padding:16px; box-sizing:border-box; display:flex; flex-direction:column; }
+  .demo-scene-1 { animation:demoScene1 12s ease-in-out infinite; }
+  .demo-scene-2 { animation:demoScene2 12s ease-in-out infinite; }
+  .demo-scene-3 { animation:demoScene3 12s ease-in-out infinite; }
   @keyframes demoScene1 { 0%,2%{opacity:0} 5%,30%{opacity:1} 34%,100%{opacity:0} }
   @keyframes demoScene2 { 0%,32%{opacity:0} 36%,63%{opacity:1} 67%,100%{opacity:0} }
   @keyframes demoScene3 { 0%,65%{opacity:0} 69%,96%{opacity:1} 99%,100%{opacity:0} }
 
-  .demo-scene-img { width:100%; height:100%; object-fit:contain; padding:20px; box-sizing:border-box; display:block; transform-origin:center; filter:drop-shadow(0 10px 30px rgba(0,0,0,0.15)); }
-  .demo-scene-1 .demo-scene-img { animation:demoZoom1 9s ease-in-out infinite; }
-  .demo-scene-2 .demo-scene-img { animation:demoZoom2 9s ease-in-out infinite; }
-  .demo-scene-3 .demo-scene-img { animation:demoZoom3 9s ease-in-out infinite; }
-  @keyframes demoZoom1 { 0%,5%{transform:scale(1)} 34%,100%{transform:scale(1.08)} }
-  @keyframes demoZoom2 { 0%,36%{transform:scale(1)} 67%,100%{transform:scale(1.08)} }
-  @keyframes demoZoom3 { 0%,69%{transform:scale(1)} 99%,100%{transform:scale(1.08)} }
+  .demo-feature-label { font-size:10px; font-weight:800; letter-spacing:0.6px; text-transform:uppercase; color:var(--primary); margin-bottom:10px; }
+  .demo-person { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .demo-avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); flex-shrink:0; }
+  .demo-person-name { font-size:13px; font-weight:700; color:var(--text); }
+  .demo-person-sub { font-size:10px; color:var(--text-muted); }
+  .demo-match-pill { margin-left:auto; background:var(--highlight); color:var(--primary); font-size:9px; font-weight:800; padding:3px 9px; border-radius:999px; white-space:nowrap; }
 
-  .demo-caption { position:absolute; bottom:0; left:0; right:0; padding:28px 16px 14px; background:linear-gradient(to top,rgba(15,23,42,0.75),transparent); color:white; font-size:12px; font-weight:700; letter-spacing:0.3px; opacity:0; }
-  .demo-scene-1 .demo-caption { animation:demoScene1 9s ease-in-out infinite; }
-  .demo-scene-2 .demo-caption { animation:demoScene2 9s ease-in-out infinite; }
-  .demo-scene-3 .demo-caption { animation:demoScene3 9s ease-in-out infinite; }
+  .demo-filter-row { display:flex; gap:6px; margin-bottom:10px; }
+  .demo-filter-chip { font-size:9px; font-weight:700; padding:4px 10px; border-radius:999px; border:1px solid var(--bg-secondary); color:var(--text-secondary); background:#fff; display:flex; align-items:center; gap:4px; }
+  .demo-scene-1 .demo-filter-chip:nth-child(1) { animation:demoFilterA 12s ease-in-out infinite; }
+  .demo-scene-1 .demo-filter-chip:nth-child(2) { animation:demoFilterB 12s ease-in-out infinite; }
+  @keyframes demoFilterA { 0%,19%{background:var(--primary);color:#fff;border-color:var(--primary)} 22%,100%{background:#fff;color:var(--text-secondary);border-color:var(--bg-secondary)} }
+  @keyframes demoFilterB { 0%,19%{background:#fff;color:var(--text-secondary);border-color:var(--bg-secondary)} 22%,100%{background:var(--primary);color:#fff;border-color:var(--primary)} }
+
+  .demo-why { background:#fff; border-radius:10px; padding:10px 12px; margin-bottom:10px; box-shadow:0 2px 10px rgba(15,23,42,0.05); }
+  .demo-why-label { font-size:9px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--primary); margin-bottom:7px; }
+  .demo-why-item { display:flex; align-items:flex-start; gap:6px; font-size:11px; color:var(--text-secondary); line-height:1.4; margin-bottom:5px; opacity:0; transform:translateX(-6px); }
+  .demo-why-item svg { width:11px; height:11px; color:var(--primary); flex-shrink:0; margin-top:1px; }
+  .demo-scene-1 .demo-why-item:nth-child(2) { animation:demoReveal1a 12s ease-out infinite; }
+  .demo-scene-1 .demo-why-item:nth-child(3) { animation:demoReveal1b 12s ease-out infinite; }
+  .demo-scene-1 .demo-why-item:nth-child(4) { animation:demoReveal1c 12s ease-out infinite; }
+  @keyframes demoReveal1a { 0%,7%{opacity:0;transform:translateX(-6px)} 10%,100%{opacity:1;transform:translateX(0)} }
+  @keyframes demoReveal1b { 0%,11%{opacity:0;transform:translateX(-6px)} 14%,100%{opacity:1;transform:translateX(0)} }
+  @keyframes demoReveal1c { 0%,15%{opacity:0;transform:translateX(-6px)} 18%,100%{opacity:1;transform:translateX(0)} }
+
+  .demo-tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .demo-tag { font-size:10px; font-weight:600; padding:4px 10px; border-radius:999px; background:#fff; color:var(--text-secondary); border:1px solid var(--bg-secondary); opacity:0; transform:scale(0.85); }
+  .demo-scene-1 .demo-tag:nth-child(1) { animation:demoTagA 12s ease-out infinite; }
+  .demo-scene-1 .demo-tag:nth-child(2) { animation:demoTagB 12s ease-out infinite; }
+  @keyframes demoTagA { 0%,20%{opacity:0;transform:scale(0.85)} 23%,100%{opacity:1;transform:scale(1)} }
+  @keyframes demoTagB { 0%,22%{opacity:0;transform:scale(0.85)} 25%,100%{opacity:1;transform:scale(1)} }
+
+  .demo-btn-row { display:flex; gap:8px; margin-top:12px; }
+  .demo-btn { flex:1; text-align:center; padding:9px; border-radius:10px; font-size:11px; font-weight:700; }
+  .demo-btn-ghost { background:#fff; color:var(--text-secondary); border:1px solid var(--bg-secondary); }
+  .demo-btn-primary { background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; gap:5px; }
+  .demo-btn-check { opacity:0; transform:scale(0.6); display:inline-block; }
+  .demo-scene-1 .demo-btn-check { animation:demoCheck 12s ease-out infinite; }
+  @keyframes demoCheck { 0%,26%{opacity:0;transform:scale(0.6)} 29%{opacity:1;transform:scale(1.15)} 31%,100%{opacity:1;transform:scale(1)} }
+
+  .demo-score-row { display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:700; color:var(--text); margin-bottom:6px; }
+  .demo-score-row span:last-child { color:var(--primary); font-size:13px; }
+  .demo-score-track { height:7px; background:#fff; border-radius:4px; overflow:hidden; margin-bottom:10px; box-shadow:inset 0 1px 2px rgba(15,23,42,0.08); }
+  .demo-score-fill { height:100%; background:linear-gradient(90deg,var(--teal),var(--primary)); border-radius:4px; width:0%; }
+  .demo-scene-2 .demo-score-fill { animation:demoScoreFill 12s ease-out infinite; }
+  @keyframes demoScoreFill { 0%,39%{width:0%} 52%,100%{width:92%} }
+  .demo-complete { font-size:11px; color:var(--primary); font-weight:700; text-align:center; opacity:0; margin-bottom:10px; }
+  .demo-scene-2 .demo-complete { animation:demoCompleteFade 12s ease-out infinite; }
+  @keyframes demoCompleteFade { 0%,53%{opacity:0} 57%,100%{opacity:1} }
+  .demo-about { background:#fff; border-radius:10px; padding:10px 12px; box-shadow:0 2px 10px rgba(15,23,42,0.05); opacity:0; transform:translateY(6px); }
+  .demo-scene-2 .demo-about { animation:demoAboutFade 12s ease-out infinite; }
+  @keyframes demoAboutFade { 0%,59%{opacity:0;transform:translateY(6px)} 63%,100%{opacity:1;transform:translateY(0)} }
+  .demo-about-label { font-size:9px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:var(--text-muted); margin-bottom:5px; }
+  .demo-about p { font-size:11px; color:var(--text-secondary); line-height:1.5; }
+
+  .demo-post-card { background:#fff; border-radius:10px; padding:12px; box-shadow:0 2px 10px rgba(15,23,42,0.05); }
+  .demo-post-text { font-size:11.5px; color:var(--text); line-height:1.5; margin:8px 0 10px; opacity:0; transform:translateY(4px); }
+  .demo-scene-3 .demo-post-text { animation:demoPostFade 12s ease-out infinite; }
+  @keyframes demoPostFade { 0%,74%{opacity:0;transform:translateY(4px)} 78%,100%{opacity:1;transform:translateY(0)} }
+  .demo-post-tag { display:inline-block; font-size:9px; font-weight:700; padding:3px 9px; border-radius:999px; background:var(--highlight); color:var(--primary); opacity:0; transform:scale(0.85); }
+  .demo-scene-3 .demo-post-tag { animation:demoTagA 12s ease-out infinite; animation-delay:0s; }
+  .demo-post-replies { display:flex; align-items:center; gap:6px; margin-top:12px; opacity:0; }
+  .demo-scene-3 .demo-post-replies { animation:demoRepliesFade 12s ease-out infinite; }
+  @keyframes demoRepliesFade { 0%,85%{opacity:0} 88%,100%{opacity:1} }
+  .demo-reply-avatar { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--primary)); margin-left:-6px; border:2px solid #fff; }
+  .demo-reply-avatar:first-child { margin-left:0; }
+  .demo-post-replies span { font-size:10px; color:var(--text-muted); margin-left:6px; }
 
   .demo-dots { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:2; }
   .demo-dots span { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.25); transition:background 0.3s; }
-  .demo-dots .d1 { animation:demoDot1 9s ease-in-out infinite; }
-  .demo-dots .d2 { animation:demoDot2 9s ease-in-out infinite; }
-  .demo-dots .d3 { animation:demoDot3 9s ease-in-out infinite; }
+  .demo-dots .d1 { animation:demoDot1 12s ease-in-out infinite; }
+  .demo-dots .d2 { animation:demoDot2 12s ease-in-out infinite; }
+  .demo-dots .d3 { animation:demoDot3 12s ease-in-out infinite; }
   @keyframes demoDot1 { 0%,2%{background:rgba(255,255,255,0.25)} 5%,30%{background:#fff} 34%,100%{background:rgba(255,255,255,0.25)} }
   @keyframes demoDot2 { 0%,32%{background:rgba(255,255,255,0.25)} 36%,63%{background:#fff} 67%,100%{background:rgba(255,255,255,0.25)} }
   @keyframes demoDot3 { 0%,65%{background:rgba(255,255,255,0.25)} 69%,96%{background:#fff} 99%,100%{background:rgba(255,255,255,0.25)} }
 
   @media (prefers-reduced-motion: reduce) {
-    .demo-scene-1, .demo-scene-2, .demo-scene-3, .demo-scene-img, .demo-caption, .demo-dots span, .demo-badge .dot { animation:none !important; }
+    .demo-scene-1, .demo-scene-2, .demo-scene-3, .demo-why-item, .demo-tag, .demo-btn-check, .demo-filter-chip, .demo-score-fill, .demo-complete, .demo-about, .demo-post-text, .demo-post-tag, .demo-post-replies, .demo-dots span, .demo-badge .dot { animation:none !important; }
     .demo-scene-1 { opacity:1; }
-    .demo-scene-1 .demo-caption { opacity:1; }
+    .demo-scene-1 .demo-why-item, .demo-scene-1 .demo-tag, .demo-scene-1 .demo-btn-check { opacity:1; transform:none; }
     .demo-scene-2, .demo-scene-3 { display:none; }
   }
 
@@ -383,30 +448,77 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Animated motion graphic — real product screenshots (Discover / Profile / Circles), cross-fading */}
+      {/* Feature-accurate animated motion graphic — Discover / Profile / Circles, built with crisp CSS (not screenshots) */}
       <section id="demo">
         <div className="section-inner">
           <p className="section-label animate">See It In Action</p>
           <h2 className="section-title animate delay-1">A quick look at how it actually works.</h2>
-          <p className="section-desc animate delay-2">Discover, your profile, and Circles — real screens from the product.</p>
+          <p className="section-desc animate delay-2">Discover by intent, a transparent profile, and Circles — where you collaborate directly.</p>
           <div className="demo-video-wrap animate delay-2">
-            <div className="demo-stage" role="img" aria-label="Animated preview cycling through real Discover, Profile, and Circles screens from the product">
+            <div className="demo-stage" role="img" aria-label="Animated preview walking through the Discover, Profile, and Circles features">
               <span className="demo-badge"><span className="dot" />Product preview</span>
               <div className="demo-window">
                 <div className="demo-window-bar"><span /><span /><span /></div>
                 <div className="demo-window-screen">
+
+                  {/* Scene 1 — Discover: why-you-matched reasoning */}
                   <div className="demo-scene demo-scene-1">
-                    <img src="/assets/demo/discover-real.jpg" alt="The Discover screen, showing a real match card" className="demo-scene-img" />
-                    <div className="demo-caption">Discover — matched by intent, not job titles</div>
+                    <p className="demo-feature-label">Discover — matched by intent</p>
+                    <div className="demo-person">
+                      <div className="demo-avatar" />
+                      <div><p className="demo-person-name">Priya Sharma</p><p className="demo-person-sub">Product designer · Bengaluru</p></div>
+                      <span className="demo-match-pill">91% match</span>
+                    </div>
+                    <div className="demo-filter-row">
+                      <span className="demo-filter-chip">📍 10 km</span>
+                      <span className="demo-filter-chip">🌐 Worldwide</span>
+                    </div>
+                    <div className="demo-why">
+                      <p className="demo-why-label">Why you matched</p>
+                      <div className="demo-why-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>Same city · Bengaluru</div>
+                      <div className="demo-why-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>Both looking for: Co-founder</div>
+                      <div className="demo-why-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>Shared skills: Product, Growth</div>
+                    </div>
+                    <div className="demo-tags"><span className="demo-tag">Building</span><span className="demo-tag">SaaS</span></div>
+                    <div className="demo-btn-row">
+                      <div className="demo-btn demo-btn-ghost">Skip</div>
+                      <div className="demo-btn demo-btn-primary">Connect <span className="demo-btn-check">✓</span></div>
+                    </div>
                   </div>
+
+                  {/* Scene 2 — Profile: transparent trust score */}
                   <div className="demo-scene demo-scene-2">
-                    <img src="/assets/demo/profile-real.jpg" alt="A real user profile screen" className="demo-scene-img" />
-                    <div className="demo-caption">Your profile — trust score, intent, and what you&apos;re building</div>
+                    <p className="demo-feature-label">Profile — transparent trust</p>
+                    <div className="demo-person">
+                      <div className="demo-avatar" />
+                      <div><p className="demo-person-name">Priya Sharma</p><p className="demo-person-sub">Collaborate on projects</p></div>
+                    </div>
+                    <div className="demo-score-row"><span>Trust score</span><span>92/100</span></div>
+                    <div className="demo-score-track"><div className="demo-score-fill" /></div>
+                    <p className="demo-complete">Profile complete ✓</p>
+                    <div className="demo-about">
+                      <p className="demo-about-label">Working on</p>
+                      <p>A design-tech platform for async product reviews.</p>
+                    </div>
                   </div>
+
+                  {/* Scene 3 — Circles: collaborate directly, no waiting on a match */}
                   <div className="demo-scene demo-scene-3">
-                    <img src="/assets/demo/circles-real.jpg" alt="The Circles feed, showing a real post" className="demo-scene-img" />
-                    <div className="demo-caption">Circles — post what you need, skip the waiting</div>
+                    <p className="demo-feature-label">Circles — collaborate directly</p>
+                    <div className="demo-post-card">
+                      <div className="demo-person" style={{ marginBottom: 8 }}>
+                        <div className="demo-avatar" />
+                        <div><p className="demo-person-name">Priya Sharma</p><p className="demo-person-sub">2m ago</p></div>
+                        <span className="demo-post-tag">Seeking</span>
+                      </div>
+                      <p className="demo-post-text">Looking for a growth marketer to launch a B2B SaaS product — let&apos;s build together.</p>
+                      <div className="demo-post-replies">
+                        <div className="demo-reply-avatar" /><div className="demo-reply-avatar" /><div className="demo-reply-avatar" />
+                        <span>3 people asked to collaborate</span>
+                      </div>
+                    </div>
                   </div>
+
                 </div>
               </div>
               <div className="demo-dots"><span className="d1" /><span className="d2" /><span className="d3" /></div>
@@ -546,8 +658,25 @@ export default async function HomePage() {
           <h2 className="section-title animate delay-1">Post what you need. Skip the waiting.</h2>
           <p className="section-desc animate delay-2">Discover is 1:1 — you get matched, then you talk. Circles skips that part: post exactly what you&apos;re after (a co-founder, an intro, an answer to something you&apos;re stuck on) and it lands in front of everyone tracking that, not just the handful of people you&apos;d have matched with anyway.</p>
           <div className="circles-showcase animate delay-2">
-            <img src="/assets/circles-preview.jpg" alt="A real post in the Build Your Network Circles feed" className="circles-preview-img" />
-            <p className="circles-caption">One post, real replies — from people actually looking for that right now.</p>
+            <div className="circles-card">
+              <div className="circles-card-head">
+                <div className="circles-card-avatar" />
+                <div><p className="circles-card-name">Priya Sharma</p><p className="circles-card-meta">2m ago</p></div>
+                <span className="circles-card-tag">Seeking</span>
+              </div>
+              <p className="circles-card-text">Looking for a growth marketer to launch a B2B SaaS product — let&apos;s build together.</p>
+              <div className="circles-card-actions">
+                <button className="circles-card-btn" type="button" tabIndex={-1}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                  12
+                </button>
+                <button className="circles-card-btn collab" type="button" tabIndex={-1}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                  Collaborate
+                </button>
+              </div>
+            </div>
+            <p className="circles-caption">One post, real interest — people can Like it or hit Collaborate to reach out directly.</p>
             <a href="/signup" className="btn-primary">Explore Circles Free</a>
           </div>
         </div>
