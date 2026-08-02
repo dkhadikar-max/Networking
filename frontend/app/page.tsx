@@ -175,7 +175,53 @@ const LANDING_CSS = `
   .circles-preview-img { width:100%; max-width:760px; border-radius:16px; display:block; margin:0 auto 20px; box-shadow:0 8px 32px rgba(31,41,55,0.12); }
   .circles-caption { max-width:520px; margin:0 auto 24px; color:var(--text-muted); font-size:14px; line-height:1.6; }
   .demo-video-wrap { margin-top:40px; max-width:860px; margin-left:auto; margin-right:auto; border-radius:24px; overflow:hidden; box-shadow:var(--shadow-hover); border:1px solid rgba(253,232,215,0.5); background:#0F172A; }
-  .demo-video { width:100%; aspect-ratio:16/9; display:block; background:#0F172A; }
+
+  /* ── Animated motion graphic built from real product screenshots ── */
+  .demo-stage { position:relative; width:100%; aspect-ratio:16/9; display:flex; align-items:center; justify-content:center; overflow:hidden; background:radial-gradient(ellipse at 50% 15%,rgba(21,184,166,0.28),transparent 60%),radial-gradient(circle at 12% 88%,rgba(253,232,215,0.14),transparent 45%),#0F172A; }
+  .demo-badge { position:absolute; top:20px; left:20px; display:flex; align-items:center; gap:7px; padding:6px 13px; border-radius:999px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.75); font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; z-index:2; }
+  .demo-badge .dot { width:6px; height:6px; border-radius:50%; background:#4ADE80; box-shadow:0 0 0 3px rgba(74,222,128,0.25); animation:demoLive 1.6s ease-in-out infinite; }
+  @keyframes demoLive { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+  .demo-window { position:relative; width:68%; max-width:520px; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,0.5); background:#fff; }
+  .demo-window-bar { display:flex; align-items:center; gap:6px; padding:10px 14px; background:#EEF1F5; }
+  .demo-window-bar span { width:9px; height:9px; border-radius:50%; background:#D8DEE6; }
+  .demo-window-screen { position:relative; width:100%; aspect-ratio:673/480; overflow:hidden; }
+  .demo-scene { position:absolute; inset:0; opacity:0; }
+  .demo-scene-1 { animation:demoScene1 9s ease-in-out infinite; }
+  .demo-scene-2 { animation:demoScene2 9s ease-in-out infinite; }
+  .demo-scene-3 { animation:demoScene3 9s ease-in-out infinite; }
+  @keyframes demoScene1 { 0%,2%{opacity:0} 5%,30%{opacity:1} 34%,100%{opacity:0} }
+  @keyframes demoScene2 { 0%,32%{opacity:0} 36%,63%{opacity:1} 67%,100%{opacity:0} }
+  @keyframes demoScene3 { 0%,65%{opacity:0} 69%,96%{opacity:1} 99%,100%{opacity:0} }
+
+  .demo-scene-img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; transform-origin:center; }
+  .demo-scene-1 .demo-scene-img { animation:demoZoom1 9s ease-in-out infinite; }
+  .demo-scene-2 .demo-scene-img { animation:demoZoom2 9s ease-in-out infinite; }
+  .demo-scene-3 .demo-scene-img { animation:demoZoom3 9s ease-in-out infinite; }
+  @keyframes demoZoom1 { 0%,5%{transform:scale(1)} 34%,100%{transform:scale(1.08)} }
+  @keyframes demoZoom2 { 0%,36%{transform:scale(1)} 67%,100%{transform:scale(1.08)} }
+  @keyframes demoZoom3 { 0%,69%{transform:scale(1)} 99%,100%{transform:scale(1.08)} }
+
+  .demo-caption { position:absolute; bottom:0; left:0; right:0; padding:28px 16px 14px; background:linear-gradient(to top,rgba(15,23,42,0.75),transparent); color:white; font-size:12px; font-weight:700; letter-spacing:0.3px; opacity:0; }
+  .demo-scene-1 .demo-caption { animation:demoScene1 9s ease-in-out infinite; }
+  .demo-scene-2 .demo-caption { animation:demoScene2 9s ease-in-out infinite; }
+  .demo-scene-3 .demo-caption { animation:demoScene3 9s ease-in-out infinite; }
+
+  .demo-dots { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:6px; z-index:2; }
+  .demo-dots span { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.25); transition:background 0.3s; }
+  .demo-dots .d1 { animation:demoDot1 9s ease-in-out infinite; }
+  .demo-dots .d2 { animation:demoDot2 9s ease-in-out infinite; }
+  .demo-dots .d3 { animation:demoDot3 9s ease-in-out infinite; }
+  @keyframes demoDot1 { 0%,2%{background:rgba(255,255,255,0.25)} 5%,30%{background:#fff} 34%,100%{background:rgba(255,255,255,0.25)} }
+  @keyframes demoDot2 { 0%,32%{background:rgba(255,255,255,0.25)} 36%,63%{background:#fff} 67%,100%{background:rgba(255,255,255,0.25)} }
+  @keyframes demoDot3 { 0%,65%{background:rgba(255,255,255,0.25)} 69%,96%{background:#fff} 99%,100%{background:rgba(255,255,255,0.25)} }
+
+  @media (prefers-reduced-motion: reduce) {
+    .demo-scene-1, .demo-scene-2, .demo-scene-3, .demo-scene-img, .demo-caption, .demo-dots span, .demo-badge .dot { animation:none !important; }
+    .demo-scene-1 { opacity:1; }
+    .demo-scene-1 .demo-caption { opacity:1; }
+    .demo-scene-2, .demo-scene-3 { display:none; }
+  }
 
   .download-section { background:linear-gradient(135deg,var(--primary),#0d5f58); color:white; text-align:center; }
   .download-section .section-label { color:var(--highlight); }
@@ -337,16 +383,34 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Demo Video — drop the real screen recording at /public/assets/demo.mp4 to go live */}
+      {/* Animated motion graphic — real product screenshots (Discover / Profile / Circles), cross-fading */}
       <section id="demo">
         <div className="section-inner">
           <p className="section-label animate">See It In Action</p>
-          <h2 className="section-title animate delay-1">A 60-second look at how it actually works.</h2>
-          <p className="section-desc animate delay-2">No slides, no script — just the real product.</p>
+          <h2 className="section-title animate delay-1">A quick look at how it actually works.</h2>
+          <p className="section-desc animate delay-2">Discover, your profile, and Circles — real screens from the product.</p>
           <div className="demo-video-wrap animate delay-2">
-            <video controls playsInline preload="metadata" poster="/assets/circles-preview.jpg" className="demo-video">
-              <source src="/assets/demo.mp4" type="video/mp4" />
-            </video>
+            <div className="demo-stage" role="img" aria-label="Animated preview cycling through real Discover, Profile, and Circles screens from the product">
+              <span className="demo-badge"><span className="dot" />Product preview</span>
+              <div className="demo-window">
+                <div className="demo-window-bar"><span /><span /><span /></div>
+                <div className="demo-window-screen">
+                  <div className="demo-scene demo-scene-1">
+                    <img src="/assets/demo/discover-real.jpg" alt="The Discover screen, showing a real match card" className="demo-scene-img" />
+                    <div className="demo-caption">Discover — matched by intent, not job titles</div>
+                  </div>
+                  <div className="demo-scene demo-scene-2">
+                    <img src="/assets/demo/profile-real.jpg" alt="A real user profile screen" className="demo-scene-img" />
+                    <div className="demo-caption">Your profile — trust score, intent, and what you&apos;re building</div>
+                  </div>
+                  <div className="demo-scene demo-scene-3">
+                    <img src="/assets/demo/circles-real.jpg" alt="The Circles feed, showing a real post" className="demo-scene-img" />
+                    <div className="demo-caption">Circles — post what you need, skip the waiting</div>
+                  </div>
+                </div>
+              </div>
+              <div className="demo-dots"><span className="d1" /><span className="d2" /><span className="d3" /></div>
+            </div>
           </div>
         </div>
       </section>
