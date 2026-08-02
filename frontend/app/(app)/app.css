@@ -482,6 +482,31 @@
   flex-direction: column;
   gap: 12px;
 }
+
+/* Profile screens scroll with the browser window instead of an inner box */
+.app-wrap:has(.profile-scroll) {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+.app-wrap:has(.profile-scroll) .app-views {
+  height: auto;
+  overflow: visible;
+}
+.app-wrap:has(.profile-scroll) .profile-page-wrap {
+  overflow: visible;
+}
+.app-wrap:has(.profile-scroll) .profile-scroll {
+  overflow-y: visible;
+  flex: none;
+}
+@media (min-width: 1024px) {
+  .app-wrap:has(.profile-scroll) .desk-nav {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+  }
+}
 .profile-hero {
   background: white;
   border-radius: var(--r-xl);

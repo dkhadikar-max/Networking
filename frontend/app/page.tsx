@@ -108,7 +108,7 @@ const LANDING_CSS = `
   .section-inner { max-width:1100px; margin:0 auto; }
   .section-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--primary); margin-bottom:16px; }
   .section-title { font-size:clamp(28px,3.5vw,40px); font-weight:800; letter-spacing:-1px; margin-bottom:20px; line-height:1.2; }
-  .section-desc { font-size:17px; color:var(--text-secondary); max-width:600px; line-height:1.7; }
+  .section-desc { font-size:17px; color:var(--text-secondary); max-width:600px; line-height:1.7; text-wrap:balance; }
 
   .trust-section { background:var(--bg-secondary); }
   .trust-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-top:48px; }
@@ -312,7 +312,6 @@ export default async function HomePage() {
             {stats && (
               <div className="hero-badges animate delay-2" style={{ marginBottom: '24px' }}>
                 <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>{stats.users.toLocaleString()} professionals</span>
-                {stats.connections > 0 && <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>{stats.connections.toLocaleString()} connections made</span>}
               </div>
             )}
             <div className="cta-group animate delay-3">

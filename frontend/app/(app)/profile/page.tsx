@@ -30,7 +30,7 @@ export default function OwnProfilePage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+    <div className="profile-page-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="screen-header">
         <h1>Profile</h1>
       </div>

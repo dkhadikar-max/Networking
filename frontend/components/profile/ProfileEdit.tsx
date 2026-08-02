@@ -1,10 +1,10 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element */
 import { useState } from 'react';
-import { apiPut, apiUpload } from '@/lib/api';
+import { apiPut, apiUpload, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
-import Avatar from '@/components/ui/Avatar';
 import type { User } from '@/lib/types';
 
 type Props = {
@@ -25,6 +25,8 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
   const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>(user.photos ?? []);
 
   const [form, setForm] = useState({
     name: user.name ?? '',
@@ -80,16 +82,29 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     setUploading(true);
     try {
       const fd = new FormData();
       fd.append('photo', file);
-      await apiUpload('/api/me/photos', fd);
+      const res = await apiUpload<{ photos: string[] }>('/api/me/photos', fd);
+      setPhotos(res.photos);
       toast('Photo uploaded', 'success');
     } catch (err) {
       toast(err instanceof Error ? err.message : 'Upload failed', 'error');
     } finally { setUploading(false); }
+  }
+
+  async function handlePhotoDelete(url: string) {
+    setDeletingPhoto(url);
+    try {
+      const res = await apiDelete<{ photos: string[] }>('/api/me/photos', { url });
+      setPhotos(res.photos);
+      toast('Photo removed', 'success');
+    } catch (err) {
+      toast(err instanceof Error ? err.message : 'Failed to remove photo', 'error');
+    } finally { setDeletingPhoto(null); }
   }
 
   async function detectGps() {
@@ -141,22 +156,57 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           </div>
         </div>
 
-        {/* Photo upload */}
-        <div className="profile-panel" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Avatar src={user.photos?.[0]} name={user.name} size={72} />
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Profile photo</p>
-            <label style={{ cursor: uploading ? 'not-allowed' : 'pointer' }}>
-              <span style={{
-                display: 'inline-block', padding: '9px 18px', borderRadius: 'var(--r-sm)',
-                border: '1.5px solid var(--border2)', fontSize: 13, fontWeight: 600,
-                color: uploading ? 'var(--dim)' : 'var(--sub)', background: 'var(--sur2)',
+        {/* Photos */}
+        <div className="profile-panel" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p className="panel-title">
+            Photos{' '}
+            <span style={{ fontSize: 12, color: 'var(--dim)', fontWeight: 400 }}>({photos.length}/6)</span>
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            {photos.map((url, i) => (
+              <div key={url} style={{ position: 'relative', aspectRatio: '1', borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--sur2)' }}>
+                <img src={url} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {photos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handlePhotoDelete(url)}
+                    disabled={deletingPhoto === url}
+                    aria-label="Remove photo"
+                    style={{
+                      position: 'absolute', top: 5, right: 5, width: 24, height: 24, borderRadius: '50%',
+                      border: 'none', background: 'rgba(15,23,42,0.65)', color: 'white', fontSize: 14,
+                      lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: deletingPhoto === url ? 'not-allowed' : 'pointer', opacity: deletingPhoto === url ? 0.6 : 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+                {i === 0 && (
+                  <span style={{
+                    position: 'absolute', bottom: 5, left: 5, padding: '2px 8px', borderRadius: 999,
+                    background: 'rgba(15,23,42,0.65)', color: 'white', fontSize: 10, fontWeight: 700,
+                  }}>
+                    Main
+                  </span>
+                )}
+              </div>
+            ))}
+            {photos.length < 6 && (
+              <label style={{
+                aspectRatio: '1', borderRadius: 'var(--r-sm)', border: '1.5px dashed var(--border2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4,
+                cursor: uploading ? 'not-allowed' : 'pointer', color: uploading ? 'var(--dim)' : 'var(--sub)',
               }}>
-                {uploading ? 'Uploading…' : 'Upload photo'}
-              </span>
-              <input type="file" accept="image/*" onChange={handlePhotoUpload} className="sr-only" disabled={uploading} />
-            </label>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>+</span>
+                <span style={{ fontSize: 11, fontWeight: 600 }}>{uploading ? 'Uploading…' : 'Add photo'}</span>
+                <input type="file" accept="image/*" onChange={handlePhotoUpload} className="sr-only" disabled={uploading} />
+              </label>
+            )}
           </div>
+          <p style={{ fontSize: 12, color: 'var(--dim)' }}>
+            Upload up to 6 photos — at least 1 is required.
+          </p>
         </div>
 
         {/* Basic info */}
