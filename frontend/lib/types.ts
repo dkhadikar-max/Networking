@@ -27,6 +27,10 @@ export type User = {
   last_active?: string;
   is_premium?: boolean;
   premium?: boolean;
+  // Returned by GET /api/profiles/:id only (viewer-relative enrichment) —
+  // absent on /api/me (self) and on any other endpoint. Always check for
+  // presence before rendering; never assume it exists.
+  is_connected?: boolean;
 };
 
 export type DiscoverProfile = {

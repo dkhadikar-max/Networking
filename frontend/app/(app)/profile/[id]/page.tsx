@@ -53,12 +53,18 @@ export default function OtherProfilePage() {
   }
 
   const isSelf = me?.id === profile.id;
+  // `is_connected` (server, reflects a pre-existing connection) OR
+  // `connection` (local-only optimistic state set right after a fresh
+  // Connect click below) — `!!profile.connection` alone was always false
+  // on initial load, since the API never actually returns a `connection`
+  // field; it only returns `is_connected`.
+  const connected = !!profile.is_connected || !!profile.connection;
 
   return (
     <ProfileView
       user={profile}
       isSelf={isSelf}
-      connected={!!profile.connection}
+      connected={connected}
       connectionId={profile.connection?.id}
       onConnect={isSelf ? undefined : handleConnect}
       onEdit={isSelf ? () => router.replace('/profile') : undefined}
