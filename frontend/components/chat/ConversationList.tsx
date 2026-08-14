@@ -35,8 +35,27 @@ export default function ConversationList({ connections }: Props) {
 
   return (
     <>
-      {connections.filter(c => c.user).map(c => {
+      {connections.map(c => {
         const { connection, user, lastMessage, unread_count, hoursLeft } = c;
+
+        // Previously silently dropped from the list with no trace when the
+        // other party's lookup failed server-side — now shown explicitly
+        // instead of just disappearing (matches ChatWindow's existing
+        // "Conversation not found" pattern for the same underlying case).
+        if (!user) {
+          return (
+            <div key={connection.id} className="chat-row" style={{ cursor: 'default', opacity: 0.6 }}>
+              <div className="chat-av-wrap">
+                <div className="chat-av">?</div>
+              </div>
+              <div className="chat-body">
+                <div className="chat-name-row"><span className="chat-name">Conversation unavailable</span></div>
+                <p className="chat-preview">This person's profile couldn&apos;t be loaded.</p>
+              </div>
+            </div>
+          );
+        }
+
         const unread = (unread_count ?? 0) > 0;
         const photo = user.photos?.[0];
 

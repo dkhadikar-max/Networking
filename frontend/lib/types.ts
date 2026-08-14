@@ -50,7 +50,10 @@ export type DiscoverProfile = {
 
 export type Connection = {
   connection: { id: string; user1: string; user2: string };
-  user: User;
+  // Can be null if the other-party lookup fails server-side (missing/
+  // deleted account, or a lookup error) — the UI must handle this
+  // explicitly rather than assume `user` is always present.
+  user: User | null;
   lastMessage?: { text: string; created_at: string; from: string };
   hoursLeft?: number | null;
   msgCount: number;

@@ -4939,16 +4939,38 @@ app.get('/api/connections', auth, async (req, res) => {
 
     // Batch fetch other users
     const otherIds = active.map(c => c.user1 === req.user.id ? c.user2 : c.user1);
+    // `is_online` / `is_recently_active` are NOT real columns on `users` —
+    // confirmed against supabase_schema.sql and every migration. They were
+    // in this select list, which makes the query itself error (PostgREST
+    // rejects unknown columns) — and since the result was never checked for
+    // `error`, it silently degraded to an empty user list, so EVERY match's
+    // partner lookup failed and got dropped from the chat list. `last_active`
+    // is the real column; both flags are computed below the same way
+    // cleanPublic() already does for is_recently_active elsewhere.
     const CONNECTION_USER_FIELDS = [
       'id','name','photos','location','headline',
       'intent','interests','skills','currently_exploring','working_on',
       'trust_score','profile_score','is_profile_complete','premium',
       'banned','role','last_active','verification',
       'instagram','linkedin','website','created_at',
-      'is_online','is_recently_active',
     ].join(',');
-    const { data: otherUsers } = await supabase.from('users').select(CONNECTION_USER_FIELDS).in('id', otherIds);
-    const userMap = Object.fromEntries((otherUsers || []).map(u => [u.id, u]));
+    const { data: otherUsersRaw, error: otherUsersErr } = await supabase.from('users').select(CONNECTION_USER_FIELDS).in('id', otherIds);
+    if (otherUsersErr) console.error('[connections] other-users lookup failed:', otherUsersErr);
+    const otherUsers = (otherUsersRaw || []).map(u => ({
+      ...u,
+      is_online: !!(u.last_active && (Date.now() - new Date(u.last_active).getTime()) < 5 * 60 * 1000),
+      is_recently_active: !!(u.last_active && (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000),
+    }));
+    const userMap = Object.fromEntries(otherUsers.map(u => [u.id, u]));
+
+    // Diagnostic only — previously a connection whose other-party lookup
+    // came back empty was silently dropped from the response with zero
+    // trace anywhere. If this ever fires, it tells us definitively whether
+    // it's a missing/deleted user row vs. something else.
+    const missingOtherIds = [...new Set(otherIds)].filter(id => !userMap[id]);
+    if (missingOtherIds.length) {
+      console.error('[connections] other-user lookup missing for id(s):', missingOtherIds, 'requested by', req.user.id);
+    }
 
     // Fetch only the last message and count per connection (no full message history load)
     const connIds = active.map(c => c.id);
@@ -4987,22 +5009,24 @@ app.get('/api/connections', auth, async (req, res) => {
       (priMsgs || []).forEach(p => prioritySet.add(p.from_user));
     }
 
-    const result = active
-      .filter(c => userMap[c.user1 === req.user.id ? c.user2 : c.user1])
-      .map(c => {
-        const otherId  = c.user1 === req.user.id ? c.user2 : c.user1;
-        const other    = userMap[otherId];
-        const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
-        const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
-        const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
-        return {
-          connection: c, user: cleanPublic(other),
-          lastMessage: lastMsg, hoursLeft, active: !!c.active,
-          msgCount: msgCountMap[c.id] || 0,
-          unread_count,
-          is_priority: prioritySet.has(otherId),
-        };
-      });
+    // No longer drops a connection just because the other-party lookup came
+    // back empty — it's still returned, with user:null, so the frontend can
+    // show it as "unavailable" instead of the connection disappearing with
+    // no trace. See the diagnostic log above for why the lookup is empty.
+    const result = active.map(c => {
+      const otherId  = c.user1 === req.user.id ? c.user2 : c.user1;
+      const other    = userMap[otherId];
+      const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
+      const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
+      const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
+      return {
+        connection: c, user: other ? cleanPublic(other) : null,
+        lastMessage: lastMsg, hoursLeft, active: !!c.active,
+        msgCount: msgCountMap[c.id] || 0,
+        unread_count,
+        is_priority: prioritySet.has(otherId),
+      };
+    });
     res.json(result);
   } catch(e) {
     console.error('Connections error:', e);
