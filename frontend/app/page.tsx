@@ -239,8 +239,8 @@ export default async function HomePage() {
         <div className="hero-inner">
           <div className="hero-content">
             <div className="hero-badges animate">
-              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Works in browser</span>
-              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>No install needed</span>
+              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" /><path d="M2.5 8.5h19" /><circle cx="5.6" cy="6.5" r=".4" fill="currentColor" stroke="none" /><circle cx="7.4" cy="6.5" r=".4" fill="currentColor" stroke="none" /></svg>Works in browser</span>
+              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9.5" /><polyline points="8 12.5 10.8 15.3 16 9.3" /></svg>No install needed</span>
               {stats && (
                 <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>{stats.users.toLocaleString()} professionals</span>
               )}
@@ -248,7 +248,7 @@ export default async function HomePage() {
             <h1 className="animate delay-1">Meet people by <span>intent</span>, not by resume.</h1>
             <p className="subtitle animate delay-2">Find who&apos;s actively looking for what you offer — and the people you&apos;re looking for. Build Your Network matches on declared intent, not job titles.</p>
             <div className="cta-group animate delay-3">
-              <a href="/signup" className="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>Start networking free</a>
+              <a href="/signup" className="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12" /><polyline points="12.5 6 18 12 12.5 18" /></svg>Start networking free</a>
               <a href="#screens" className="btn-secondary">See how it works<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9" /></svg></a>
             </div>
           </div>
@@ -267,12 +267,12 @@ export default async function HomePage() {
           <p className="section-desc animate delay-2">Most networks show you who people are. BYN shows you what they want — so every conversation starts with a real reason.</p>
           <div className="why-grid">
             {[
-              { icon: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></>, title: 'Intent-based discovery', body: 'You see people who declared the same kind of thing you’re looking for — not people who just share a connection or a title.' },
-              { icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />, title: 'Transparent trust', body: 'Every profile carries a visible completeness and trust signal — no guesswork before you reach out.' },
-              { icon: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>, title: 'Relevance over volume', body: 'One relevant conversation beats a hundred random contacts. BYN optimizes for that, not for connection counts.' },
+              { icon: <><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.2" y2="16.2" /></>, title: 'Intent-based discovery', body: 'You see people who declared the same kind of thing you’re looking for — not people who just share a connection or a title.' },
+              { icon: <><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6l7-3z" /><polyline points="9 12 11 14 15 9.5" /></>, title: 'Transparent trust', body: 'Every profile carries a visible completeness and trust signal — no guesswork before you reach out.' },
+              { icon: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r=".5" fill="currentColor" /></>, title: 'Relevance over volume', body: 'One relevant conversation beats a hundred random contacts. BYN optimizes for that, not for connection counts.' },
             ].map(c => (
               <div key={c.title} className="why-card animate">
-                <div className="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{c.icon}</svg></div>
+                <div className="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{c.icon}</svg></div>
                 <h3>{c.title}</h3><p>{c.body}</p>
               </div>
             ))}
@@ -324,15 +324,15 @@ export default async function HomePage() {
           <h2 className="section-title animate delay-1">Trust, shown — not just claimed.</h2>
           <div className="trust-grid">
             {[
-              { title: 'Profile visibility controls', body: 'You control what’s shown and to whom.' },
-              { title: 'Verification', body: 'Identity verification signals are visible on profiles.' },
-              { title: 'Protected contact info', body: 'Your email is never shared with other users.' },
-              { title: 'Report & block', body: 'Report or block anyone, anytime, in one tap.' },
-              { title: 'No data selling', body: 'Your profile data is never sold or shared.' },
-              { title: 'No ads', body: 'Zero advertising. Your attention isn’t the product.' },
+              { title: 'Profile visibility controls', body: 'You control what’s shown and to whom.', icon: <><path d="M1.5 12S6 5 12 5s10.5 7 10.5 7-4.5 7-10.5 7S1.5 12 1.5 12z" /><circle cx="12" cy="12" r="3" /></> },
+              { title: 'Verification', body: 'Identity verification signals are visible on profiles.', icon: <><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6l7-3z" /><polyline points="9 12 11 14 15 9.5" /></> },
+              { title: 'Protected contact info', body: 'Your email is never shared with other users.', icon: <><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="m3.5 6.5 8.5 6.5 8.5-6.5" /><line x1="1.5" y1="1.5" x2="22.5" y2="22.5" /></> },
+              { title: 'Report & block', body: 'Report or block anyone, anytime, in one tap.', icon: <><path d="M5 21V4" /><path d="M5 4h13l-2.5 4.5L18 13H5" /></> },
+              { title: 'No data selling', body: 'Your profile data is never sold or shared.', icon: <><path d="M12.5 2.5 2.5 12.5l8.6 8.6a2 2 0 0 0 2.83 0l7.07-7.07a2 2 0 0 0 0-2.83l-8.5-8.7z" /><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none" /><line x1="2" y1="2" x2="22" y2="22" /></> },
+              { title: 'No ads', body: 'Zero advertising. Your attention isn’t the product.', icon: <><path d="M3 10.5v3a1 1 0 0 0 1 1h2.5l5 3.5v-12l-5 3.5H4a1 1 0 0 0-1 1z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><line x1="1.5" y1="1.5" x2="22.5" y2="22.5" /></> },
             ].map(t => (
               <div key={t.title} className="trust-check animate">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{t.icon}</svg>
                 <div><h3>{t.title}</h3><p>{t.body}</p></div>
               </div>
             ))}
@@ -365,7 +365,7 @@ export default async function HomePage() {
           <p className="section-desc animate delay-2">The full Build Your Network experience runs in your browser — sign up and start discovering in under a minute.</p>
           <div className="download-box animate delay-3">
             <a href="/signup" className="download-btn">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h6" /><polyline points="14 3 20 3 20 9" /><line x1="10" y1="13" x2="20" y2="3" /></svg>
               Open web app free
             </a>
             <div className="download-meta">
@@ -428,7 +428,7 @@ export default async function HomePage() {
           <p className="animate delay-1">Stop collecting contacts. Start building connections that matter.</p>
           <div className="animate delay-2">
             <a href="/signup" className="btn-primary" style={{ fontSize: 16, padding: '17px 36px' }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" /></svg>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="18" y2="12" /><polyline points="12.5 6 18 12 12.5 18" /></svg>
               Open web app free
             </a>
           </div>
