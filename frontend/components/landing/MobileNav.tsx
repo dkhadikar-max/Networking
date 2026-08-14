@@ -15,10 +15,11 @@ export default function MobileNav() {
   return (
     <>
       <div className={`nav-links${menuOpen ? ' open' : ''}`}>
-        <a href="#trust" onClick={() => setMenuOpen(false)}>Trust</a>
-        <a href="#features" onClick={() => setMenuOpen(false)}>Features</a>
-        <a href="#how" onClick={() => setMenuOpen(false)}>How It Works</a>
-        <a href="/signup" className="nav-cta">Open Web App</a>
+        <a href="/discover" onClick={() => setMenuOpen(false)}>Discover</a>
+        <a href="/circles" onClick={() => setMenuOpen(false)}>Circles</a>
+        <a href="#screens" onClick={() => setMenuOpen(false)}>How it works</a>
+        <a href="/login" className="nav-login" onClick={() => setMenuOpen(false)}>Log in</a>
+        <a href="/signup" className="nav-cta" onClick={() => setMenuOpen(false)}>Join free</a>
       </div>
       <button className="mobile-menu-btn" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">

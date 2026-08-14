@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "byn-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
+    },
+    {
+      "name": "byn-frontend-prod",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set PORT=3002 && node frontend/.next/standalone/frontend/server.js"],
+      "port": 3002
+    }
+  ]
+}
