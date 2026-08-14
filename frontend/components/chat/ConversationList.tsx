@@ -81,9 +81,20 @@ export default function ConversationList({ connections }: Props) {
                   <span className="chat-time">{timeAgo(lastMessage.created_at)}</span>
                 )}
               </div>
-              <p className={`chat-preview${unread ? ' unread' : ''}`}>
-                {lastMessage?.text ?? 'Say hello!'}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p className={`chat-preview${unread ? ' unread' : ''}`} style={{ flex: 1, minWidth: 0 }}>
+                  {lastMessage?.text ?? 'Say hello!'}
+                </p>
+                {/* Now a real count (was always 0/1 and never cleared on
+                    read, only on reply) — only worth a badge past 1 since a
+                    single unread message is already conveyed by the bold
+                    preview text above. */}
+                {(unread_count ?? 0) > 1 && (
+                  <span style={{ flexShrink: 0, minWidth: 18, height: 18, borderRadius: 9, background: 'var(--primary)', color: 'white', fontSize: 10, fontWeight: 700, lineHeight: '18px', textAlign: 'center', padding: '0 5px' }}>
+                    {unread_count! > 99 ? '99+' : unread_count}
+                  </span>
+                )}
+              </div>
               {hoursLeft != null && hoursLeft <= 24 && (
                 <p style={{ fontSize: 10, color: 'var(--accent-text)', fontWeight: 600, marginTop: 2 }}>
                   ⏱ {hoursLeft}h left

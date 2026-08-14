@@ -4974,11 +4974,19 @@ app.get('/api/connections', auth, async (req, res) => {
 
     // Fetch only the last message and count per connection (no full message history load)
     const connIds = active.map(c => c.id);
-    const lastMsgMap  = {};
-    const msgCountMap = {};
-    const prioritySet = new Set();
+    const lastMsgMap    = {};
+    const msgCountMap   = {};
+    const unreadCountMap = {};
+    const prioritySet   = new Set();
     if (connIds.length > 0) {
-      const [lastMsgResults, { data: priMsgs }, ...countResults] = await Promise.all([
+      // Real unread count per connection: messages from the other party sent
+      // after MY last-read watermark on that connection (falls back to "since
+      // forever" if the watermark column doesn't exist yet / was never set —
+      // migrations/014_connection_read_state.sql). Previously `unread_count`
+      // was always 0 or 1 ("is the last message not mine") and never cleared
+      // on read, only on reply — see docs/matching-chat-audit-2026-08-14.md,
+      // findings #1 and #3.
+      const [lastMsgResults, { data: priMsgs }, unreadResults, ...countResults] = await Promise.all([
         Promise.all(connIds.map(cid =>
           supabase.from('messages')
             .select('*')
@@ -4993,6 +5001,15 @@ app.get('/api/connections', auth, async (req, res) => {
           .eq('to_user', req.user.id)
           .in('from_user', otherIds)
           .eq('read', false),
+        Promise.all(active.map(c => {
+          const myReadAt = (c.user1 === req.user.id ? c.user1_last_read_at : c.user2_last_read_at) || '1970-01-01T00:00:00.000Z';
+          return supabase.from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('connection_id', c.id)
+            .neq('sender_id', req.user.id)
+            .gt('created_at', myReadAt)
+            .then(r => r.count || 0);
+        })),
         ...connIds.map(cid =>
           supabase.from('messages')
             .select('*', { count: 'exact', head: true })
@@ -5005,6 +5022,7 @@ app.get('/api/connections', auth, async (req, res) => {
       });
       connIds.forEach((cid, i) => {
         msgCountMap[cid] = countResults[i]?.count || 0;
+        unreadCountMap[cid] = unreadResults[i] || 0;
       });
       (priMsgs || []).forEach(p => prioritySet.add(p.from_user));
     }
@@ -5018,12 +5036,11 @@ app.get('/api/connections', auth, async (req, res) => {
       const other    = userMap[otherId];
       const lastMsg  = lastMsgMap[c.id] ? mapMessage(lastMsgMap[c.id]) : null;
       const hoursLeft = c.active ? null : Math.max(0, Math.round((new Date(c.expires_at) - now) / 3600000));
-      const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
       return {
         connection: c, user: other ? cleanPublic(other) : null,
         lastMessage: lastMsg, hoursLeft, active: !!c.active,
         msgCount: msgCountMap[c.id] || 0,
-        unread_count,
+        unread_count: unreadCountMap[c.id] || 0,
         is_priority: prioritySet.has(otherId),
       };
     });
@@ -5044,18 +5061,22 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
 
     const otherId = conn.user1 === req.user.id ? conn.user2 : conn.user1;
-    const [{ data: other }, { data: lastMsgRow }, { data: priMsgs }] = await Promise.all([
+    // Same real-count logic as GET /api/connections — see the comment there.
+    const myReadAt = (conn.user1 === req.user.id ? conn.user1_last_read_at : conn.user2_last_read_at) || '1970-01-01T00:00:00.000Z';
+    const [{ data: other }, { data: lastMsgRow }, { data: priMsgs }, { count: unreadCount }] = await Promise.all([
       supabase.from('users').select('*').eq('id', otherId).maybeSingle(),
       supabase.from('messages').select('*').eq('connection_id', conn.id)
         .order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('priority_msgs').select('from_user')
         .eq('to_user', req.user.id).eq('from_user', otherId).eq('read', false),
+      supabase.from('messages').select('*', { count: 'exact', head: true })
+        .eq('connection_id', conn.id).neq('sender_id', req.user.id).gt('created_at', myReadAt),
     ]);
     if (!other) return res.status(404).json({ error: 'User not found' });
 
     const lastMsg = lastMsgRow ? mapMessage(lastMsgRow) : null;
     const hoursLeft = conn.active ? null : Math.max(0, Math.round((new Date(conn.expires_at) - now) / 3600000));
-    const unread_count = (lastMsg && lastMsg.from !== req.user.id) ? 1 : 0;
+    const unread_count = unreadCount || 0;
     res.json({
       connection: conn,
       user: cleanPublic(other),
@@ -5082,6 +5103,19 @@ app.get('/api/messages/:connId', auth, async (req, res) => {
 
     const { data: msgs } = await supabase.from('messages')
       .select('*').eq('connection_id', req.params.connId).order('created_at', { ascending: true });
+
+    // Viewing the thread clears its unread state for this user — previously
+    // there was no "read" concept at all for regular messages, so the chat
+    // list's unread indicator never cleared just from reading, only from
+    // replying. See docs/matching-chat-audit-2026-08-14.md, finding #1.
+    // Requires migrations/014_connection_read_state.sql; if not yet applied,
+    // this update errors harmlessly (unknown column) and is only logged —
+    // it never blocks the actual message fetch below.
+    const readCol = conn.user1 === req.user.id ? 'user1_last_read_at' : 'user2_last_read_at';
+    const { error: readErr } = await supabase.from('connections')
+      .update({ [readCol]: new Date().toISOString() }).eq('id', conn.id);
+    if (readErr) console.error('[messages] failed to update last_read_at (has migration 014 run?):', readErr.message);
+
     res.json((msgs || []).map(mapMessage));
   } catch(e) {
     console.error('Get messages error:', e);
