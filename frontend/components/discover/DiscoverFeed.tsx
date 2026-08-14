@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import SwipeCard from './SwipeCard';
 import SwipeCardSkeleton from './SwipeCardSkeleton';
 import ContextPanel from './ContextPanel';
+import ProfileInspectOverlay from './ProfileInspectOverlay';
 import MatchModal from './MatchModal';
 import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
 import type { FilterState } from './DiscoverFilters';
@@ -70,6 +71,10 @@ export default function DiscoverFeed() {
   // Never share copy or state with the exhausted-feed empty state below.
   const [fetchError, setFetchError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  // Discover -> Profile "inspect" — never a route change, so closing it
+  // returns to exactly the card the user was on. Always the current top
+  // card's id; there's nothing to inspect once it's no longer current.
+  const [inspectingId, setInspectingId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
   const [dailySignal, setDailySignal] = useState<DailySignal | null>(null);
@@ -272,6 +277,7 @@ export default function DiscoverFeed() {
               profile={current}
               onConnect={() => handleConnect(current)}
               onSkip={() => handleSkip(current)}
+              onInspect={() => setInspectingId(getUid(current))}
             />
           )}
 
@@ -279,7 +285,13 @@ export default function DiscoverFeed() {
       </div>
 
       {/* Desktop-only (≥1024px, CSS-gated) — same data as the card, more room */}
-      {current && <ContextPanel profile={current} />}
+      {current && <ContextPanel profile={current} onInspect={() => setInspectingId(getUid(current))} />}
+
+      <ProfileInspectOverlay
+        userId={inspectingId}
+        onClose={() => setInspectingId(null)}
+        onConnect={async () => { if (current) await handleConnect(current); }}
+      />
 
       <MatchModal
         open={!!matchInfo}

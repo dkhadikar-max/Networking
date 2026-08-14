@@ -10,9 +10,10 @@ type Props = {
   profile: DiscoverProfile;
   onConnect: () => Promise<void>;
   onSkip: () => void;
+  onInspect?: () => void;
 };
 
-export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
+export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Props) {
   const user = profile.user ?? profile;
   const name = (user as { name?: string }).name ?? 'Unknown';
   const photos: string[] = (user as { photos?: string[] }).photos ?? [];
@@ -128,21 +129,38 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
         <div className="card-intent-banner" style={{ background: 'var(--sur2)', color: 'var(--muted)' }}>Open to connect</div>
       )}
 
-      {/* 2. IDENTITY — avatar + name + trust indicators */}
+      {/* 2. IDENTITY — avatar + name + trust indicators. When onInspect is
+          provided, the identity itself is the "tell me more about this
+          person" affordance — not a separate button competing with
+          Skip/Connect below. */}
       <div className="card-identity">
-        <div className="card-avatar">
-          {photos[0]
-            ? <img src={photos[0]} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : initials}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{name}</span>
-          {(headline || location) && (
-            <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {headline}{headline && location ? ' · ' : ''}{location}
-            </div>
-          )}
-        </div>
+        {(() => {
+          const identityContent = (
+            <>
+              <div className="card-avatar">
+                {photos[0]
+                  ? <img src={photos[0]} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : initials}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{name}</span>
+                {(headline || location) && (
+                  <div style={{ fontSize: 12, color: 'var(--text-soft)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {headline}{headline && location ? ' · ' : ''}{location}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+          return onInspect ? (
+            <button type="button" className="card-identity-tap" onClick={e => { e.stopPropagation(); onInspect(); }} aria-label={`View ${name}'s full profile`}>
+              {identityContent}
+              <svg className="card-identity-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18" /></svg>
+            </button>
+          ) : (
+            <div className="card-identity-tap" style={{ cursor: 'default' }}>{identityContent}</div>
+          );
+        })()}
         {/* Trust cluster — deliberate hierarchy, not a stack of equal badges:
             primary = verified status, secondary = match relevance,
             tertiary = trust score. Each still carries its own text/icon

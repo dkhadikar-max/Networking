@@ -368,6 +368,40 @@
 }
 .priority-fab:active { transform: scale(0.94); }
 
+/* ── DISCOVER — identity row as the "inspect" affordance ─────
+   Deliberately not a separate button competing with Skip/Connect —
+   tapping the person's own identity is what signals "tell me more
+   about them", not a generic UI control bolted onto the card. */
+.card-identity-tap { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: none; padding: 0; margin: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.card-identity-chevron { flex-shrink: 0; color: var(--muted); opacity: 0.7; }
+
+/* ── DISCOVER — profile inspect overlay ──────────────────────
+   Opened from the card's identity row or the desktop context panel.
+   Never a route change — /discover stays mounted underneath, so
+   closing this is instant and the swipe stack is untouched. This is
+   only overlay chrome; the content is the real ProfileView. */
+.inspect-overlay-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,0.55); }
+.inspect-overlay-panel {
+  position: fixed; z-index: 301; left: 0; right: 0; bottom: 0;
+  max-height: 88vh; background: var(--bg);
+  border-radius: 24px 24px 0 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 -8px 40px rgba(15,23,42,0.18);
+}
+.inspect-overlay-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 0; flex-shrink: 0; }
+.inspect-overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; flex-shrink: 0; }
+.inspect-overlay-close { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sur2); border: none; color: var(--text-soft); cursor: pointer; }
+.inspect-overlay-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.inspect-overlay-loading, .inspect-overlay-error { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; padding: 40px; }
+@media (min-width: 1024px) {
+  .inspect-overlay-backdrop { display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .inspect-overlay-panel {
+    position: static; width: 100%; max-width: 680px; max-height: 85vh;
+    border-radius: 20px;
+  }
+  .inspect-overlay-handle { display: none; }
+}
+
 .match-modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(15,23,42,0.55);
@@ -823,6 +857,15 @@ textarea.pe-input { resize: none; }
     text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
   }
   .ctx-panel-text { font-size: 13.5px; color: var(--text-soft); line-height: 1.6; }
+  .ctx-panel-inspect-link {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    width: 100%; padding: 11px 0; margin-top: 4px;
+    border: 1.5px solid var(--border); border-radius: var(--r-md);
+    background: var(--bg-elevated, var(--card)); color: var(--text-soft);
+    font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .ctx-panel-inspect-link:hover { background: var(--sur2); border-color: var(--primary); color: var(--primary); }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */

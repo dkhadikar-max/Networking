@@ -9,9 +9,9 @@
 // discovery card stays the primary interaction throughout.
 import type { DiscoverProfile } from '@/lib/types';
 
-type Props = { profile: DiscoverProfile };
+type Props = { profile: DiscoverProfile; onInspect?: () => void };
 
-export default function ContextPanel({ profile }: Props) {
+export default function ContextPanel({ profile, onInspect }: Props) {
   const user = profile.user ?? profile;
   const matchReasons: string[] = profile.matchReasons ?? (profile.insight ? [profile.insight] : []);
   const working_on = (user as { working_on?: string }).working_on ?? '';
@@ -66,6 +66,16 @@ export default function ContextPanel({ profile }: Props) {
             {interests.map(t => <span key={t} className="chip">{t}</span>)}
           </div>
         </div>
+      )}
+
+      {/* Deeper evaluation lives one step further than this panel already
+          goes — trust score, reviews, mutual connections aren't in the
+          Discover API response at all, only /api/profiles/:id has them. */}
+      {onInspect && (
+        <button type="button" className="ctx-panel-inspect-link" onClick={onInspect}>
+          View full profile
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+        </button>
       )}
     </div>
   );
