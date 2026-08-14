@@ -110,6 +110,10 @@
   letter-spacing: -0.5px;
 }
 
+/* ── DISCOVER LAYOUT ──────────────────────────────────────── */
+.discover-wrap { display: flex; flex-direction: column; min-height: 0; }
+.discover-context-panel { display: none; } /* shown only ≥1024px, see below */
+
 /* ── CARD STACK ───────────────────────────────────────────── */
 .card-stack-area {
   flex: 1;
@@ -281,6 +285,7 @@
 }
 .action-btn {
   flex: 1;
+  min-height: 44px;
   padding: 10px 8px;
   border-radius: var(--r-lg);
   font-size: 13px;
@@ -312,6 +317,57 @@
 }
 .action-connect:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(21,122,110,0.38); transform: translateY(-1px); }
 .action-connect:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── DISCOVER — loading skeleton (mirrors .swipe-card's own shape) ── */
+.skeleton-card {
+  width: calc(100% - 28px);
+  max-width: 420px;
+  border-radius: var(--r-xl);
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255,255,255,0.9);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.skeleton-block {
+  background: linear-gradient(90deg, var(--sur2) 25%, var(--border) 37%, var(--sur2) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
+}
+
+/* ── DISCOVER — trust cluster (verified > match % > trust score) ── */
+.trust-cluster { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.trust-badge {
+  display: flex; align-items: center; gap: 3px;
+  border-radius: 8px; white-space: nowrap;
+}
+.trust-badge--primary {
+  font-size: 11px; font-weight: 800; color: var(--primary);
+  background: rgba(21,122,110,0.1); padding: 3px 8px;
+  border: 1px solid rgba(21,122,110,0.24);
+}
+.trust-badge--secondary {
+  font-size: 11px; font-weight: 700; color: var(--primary);
+  background: linear-gradient(135deg,#D5F5EE,#BBF0E7); padding: 3px 8px;
+}
+.trust-badge--tertiary {
+  font-size: 10px; font-weight: 500; color: var(--muted);
+  padding: 1px 2px;
+}
+
+/* ── DISCOVER — priority action (distinct tertiary control, off the primary row) ── */
+.priority-fab {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.28);
+  color: #B45309; cursor: pointer;
+}
+.priority-fab:active { transform: scale(0.94); }
+
 .match-modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(15,23,42,0.55);
@@ -724,6 +780,49 @@ textarea.pe-input { resize: none; }
   .card-stack-area  { overflow: hidden; padding-bottom: 16px; }
   .swipe-card       { flex: 1; min-height: 0; max-height: none; }
   .card-actions     { padding-bottom: 24px; }
+
+  /* Discover context panel — same data already in the card, given room to
+     breathe instead of competing for scroll height. Card stays dominant:
+     the panel only takes the width left over after the card's own column. */
+  .discover-wrap { flex-direction: row; min-height: 0; }
+  .discover-context-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 0 1 380px; /* preferred 380px, can shrink — never grows to compete with the card column */
+    min-width: 260px;
+    padding: 24px 24px 24px 8px;
+    overflow-y: auto;
+  }
+  /* "Why this person" — the panel's one centerpiece, answering "why should
+     I connect", not a duplicate card. Everything below it is quieter
+     reference detail: plain label + text, no boxed/shadowed card treatment,
+     so the panel doesn't read as a second profile card next to the real one. */
+  .ctx-panel-headline {
+    background: var(--primary-light);
+    border: 1px solid rgba(21,122,110,0.18);
+    border-radius: var(--r-md);
+    padding: 16px;
+  }
+  .ctx-panel-headline-label {
+    font-size: 12px; font-weight: 800; color: var(--primary);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
+  }
+  .ctx-panel-reason {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 13.5px; color: var(--text); font-weight: 500; line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .ctx-panel-reason:last-child { margin-bottom: 0; }
+  .ctx-panel-reason svg { flex-shrink: 0; margin-top: 3px; color: var(--primary); }
+
+  .ctx-panel-row { padding-bottom: 16px; border-bottom: 1px solid var(--border-subtle); }
+  .ctx-panel-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .ctx-panel-section-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px;
+  }
+  .ctx-panel-text { font-size: 13.5px; color: var(--text-soft); line-height: 1.6; }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */

@@ -143,25 +143,38 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
             </div>
           )}
         </div>
-        {/* Trust cluster: verification + identity + match% */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+        {/* Trust cluster — deliberate hierarchy, not a stack of equal badges:
+            primary = verified status, secondary = match relevance,
+            tertiary = trust score. Each still carries its own text/icon
+            (not color alone), just sized/weighted by importance. */}
+        <div className="trust-cluster">
           {verified && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: 'var(--primary)', background: 'rgba(21,122,110,0.08)', padding: '2px 7px', borderRadius: 6, border: '1px solid rgba(21,122,110,0.2)' }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span className="trust-badge trust-badge--primary">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--primary)"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
               Verified
             </span>
           )}
           {score != null && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', background: 'linear-gradient(135deg,#D5F5EE,#BBF0E7)', padding: '3px 8px', borderRadius: 8 }}>
-              {score}% match
-            </span>
+            <span className="trust-badge trust-badge--secondary">{score}% match</span>
           )}
           {trust_score != null && (
-            <span style={{ fontSize: 10, fontWeight: 600, color: trust_score >= 70 ? 'var(--primary)' : 'var(--muted)', background: 'var(--sur2)', padding: '2px 7px', borderRadius: 6, border: '1px solid var(--border)' }}>
+            <span className="trust-badge trust-badge--tertiary">
               {trust_score >= 70 ? '✓ Trusted' : `Trust ${trust_score}`}
             </span>
           )}
         </div>
+        {/* Priority — distinct tertiary action, deliberately off the primary
+            Skip/Connect decision row so it never competes with them. */}
+        {uid && (
+          <button
+            className="priority-fab"
+            onClick={e => { e.stopPropagation(); setShowPriority(true); }}
+            aria-label="Send a priority message"
+            title="Send a priority message"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+          </button>
+        )}
       </div>
 
       {/* WHY YOU MATCHED — between identity and scroll body */}
@@ -262,18 +275,6 @@ export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
           </svg>
           Skip
         </button>
-        {uid && (
-          <button
-            className="action-btn"
-            onClick={e => { e.stopPropagation(); setShowPriority(true); }}
-            style={{ background: 'linear-gradient(135deg,#FCD34D,#F59E0B)', color: '#78350F', border: '1px solid rgba(245,158,11,0.18)', boxShadow: '0 4px 14px rgba(245,158,11,0.24)' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-              <path d="M13 2 3 14h9l-1 8 10-12h-9z"/>
-            </svg>
-            Priority
-          </button>
-        )}
         <button
           className="action-btn action-connect"
           onClick={handleConnect}

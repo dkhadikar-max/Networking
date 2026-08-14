@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, type Transition } from 'framer-motion';
 
 export type FilterState = {
   sort: 'relevance' | 'recent';
@@ -56,6 +56,8 @@ const MAX_INTENTS = 3;
 
 export default function DiscoverFilters({ open, current, onApply, onClose }: Props) {
   const [draft, setDraft] = useState<FilterState>(current);
+  const reduceMotion = useReducedMotion();
+  const t = (normal: Transition): Transition => (reduceMotion ? { duration: 0 } : normal);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect, react-hooks/exhaustive-deps
   useEffect(() => { if (open) setDraft(current); }, [open]);
@@ -83,7 +85,7 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
+      transition={t({ duration: 0.18 })}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
       onClick={onClose}
     >
@@ -91,7 +93,7 @@ export default function DiscoverFilters({ open, current, onApply, onClose }: Pro
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+        transition={t({ type: 'spring', damping: 32, stiffness: 300 })}
         style={{ width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}
         onClick={e => e.stopPropagation()}
       >

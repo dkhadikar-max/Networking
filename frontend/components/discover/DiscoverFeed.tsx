@@ -7,6 +7,8 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import SwipeCard from './SwipeCard';
+import SwipeCardSkeleton from './SwipeCardSkeleton';
+import ContextPanel from './ContextPanel';
 import MatchModal from './MatchModal';
 import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverFilters';
 import type { FilterState } from './DiscoverFilters';
@@ -63,6 +65,10 @@ export default function DiscoverFeed() {
   const [page, setPage] = useState(0);
   const [exhausted, setExhausted] = useState(false);
   const [blockReason, setBlockReason] = useState<'NO_PHOTO' | 'TRUST_TOO_LOW' | null>(null);
+  // Technically distinct from `blockReason` and from exhaustion: this is a
+  // genuine fetch failure (network/server), not "you're out of profiles."
+  // Never share copy or state with the exhausted-feed empty state below.
+  const [fetchError, setFetchError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
@@ -83,6 +89,7 @@ export default function DiscoverFeed() {
       const offset = reset ? 0 : page * 10;
       const { profiles: incoming, exhausted: done } = await fetchProfiles(filtersRef.current, offset);
       setBlockReason(null);
+      setFetchError(false);
       if (done) setExhausted(true);
       setProfiles(prev => {
         if (reset) return incoming;
@@ -99,6 +106,7 @@ export default function DiscoverFeed() {
         setBlockReason('TRUST_TOO_LOW');
         toast('Set your networking goal in your profile to unlock Discovery', 'info');
       } else {
+        setFetchError(true);
         toast('Failed to load profiles', 'error');
       }
     } finally {
@@ -200,11 +208,7 @@ export default function DiscoverFeed() {
         {/* Card area */}
         <div className="card-stack-area">
 
-          {loading && !current && (
-            <div className="disc-empty">
-              <div className="spinner" />
-            </div>
-          )}
+          {loading && !current && <SwipeCardSkeleton />}
 
           {!loading && !current && blockReason && (
             <div className="disc-empty">
@@ -226,14 +230,30 @@ export default function DiscoverFeed() {
             </div>
           )}
 
-          {!loading && !current && !blockReason && (
+          {/* Genuine fetch failure — technically and visually distinct from
+              "you're out of profiles" below. Never share this branch's
+              condition or copy with the exhausted-feed state. */}
+          {!loading && !current && !blockReason && fetchError && (
+            <div className="disc-empty">
+              <div className="disc-empty-icon disc-empty-icon--muted">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 8v4M12 16h.01" /><circle cx="12" cy="12" r="9" />
+                </svg>
+              </div>
+              <h3>Couldn&apos;t load people right now</h3>
+              <p>Check your connection and try again.</p>
+              <button className="retry-btn" onClick={() => load(true)}>Try again</button>
+            </div>
+          )}
+
+          {!loading && !current && !blockReason && !fetchError && (
             <div className="disc-empty">
               <div className="disc-empty-icon disc-empty-icon--muted">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
                 </svg>
               </div>
-              <h3>You&apos;ve seen everyone nearby for now</h3>
+              <h3>You&apos;ve seen everyone available right now</h3>
               <p>Check back later or widen your filters — new members join every day.</p>
               <button
                 className="retry-btn"
@@ -257,6 +277,9 @@ export default function DiscoverFeed() {
 
         </div>
       </div>
+
+      {/* Desktop-only (≥1024px, CSS-gated) — same data as the card, more room */}
+      {current && <ContextPanel profile={current} />}
 
       <MatchModal
         open={!!matchInfo}
