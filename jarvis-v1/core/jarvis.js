@@ -2,7 +2,7 @@ import { AgentOrchestrator } from '../../agents/orchestrator.js';
 import { routeIntent } from './router.js';
 import { PermissionPolicy } from './permissions.js';
 
-export class JarvisV1 {
+export class ArgusV1 {
   constructor({ supabase, autoExecute = false, toolAdapters = {} }) {
     this.orchestrator = new AgentOrchestrator(supabase);
     this.permissions = new PermissionPolicy({ autoExecute });
@@ -10,7 +10,7 @@ export class JarvisV1 {
   }
 
   async handle(message, context = {}) {
-    if (!message?.trim()) throw new Error('JARVIS requires a command');
+    if (!message?.trim()) throw new Error('ARGUS requires a command');
 
     const route = routeIntent(message);
     const action = context.action || 'analyze';
@@ -27,10 +27,10 @@ export class JarvisV1 {
     }
 
     const task = await this.orchestrator.createTask({
-      type: context.type || 'jarvis_command',
+      type: context.type || 'argus_command',
       agent: route.agent,
       priority: context.priority || 5,
-      createdBy: context.createdBy || 'jarvis',
+      createdBy: context.createdBy || 'argus',
       payload: { message, ...context, route },
     });
 
