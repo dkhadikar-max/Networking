@@ -288,6 +288,17 @@ const circlePostLimiter = rateLimit({ windowMs: 5*60*1000,  max: 10, message: { 
 const circleGroupCreateLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Too many circles created — try again in an hour' } });
 const circleGroupActionLimiter = rateLimit({ windowMs: 60*1000,     max: 20, message: { error: 'Slow down' } });
 
+// ── EMAIL-VERIFICATION ABUSE PROTECTION (2026-08-15 audit) ──
+// Per-IP layer, additive to the existing per-account limiters above and to
+// the precise DB-backed cooldown/hour/day caps in issueAndSendOtp() below.
+// authLimiter (used elsewhere on /api/signup) has skipSuccessfulRequests:true
+// — deliberately, for login, so a few wrong passwords before a correct one
+// isn't punished — but that means it does NOT meaningfully cap signup abuse,
+// since every successful signup (the actual quota-draining case) is skipped.
+// signupLimiter below counts every request, success or not.
+const signupLimiter = rateLimit({ windowMs: 60*60*1000, max: 8, message: { error: 'Too many accounts created from this network — please try again later' } });
+const resendIpLimiter = rateLimit({ windowMs: 60*60*1000, max: 20, message: { error: 'Too many verification emails requested from this network — please try again later' } });
+
 // ── PER-ACCOUNT LOGIN LOCKOUT ──
 const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
 const LOGIN_LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
@@ -3636,10 +3647,36 @@ function generateOtp() {
   return String(crypto.randomInt(100000, 1000000));
 }
 
+// Resend's JS SDK (v2) never throws for an API-level rejection — fetchRequest()
+// always resolves `{ data, error }`, even for a 403/422 (suppressed recipient,
+// invalid address, domain not verified, etc.); it only throws for a genuine
+// network-level exception (DNS failure, connection refused). The previous
+// version of this function `await`ed the call and returned `true` unless that
+// threw, so EVERY Resend-side rejection was silently reported as a successful
+// send — the confirmed root cause of "new users sometimes unable to complete
+// signup" (they're waiting on a code that was in fact never delivered) and of
+// suppressed addresses being retried indefinitely. See
+// docs/email-verification-audit-2026-08-15.md, root cause #1.
+//
+// Returns a structured result instead of a bare boolean so callers can tell
+// a hard rejection (bad/suppressed address — stop retrying) apart from a
+// transient one (Resend outage/misconfig — safe to retry later):
+//   { ok: true }
+//   { ok: false, reason: 'not_configured' | 'suppressed' | 'provider_error' }
+function classifyResendError(error) {
+  const text = `${error?.name || ''} ${error?.message || ''}`.toLowerCase();
+  // Resend's documented rejection reasons for a recipient it will refuse to
+  // send to again (suppression list, hard bounce, spam complaint, or an
+  // address it considers invalid). Anything else (auth error, domain not
+  // verified, malformed request, 5xx) is treated as transient/provider-side.
+  const SUPPRESSION_KEYWORDS = ['suppress', 'bounce', 'complain', 'invalid_recipient', 'not a valid email'];
+  return SUPPRESSION_KEYWORDS.some(k => text.includes(k)) ? 'suppressed' : 'provider_error';
+}
+
 async function sendOtpEmail(toEmail, otp, name) {
   if (!ResendClient) {
     console.error('[OTP] Resend client not created — RESEND_API_KEY env var is missing or empty in Railway');
-    return false;
+    return { ok: false, reason: 'not_configured' };
   }
   // onboarding@resend.dev is a Resend sandbox sender that ONLY delivers to the
   // Resend account owner's email. For production, set RESEND_FROM to an address
@@ -3647,7 +3684,7 @@ async function sendOtpEmail(toEmail, otp, name) {
   const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
   console.log(`[OTP] Sending from="${FROM}" to="${maskEmail(toEmail)}"`);
   try {
-    await ResendClient.emails.send({
+    const { error } = await ResendClient.emails.send({
       from: FROM,
       to: toEmail,
       subject: `${otp} is your Build Your Network verification code`,
@@ -3667,16 +3704,113 @@ async function sendOtpEmail(toEmail, otp, name) {
         </div>
       `,
     });
-    return true;
+    if (error) {
+      // Full detail server-side only — never forwarded to the client (no
+      // Resend API key/secret is ever present in this object, but the raw
+      // error can include internal request ids etc. that don't belong in a
+      // user-facing response either).
+      console.error('[OTP] Resend rejected the send:', maskEmail(toEmail), JSON.stringify(error));
+      return { ok: false, reason: classifyResendError(error) };
+    }
+    return { ok: true };
   } catch(e) {
-    // Log full error so Railway shows exactly what Resend rejected (e.g. 403 domain not verified)
-    console.error('[OTP] Email send failed:', e.message, e.statusCode ?? '', JSON.stringify(e.response ?? {}));
-    return false;
+    // Genuine network/transport exception — Resend never got to respond.
+    console.error('[OTP] Email send threw (network/transport):', e.message);
+    return { ok: false, reason: 'provider_error' };
   }
 }
 
-app.post('/api/signup', authLimiter, async (req, res) => {
+// ── SHARED OTP ISSUE+SEND PATH (signup and resend both go through this) ──
+// Enforces, per account: a 60s cooldown, max 3/hour, max 5/day, and a
+// permanent skip once Resend has told us the address is suppressed/bounced —
+// closing the gaps found in docs/email-verification-audit-2026-08-15.md
+// (root causes #2–#4: signup's initial send had none of these guards, and
+// the resend endpoint had only a coarse 5/15min in-memory limiter with no
+// cooldown or daily cap and no persisted suppression awareness).
+//
+// The cooldown/hour/day claim is written via a single conditional
+// UPDATE ... WHERE — Postgres serializes concurrent UPDATEs to the same row,
+// re-evaluating the WHERE clause against the just-committed data, so two
+// simultaneous requests for the same account can never both win the claim.
+// This is what "prevent concurrent duplicate sends" is actually enforced by,
+// not just the `resending` disabled-button state on the frontend (which a
+// second browser tab, or a replayed request, wouldn't respect).
+const OTP_COOLDOWN_MS = 60 * 1000;
+const OTP_HOUR_LIMIT  = 3;
+const OTP_DAY_LIMIT   = 5;
+
+async function issueAndSendOtp(user) {
+  if (user.email_suppressed) {
+    return { ok: false, code: 'EMAIL_SUPPRESSED' };
+  }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const cooldownCutoffIso = new Date(now.getTime() - OTP_COOLDOWN_MS).toISOString();
+
+  const hourStale = !user.otp_hour_window_start || (now - new Date(user.otp_hour_window_start)) >= 60 * 60 * 1000;
+  const dayStale  = !user.otp_day_window_start  || (now - new Date(user.otp_day_window_start))  >= 24 * 60 * 60 * 1000;
+  const nextHourCount = hourStale ? 1 : (user.otp_hour_count || 0) + 1;
+  const nextDayCount  = dayStale  ? 1 : (user.otp_day_count  || 0) + 1;
+
+  if (!hourStale && nextHourCount > OTP_HOUR_LIMIT) return { ok: false, code: 'HOURLY_LIMIT' };
+  if (!dayStale  && nextDayCount  > OTP_DAY_LIMIT)  return { ok: false, code: 'DAILY_LIMIT' };
+
+  const otp = generateOtp();
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+  // Atomically claim this send: only succeeds if otp_last_sent_at is null or
+  // older than the cooldown window. A concurrent duplicate request loses this
+  // race and gets zero rows back.
+  const { data: claimed, error: claimErr } = await supabase.from('users')
+    .update({
+      otp_code: otp, otp_expires_at: otpExpiry,
+      otp_last_sent_at: nowIso,
+      otp_hour_count: nextHourCount, otp_hour_window_start: hourStale ? nowIso : user.otp_hour_window_start,
+      otp_day_count: nextDayCount, otp_day_window_start: dayStale ? nowIso : user.otp_day_window_start,
+    })
+    .eq('id', user.id)
+    .or(`otp_last_sent_at.is.null,otp_last_sent_at.lt.${cooldownCutoffIso}`)
+    .select('email, name')
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error('[OTP] Cooldown-claim update failed:', claimErr.message);
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  if (!claimed) {
+    // Either genuinely on cooldown, or lost a concurrent race for the same window.
+    return { ok: false, code: 'COOLDOWN' };
+  }
+
+  const sendResult = await sendOtpEmail(claimed.email, otp, claimed.name);
+  if (!sendResult.ok) {
+    if (sendResult.reason === 'suppressed') {
+      await supabase.from('users').update({
+        email_suppressed: true,
+        email_suppressed_reason: 'resend_rejected',
+        email_suppressed_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      return { ok: false, code: 'EMAIL_SUPPRESSED' };
+    }
+    return { ok: false, code: sendResult.reason === 'not_configured' ? 'PROVIDER_ERROR' : 'PROVIDER_ERROR' };
+  }
+  return { ok: true };
+}
+
+app.post('/api/signup', signupLimiter, authLimiter, async (req, res) => {
   try {
+    // Honeypot: a field with no matching visible input in the real signup
+    // form (frontend/app/(auth)/signup/page.tsx) — kept off-screen rather
+    // than display:none, since some scrapers skip display:none fields.
+    // Real users never populate it; anything filling it in is scripted.
+    // Rejected as an ordinary validation error (not a distinct "bot
+    // detected" message) so an adaptive attacker can't fingerprint the
+    // honeypot from the response. No account is created, no email is sent.
+    if (req.body.company_website) {
+      return res.status(400).json({ error: 'Invalid signup request' });
+    }
+
     const { email, password, name, ref_code, age_confirmed } = req.body;
     if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
     if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
@@ -3708,19 +3842,22 @@ app.post('/api/signup', authLimiter, async (req, res) => {
     newUser.trust_score         = calcTrust(newUser);
     newUser.profile_score       = calcProfileScore(newUser);
     newUser.is_profile_complete = newUser.profile_score >= 70;
-
-    const otp = generateOtp();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    newUser.otp_code       = otp;
-    newUser.otp_expires_at = otpExpiry;
-    newUser.email_verified = false;
+    newUser.email_verified      = false;
+    // otp_code/otp_expires_at intentionally left unset here — issueAndSendOtp()
+    // below sets them atomically as part of its own cooldown-claim update, so
+    // this signup's first send goes through the exact same 60s/hour/day/
+    // suppression checks as every subsequent resend (see the shared-path
+    // comment above issueAndSendOtp). Previously signup generated and stored
+    // its own OTP inline, bypassing all of those checks entirely.
 
     const { data: inserted, error: insertErr } = await supabase.from('users')
       .insert(newUser).select().single();
     if (insertErr) throw new Error(insertErr.message);
 
-    // Send OTP email (non-blocking — don't fail signup if email fails)
-    sendOtpEmail(normalizedEmail, otp, newUser.name).catch(() => {});
+    // Send OTP email (non-blocking — don't fail signup if email fails or is
+    // rate-limited; account creation must succeed independently of email
+    // delivery, per docs/email-verification-audit-2026-08-15.md item #15).
+    issueAndSendOtp(inserted).catch(e => console.error('[signup] issueAndSendOtp failed:', e.message));
 
     // Referral attribution — look up referrer by 8-char code prefix, best-effort
     if (ref_code) {
@@ -3865,31 +4002,53 @@ app.post('/api/login', authLimiter, async (req, res) => {
 });
 
 // ── SEND / RESEND OTP ──
-// BUG FIX 4: Use dedicated otpSendLimiter (5/15min) not authLimiter (50/15min shared with login)
-app.post('/api/auth/send-otp', otpSendLimiter, auth, async (req, res) => {
+// otpSendLimiter (5/15min, in-memory, resets on restart) stays as a coarse
+// first-line guard; resendIpLimiter adds a per-IP cap so one attacker can't
+// bypass the per-account limits below by rotating accounts. The precise,
+// spec-matching 60s/3-per-hour/5-per-day enforcement is in issueAndSendOtp()
+// (DB-backed, so it's authoritative and survives restarts/multiple instances).
+app.post('/api/auth/send-otp', otpSendLimiter, resendIpLimiter, auth, async (req, res) => {
   try {
-    const { data: user } = await supabase.from('users')
-      .select('email, name, email_verified').eq('id', req.user.id).maybeSingle();
+    const { data: user, error: userErr } = await supabase.from('users')
+      .select('id, email, name, email_verified, otp_last_sent_at, otp_hour_count, otp_hour_window_start, otp_day_count, otp_day_window_start, email_suppressed')
+      .eq('id', req.user.id).maybeSingle();
+    if (userErr) {
+      // Most likely migrations/015_otp_rate_limiting.sql hasn't been applied
+      // yet — the new columns above don't exist, so PostgREST rejects the
+      // select outright. Surface the correct state instead of a misleading
+      // 404 (the account does exist; email sending is what's unavailable).
+      console.error('[OTP] send-otp user lookup failed — has migration 015 run?', userErr.message);
+      return res.status(503).json({ error: 'Email service temporarily unavailable', code: 'EMAIL_SERVICE_DOWN' });
+    }
     if (!user) return res.status(404).json({ error: 'User not found' });
     // NOTE: do NOT short-circuit for email_verified === true.
-    // OTP is also used as per-device trust verification — a user who verified on the
-    // Android app still needs to verify on the web browser (new device).
-    // Bypassing here means ANY 6-digit code would be accepted on verify-otp too.
+    // OTP is also used as per-device trust verification — the mobile apps
+    // (NetworkApp/NetworkMobile) intentionally re-trigger this flow on a new
+    // device even though email_verified is already true server-side (see
+    // NetworkApp/src/context/AuthContext.js). Skipping the send here would
+    // silently break that. verify-otp still validates a real code either
+    // way, so this can't be used to bypass verification — and every call,
+    // verified or not, is now bounded by issueAndSendOtp's cooldown/hour/day
+    // caps regardless, so this can no longer be used to run up the Resend
+    // quota the way an unbounded resend could. See
+    // docs/email-verification-audit-2026-08-15.md for the full reasoning.
 
-    const otp = generateOtp();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    await supabase.from('users')
-      .update({ otp_code: otp, otp_expires_at: otpExpiry }).eq('id', req.user.id);
-
-    const sent = await sendOtpEmail(user.email, otp, user.name);
-    if (!sent) {
-      // Email delivery failed — surface a real error so the client shows it to the user
-      console.error(`[OTP] Delivery failed for ${user.email} — check RESEND_API_KEY and RESEND_FROM env vars`);
-      return res.status(503).json({
-        error: 'Could not send verification email. Please check your email address or try again shortly.',
-      });
+    const result = await issueAndSendOtp(user);
+    if (!result.ok) {
+      switch (result.code) {
+        case 'COOLDOWN':
+          return res.status(429).json({ error: 'Please wait before requesting another code', code: 'COOLDOWN' });
+        case 'HOURLY_LIMIT':
+        case 'DAILY_LIMIT':
+          return res.status(429).json({ error: 'Too many attempts — please try again later', code: 'TOO_MANY_ATTEMPTS' });
+        case 'EMAIL_SUPPRESSED':
+          return res.status(422).json({ error: 'This email could not receive mail', code: 'EMAIL_UNREACHABLE' });
+        default:
+          console.error(`[OTP] Delivery failed for ${maskEmail(user.email)} — check RESEND_API_KEY and RESEND_FROM env vars`);
+          return res.status(503).json({ error: 'Email service temporarily unavailable', code: 'EMAIL_SERVICE_DOWN' });
+      }
     }
-    res.json({ ok: true });
+    res.json({ ok: true, message: 'Email sent' });
   } catch(e) {
     console.error('Send OTP error:', e);
     res.status(500).json({ error: 'Internal server error' });
@@ -6574,6 +6733,68 @@ app.post('/api/payments/webhook', async (req, res) => {
     res.json({ ok: true });
   } catch(e) {
     console.error('Webhook error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── RESEND WEBHOOK (proactive suppression tracking) ──
+// Optional, additive hardening beyond the reactive suppression check in
+// sendOtpEmail(): a bounce/complaint can happen on an address we haven't
+// tried again yet (e.g. it just went bad at the provider's end), so this
+// lets Resend tell us before our own next attempt instead of only finding
+// out reactively. Not required for the core fix — issueAndSendOtp() already
+// stops retrying an address the moment WE get a suppression-shaped rejection
+// from our own send call, with or without this endpoint configured.
+//
+// To activate: in the Resend dashboard, add a webhook pointing at
+// https://buildyournetwork.online/api/webhooks/resend, subscribed to
+// email.bounced and email.complained, then set RESEND_WEBHOOK_SECRET to the
+// "whsec_..." signing secret it gives you. Until that env var is set this
+// route safely no-ops (503, does not crash, does not affect email sending).
+// Resend signs webhooks using the Svix format: HMAC-SHA256 over
+// "{svix-id}.{svix-timestamp}.{raw body}", secret is base64 after "whsec_",
+// signature header holds one or more space-separated "v1,<base64>" values.
+app.post('/api/webhooks/resend', async (req, res) => {
+  try {
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('RESEND_WEBHOOK_SECRET not configured — rejecting webhook');
+      return res.status(503).json({ error: 'Webhook not configured' });
+    }
+
+    const svixId        = req.headers['svix-id'];
+    const svixTimestamp = req.headers['svix-timestamp'];
+    const svixSignature  = req.headers['svix-signature'];
+    if (!svixId || !svixTimestamp || !svixSignature || !req.rawBody) {
+      return res.status(400).json({ error: 'Missing webhook signature headers' });
+    }
+
+    const secretKey = Buffer.from(webhookSecret.replace(/^whsec_/, ''), 'base64');
+    const signedContent = `${svixId}.${svixTimestamp}.${req.rawBody.toString()}`;
+    const expected = crypto.createHmac('sha256', secretKey).update(signedContent).digest('base64');
+
+    const providedSigs = String(svixSignature).split(' ').map(s => s.split(',')[1]).filter(Boolean);
+    const valid = providedSigs.some(sig => {
+      try { return timingSafeStringEqual(sig, expected); } catch { return false; }
+    });
+    if (!valid) return res.status(400).json({ error: 'Invalid webhook signature' });
+
+    const event = JSON.parse(req.rawBody.toString());
+    if (event.type === 'email.bounced' || event.type === 'email.complained') {
+      const recipients = [].concat(event.data?.to || []).filter(Boolean);
+      for (const rawEmail of recipients) {
+        const email = String(rawEmail).trim().toLowerCase();
+        await supabase.from('users').update({
+          email_suppressed: true,
+          email_suppressed_reason: event.type === 'email.bounced' ? 'bounced' : 'complained',
+          email_suppressed_at: new Date().toISOString(),
+        }).eq('email', email);
+        console.log(`[ResendWebhook] Marked suppressed: ${maskEmail(email)} (${event.type})`);
+      }
+    }
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Resend webhook error:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

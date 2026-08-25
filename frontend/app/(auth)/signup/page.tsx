@@ -19,6 +19,10 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showStrength, setShowStrength] = useState(false);
+  // Honeypot — real users never see or fill this (see the off-screen input
+  // below); a scripted signup that fills every field blind typically will.
+  // Server rejects silently (server.js, /api/signup) if non-empty.
+  const [companyWebsite, setCompanyWebsite] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +30,7 @@ export default function SignupPage() {
     if (!termsAccepted) { setError('Please accept the Terms and Privacy Policy.'); return; }
     setError(''); setLoading(true);
     try {
-      await signup(name, email, password, { age_confirmed: true });
+      await signup(name, email, password, { age_confirmed: true, company_website: companyWebsite });
       router.replace('/verify');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
@@ -141,6 +145,20 @@ export default function SignupPage() {
         )}
 
         <form onSubmit={handleSubmit} noValidate>
+          {/* Honeypot — positioned off-screen rather than display:none (some
+              scrapers skip display:none fields), not tab-reachable, no label
+              a screen reader would announce as a real field. */}
+          <input
+            type="text"
+            name="company_website"
+            value={companyWebsite}
+            onChange={e => setCompanyWebsite(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+          />
+
           <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
             Full name
           </div>
