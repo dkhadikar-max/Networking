@@ -288,16 +288,77 @@ const circlePostLimiter = rateLimit({ windowMs: 5*60*1000,  max: 10, message: { 
 const circleGroupCreateLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Too many circles created — try again in an hour' } });
 const circleGroupActionLimiter = rateLimit({ windowMs: 60*1000,     max: 20, message: { error: 'Slow down' } });
 
-// ── EMAIL-VERIFICATION ABUSE PROTECTION (2026-08-15 audit) ──
-// Per-IP layer, additive to the existing per-account limiters above and to
-// the precise DB-backed cooldown/hour/day caps in issueAndSendOtp() below.
+// ── EMAIL-VERIFICATION ABUSE PROTECTION (2026-08-15 audit, revised 2026-08-25) ──
+// Per-IP layer, additive to the per-account limiters below and to the
+// precise DB-backed cooldown/hour/day caps in issueAndSendOtp(). Combined
+// across BOTH /api/signup and /api/auth/send-otp (one shared counter per
+// IP, not two separate loose ones) — per-account limits alone cap what any
+// ONE account can do, not what many accounts distributed across the same
+// network sum to; this is the first layer that actually bounds that.
 // authLimiter (used elsewhere on /api/signup) has skipSuccessfulRequests:true
 // — deliberately, for login, so a few wrong passwords before a correct one
 // isn't punished — but that means it does NOT meaningfully cap signup abuse,
 // since every successful signup (the actual quota-draining case) is skipped.
-// signupLimiter below counts every request, success or not.
-const signupLimiter = rateLimit({ windowMs: 60*60*1000, max: 8, message: { error: 'Too many accounts created from this network — please try again later' } });
-const resendIpLimiter = rateLimit({ windowMs: 60*60*1000, max: 20, message: { error: 'Too many verification emails requested from this network — please try again later' } });
+// otpIpLimiter below counts every request, success or not.
+//
+// Repeat offenders escalate instead of just getting a fresh budget every
+// hour forever: each time an IP exceeds the limit, its next block gets
+// longer (15min × violation count, capped at 24h) — same shape as the
+// existing per-account LOGIN_LOCKOUT below, applied per-IP here. In-memory
+// (resets on restart, single Railway instance, no shared store elsewhere in
+// this file) — worst case a repeat offender gets one extra free window
+// right after a deploy, not a security hole.
+const otpIpViolations = new Map(); // ip -> { count, blockedUntil }
+const OTP_IP_ESCALATION_STEP_MS = 15 * 60 * 1000;
+const OTP_IP_ESCALATION_MAX_MS  = 24 * 60 * 60 * 1000;
+
+function otpIpBlockGate(req, res, next) {
+  const v = otpIpViolations.get(req.ip);
+  if (v && v.blockedUntil > Date.now()) {
+    const waitMin = Math.ceil((v.blockedUntil - Date.now()) / 60000);
+    return res.status(429).json({ error: `Too many attempts from this network — try again in ${waitMin} minute(s)`, code: 'IP_BLOCKED' });
+  }
+  next();
+}
+
+const otpIpLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10,
+  message: { error: 'Too many verification requests from this network — please try again later' },
+  handler: (req, res, _next, options) => {
+    const v = otpIpViolations.get(req.ip) || { count: 0, blockedUntil: 0 };
+    v.count += 1;
+    v.blockedUntil = Date.now() + Math.min(OTP_IP_ESCALATION_STEP_MS * v.count, OTP_IP_ESCALATION_MAX_MS);
+    otpIpViolations.set(req.ip, v);
+    res.status(429).json(options.message);
+  },
+});
+
+// ── GLOBAL OTP EMAIL BUDGET (circuit breaker) ──
+// Everything above — per-account cooldown/hour/day, per-IP throttle — bounds
+// what any single account or network can do, but none of it sees AGGREGATE
+// volume across many different accounts on many different networks. A
+// sufficiently distributed sender (e.g. many accounts, each staying under
+// its own 3/hour cap) can still exhaust Resend's own account-level quota.
+// This is BYN's own approximate hourly/daily budget for OTP emails
+// specifically, checked immediately before every Resend call — once it's
+// hit, no further OTP sends are attempted until the window rolls over,
+// regardless of which account or IP is asking. Tune the two env vars to
+// your actual Resend plan; these defaults are conservative placeholders,
+// not a measured number from your account.
+const OTP_GLOBAL_HOUR_BUDGET = parseInt(process.env.OTP_GLOBAL_HOURLY_BUDGET || '100', 10);
+const OTP_GLOBAL_DAY_BUDGET  = parseInt(process.env.OTP_GLOBAL_DAILY_BUDGET  || '500', 10);
+let otpGlobalHourCount = 0, otpGlobalHourWindowStart = Date.now();
+let otpGlobalDayCount  = 0, otpGlobalDayWindowStart  = Date.now();
+
+function claimGlobalOtpBudget() {
+  const now = Date.now();
+  if (now - otpGlobalHourWindowStart >= 60 * 60 * 1000) { otpGlobalHourCount = 0; otpGlobalHourWindowStart = now; }
+  if (now - otpGlobalDayWindowStart  >= 24 * 60 * 60 * 1000) { otpGlobalDayCount = 0; otpGlobalDayWindowStart = now; }
+  if (otpGlobalHourCount >= OTP_GLOBAL_HOUR_BUDGET) return false;
+  if (otpGlobalDayCount  >= OTP_GLOBAL_DAY_BUDGET)  return false;
+  otpGlobalHourCount++; otpGlobalDayCount++;
+  return true;
+}
 
 // ── PER-ACCOUNT LOGIN LOCKOUT ──
 const LOGIN_LOCKOUT_THRESHOLD  = 10;              // consecutive wrong-password attempts
@@ -3744,6 +3805,16 @@ async function issueAndSendOtp(user) {
     return { ok: false, code: 'EMAIL_SUPPRESSED' };
   }
 
+  // Checked before the per-account claim below, deliberately: if BYN's own
+  // global send budget is exhausted, that's not this user's fault, so it
+  // shouldn't cost them one of their own 3-per-hour/5-per-day attempts —
+  // once the global window rolls over they should still have their normal
+  // personal budget intact.
+  if (!claimGlobalOtpBudget()) {
+    console.error(`[OTP] Global email budget exhausted (hour:${otpGlobalHourCount}/${OTP_GLOBAL_HOUR_BUDGET}, day:${otpGlobalDayCount}/${OTP_GLOBAL_DAY_BUDGET}) — refusing send to protect the Resend account quota`);
+    return { ok: false, code: 'GLOBAL_BUDGET_EXHAUSTED' };
+  }
+
   const now = new Date();
   const nowIso = now.toISOString();
   const cooldownCutoffIso = new Date(now.getTime() - OTP_COOLDOWN_MS).toISOString();
@@ -3798,7 +3869,7 @@ async function issueAndSendOtp(user) {
   return { ok: true };
 }
 
-app.post('/api/signup', signupLimiter, authLimiter, async (req, res) => {
+app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, res) => {
   try {
     // Honeypot: a field with no matching visible input in the real signup
     // form (frontend/app/(auth)/signup/page.tsx) — kept off-screen rather
@@ -4003,11 +4074,13 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
 // ── SEND / RESEND OTP ──
 // otpSendLimiter (5/15min, in-memory, resets on restart) stays as a coarse
-// first-line guard; resendIpLimiter adds a per-IP cap so one attacker can't
-// bypass the per-account limits below by rotating accounts. The precise,
-// spec-matching 60s/3-per-hour/5-per-day enforcement is in issueAndSendOtp()
-// (DB-backed, so it's authoritative and survives restarts/multiple instances).
-app.post('/api/auth/send-otp', otpSendLimiter, resendIpLimiter, auth, async (req, res) => {
+// first-line guard; otpIpBlockGate+otpIpLimiter add a combined per-IP cap
+// (shared with /api/signup) so one attacker can't bypass the per-account
+// limits below by rotating accounts. The precise, spec-matching
+// 60s/3-per-hour/5-per-day enforcement is in issueAndSendOtp() (DB-backed,
+// so it's authoritative and survives restarts/multiple instances) — which
+// also enforces the global cross-account budget (claimGlobalOtpBudget()).
+app.post('/api/auth/send-otp', otpIpBlockGate, otpIpLimiter, otpSendLimiter, auth, async (req, res) => {
   try {
     const { data: user, error: userErr } = await supabase.from('users')
       .select('id, email, name, email_verified, otp_last_sent_at, otp_hour_count, otp_hour_window_start, otp_day_count, otp_day_window_start, email_suppressed')
@@ -4043,6 +4116,10 @@ app.post('/api/auth/send-otp', otpSendLimiter, resendIpLimiter, auth, async (req
           return res.status(429).json({ error: 'Too many attempts — please try again later', code: 'TOO_MANY_ATTEMPTS' });
         case 'EMAIL_SUPPRESSED':
           return res.status(422).json({ error: 'This email could not receive mail', code: 'EMAIL_UNREACHABLE' });
+        case 'GLOBAL_BUDGET_EXHAUSTED':
+          // Already logged with full budget numbers inside issueAndSendOtp() —
+          // not a per-user delivery problem, so don't log it as one here.
+          return res.status(503).json({ error: 'Email service temporarily unavailable', code: 'EMAIL_SERVICE_DOWN' });
         default:
           console.error(`[OTP] Delivery failed for ${maskEmail(user.email)} — check RESEND_API_KEY and RESEND_FROM env vars`);
           return res.status(503).json({ error: 'Email service temporarily unavailable', code: 'EMAIL_SERVICE_DOWN' });
