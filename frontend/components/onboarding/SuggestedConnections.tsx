@@ -1,9 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import WhyThisMatch from './WhyThisMatch';
+import Avatar from '@/components/ui/Avatar';
 import { apiGet } from '@/lib/api';
 import { IconPin } from './icons';
 
@@ -102,22 +102,12 @@ export default function SuggestedConnections({ profiles, userInterests, onDone }
                   background: '#F8FAFC', border: '1.5px solid #E2E8F0',
                 }}
               >
-                {p.photos?.[0] ? (
-                  <img
-                    src={p.photos[0]}
-                    alt={p.name}
-                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-                  />
-                ) : (
-                  <div style={{
-                    width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 16, fontWeight: 800, color: '#157A6E',
-                  }}>
-                    {initials}
-                  </div>
-                )}
+                <Avatar
+                  src={p.photos?.[0]}
+                  name={p.name}
+                  size={48}
+                  className="shrink-0"
+                />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 2 }}>{p.name}</p>
                   <p style={{ fontSize: 12, color: '#64748B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
