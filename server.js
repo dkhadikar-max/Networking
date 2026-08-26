@@ -3098,15 +3098,25 @@ function getFileUrl(file) {
   return '/uploads/' + file.filename;
 }
 
-// ── FIXED: Cloudinary deletion extracts public_id correctly ──
+// ── FIXED: Cloudinary deletion extracts public_id correctly and handles nested paths ──
 async function deleteCloudinaryPhoto(url) {
-  if (!USE_CLOUDINARY || !url) return;
+  if (!USE_CLOUDINARY || !url || typeof url !== 'string') return false;
   try {
-    const parts = url.split('/');
-    const filename = parts[parts.length - 1];
-    const publicId = 'networkapp/' + filename.replace(/\.[^.]+$/, '');
-    await cloudinary.uploader.destroy(publicId);
-  } catch(e) { console.error('Cloudinary delete error:', e.message); }
+    let publicId;
+    if (url.includes('/networkapp/')) {
+      const pathAfterFolder = url.split('/networkapp/')[1];
+      publicId = 'networkapp/' + pathAfterFolder.replace(/\.[^.]+$/, '');
+    } else {
+      const parts = url.split('/');
+      const filename = parts[parts.length - 1];
+      publicId = 'networkapp/' + filename.replace(/\.[^.]+$/, '');
+    }
+    const result = await cloudinary.uploader.destroy(publicId);
+    return result?.result === 'ok' || result?.result === 'not found';
+  } catch(e) {
+    console.error(`Cloudinary delete error for ${url}:`, e.message);
+    return false;
+  }
 }
 
 // ── FIXED: SANITIZATION ──
@@ -4747,7 +4757,17 @@ app.post('/api/logout', (_req, res) => {
 app.delete('/api/me', auth, async (req, res) => {
   try {
     const id = req.user.id;
-    // Only the deleting user's own messages are removed -- connections and
+
+    // 1. Fetch user's existing photos first to clean up external storage assets
+    const { data: userRecord } = await supabase.from('users').select('photos').eq('id', id).maybeSingle();
+    const photosToDelete = userRecord?.photos || [];
+
+    // 2. Clean up Cloudinary assets (idempotent, safe across multiple URLs)
+    if (Array.isArray(photosToDelete) && photosToDelete.length > 0) {
+      await Promise.allSettled(photosToDelete.map(photoUrl => deleteCloudinaryPhoto(photoUrl)));
+    }
+
+    // 3. Only the deleting user's own messages are removed -- connections and
     // the other party's messages are left intact (see anonymizeUser below).
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
@@ -4988,6 +5008,47 @@ app.delete('/api/me/photos', auth, async (req, res) => {
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
     console.error('Delete photo error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── REORDER PHOTOS ──
+// SECURITY: Validates that the reordered array contains only and exactly the existing
+// URLs belonging to this user (no arbitrary URL injection, no length expansion).
+app.put('/api/me/photos', auth, async (req, res) => {
+  try {
+    const { photos: newPhotos } = req.body;
+    if (!Array.isArray(newPhotos)) {
+      return res.status(400).json({ error: 'photos must be an array of URLs' });
+    }
+    const { data: user } = await supabase.from('users')
+      .select('*').eq('id', req.user.id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'Not found' });
+
+    const currentPhotos = user.photos || [];
+    
+    // Strict validation: Must contain the same set of photos as currently owned
+    if (newPhotos.length !== currentPhotos.length) {
+      return res.status(400).json({ error: 'Reordered photos must match current photo count' });
+    }
+    const currentSet = new Set(currentPhotos);
+    const valid = newPhotos.every(url => typeof url === 'string' && currentSet.has(url));
+    if (!valid || new Set(newPhotos).size !== currentPhotos.length) {
+      return res.status(400).json({ error: 'Invalid photo reorder payload' });
+    }
+
+    const merged = { ...user, photos: newPhotos };
+    const ts = calcTrust(merged);
+    const ps = calcProfileScore(merged);
+    const complete = ps >= 70;
+
+    await supabase.from('users').update({
+      photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
+    }).eq('id', user.id);
+
+    res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
+  } catch(e) {
+    console.error('Reorder photos error:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

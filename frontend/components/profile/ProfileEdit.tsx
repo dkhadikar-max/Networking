@@ -26,6 +26,8 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
   const [photos, setPhotos] = useState<string[]>(user.photos ?? []);
 
   const [form, setForm] = useState({
@@ -107,6 +109,23 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
     } finally { setDeletingPhoto(null); }
   }
 
+  async function handleMakePrimary(url: string) {
+    const idx = photos.indexOf(url);
+    if (idx <= 0) return;
+    const newPhotos = [url, ...photos.filter(p => p !== url)];
+    setPhotos(newPhotos);
+    setReordering(true);
+    try {
+      await apiPut<{ photos: string[] }>('/api/me/photos', { photos: newPhotos });
+      toast('Primary photo updated', 'success');
+    } catch (err) {
+      setPhotos(photos); // rollback
+      toast(err instanceof Error ? err.message : 'Failed to update primary photo', 'error');
+    } finally {
+      setReordering(false);
+    }
+  }
+
   async function detectGps() {
     if (!navigator.geolocation) { toast('Geolocation not supported', 'error'); return; }
     setDetectingGps(true);
@@ -165,30 +184,67 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
             {photos.map((url, i) => (
               <div key={url} style={{ position: 'relative', aspectRatio: '1', borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--sur2)' }}>
-                <img src={url} alt={`Photo ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                {!imgErrors[url] ? (
+                  <img
+                    src={url}
+                    alt={`Photo ${i + 1}`}
+                    onError={() => setImgErrors(prev => ({ ...prev, [url]: true }))}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #D8FAF2, #FFF4E7)', color: 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
+                    <span>Photo {i + 1}</span>
+                    <span style={{ fontSize: 9, opacity: 0.7 }}>Unavailable</span>
+                  </div>
+                )}
                 {photos.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handlePhotoDelete(url)}
-                    disabled={deletingPhoto === url}
-                    aria-label="Remove photo"
+                    disabled={deletingPhoto === url || reordering}
+                    aria-label={`Remove photo ${i + 1}`}
                     style={{
-                      position: 'absolute', top: 5, right: 5, width: 24, height: 24, borderRadius: '50%',
-                      border: 'none', background: 'rgba(15,23,42,0.65)', color: 'white', fontSize: 14,
-                      lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: deletingPhoto === url ? 'not-allowed' : 'pointer', opacity: deletingPhoto === url ? 0.6 : 1,
+                      position: 'absolute', top: 0, right: 0, width: 44, height: 44,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'none', border: 'none',
+                      cursor: (deletingPhoto === url || reordering) ? 'not-allowed' : 'pointer',
+                      padding: 0, opacity: deletingPhoto === url ? 0.6 : 1,
                     }}
                   >
-                    ×
+                    <span style={{
+                      width: 24, height: 24, borderRadius: '50%', background: 'rgba(15,23,42,0.7)',
+                      color: 'white', fontSize: 14, lineHeight: 1, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.2)'
+                    }}>
+                      ×
+                    </span>
                   </button>
                 )}
-                {i === 0 && (
+                {i === 0 ? (
                   <span style={{
-                    position: 'absolute', bottom: 5, left: 5, padding: '2px 8px', borderRadius: 999,
-                    background: 'rgba(15,23,42,0.65)', color: 'white', fontSize: 10, fontWeight: 700,
+                    position: 'absolute', bottom: 6, left: 6, padding: '2px 8px', borderRadius: 999,
+                    background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(4px)',
+                    color: 'white', fontSize: 10, fontWeight: 700,
                   }}>
                     Main
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleMakePrimary(url)}
+                    disabled={reordering || deletingPhoto === url}
+                    aria-label={`Set photo ${i + 1} as main`}
+                    style={{
+                      position: 'absolute', bottom: 6, left: 6, padding: '3px 8px', borderRadius: 999,
+                      background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(4px)',
+                      color: 'white', fontSize: 10, fontWeight: 700, border: '1px solid rgba(255,255,255,0.3)',
+                      cursor: (reordering || deletingPhoto === url) ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 3,
+                    }}
+                  >
+                    ⭐ Make Main
+                  </button>
                 )}
               </div>
             ))}

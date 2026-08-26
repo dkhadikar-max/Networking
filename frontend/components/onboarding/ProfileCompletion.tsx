@@ -35,6 +35,7 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
   const skillRef = useRef<HTMLInputElement>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   });
@@ -58,13 +59,15 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const fd = new FormData();
       fd.append('photo', file);
       const res = await apiUpload<{ url: string }>('/api/me/photos', fd);
       setPhotoUrl(res?.url ?? URL.createObjectURL(file));
-    } catch { /* silently ignore — photo is optional */ }
-    finally { setUploading(false); }
+    } catch {
+      setUploadError('Photo upload failed. You can continue without a photo.');
+    } finally { setUploading(false); }
   }
 
   const submit = (data: FormValues) => onNext({ ...data, interests, skills });
@@ -110,6 +113,11 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
         >
           {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
         </label>
+        {uploadError && (
+          <p style={{ fontSize: 12, color: '#B45309', background: '#FEF3C7', padding: '6px 12px', borderRadius: 8, textAlign: 'center', maxWidth: 280 }}>
+            {uploadError}
+          </p>
+        )}
         <input
           id="ob-photo-input"
           type="file"
