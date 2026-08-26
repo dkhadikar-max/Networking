@@ -1,0 +1,93 @@
+{
+  "320": {
+    "docWidth": 320,
+    "viewportWidth": 320,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 219,
+    "collabBtnHeight": 16,
+    "status": "PASS"
+  },
+  "375": {
+    "docWidth": 375,
+    "viewportWidth": 375,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 274,
+    "collabBtnHeight": 16,
+    "status": "PASS"
+  },
+  "390": {
+    "docWidth": 390,
+    "viewportWidth": 390,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 289,
+    "collabBtnHeight": 16,
+    "status": "PASS"
+  },
+  "430": {
+    "docWidth": 430,
+    "viewportWidth": 430,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 329,
+    "collabBtnHeight": 16,
+    "status": "PASS"
+  },
+  "768": {
+    "docWidth": 768,
+    "viewportWidth": 768,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 105,
+    "collabBtnHeight": 20,
+    "status": "PASS"
+  },
+  "1024": {
+    "docWidth": 1024,
+    "viewportWidth": 1024,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 105,
+    "collabBtnHeight": 20,
+    "status": "PASS"
+  },
+  "1440": {
+    "docWidth": 1440,
+    "viewportWidth": 1440,
+    "hasHorizontalOverflow": false,
+    "authorName": "Aarav Sharma",
+    "authorFont": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "trustScore": "Trust 94",
+    "hasBuildingBlock": true,
+    "hasLookingForBlock": true,
+    "collabBtnWidth": 105,
+    "collabBtnHeight": 20,
+    "status": "PASS"
+  }
+}

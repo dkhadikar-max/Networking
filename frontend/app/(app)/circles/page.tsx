@@ -127,7 +127,7 @@ export default function CirclesPage() {
               <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
             </svg>
           </div>
-          <span className="circles-title">Circles</span>
+          <span className="circles-title font-display font-extrabold">Circles</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Link

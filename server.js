@@ -3215,6 +3215,26 @@ function clean(u) {
   delete r.push_token;
   delete r.failed_login_attempts;
   delete r.lockout_until;
+  // Internal rate-limiting/token state (migrations 015/016/017) — never
+  // useful to a client, and the magic-link hash in particular shouldn't be
+  // handed out even though it's one-way (no reason to make an attacker's
+  // job easier by confirming exactly what's stored server-side).
+  delete r.otp_last_sent_at;
+  delete r.otp_hour_count;
+  delete r.otp_hour_window_start;
+  delete r.otp_day_count;
+  delete r.otp_day_window_start;
+  delete r.email_suppressed;
+  delete r.email_suppressed_reason;
+  delete r.email_suppressed_at;
+  delete r.magic_link_token_hash;
+  delete r.magic_link_expires_at;
+  delete r.magic_link_used_at;
+  delete r.magic_link_last_sent_at;
+  delete r.magic_link_hour_count;
+  delete r.magic_link_hour_window_start;
+  delete r.magic_link_day_count;
+  delete r.magic_link_day_window_start;
   return r;
 }
 
@@ -3868,6 +3888,401 @@ async function issueAndSendOtp(user) {
   }
   return { ok: true };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PASSWORDLESS MAGIC-LINK AUTHENTICATION (2026-08-25)
+// Second, independent auth method alongside the existing password+OTP flow
+// above, which is completely untouched by any of this. See
+// docs/passwordless-auth-2026-08-25.md for the full design writeup.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const MAGIC_LINK_COOLDOWN_MS = 60 * 1000;   // same shape as OTP's cooldown
+const MAGIC_LINK_HOUR_LIMIT  = 3;
+const MAGIC_LINK_DAY_LIMIT   = 5;
+const MAGIC_LINK_EXPIRY_MS   = 15 * 60 * 1000; // upper end of the 10-15min spec
+
+async function sendMagicLinkEmail(toEmail, link, name) {
+  if (!ResendClient) {
+    console.error('[MagicLink] Resend client not created — RESEND_API_KEY env var is missing or empty');
+    return { ok: false, reason: 'not_configured' };
+  }
+  const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
+  console.log(`[MagicLink] Sending from="${FROM}" to="${maskEmail(toEmail)}"`); // never logs the link/token itself
+  try {
+    const { error } = await ResendClient.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: 'Sign in to Build Your Network',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
+          <h2 style="color:#0F766E;margin-bottom:4px">Build Your Network</h2>
+          <p style="color:#6B7280;font-size:13px;margin-top:0">connect · grow · thrive</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:16px;color:#111827">Hi ${name || 'there'},</p>
+          <p style="font-size:15px;color:#374151">Click below to sign in. This link is valid for 15 minutes and can only be used once.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${link}" style="display:inline-block;background:#0F766E;color:#ffffff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none">Sign in to BYN</a>
+          </div>
+          <p style="font-size:12px;color:#9CA3AF">If you didn't request this, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error('[MagicLink] Resend rejected the send:', maskEmail(toEmail), JSON.stringify(error));
+      return { ok: false, reason: classifyResendError(error) };
+    }
+    return { ok: true };
+  } catch(e) {
+    console.error('[MagicLink] Email send threw (network/transport):', e.message);
+    return { ok: false, reason: 'provider_error' };
+  }
+}
+
+// Shared per-account cooldown/hour/day claim, same atomic-UPDATE-WHERE
+// pattern as issueAndSendOtp — see that function's comment for why this is
+// genuinely race-safe, not just app-level. Also claims the SAME global
+// budget (claimGlobalOtpBudget) as OTP sends — required so magic-link
+// requests can't bypass the circuit breaker protecting the Resend account
+// itself by using a "different" budget.
+async function issueAndSendMagicLink(user) {
+  if (user.email_suppressed) {
+    return { ok: false, code: 'EMAIL_SUPPRESSED' };
+  }
+  if (!claimGlobalOtpBudget()) {
+    console.error(`[MagicLink] Global email budget exhausted (hour:${otpGlobalHourCount}/${OTP_GLOBAL_HOUR_BUDGET}, day:${otpGlobalDayCount}/${OTP_GLOBAL_DAY_BUDGET}) — refusing send`);
+    return { ok: false, code: 'GLOBAL_BUDGET_EXHAUSTED' };
+  }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const cooldownCutoffIso = new Date(now.getTime() - MAGIC_LINK_COOLDOWN_MS).toISOString();
+
+  const hourStale = !user.magic_link_hour_window_start || (now - new Date(user.magic_link_hour_window_start)) >= 60 * 60 * 1000;
+  const dayStale  = !user.magic_link_day_window_start  || (now - new Date(user.magic_link_day_window_start))  >= 24 * 60 * 60 * 1000;
+  const nextHourCount = hourStale ? 1 : (user.magic_link_hour_count || 0) + 1;
+  const nextDayCount  = dayStale  ? 1 : (user.magic_link_day_count  || 0) + 1;
+
+  if (!hourStale && nextHourCount > MAGIC_LINK_HOUR_LIMIT) return { ok: false, code: 'HOURLY_LIMIT' };
+  if (!dayStale  && nextDayCount  > MAGIC_LINK_DAY_LIMIT)  return { ok: false, code: 'DAILY_LIMIT' };
+
+  const rawToken  = crypto.randomBytes(32).toString('hex'); // 256 bits, cryptographically secure
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex'); // only the hash is ever persisted
+  const expiresAt = new Date(Date.now() + MAGIC_LINK_EXPIRY_MS).toISOString();
+
+  // Atomic claim — identical race-safety reasoning as issueAndSendOtp's
+  // cooldown claim: a concurrent duplicate request can't both win.
+  const { data: claimed, error: claimErr } = await supabase.from('users')
+    .update({
+      magic_link_token_hash: tokenHash,
+      magic_link_expires_at: expiresAt,
+      magic_link_used_at: null,
+      magic_link_last_sent_at: nowIso,
+      magic_link_hour_count: nextHourCount, magic_link_hour_window_start: hourStale ? nowIso : user.magic_link_hour_window_start,
+      magic_link_day_count: nextDayCount, magic_link_day_window_start: dayStale ? nowIso : user.magic_link_day_window_start,
+    })
+    .eq('id', user.id)
+    .or(`magic_link_last_sent_at.is.null,magic_link_last_sent_at.lt.${cooldownCutoffIso}`)
+    .select('email, name')
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error('[MagicLink] Cooldown-claim update failed:', claimErr.message);
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  if (!claimed) {
+    return { ok: false, code: 'COOLDOWN' };
+  }
+
+  const link = `${process.env.BASE_URL || 'https://buildyournetwork.online'}/verify-magic?token=${rawToken}`;
+  const sendResult = await sendMagicLinkEmail(claimed.email, link, claimed.name);
+  if (!sendResult.ok) {
+    if (sendResult.reason === 'suppressed') {
+      await supabase.from('users').update({
+        email_suppressed: true,
+        email_suppressed_reason: 'magic_link_rejected',
+        email_suppressed_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      return { ok: false, code: 'EMAIL_SUPPRESSED' };
+    }
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  return { ok: true };
+}
+
+// Atomic claim on verify too: only succeeds if the hash matches, the token
+// hasn't been used yet, and it hasn't expired. The hash is deliberately
+// NOT cleared on success (see the migration's comment) so a reuse attempt
+// can be told apart from a token that never existed.
+async function verifyMagicLinkToken(rawToken) {
+  if (!rawToken || typeof rawToken !== 'string' || rawToken.length !== 64 || !/^[0-9a-f]+$/i.test(rawToken)) {
+    return { ok: false, code: 'INVALID' };
+  }
+  const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+  const nowIso = new Date().toISOString();
+
+  const { data: claimed, error: claimErr } = await supabase.from('users')
+    .update({ magic_link_used_at: nowIso })
+    .eq('magic_link_token_hash', tokenHash)
+    .is('magic_link_used_at', null)
+    .gt('magic_link_expires_at', nowIso)
+    .select('id, email, name, onboarding_stage, email_verified, otp_code')
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error('[MagicLink] Verify claim failed:', claimErr.message);
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  if (claimed) return { ok: true, user: claimed };
+
+  // Didn't win the claim — read-only lookup (no state change) to report the
+  // correct specific reason instead of a generic failure.
+  const { data: existing } = await supabase.from('users')
+    .select('magic_link_used_at, magic_link_expires_at')
+    .eq('magic_link_token_hash', tokenHash)
+    .maybeSingle();
+  if (!existing) return { ok: false, code: 'INVALID' };
+  if (existing.magic_link_used_at) return { ok: false, code: 'ALREADY_USED' };
+  if (new Date(existing.magic_link_expires_at) <= new Date()) return { ok: false, code: 'EXPIRED' };
+  return { ok: false, code: 'INVALID' };
+}
+
+// ── REQUEST MAGIC LINK (signup + login unified — email is the only input) ──
+// Never issues a session here — knowledge of an email address must never be
+// sufficient for authentication. A session is only ever issued in
+// /api/auth/magic-link/verify, on successful proof of inbox access. This is
+// what makes it safe for this route to be unauthenticated and to eagerly
+// create an account for a brand-new email (mirroring /api/signup's existing
+// eager-creation behavior) — an eagerly-created row grants no access to
+// anyone until its magic link is actually clicked.
+app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (req, res) => {
+  try {
+    // Honeypot — same convention as /api/signup's.
+    if (req.body.company_website) {
+      return res.json({ ok: true }); // generic response, no enumeration, no signal that this was rejected
+    }
+
+    const { email, age_confirmed } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
+
+    const { data: existing } = await supabase.from('users')
+      .select('id, email, name, email_suppressed, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
+      .eq('email', normalizedEmail).maybeSingle();
+
+    let user = existing;
+    if (!user) {
+      // New email — require the same consent gate /api/signup requires,
+      // since this eagerly creates an account exactly like signup does.
+      if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
+      const id = uuidv4();
+      const role = ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'user';
+      // Random, never-disclosed password hash — satisfies the NOT NULL
+      // constraint; this account has no usable password unless the user
+      // later sets one via the existing forgot-password flow. Magic link
+      // (or the OTP fallback below) is its only way in until then.
+      const unusablePassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+      const newUser = {
+        id, email: normalizedEmail, password: unusablePassword,
+        name: '', bio: '', photos: [], instagram: '', linkedin: '', website: '',
+        location: '', lat: null, lng: null, remote: false,
+        skills: [], interests: [],
+        currently_exploring: '', working_on: '', interested_in: '',
+        intent: 'explore-network', role, premium: false,
+        trust_score: 0, profile_score: 0, is_profile_complete: false,
+        verification: { status: 'none', confidence: 0 },
+        banned: false, created_at: new Date().toISOString(),
+        consent_given_at: new Date().toISOString(), consent_version: 'v1.0',
+        do_not_sell: false, email_verified: false,
+        // Magic link is scoped to signup only — this account has the
+        // random unusable password from above, not one the user chose.
+        // /api/auth/magic-link/verify redirects a false-password_set user
+        // to set a real one before continuing; every future login uses it.
+        password_set: false,
+      };
+      newUser.trust_score   = calcTrust(newUser);
+      newUser.profile_score = calcProfileScore(newUser);
+      newUser.is_profile_complete = newUser.profile_score >= 70;
+
+      const { data: inserted, error: insertErr } = await supabase.from('users').insert(newUser).select().single();
+      if (insertErr) {
+        // Race: someone else's request created this email a moment ago.
+        // Fall through to the existing-user path rather than error.
+        if (insertErr.code === '23505') {
+          const { data: raced } = await supabase.from('users')
+            .select('id, email, name, email_suppressed, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
+            .eq('email', normalizedEmail).maybeSingle();
+          user = raced;
+        } else {
+          throw new Error(insertErr.message);
+        }
+      } else {
+        user = inserted;
+      }
+    }
+
+    if (user) {
+      issueAndSendMagicLink(user).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
+    }
+    // Identical response regardless of new/existing/failed-to-queue — never
+    // reveals whether the address is registered.
+    res.json({ ok: true, message: 'If that email is valid, a sign-in link is on its way' });
+  } catch(e) {
+    console.error('Magic link request error:', e);
+    // Still generic — an internal error must not become an enumeration
+    // signal either.
+    res.json({ ok: true, message: 'If that email is valid, a sign-in link is on its way' });
+  }
+});
+
+// ── VERIFY MAGIC LINK ──
+// Issues a session on success — the only place in this whole feature that
+// does. POST (not the raw emailed GET link) specifically so the token never
+// appears in a URL any server-side request logger, proxy, or browser
+// history entry that outlives this exchange could capture — the frontend
+// page the link points to reads the token from its own URL and POSTs it
+// here; see frontend/app/(auth)/verify-magic/page.tsx.
+app.post('/api/auth/magic-link/verify', verifyLimiter, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Token required', code: 'INVALID' });
+
+    const result = await verifyMagicLinkToken(token);
+    if (!result.ok) {
+      switch (result.code) {
+        case 'EXPIRED':      return res.status(400).json({ error: 'Link expired', code: 'EXPIRED' });
+        case 'ALREADY_USED': return res.status(400).json({ error: 'Link already used', code: 'ALREADY_USED' });
+        case 'PROVIDER_ERROR': return res.status(503).json({ error: 'Email service temporarily unavailable', code: 'EMAIL_SERVICE_DOWN' });
+        default:              return res.status(400).json({ error: 'Invalid link', code: 'INVALID' });
+      }
+    }
+
+    const user = result.user;
+    const updates = {};
+    if (!user.email_verified) updates.email_verified = true;
+    // Invalidate any outstanding OTP for this account too — this
+    // authentication is already complete, a stale code shouldn't linger.
+    if (user.otp_code) { updates.otp_code = null; updates.otp_expires_at = null; }
+    if (Object.keys(updates).length > 0) {
+      await supabase.from('users').update(updates).eq('id', user.id);
+    }
+
+    const jwtToken = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('byn_token', jwtToken, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
+
+    const { data: fullUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+    res.json({ token: jwtToken, user: clean(fullUser || user), email_verified: true });
+  } catch(e) {
+    console.error('Magic link verify error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── SET PASSWORD (magic-link signup completion) ──
+// Magic link is scoped to signup only, per explicit product direction —
+// after the first successful verify, the account still holds the random,
+// never-disclosed placeholder hash from /api/auth/magic-link/request, not
+// one the user chose. The frontend redirects here (before onboarding
+// continues) whenever the authenticated user's password_set is false;
+// after this call succeeds, every future login uses the real password
+// (OTP remains available as a fallback on that login, unchanged).
+// Deliberately scoped to the password_set:false case only — this app has
+// no general "change my password while logged in" feature, and this
+// endpoint isn't meant to quietly become one.
+// Deliberately does NOT set password_changed_at: that field invalidates
+// any JWT issued before it (see the auth() middleware) — appropriate for a
+// real password change, but here it would immediately invalidate the
+// session this same request is using, breaking the very next call in the
+// intended "set password, then continue into onboarding" flow.
+app.post('/api/auth/set-password', auth, async (req, res) => {
+  try {
+    if (req.userData?.password_set) {
+      return res.status(400).json({ error: 'Password already set' });
+    }
+    const { password } = req.body;
+    if (!password || password.length < 8) return res.status(400).json({ error: 'Password min 8 chars' });
+    const hash = await bcrypt.hash(password.slice(0, 72), 12);
+    const { error } = await supabase.from('users')
+      .update({ password: hash, password_set: true }).eq('id', req.user.id);
+    if (error) throw new Error(error.message);
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Set password error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── PASSWORDLESS OTP FALLBACK ("Didn't receive the email? Use a code instead.") ──
+// Deliberately separate from the existing, unchanged /api/auth/send-otp and
+// /api/auth/verify-otp, which require an already-authenticated session (a
+// user who signed up/logged in with a password and just needs to confirm
+// their email). These two routes serve a genuinely different trust model —
+// no session exists yet — so reusing those directly isn't just risky, it's
+// architecturally wrong: send-otp intentionally never checks email_verified
+// specifically because it assumes a session already vouches for who's
+// asking. Reuses the SAME issueAndSendOtp()/otp_code storage though — once
+// inbox access is proven, the outcome (email_verified, a fresh session)
+// should be identical regardless of which channel (link or code) proved it,
+// and the SAME per-account/global budget should be spent either way.
+app.post('/api/auth/passwordless/otp/request', otpIpBlockGate, otpIpLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const { data: user } = await supabase.from('users')
+      .select('id, email, name, email_suppressed, otp_last_sent_at, otp_hour_count, otp_hour_window_start, otp_day_count, otp_day_window_start')
+      .eq('email', normalizedEmail).maybeSingle();
+
+    if (user) {
+      issueAndSendOtp(user).catch(e => console.error('[passwordless-otp] issueAndSendOtp failed:', e.message));
+    }
+    // Same non-enumerating generic response regardless of whether the
+    // account exists.
+    res.json({ ok: true, message: 'If that email is valid, a code is on its way' });
+  } catch(e) {
+    console.error('Passwordless OTP request error:', e);
+    res.json({ ok: true, message: 'If that email is valid, a code is on its way' });
+  }
+});
+
+app.post('/api/auth/passwordless/otp/verify', verifyLimiter, async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ error: 'Email and code required' });
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const { data: user } = await supabase.from('users')
+      .select('id, email, name, otp_code, otp_expires_at, onboarding_stage, magic_link_used_at, magic_link_token_hash')
+      .eq('email', normalizedEmail).maybeSingle();
+    // Same shape of error for "no such account" and "wrong code" — an
+    // unauthenticated endpoint that distinguished them would let an
+    // attacker enumerate registered emails by trying a bogus code against
+    // each one and reading the response.
+    if (!user || !user.otp_code) return res.status(400).json({ error: 'Incorrect code', code: 'INVALID' });
+    if (new Date() > new Date(user.otp_expires_at)) return res.status(400).json({ error: 'Code expired — request a new one', code: 'EXPIRED' });
+    if (String(code).trim() !== String(user.otp_code)) return res.status(400).json({ error: 'Incorrect code', code: 'INVALID' });
+
+    const updates = { email_verified: true, otp_code: null, otp_expires_at: null };
+    // Invalidate any outstanding magic link too, for the same reason as the
+    // reverse case in /api/auth/magic-link/verify.
+    if (user.magic_link_token_hash && !user.magic_link_used_at) {
+      updates.magic_link_used_at = new Date().toISOString();
+    }
+    await supabase.from('users').update(updates).eq('id', user.id);
+
+    const jwtToken = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
+    res.cookie('byn_token', jwtToken, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
+
+    const { data: fullUser } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+    res.json({ token: jwtToken, user: clean(fullUser || user), email_verified: true });
+  } catch(e) {
+    console.error('Passwordless OTP verify error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, res) => {
   try {

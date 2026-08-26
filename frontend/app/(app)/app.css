@@ -121,25 +121,26 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 10px 14px 0;
+  padding: 8px 12px 16px;
   position: relative;
   overflow: hidden;
   width: 100%;
 }
 .swipe-card {
-  width: calc(100% - 28px);
-  max-width: 420px;
-  border-radius: var(--r-xl);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 28px;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--card);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 48px -12px rgba(15,23,42,0.12), 0 0 0 1px rgba(226,232,240,0.85);
   user-select: none;
   border: 1px solid rgba(255,255,255,0.9);
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - 160px);
+  height: 100%;
+  max-height: calc(100dvh - 120px);
 }
 .card-intent-banner {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
@@ -443,7 +444,7 @@
   border-radius: 50%;
   box-shadow: var(--shadow-sm);
 }
-.match-title { font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; margin-bottom: 8px; }
+.match-title { font-family: var(--byn-font-display); font-size: 24px; font-weight: 800; color: var(--text); letter-spacing: -0.025em; margin-bottom: 8px; }
 .match-sub { font-size: 14px; color: var(--text-soft); line-height: 1.55; margin-bottom: 24px; }
 .match-actions { display: flex; flex-direction: column; gap: 10px; }
 .match-dismiss {
@@ -660,6 +661,31 @@
   box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.08);
 }
 .panel-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; letter-spacing: 0.1px; }
+.panel-subtitle { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 14px 0 8px; }
+.panel-subtitle:first-child { margin-top: 0; }
+
+/* Deliberate reading width at desktop — was stretching to ~1412px with no
+   cap at all; Profile is a single linear read, not a card+panel layout
+   like Discover, so it gets a max-width instead of a second column. */
+@media (min-width: 1024px) {
+  .profile-scroll { max-width: 640px; margin: 0 auto; width: 100%; }
+}
+
+/* ── PROFILE — trust & relevance (social proof) ─────────────
+   Only rendered when data is actually present — see ProfileView.tsx.
+   Deliberately one compact panel, not a dashboard: a trust line, a
+   review summary, peer tags, then (if present) a quieter mutual-
+   connections line — supporting evidence, not the headline. */
+.trust-proof-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.trust-proof-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 700; color: var(--primary);
+  background: rgba(21,122,110,0.08); border: 1px solid rgba(21,122,110,0.2);
+  padding: 4px 10px; border-radius: 999px;
+}
+.trust-proof-rating { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700; color: var(--text); }
+.trust-proof-rating svg { color: var(--gold); }
+.trust-proof-mutual { font-size: 12px; color: var(--text-soft); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 
 /* ── PROFILE EDIT ────────────────────────────────────────── */
 .pe-label { display: block; font-size: 11px; color: var(--sub); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
@@ -921,14 +947,14 @@ textarea.pe-input { resize: none; }
   display: flex; gap: 7px; padding: 6px 14px 10px;
   overflow-x: auto; scrollbar-width: none;
 }
-.circles-filter-bar::-webkit-scrollbar { display: none; }
 .circles-filter-pill {
-  padding: 5px 13px; border-radius: var(--r-full); font-size: 12px; font-weight: 600;
+  padding: 6px 14px; border-radius: var(--r-full); font-size: 12px; font-weight: 700;
   border: 1.5px solid var(--border); background: var(--card); color: var(--text-soft);
   cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
   font-family: inherit;
 }
-.circles-filter-pill.active { border-color: var(--primary); background: var(--highlight); color: var(--primary); }
+.circles-filter-pill:hover { border-color: var(--primary); color: var(--text); }
+.circles-filter-pill.active { border-color: #157A6E; background: #157A6E; color: white; box-shadow: 0 1px 4px rgba(21,122,110,0.25); }
 .circles-feed { flex: 1; overflow-y: auto; padding: 10px 0 80px; }
 
 /* Post card */

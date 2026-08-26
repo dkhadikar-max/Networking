@@ -3,6 +3,11 @@ export type User = {
   name: string;
   email?: string;
   email_verified: boolean;
+  // False only for an account created via magic-link signup that hasn't
+  // set a real password yet (still on the random, unusable placeholder
+  // hash) — absent/true for every other account. Gates the mandatory
+  // /set-password redirect; see docs/passwordless-auth-2026-08-25.md.
+  password_set?: boolean;
   onboarding_stage: string;
   photos: string[];
   bio?: string;
