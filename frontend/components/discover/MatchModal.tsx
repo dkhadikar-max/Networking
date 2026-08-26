@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion, type Transition } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
@@ -23,12 +24,19 @@ export default function MatchModal({ open, onClose, connectionId, myPhoto, myNam
   const reduceMotion = useReducedMotion();
   const t = (normal: Transition): Transition => (reduceMotion ? { duration: 0 } : normal);
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
-        <>
+        <div className="fixed inset-0 z-[201] flex items-center justify-center p-4">
           <motion.div
-            className="match-modal-backdrop"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -36,7 +44,7 @@ export default function MatchModal({ open, onClose, connectionId, myPhoto, myNam
             onClick={onClose}
           />
           <motion.div
-            className="match-modal"
+            className="relative z-10 w-full max-w-[360px] sm:max-w-[380px] bg-white rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-slate-100 match-modal"
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 8 }}
@@ -101,7 +109,7 @@ export default function MatchModal({ open, onClose, connectionId, myPhoto, myNam
               <button className="match-dismiss" onClick={onClose}>Keep exploring</button>
             </motion.div>
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );

@@ -1,24 +1,26 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/context/AuthContext';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
+import Avatar from '@/components/ui/Avatar';
+import MatchModal from '@/components/discover/MatchModal';
 import type { LikedMeResponse } from '@/lib/types';
 
-function initials(name: string) {
-  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
-}
+type MatchInfo = { connectionId: string | null; theirPhoto?: string | null; theirName: string };
 
 export default function LikesPage() {
   const toast = useToast();
   const router = useRouter();
+  const { user } = useAuth();
   const { openProfile, closeProfile } = useProfileDrawer();
   const [data, setData] = useState<LikedMeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
 
   useEffect(() => {
     apiGet<LikedMeResponse>('/api/liked-me')
@@ -29,13 +31,22 @@ export default function LikesPage() {
 
   async function handleConnect(uid: string) {
     setConnecting(uid);
+    const target = data?.profiles?.find(p => p.id === uid);
     try {
-      const res = await apiPost<{ match?: boolean }>('/api/connect', { userId: uid });
-      toast(res.match ? "It's a match! Start the conversation." : 'Interest sent — you\'ll be notified if they connect back', 'success');
+      const res = await apiPost<{ match?: boolean; connectionId?: string | null }>('/api/connect', { userId: uid });
+      if (res.match) {
+        setMatchInfo({
+          connectionId: res.connectionId ?? null,
+          theirPhoto: target?.photos?.[0],
+          theirName: target?.name ?? 'Someone',
+        });
+      } else {
+        toast("Interest sent — you'll be notified if they connect back", 'success');
+      }
       setData(prev => prev ? {
         ...prev,
         profiles: prev.profiles?.filter(p => p.id !== uid),
-        count: (prev.count ?? 1) - 1,
+        count: Math.max(0, (prev.count ?? 1) - 1),
       } : prev);
       closeProfile();
     } catch (e) {
@@ -93,14 +104,14 @@ export default function LikesPage() {
             {(data.previews?.length ?? 0) > 0 && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
                 {data.previews!.slice(0, 3).map((p, i) => (
-                  <div key={i} style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', filter: 'blur(4px)', background: 'var(--light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: 'var(--accent)' }}>
-                    {p.photos?.[0] ? <img src={p.photos[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials(p.name ?? '?')}
+                  <div key={i} style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden', filter: 'blur(4px)' }}>
+                    <Avatar src={p.photos?.[0]} name={p.name ?? '?'} size={56} />
                   </div>
                 ))}
               </div>
             )}
             <button
-              onClick={() => router.push('/profile')}
+              onClick={() => router.push('/upgrade')}
               style={{ padding: '14px 32px', borderRadius: 'var(--r-md)', background: 'var(--gold)', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 8px 20px rgba(244,162,89,.3)' }}
             >
               Upgrade to Premium
@@ -131,22 +142,18 @@ export default function LikesPage() {
                 })}
               >
                 <div className="chat-av-wrap">
-                  <div className="chat-av">
-                    {profile.photos?.[0]
-                      ? <img src={profile.photos[0]} alt={profile.name} />
-                      : initials(profile.name ?? '?')}
-                  </div>
+                  <Avatar src={profile.photos?.[0]} name={profile.name} size={56} />
                   {profile.is_online && <span className="chat-online" />}
                 </div>
                 <div className="chat-body">
                   <div className="chat-name-row">
-                    <span className="chat-name">{profile.name}</span>
+                    <span className="chat-name font-bold text-slate-900">{profile.name}</span>
                   </div>
                   {profile.headline && (
                     <p className="chat-preview">{profile.headline}</p>
                   )}
                   {profile.matchScore != null && (
-                    <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 600, marginTop: 2 }}>
+                    <p style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 700, marginTop: 2 }}>
                       {profile.matchScore}% match
                     </p>
                   )}
@@ -171,6 +178,16 @@ export default function LikesPage() {
         )}
 
       </div>
+
+      <MatchModal
+        open={!!matchInfo}
+        onClose={() => setMatchInfo(null)}
+        connectionId={matchInfo?.connectionId ?? null}
+        myPhoto={user?.photos?.[0]}
+        myName={user?.name ?? 'You'}
+        theirPhoto={matchInfo?.theirPhoto}
+        theirName={matchInfo?.theirName ?? 'Someone'}
+      />
     </div>
   );
 }
