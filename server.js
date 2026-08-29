@@ -3422,13 +3422,25 @@ function getInsight(a, b) {
   return b.intent ? 'Looking to ' + formatIntent(b.intent).toLowerCase() : 'Could be worth a conversation';
 }
 
+// Shared string-normalization rule for user-supplied tag-shaped fields
+// (skills, interests, city names). Trim + lowercase both sides before
+// comparing, so "Product " and "Product" match — fixes a real pre-existing
+// bug that would silently drop shared-skill/interest matches at any
+// trailing whitespace. Used by getMatchReasons AND getIcebreakers so the
+// two systems can never disagree on whether a pair shares a tag. Empty
+// string return also prevents two absent/nullish fields from ever matching
+// each other as "shared".
+function normalizeStr(s) {
+  return typeof s === 'string' ? s.trim().toLowerCase() : '';
+}
+
 function getMatchReasons(a, b) {
   const reasons = [];
 
   // Same city
   if (a.location && b.location) {
-    const aCity = a.location.split(',')[0].trim().toLowerCase();
-    const bCity = b.location.split(',')[0].trim().toLowerCase();
+    const aCity = normalizeStr(a.location.split(',')[0]);
+    const bCity = normalizeStr(b.location.split(',')[0]);
     if (aCity && bCity && aCity === bCity) reasons.push(`Same city · ${a.location.split(',')[0].trim()}`);
   }
 
@@ -3438,7 +3450,7 @@ function getMatchReasons(a, b) {
   // Intent — shared or theirs
   if (b.intent) {
     const bIntent = formatIntent(b.intent);
-    const aIntent = formatIntent(a.intent).toLowerCase();
+    const aIntent = normalizeStr(formatIntent(a.intent));
     if (aIntent && aIntent === bIntent.toLowerCase()) {
       reasons.push(`Both looking for ${bIntent.toLowerCase()}`);
     } else {
@@ -3447,12 +3459,18 @@ function getMatchReasons(a, b) {
   }
 
   // Shared skills
-  const sharedSkills = (a.skills||[]).filter(s=>(b.skills||[]).some(x=>x.toLowerCase()===s.toLowerCase()));
-  if (sharedSkills.length) reasons.push(`Shared skills · ${sharedSkills.slice(0,2).join(', ')}`);
+  const sharedSkills = (a.skills||[]).filter(s => {
+    const na = normalizeStr(s);
+    return na && (b.skills||[]).some(x => normalizeStr(x) === na);
+  });
+  if (sharedSkills.length) reasons.push(`Shared skills · ${sharedSkills.slice(0,2).map(s => s.trim()).join(', ')}`);
 
   // Shared interests
-  const sharedInterests = (a.interests||[]).filter(s=>(b.interests||[]).some(x=>x.toLowerCase()===s.toLowerCase()));
-  if (sharedInterests.length) reasons.push(`Both into ${sharedInterests.slice(0,2).join(' & ')}`);
+  const sharedInterests = (a.interests||[]).filter(s => {
+    const na = normalizeStr(s);
+    return na && (b.interests||[]).some(x => normalizeStr(x) === na);
+  });
+  if (sharedInterests.length) reasons.push(`Both into ${sharedInterests.slice(0,2).map(s => s.trim()).join(' & ')}`);
 
   // Exploring ↔ building overlap
   if (a.currently_exploring && b.working_on) {
@@ -3464,15 +3482,24 @@ function getMatchReasons(a, b) {
 }
 
 // ── ICEBREAKERS ──
-// Deterministic, rule-based ice-breaker chips shown in a chat's empty state
-// (frontend consumes via `connection.icebreakers` on GET /api/connections/:connId).
-// Signal ranking mirrors getMatchReasons() so the ice-breaker is grounded in
-// the SAME "why matched" evidence discovery already showed the user — no drift
-// between what they thought the match was about and what the chat offers.
+// Rule-based ice-breaker chips shown in a chat's empty state (frontend
+// consumes via `connection.icebreakers` on GET /api/connections/:connId).
 //
-// Determinism is a hard spec requirement — no Math.random, no Date.now, no
-// per-request nondeterminism. Same (me, other) profile pair always produces
-// the same chip set until one of the underlying fields changes.
+// Uses the same underlying match signals as getMatchReasons (city / skills /
+// interests / intent / working_on / currently_exploring), but prioritizes
+// concrete conversational hooks over abstract match signals — a chip like
+// "Saw you're building X — how did you get into that?" gives an obvious
+// answer path in a way that "we both matched on find-a-cofounder" doesn't.
+// This is a deliberate divergence from getMatchReasons's ranking, not
+// alignment with it — earlier code comment claiming they mirror was wrong.
+//
+// Pure function of its arguments: no Math.random, no Date.now, no closure
+// or global state — same (me, other) profile pair always produces the same
+// chip set. Response is a stable repeated response for identical inputs.
+//
+// Chips are emitted for pending (active:false) connections too, deliberately
+// — the empty state is exactly where lowering first-message friction matters
+// most, and adding an active-only guard would undermine that.
 //
 // Every interpolated field is hard-truncated before entering a template — a
 // pathological 5000-char `working_on` value would otherwise blow out chip
@@ -3499,33 +3526,33 @@ function getIcebreakers(me, other) {
 
   const chips = [];
 
-  // 1. Same city — mirrors getMatchReasons()'s highest-priority "context" signal
+  // 1. Same city — uses shared normalizeStr rule (see comment above the helper)
   if (me.location && other.location) {
-    const meCity = me.location.split(',')[0].trim();
-    const oCity  = other.location.split(',')[0].trim();
-    if (meCity && oCity && meCity.toLowerCase() === oCity.toLowerCase()) {
-      const city = truncField(oCity, 40);
+    const meCity = normalizeStr(me.location.split(',')[0]);
+    const oCity  = normalizeStr(other.location.split(',')[0]);
+    if (meCity && oCity && meCity === oCity) {
+      const city = truncField(other.location.split(',')[0].trim(), 40);
       chips.push({ label: '📍 Same city', text: `Since we're both in ${city}, would you be up for a coffee sometime?` });
     }
   }
 
   // 2. Shared skills
-  const sharedSkills = (me.skills || []).filter(s =>
-    typeof s === 'string' &&
-    (other.skills || []).some(x => typeof x === 'string' && x.toLowerCase() === s.toLowerCase())
-  );
+  const sharedSkills = (me.skills || []).filter(s => {
+    const na = normalizeStr(s);
+    return na && (other.skills || []).some(x => normalizeStr(x) === na);
+  });
   if (sharedSkills.length) {
-    const skill = truncField(sharedSkills[0], 40);
+    const skill = truncField(sharedSkills[0].trim(), 40);
     chips.push({ label: '💼 Shared skills', text: `We both work with ${skill} — what's the hardest problem you've hit with it lately?` });
   }
 
   // 3. Shared interests
-  const sharedInterests = (me.interests || []).filter(s =>
-    typeof s === 'string' &&
-    (other.interests || []).some(x => typeof x === 'string' && x.toLowerCase() === s.toLowerCase())
-  );
+  const sharedInterests = (me.interests || []).filter(s => {
+    const na = normalizeStr(s);
+    return na && (other.interests || []).some(x => normalizeStr(x) === na);
+  });
   if (sharedInterests.length) {
-    const interest = truncField(sharedInterests[0], 40);
+    const interest = truncField(sharedInterests[0].trim(), 40);
     chips.push({ label: '💡 Shared interests', text: `Saw we're both into ${interest} — anything recent you'd recommend on it?` });
   }
 
@@ -3537,13 +3564,13 @@ function getIcebreakers(me, other) {
 
   // 5. Their currently_exploring — different angle than working_on, only add
   // if it exists AND isn't just repeating what working_on already covered
-  if (other.currently_exploring && other.currently_exploring.trim() !== (other.working_on || '').trim()) {
+  if (other.currently_exploring && normalizeStr(other.currently_exploring) !== normalizeStr(other.working_on)) {
     const ce = truncField(other.currently_exploring, 80);
     chips.push({ label: '🔎 What they seek', text: `You mentioned you're looking for ${ce} — happy to compare notes if useful.` });
   }
 
   // 6. Same intent — least specific personalized signal, so lowest priority
-  if (me.intent && other.intent && me.intent === other.intent) {
+  if (me.intent && other.intent && normalizeStr(me.intent) === normalizeStr(other.intent)) {
     const intent = truncField(formatIntent(other.intent), 40);
     chips.push({ label: '🎯 Shared intent', text: `We both matched on ${intent.toLowerCase()} — where are you at with it right now?` });
   }
