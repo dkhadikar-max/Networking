@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
-import { APP_URL } from '@/lib/seo/data';
 import LandingClient from '@/components/landing/LandingClient';
 import MobileNav from '@/components/landing/MobileNav';
 import FeedbackWidget from '@/components/landing/FeedbackWidget';
@@ -67,9 +66,6 @@ const LANDING_CSS = `
   .hero-content h1 { font-size:clamp(32px,4vw,52px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:18px; color:var(--text); }
   .hero-content h1 span { color:var(--primary); }
   .hero-content .subtitle { font-size:17px; color:var(--text-soft); max-width:440px; margin-bottom:32px; line-height:1.6; }
-  .hero-badges { display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
-  .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:100px; font-size:12px; font-weight:500; color:var(--text-soft); }
-  .badge svg { width:14px; height:14px; }
   .cta-group { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
   .btn-primary { display:inline-flex; align-items:center; gap:10px; padding:15px 28px; background:var(--primary); color:white; text-decoration:none; border-radius:12px; font-weight:600; font-size:15px; transition:all 0.2s cubic-bezier(0.22,1,0.36,1); border:none; cursor:pointer; box-shadow:var(--shadow-primary); }
   .btn-primary:hover { background:var(--primary-dark); transform:translateY(-2px); box-shadow:0 8px 24px rgba(21,122,110,0.35); }
@@ -200,24 +196,14 @@ const LANDING_CSS = `
     .cta-group { flex-direction:column; width:100%; }
     .cta-group a, .cta-group button { width:100%; justify-content:center; }
     .intent-lang-row { flex-direction:column; }
-    .feedback-tab { right:auto; left:50%; top:auto; bottom:0; transform:translateX(-50%) translateY(2px); border-radius:12px 12px 0 0; padding:10px 20px; flex-direction:row; writing-mode:horizontal-tb; text-orientation:mixed; box-shadow:0 -4px 20px rgba(21,122,110,0.3); }
+    .feedback-tab { right:auto; left:50%; top:auto; bottom:var(--byn-cookie-banner-h, 0px); transform:translateX(-50%) translateY(2px); border-radius:12px 12px 0 0; padding:10px 20px; flex-direction:row; writing-mode:horizontal-tb; text-orientation:mixed; box-shadow:0 -4px 20px rgba(21,122,110,0.3); transition:bottom 0.25s ease; }
     .feedback-tab svg { transform:none; }
     .feedback-tab span { transform:none; }
     .feedback-tab:hover { transform:translateX(-50%) translateY(0); }
   }
 `;
 
-async function getStats() {
-  try {
-    const r = await fetch(`${APP_URL}/api/stats/public`, { next: { revalidate: 3600 } });
-    const d = await r.json();
-    return d.users > 0 ? (d as { users: number; connections: number }) : null;
-  } catch { return null; }
-}
-
 export default async function HomePage() {
-  const stats = await getStats();
-
   return (
     <ToastProvider>
     <div>
@@ -244,13 +230,10 @@ export default async function HomePage() {
         <div className="hero-bg" />
         <div className="hero-inner">
           <div className="hero-content">
-            <div className="hero-badges animate">
-              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5" /><path d="M2.5 8.5h19" /><circle cx="5.6" cy="6.5" r=".4" fill="currentColor" stroke="none" /><circle cx="7.4" cy="6.5" r=".4" fill="currentColor" stroke="none" /></svg>Works in browser</span>
-              <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9.5" /><polyline points="8 12.5 10.8 15.3 16 9.3" /></svg>No install needed</span>
-              {stats && (
-                <span className="badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>{stats.users.toLocaleString()} professionals</span>
-              )}
-            </div>
+            {/* Hero badges ("Works in browser · No install needed · N professionals")
+                removed intentionally — implementation reassurance and a live user
+                count aren't the hero's primary value proposition. The hero sells
+                the networking outcome; let it breathe. */}
             <h1 className="animate delay-1">Meet people by <span>intent</span>, not by resume.</h1>
             <p className="subtitle animate delay-2">Find who&apos;s actively looking for what you offer — and the people you&apos;re looking for. Build Your Network matches on declared intent, not job titles.</p>
             <div className="cta-group animate delay-3">

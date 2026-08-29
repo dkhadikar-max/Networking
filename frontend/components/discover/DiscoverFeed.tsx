@@ -72,10 +72,10 @@ export default function DiscoverFeed() {
   // Never share copy or state with the exhausted-feed empty state below.
   const [fetchError, setFetchError] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  // Discover -> Profile "inspect" — never a route change, so closing it
-  // returns to exactly the card the user was on. Always the current top
-  // card's id; there's nothing to inspect once it's no longer current.
-  const [inspectingId, setInspectingId] = useState<string | null>(null);
+  // Discover -> Quick Peek — never a route change, so closing it returns
+  // to exactly the card the user was on. Holds the profile object itself
+  // (already fetched) rather than just an id, so the Peek needs no refetch.
+  const [peeking, setPeeking] = useState<DiscoverProfile | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const filtersRef = useRef(filters);
   const [dailySignal, setDailySignal] = useState<DailySignal | null>(null);
@@ -280,20 +280,26 @@ export default function DiscoverFeed() {
               profile={current}
               onConnect={() => handleConnect(current)}
               onSkip={() => handleSkip(current)}
-              onInspect={() => router.push(`/profile/${getUid(current)}`)}
+              onInspect={() => setPeeking(current)}
             />
           )}
 
         </div>
       </div>
 
-      {/* Desktop-only (≥1024px, CSS-gated) — same data as the card, more room */}
-      {current && <ContextPanel profile={current} onInspect={() => setInspectingId(getUid(current))} />}
+      {/* Desktop-only (≥1024px, CSS-gated) — same data as the card, more room.
+          This panel already IS Discovery's Peek-equivalent on desktop: an
+          always-visible companion showing Why/Building/Looking For/Skills/
+          Interests, no tap required. Its own "View full profile" jumps
+          straight to the real document — routing it through the Peek
+          modal would pop that same content up a second time, on top of
+          itself. Only the mobile card's identity tap (no persistent
+          sidebar) opens the Peek modal. */}
+      {current && <ContextPanel profile={current} onInspect={() => router.push(`/profile/${getUid(current)}`)} />}
 
       <ProfileInspectOverlay
-        userId={inspectingId}
-        onClose={() => setInspectingId(null)}
-        onConnect={async () => { if (current) await handleConnect(current); }}
+        profile={peeking}
+        onClose={() => setPeeking(null)}
       />
 
       <MatchModal

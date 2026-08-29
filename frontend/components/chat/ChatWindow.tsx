@@ -199,8 +199,8 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50">
-        <div className="w-9 h-9 rounded-full border-3 border-[#157A6E] border-t-transparent animate-spin mb-2" />
+      <div role="status" aria-live="polite" className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50">
+        <div className="w-9 h-9 rounded-full border-3 border-[#157A6E] border-t-transparent animate-spin mb-2" aria-hidden="true" />
         <span className="text-xs font-semibold text-slate-400">Loading conversation…</span>
       </div>
     );
@@ -229,17 +229,23 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
   const other = connection.user;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white border-l border-slate-200/80">
+    // min-w-0: as a flex row child (of the page wrapper below, and of the
+    // desktop split view), a bare `flex-1` still refuses to shrink below
+    // its own content's natural min-width — measured at 390px acceptance,
+    // this alone was enough to push the whole window ~50px past the
+    // viewport, invisibly clipped by the page's `overflow:hidden` (see the
+    // 2026-08-30 fixture acceptance pass).
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-white border-l border-slate-200/80">
       {/* -- TOP HEADER ------------------------------------------------------ */}
-      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-100 bg-white/95 backdrop-blur-md flex items-center justify-between z-10 shadow-sm shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-slate-100 bg-white/95 backdrop-blur-md flex items-center justify-between gap-2 z-10 shadow-sm shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {/* Back button on Mobile / non-split */}
           {!isSplitView && (
             onBack ? (
               <button
                 type="button"
                 onClick={onBack}
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full mr-0.5 shrink-0"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer rounded-full mr-0.5 shrink-0"
                 aria-label="Back to conversations"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -249,7 +255,7 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
             ) : (
               <Link
                 href="/chat"
-                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full mr-0.5 shrink-0"
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer rounded-full mr-0.5 shrink-0"
                 aria-label="Back to conversations"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -262,7 +268,7 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
           <button
             type="button"
             onClick={() => openProfile(other)}
-            className="flex items-center gap-2.5 sm:gap-3 text-left hover:opacity-85 transition-opacity cursor-pointer group"
+            className="flex items-center gap-2.5 sm:gap-3 text-left hover:opacity-85 transition-opacity cursor-pointer group min-w-0 flex-1"
           >
             <div className="relative shrink-0">
               <Avatar src={other.photos?.[0]} name={other.name} size={42} />
@@ -270,27 +276,27 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
                 <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" title="Online"></span>
               )}
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-[15px] font-bold text-slate-900 leading-tight flex items-center gap-1 group-hover:text-[#157A6E] transition-colors">
-                {other.name}
+            <div className="flex flex-col min-w-0 flex-1">
+              <h1 className="text-[15px] font-bold text-slate-900 leading-tight flex items-center gap-1 group-hover:text-[#157A6E] transition-colors min-w-0">
+                <span className="truncate">{other.name}</span>
                 {other.verified && (
-                  <span title="Verified identity" className="inline-flex items-center text-[#157A6E]">
+                  <span title="Verified identity" className="inline-flex items-center text-[#157A6E] shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                     </svg>
                   </span>
                 )}
               </h1>
-              <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1 truncate max-w-[160px] sm:max-w-xs">
-                <span>🎯</span>
-                <span>Looking for: {other.intent ? formatIntent(other.intent) : 'Co-founder'}</span>
+              <span className="text-[11px] font-medium text-slate-500 flex items-center gap-1 truncate min-w-0">
+                <span className="shrink-0">🎯</span>
+                <span className="truncate">Looking for: {other.intent ? formatIntent(other.intent) : 'Co-founder'}</span>
               </span>
             </div>
           </button>
         </div>
 
         {/* Right Actions: Expiry & Priority Badge & Options */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="flex flex-col items-end justify-center shrink-0">
             <button
               type="button"
@@ -305,7 +311,7 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
               18h left
             </span>
           </div>
-          <button className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
+          <button type="button" aria-label="More options" className="p-1 text-slate-400 hover:text-slate-600 active:scale-90 transition-all cursor-pointer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/></svg>
           </button>
         </div>
@@ -445,7 +451,7 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
         className="px-4 sm:px-5 py-3 bg-white flex items-end gap-2 shrink-0 border-t border-slate-100"
         style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
       >
-        <button type="button" className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 cursor-pointer hover:bg-slate-200 transition-colors">
+        <button type="button" aria-label="Attach file" className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 cursor-pointer hover:bg-slate-200 transition-colors">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
         </button>
 

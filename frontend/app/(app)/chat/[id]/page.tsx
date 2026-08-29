@@ -52,7 +52,7 @@ export default function ChatDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       {/* Main Chat Window (Full width on mobile, right panel on desktop) */}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 min-w-0">
         <ChatWindow
           connectionId={id}
           isSplitView={false}

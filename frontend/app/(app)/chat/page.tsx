@@ -90,8 +90,8 @@ export default function ChatListPage() {
 
         {/* Conversation List Rows */}
         {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8">
-            <div className="w-8 h-8 rounded-full border-2 border-[#157A6E] border-t-transparent animate-spin mb-2" />
+          <div role="status" aria-live="polite" className="flex-1 flex flex-col items-center justify-center p-8">
+            <div className="w-8 h-8 rounded-full border-2 border-[#157A6E] border-t-transparent animate-spin mb-2" aria-hidden="true" />
             <span className="text-xs text-slate-400 font-medium">Loading inbox…</span>
           </div>
         ) : (

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,6 +38,8 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [loadingInbox, setLoadingInbox] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -48,6 +50,21 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
       .catch(() => { if (mode === 'inbox') toast('Failed to load priority messages', 'error'); })
       .finally(() => setLoadingInbox(false));
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!open) return;
+    // Same dialog-focus pattern as Peek/MatchModal. This modal previously
+    // had no Escape handler at all (the other two flow modals both do) —
+    // added here for consistency.
+    triggerRef.current = document.activeElement;
+    panelRef.current?.focus();
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => {
+      document.removeEventListener('keydown', handler);
+      if (triggerRef.current instanceof HTMLElement) triggerRef.current.focus();
+    };
+  }, [open, onClose]);
 
   async function handleSend() {
     if (!targetId || !text.trim() || sending) return;
@@ -78,6 +95,11 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={mode === 'inbox' ? 'Priority Inbox' : `Message ${targetName ?? 'this person'}`}
+        tabIndex={-1}
         style={{ width: '100%', maxWidth: 480, background: 'var(--bg)', borderRadius: '24px 24px 0 0', padding: '16px 20px 32px', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}
       >
@@ -92,6 +114,7 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
           </h2>
           <button
             onClick={onClose}
+            aria-label="Close"
             style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--muted)', fontSize: 18, lineHeight: 1 }}
           >
             ✕
@@ -101,12 +124,18 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
         {mode === 'inbox' ? (
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {loadingInbox ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-                <div className="spinner" />
+              <div role="status" aria-label="Loading priority messages" style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+                <div className="spinner" aria-hidden="true" />
               </div>
             ) : received.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--muted)' }}>
-                <p style={{ fontSize: 14 }}>No priority messages yet</p>
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--sur2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>
+                  ⚡
+                </div>
+                <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>No priority messages yet</h4>
+                <p style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.5, margin: '0 auto', maxWidth: 240 }}>
+                  Messages from people who really want your attention will show up here.
+                </p>
               </div>
             ) : (
               received.map(msg => (

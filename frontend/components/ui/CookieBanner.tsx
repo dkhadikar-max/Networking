@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -42,6 +42,7 @@ function loadGA() {
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
   const pathname = usePathname();
+  const bannerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const consent = getConsent();
@@ -51,6 +52,28 @@ export default function CookieBanner() {
       loadGA();
     }
   }, []);
+
+  // Publish the banner's current height as `--byn-cookie-banner-h` on <body>
+  // while it's on screen so sibling bottom-docked UI (e.g. FeedbackWidget) can
+  // offset its own `bottom` above the banner. Cleared on hide/unmount.
+  useEffect(() => {
+    if (!visible) return;
+    const node = bannerRef.current;
+    if (!node) return;
+    const write = () => {
+      document.body.style.setProperty(
+        '--byn-cookie-banner-h',
+        `${Math.round(node.getBoundingClientRect().height)}px`,
+      );
+    };
+    write();
+    const ro = new ResizeObserver(write);
+    ro.observe(node);
+    return () => {
+      ro.disconnect();
+      document.body.style.removeProperty('--byn-cookie-banner-h');
+    };
+  }, [visible]);
 
   if (!visible || pathname?.startsWith('/preview') || pathname?.startsWith('/design-preview')) return null;
 
@@ -66,6 +89,7 @@ export default function CookieBanner() {
 
   return (
     <div
+      ref={bannerRef}
       role="dialog"
       aria-label="Cookie consent"
       className="fixed bottom-0 inset-x-0 z-[150] bg-white border-t border-[var(--border)] shadow-[var(--shadow-xl)]"

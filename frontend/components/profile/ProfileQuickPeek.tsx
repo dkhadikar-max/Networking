@@ -8,13 +8,19 @@ type Props = {
 };
 
 export default function ProfileQuickPeek({ user, onViewFull }: Props) {
-  const name = user.name ?? 'Aarav Sharma';
-  const headline = user.headline ?? 'Founder & CEO @ NeuroFlow · Bengaluru';
-  const location = user.location ?? 'Bengaluru, India';
-  const working_on = user.working_on ?? 'Autonomous energy grid optimization network built with edge AI models.';
-  const currently_exploring = user.currently_exploring ?? 'World-class Principal Frontend Engineer & Design Partner.';
-  const bio = user.bio ?? 'Serial builder, previously built scalable data pipelines. Looking for someone obsessed with high-framerate UX to build our core interface.';
-  const interests = user.interests && user.interests.length > 0 ? user.interests : ['Autonomous AI', 'Climate Tech', 'Distributed Systems'];
+  // No fabricated fallbacks — an incomplete real profile must never render
+  // as a fake person. Missing fields hide their row instead (see 2026-08-29
+  // Profile↔Discovery IA audit).
+  const name = user.name || 'Someone';
+  const headline = user.headline;
+  const location = user.location;
+  const working_on = user.working_on;
+  const currently_exploring = user.currently_exploring;
+  const bio = user.bio;
+  const interests = user.interests ?? [];
+  // Peek only ever shows a candidate's profile, never the viewer's own —
+  // so this is always the neutral "nothing here yet" read, not a self nudge.
+  const hasNoContent = !working_on && !currently_exploring && !bio && interests.length === 0;
 
   return (
     <div className="flex flex-col h-full bg-white text-left overflow-hidden">
@@ -42,72 +48,89 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
           )}
         </div>
 
+        {/* Nothing narrative to show — quiet, neutral line, not a card. Only
+            renders when every content field is genuinely absent; a profile
+            with even one of these still gets its normal rows below. */}
+        {hasNoContent && (
+          <p className="text-sm text-slate-400 text-center py-6">
+            Nothing more to show here yet.
+          </p>
+        )}
+
         {/* Building Row */}
-        <div className="flex items-start gap-3.5 pt-1">
-          <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#FF7043] flex items-center justify-center shrink-0 shadow-2xs">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-              <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-              <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-            </svg>
+        {working_on && (
+          <div className="flex items-start gap-3.5 pt-1">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">BUILDING</h3>
+              <p className="text-sm text-slate-700 leading-snug mt-0.5">{working_on}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">BUILDING</h3>
-            <p className="text-sm text-slate-700 leading-snug mt-0.5">{working_on}</p>
-          </div>
-        </div>
+        )}
 
         {/* Looking For Row */}
-        <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#FF7043] flex items-center justify-center shrink-0 shadow-2xs">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
+        {currently_exploring && (
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">LOOKING FOR</h3>
+              <p className="text-sm text-slate-700 leading-snug mt-0.5">{currently_exploring}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">LOOKING FOR</h3>
-            <p className="text-sm text-slate-700 leading-snug mt-0.5">{currently_exploring}</p>
-          </div>
-        </div>
+        )}
 
         {/* Why Connect Row */}
-        <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#FF7043] flex items-center justify-center shrink-0 shadow-2xs">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+        {bio && (
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">WHY CONNECT</h3>
+              <p className="text-sm text-slate-700 leading-snug mt-0.5">{bio}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">WHY CONNECT</h3>
-            <p className="text-sm text-slate-700 leading-snug mt-0.5">{bio}</p>
-          </div>
-        </div>
+        )}
 
         {/* Top Interests Section */}
-        <div className="pt-2 pb-6">
-          <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-500 mb-2">TOP INTERESTS</h3>
-          <div className="flex flex-wrap gap-2">
-            {interests.map((interest) => (
-              <span
-                key={interest}
-                className="px-3 py-1.5 rounded-xl bg-[#FFF8F5] border border-[#FFE8DE] text-slate-800 text-xs font-semibold"
-              >
-                {interest}
-              </span>
-            ))}
+        {interests.length > 0 && (
+          <div className="pt-2 pb-6">
+            <h3 className="font-bold text-[11px] uppercase tracking-wider text-slate-500 mb-2">TOP INTERESTS</h3>
+            <div className="flex flex-wrap gap-2">
+              {interests.map((interest) => (
+                <span
+                  key={interest}
+                  className="px-3 py-1.5 rounded-xl bg-[#FFF8F5] border border-[#FFE8DE] text-slate-800 text-xs font-semibold"
+                >
+                  {interest}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* -- 2. STICKY / FIXED PRIMARY ACTION -- */}
       <div className="px-6 py-4 border-t border-slate-100 bg-white/95 backdrop-blur-md shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
         <button 
           onClick={onViewFull}
-          className="w-full bg-[#157A6E] hover:bg-[#0D6E63] text-white font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+          className="w-full bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
         >
           <span>View Full Profile</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

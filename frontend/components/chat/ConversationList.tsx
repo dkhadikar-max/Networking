@@ -68,7 +68,9 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
           />
           {search && (
             <button
+              type="button"
               onClick={() => setSearch('')}
+              aria-label="Clear search"
               className="absolute right-3 text-xs text-slate-400 hover:text-slate-900/80 p-0.5 transition-colors"
             >
               ✕
@@ -80,8 +82,21 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto divide-y divide-slate-100 px-2 pb-4 space-y-1">
         {filtered.length === 0 ? (
-          <div className="text-center py-8 text-sm font-sans text-slate-400">
-            No chats matching &quot;{search}&quot;
+          <div className="p-8 text-center flex flex-col items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl mb-3 shadow-xs">
+              🔍
+            </div>
+            <h3 className="font-display font-semibold text-lg text-slate-900 mb-1">No matches</h3>
+            <p className="text-sm font-sans text-slate-500 max-w-[240px] leading-relaxed mb-3">
+              Nothing matches &quot;{search}&quot;. Try a different name or keyword.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-sm font-semibold text-[#157A6E] hover:underline cursor-pointer"
+            >
+              Clear search
+            </button>
           </div>
         ) : (
           filtered.map(c => {
@@ -106,7 +121,7 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
 
             const rowContent = (
               <div
-                className={`p-3.5 rounded-2xl flex items-center gap-3.5 transition-all cursor-pointer group ${
+                className={`p-3.5 rounded-2xl flex items-center gap-3.5 transition-all active:scale-[0.98] cursor-pointer group ${
                   isActive
                     ? 'bg-teal-50/50 border border-[#157A6E]/30 shadow-sm'
                     : isUnread
@@ -124,10 +139,10 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="font-display font-semibold text-[15px] text-slate-900 tracking-tight truncate flex items-center gap-1.5">
-                      {is_priority && <span className="text-[#F97316]" title="Priority Connection">⚡</span>}
-                      {user.name}
+                  <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
+                    <span className="font-display font-semibold text-[15px] text-slate-900 tracking-tight truncate flex items-center gap-1.5 min-w-0">
+                      {is_priority && <span className="text-[#E65100] shrink-0" title="Priority Connection">⚡</span>}
+                      <span className="truncate">{user.name}</span>
                     </span>
                     {lastMessage && (
                       <span className="text-[11px] font-sans text-slate-400 font-medium shrink-0">
@@ -136,8 +151,8 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
-                    <p className={`text-sm font-sans truncate ${isUnread ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <p className={`text-sm font-sans truncate min-w-0 ${isUnread ? 'font-medium text-slate-900' : 'text-slate-500'}`}>
                       {lastMessage?.text ?? 'Say hello! 👋'}
                     </p>
 
@@ -152,7 +167,7 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
                   {/* Expiry Badge */}
                   {hoursLeft != null && hoursLeft <= 24 && (
                     <div className="flex items-center gap-1 mt-1.5">
-                      <span className="text-[10px] font-bold font-sans tracking-wide uppercase text-[#F97316] bg-[#F97316]/10 px-2 py-0.5 rounded border border-[#F97316]/20">
+                      <span className="text-[10px] font-bold font-sans tracking-wide uppercase text-[#E65100] bg-[#E65100]/10 px-2 py-0.5 rounded border border-[#E65100]/20">
                         ⏳ {hoursLeft}h left
                       </span>
                     </div>

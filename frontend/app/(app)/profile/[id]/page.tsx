@@ -21,30 +21,12 @@ export default function OtherProfilePage() {
   useEffect(() => {
     apiGet<ProfileData>(`/api/profiles/${id}`)
       .then(r => setProfile(r))
-      .catch(() => {
-        if (process.env.NODE_ENV === 'development') {
-          setProfile({
-            id: String(id),
-            name: 'Aarav Sharma',
-            email: 'aarav@neuroflow.ai',
-            email_verified: true,
-            onboarding_stage: 'complete',
-            headline: 'Founder & CEO @ NeuroFlow · Bengaluru',
-            location: 'Bengaluru, India',
-            intent: 'find-cofounder',
-            trust_score: 95,
-            verified: true,
-            working_on: 'Autonomous energy grid optimization network built with edge AI models. Deploying decentralized real-time inference nodes to dynamically balance municipal power distribution across regional smart grids.',
-            currently_exploring: 'A world-class Principal Frontend Engineer & Design Partner obsessed with high-framerate data visualizations, WebGL telemetry dashboards, and reactive system architecture.',
-            bio: 'Serial builder and systems architect passionate about edge computing, real-time grid orchestration, and high-framerate interfaces. Previously scaled streaming pipelines at Gridlytics handling 40M+ daily events. Looking for someone with deep frontend taste to build our core interface from zero to one.',
-            skills: ['Distributed Systems', 'PyTorch', 'Next.js', 'System Architecture', 'Edge AI Models', 'TypeScript', 'WebGL'],
-            interests: ['Autonomous AI', 'Climate Tech', 'Distributed Systems', 'High-Framerate UX', 'Clean Energy'],
-            photos: ['/assets/sample-founder-1.jpg'],
-          } as ProfileData);
-        } else {
-          toast('Profile not found', 'error');
-        }
-      })
+      // Same "not found" handling in every environment — a dev-only
+      // fabricated "Aarav Sharma" fallback used to stand in here, the one
+      // remaining fake-identity substitution left over from the
+      // 2026-08-29/30 Profile↔Discovery IA work. A failed fetch now always
+      // means a real "profile not found" state, never a substitute person.
+      .catch(() => toast('Profile not found', 'error'))
       .finally(() => setLoading(false));
   }, [id, toast]);
 
@@ -61,16 +43,30 @@ export default function OtherProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+      <div role="status" aria-live="polite" className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50">
+        <div className="w-9 h-9 rounded-full border-3 border-[#157A6E] border-t-transparent animate-spin mb-2" aria-hidden="true" />
+        <span className="text-xs font-semibold text-slate-400">Loading profile…</span>
       </div>
     );
   }
 
+  // Same deliberate visual language as ChatWindow's "Conversation Not
+  // Found" state — icon, heading, description, a way back — rather than
+  // a bare line of text.
   if (!profile) {
     return (
-      <div className="flex-1 flex items-center justify-center text-center p-8 text-[var(--muted)]">
-        <p className="text-sm">Profile not found</p>
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50 text-slate-400">
+        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-xl mb-2 shadow-xs">
+          🔍
+        </div>
+        <h3 className="font-bold text-sm text-slate-700 mb-1">Profile Not Found</h3>
+        <p className="text-xs max-w-xs">This profile may have been removed or the link is no longer valid.</p>
+        <button
+          onClick={() => router.push('/discover')}
+          className="mt-4 px-4 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+        >
+          ← Back to Discover
+        </button>
       </div>
     );
   }

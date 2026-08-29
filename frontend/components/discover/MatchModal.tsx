@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useReducedMotion, type Transition } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
@@ -23,12 +23,22 @@ export default function MatchModal({ open, onClose, connectionId, myPhoto, myNam
   // the initial/animate end-states are unchanged, so content still shows.
   const reduceMotion = useReducedMotion();
   const t = (normal: Transition): Transition => (reduceMotion ? { duration: 0 } : normal);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Same reasoning as the Peek overlay: send focus into the dialog on
+    // open (rather than leaving it on the Connect button behind it) and
+    // back to that trigger on close.
+    triggerRef.current = document.activeElement;
+    panelRef.current?.focus();
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    return () => {
+      document.removeEventListener('keydown', handler);
+      if (triggerRef.current instanceof HTMLElement) triggerRef.current.focus();
+    };
   }, [open, onClose]);
 
   return (
@@ -44,6 +54,11 @@ export default function MatchModal({ open, onClose, connectionId, myPhoto, myNam
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`You and ${theirName} matched`}
+            tabIndex={-1}
             className="relative z-10 w-full max-w-[360px] sm:max-w-[380px] bg-white rounded-3xl p-6 sm:p-8 text-center shadow-2xl border border-slate-100 match-modal"
             initial={{ opacity: 0, scale: 0.9, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

@@ -29,11 +29,12 @@ export default function OwnProfilePage() {
     );
   }
 
+  // ProfileView renders its own full-profile header (back + logo + Priority)
+  // via `data-full-profile`. Rendering an additional generic `.screen-header`
+  // above it stacked two headers at the top of the viewport, so it's dropped
+  // here. `/profile/[id]` already never rendered that outer header.
   return (
     <div className="profile-page-wrap" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div className="screen-header">
-        <h1>Profile</h1>
-      </div>
       <ProfileView
         user={user}
         isSelf

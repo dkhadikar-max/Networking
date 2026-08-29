@@ -374,13 +374,17 @@
    tapping the person's own identity is what signals "tell me more
    about them", not a generic UI control bolted onto the card. */
 .card-identity-tap { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: none; padding: 0; margin: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
-.card-identity-chevron { flex-shrink: 0; color: var(--muted); opacity: 0.7; }
+.card-identity-tap:active { opacity: 0.75; }
+.card-identity-chevron { flex-shrink: 0; color: var(--muted); opacity: 0.7; transition: transform 0.15s, opacity 0.15s; }
+.card-identity-tap:hover .card-identity-chevron { opacity: 1; transform: translateX(2px); }
 
-/* ── DISCOVER — profile inspect overlay ──────────────────────
+/* ── DISCOVER — Quick Peek overlay ──────────────────────
    Opened from the card's identity row or the desktop context panel.
    Never a route change — /discover stays mounted underneath, so
    closing this is instant and the swipe stack is untouched. This is
-   only overlay chrome; the content is the real ProfileView. */
+   only overlay chrome; the content is ProfileQuickPeek (the compact
+   decision layer), not the full ProfileView editorial document — see
+   the 2026-08-29 Profile↔Discovery IA audit. */
 .inspect-overlay-backdrop { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,0.55); }
 .inspect-overlay-panel {
   position: fixed; z-index: 301; left: 0; right: 0; bottom: 0;
@@ -391,7 +395,9 @@
 }
 .inspect-overlay-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 0; flex-shrink: 0; }
 .inspect-overlay-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; flex-shrink: 0; }
-.inspect-overlay-close { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sur2); border: none; color: var(--text-soft); cursor: pointer; }
+.inspect-overlay-close { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--sur2); border: none; color: var(--text-soft); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+.inspect-overlay-close:hover { background: var(--border); color: var(--text); }
+.inspect-overlay-close:active { transform: scale(0.92); }
 .inspect-overlay-body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .inspect-overlay-loading, .inspect-overlay-error { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; padding: 40px; }
 @media (min-width: 1024px) {
@@ -409,16 +415,15 @@
   backdrop-filter: blur(6px);
   z-index: 200;
 }
+/* Sizing (width / max-width / padding) is owned by the Tailwind classes on
+   the JSX element — `w-full max-w-[360px] sm:max-w-[380px] p-6 sm:p-8`.
+   Declaring them here again caused a silent cascade conflict where either
+   source could win depending on stylesheet order. Keep this rule for the
+   visual bits that don't have a Tailwind equivalent on the element. */
 .match-modal {
-  position: relative;
-  z-index: 201;
-  width: 100%;
-  max-width: 380px;
   background: var(--card);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-xl);
-  padding: 32px 24px 24px;
-  text-align: center;
 }
 .match-avatars {
   display: flex;
@@ -449,8 +454,10 @@
   background: none; border: none; cursor: pointer;
   font-family: inherit; font-size: 14px; font-weight: 600;
   color: var(--text-soft); padding: 10px;
+  transition: color 0.15s, transform 0.1s;
 }
 .match-dismiss:hover { color: var(--text); }
+.match-dismiss:active { transform: scale(0.96); }
 .disc-empty-icon {
   width: 64px;
   height: 64px;
@@ -920,9 +927,10 @@ textarea.pe-input { resize: none; }
     border: 1.5px solid var(--border); border-radius: var(--r-md);
     background: var(--bg-elevated, var(--card)); color: var(--text-soft);
     font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
   }
   .ctx-panel-inspect-link:hover { background: var(--sur2); border-color: var(--primary); color: var(--primary); }
+  .ctx-panel-inspect-link:active { transform: scale(0.98); }
 }
 
 /* ── LARGE DESKTOP (≥1440px) ──────────────────────────────── */
