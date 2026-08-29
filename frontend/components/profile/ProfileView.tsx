@@ -72,7 +72,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
   }
 
   return (
-    <main className="w-full min-h-full bg-white text-left font-sans relative" data-full-profile="true">
+    <main className="w-full min-h-full bg-white text-left font-sans relative" data-full-profile="true" style={{ colorScheme: 'light', backgroundColor: '#ffffff', color: '#0F172A' }}>
       <article className="w-full">
         {/* --- 1. FIXED TOP NAV ------------------------------------------------- */}
         <header className="px-5 h-[56px] border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-30 shrink-0">

@@ -50,6 +50,8 @@ export default function DiscoverySummaryCard() {
       width: '100%',
       maxWidth: 420,
       background: '#ffffff',
+      color: '#0F172A',
+      colorScheme: 'light',
       borderRadius: 24,
       overflow: 'hidden',
       boxShadow: '0 32px 80px rgba(0,0,0,0.16), 0 8px 24px rgba(0,0,0,0.08)',
@@ -57,6 +59,7 @@ export default function DiscoverySummaryCard() {
       position: 'relative',
       zIndex: 1,
     }}>
+
 
       {/* ── PHOTO ─ 280px, objectPosition top shows the face with perfect framing ── */}
       <div style={{ height: 280, background: '#CBD5E1', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>

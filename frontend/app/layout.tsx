@@ -46,8 +46,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
-      <body className="min-h-full bg-[var(--bg)] text-[var(--text)]">
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} style={{ colorScheme: 'light' }}>
+      <head>
+        <meta name="color-scheme" content="light" />
+        <meta name="darkreader-lock" content="true" />
+      </head>
+      <body className="min-h-full bg-[var(--bg)] text-[var(--text)]" style={{ colorScheme: 'light', backgroundColor: '#F6F8FA' }}>
         <link rel="preconnect" href="https://www.googletagmanager.com" />
         <link rel="llms.txt" href="/llms.txt" />
         <AuthProvider>
@@ -58,3 +62,4 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
+

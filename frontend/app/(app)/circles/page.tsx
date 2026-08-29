@@ -117,18 +117,10 @@ export default function CirclesPage() {
       {/* Header */}
       <div className="circles-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="byn-logo-box-sm circles-header-icon" style={{ width: 32, height: 32, borderRadius: 10 }}>
-            <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
-              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
-              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
-              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
-              <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-            </svg>
-          </div>
+          <img src="/assets/logo.png" alt="Build Your Network" width={32} height={32} className="circles-header-icon shrink-0" style={{ width: 32, height: 32, borderRadius: 8 }} />
           <span className="circles-title font-display font-extrabold">Circles</span>
         </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Link
             href="/circles/groups"

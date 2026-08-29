@@ -59,19 +59,11 @@ export default function DesktopNav() {
 
   return (
     <nav className="desk-nav">
-      <div className="desk-brand">
-        <div className="byn-logo-box-sm">
-          <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
-            <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
-            <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
-            <circle cx="25" cy="75" r="10" fill="#F4A259"/>
-            <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-            <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-            <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <span>BYN</span>
-      </div>
+      <Link href="/discover" className="desk-brand">
+        <img src="/assets/logo.png" alt="Build Your Network" width={32} height={32} style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
+        <span>Build Your Network</span>
+      </Link>
+
       {TABS.map(tab => {
         const active = path.startsWith(tab.href);
         return (

@@ -9,6 +9,8 @@
 
 /* ── Design Tokens ───────────────────────────────────────── */
 :root {
+  color-scheme: light;
+
   /* Auth page background (NetworkBackground canvas) */
   --teal-dark:       #064E4E;
 

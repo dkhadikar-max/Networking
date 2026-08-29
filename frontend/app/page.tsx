@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 // shadows, radii) come from the single source of truth in app/globals.css —
 // this file no longer redefines its own copy of the palette.
 const LANDING_CSS = `
+  html, body { color-scheme: light !important; background-color: #F6F8FA !important; }
   html { scroll-behavior: smooth; }
   body { font-family: var(--font-sans); }
 
