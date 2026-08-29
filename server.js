@@ -3488,7 +3488,7 @@ function getMatchReasons(a, b) {
 // Uses the same underlying match signals as getMatchReasons (city / skills /
 // interests / intent / working_on / currently_exploring), but prioritizes
 // concrete conversational hooks over abstract match signals — a chip like
-// "Saw you're building X — how did you get into that?" gives an obvious
+// "You mentioned working on X — how did you get into that?" gives an obvious
 // answer path in a way that "we both matched on find-a-cofounder" doesn't.
 // This is a deliberate divergence from getMatchReasons's ranking, not
 // alignment with it — earlier code comment claiming they mirror was wrong.
@@ -3556,10 +3556,21 @@ function getIcebreakers(me, other) {
     chips.push({ label: '💡 Shared interests', text: `Saw we're both into ${interest} — anything recent you'd recommend on it?` });
   }
 
-  // 4. Their working_on — strong, grounded prompt with an obvious answer path
+  // 4. Their working_on — strong, grounded prompt with an obvious answer path.
+  // Template deliberately uses the "You mentioned working on X" pattern (same
+  // as currently_exploring below) rather than "Saw you're building X" — the
+  // "you mentioned" framing composes cleanly with EVERY grammatical shape
+  // users actually write in `working_on`, including first-person possessives
+  // ("my SaaS", "our startup"), noun phrases with articles ("a Notion
+  // competitor"), non-buildable objects ("a blog on distributed systems"),
+  // and bare topics ("content strategy"). "Saw you're building" only worked
+  // for the noun-phrase case and produced nonsense on the others (e.g.
+  // "you're building my consulting practice" — a real defect surfaced by the
+  // QA matrix, docs/matching-chat-audit-2026-08-14.md wasn't the right pin,
+  // this one came from the ice-breaker QA sweep).
   if (other.working_on) {
     const wo = truncField(other.working_on, 80);
-    chips.push({ label: '🛠 Their work', text: `Saw you're building ${wo} — how did you get into that?` });
+    chips.push({ label: '🛠 Their work', text: `You mentioned working on ${wo} — how did you get into that?` });
   }
 
   // 5. Their currently_exploring — different angle than working_on, only add
