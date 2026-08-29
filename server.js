@@ -3520,11 +3520,55 @@ function exploringMatchesWorkingOn(exploringText, workingText) {
 // pathological 5000-char `working_on` value would otherwise blow out chip
 // layout. React text nodes already escape HTML so classic XSS via these
 // fields is not the concern; unbounded length is.
+//
+// Word-boundary cut, not character-boundary: prevents mid-word truncation
+// like "Apple H…" (which reads as "is the chip broken?" to a real user).
+// Falls back to character-boundary when a value has no usable space at all
+// (single 100-char word — rare, but bound must still hold). Trailing
+// punctuation is stripped before the ellipsis so we don't emit ".,…" or "…—".
 function truncField(s, max) {
   if (typeof s !== 'string') return '';
   const t = s.trim();
   if (t.length <= max) return t;
-  return t.slice(0, max - 1).trimEnd() + '…';
+  let sliced = t.slice(0, max);
+  const lastSpace = sliced.lastIndexOf(' ');
+  // Only use the word boundary if it isn't too far back — a value like
+  // "supercalifragilistic X..." with max=80 shouldn't chop 40 chars off
+  // just to save one mid-word cut.
+  if (lastSpace > max * 0.6) sliced = sliced.slice(0, lastSpace);
+  return sliced.replace(/[\s,.;:!?—–\-]+$/, '') + '…';
+}
+
+// For PROSE fields (working_on, currently_exploring) inserted mid-sentence.
+// truncField + one refinement: lowercase a leading sentence-start capital so
+// a user's "A cross-platform habit-tracker…" reads naturally inside "You
+// mentioned working on a cross-platform habit-tracker…" instead of the
+// slightly quoted-feeling "…working on A cross-platform habit-tracker…".
+// Preserves acronyms: "AI reading tutor" stays "AI reading tutor" because
+// the second char is also uppercase — only sentence-start capitals get lowered.
+// Not used for tag-shaped fields (skills, interests, city) — those SHOULD
+// stay capitalized as proper nouns.
+function proseField(s, max) {
+  const t = truncField(s, max);
+  if (t.length < 2) return t;
+  const c0 = t.charCodeAt(0);
+  const c1 = t.charCodeAt(1);
+  // First char upper A-Z (65-90) AND second char lower a-z (97-122) → lowercase.
+  // Handles "A Notion competitor" → "a Notion competitor", "My SaaS" → "my SaaS",
+  // "The next generation" → "the next generation", etc.
+  if (c0 >= 65 && c0 <= 90 && c1 >= 97 && c1 <= 122) {
+    return t[0].toLowerCase() + t.slice(1);
+  }
+  // Special case for standalone leading "A " (English article that got
+  // sentence-start capitalized) — the general rule above misses this because
+  // the second char is a space, not a letter. Only "A" is treated this way,
+  // NOT "I" (English pronoun, always capitalized) or other single-letter
+  // patterns like "R script" (would-be acronyms). Very targeted fix for a
+  // very common user-input shape ("A cross-platform ...", "A blog on ...").
+  if (c0 === 65 && c1 === 32) { // 'A' followed by space
+    return 'a' + t.slice(1);
+  }
+  return t;
 }
 
 // Order is stable and deterministic — chosen so that even the fallback path
@@ -3556,15 +3600,20 @@ function getIcebreakers(me, other) {
   // two chips saying essentially the same thing.
   const theySeekWhatIBuild = exploringMatchesWorkingOn(other.currently_exploring, me.working_on);
   const iSeekWhatTheyBuild = exploringMatchesWorkingOn(me.currently_exploring, other.working_on);
+  // Template deliberately places ", and I've been..." after the first
+  // interpolated field (not ". I've been..."), so a truncation ellipsis
+  // never lands adjacent to a period ("built…. Could be" looks broken).
+  // Comma-plus-conjunction still bridges cleanly whether the field
+  // truncated or not.
   if (theySeekWhatIBuild) {
-    const seek  = truncField(other.currently_exploring, 50);
-    const build = truncField(me.working_on, 50);
-    chips.push({ label: '💡 Direct match', text: `You mentioned looking for ${seek} — I've been working on ${build}. Could be a fit — worth a chat?` });
+    const seek  = proseField(other.currently_exploring, 50);
+    const build = proseField(me.working_on, 50);
+    chips.push({ label: '💡 Direct match', text: `You mentioned looking for ${seek}, and I've been working on ${build} — could be a fit, worth a chat?` });
   }
   if (iSeekWhatTheyBuild) {
-    const build = truncField(other.working_on, 50);
-    const seek  = truncField(me.currently_exploring, 50);
-    chips.push({ label: '🔗 Their work fits', text: `You mentioned working on ${build} — I've been exploring ${seek}. Could be a fit — worth a chat?` });
+    const build = proseField(other.working_on, 50);
+    const seek  = proseField(me.currently_exploring, 50);
+    chips.push({ label: '🔗 Their work fits', text: `You mentioned working on ${build}, and I've been exploring ${seek} — could be a fit, worth a chat?` });
   }
 
   // 1. Same city — uses shared normalizeStr rule (see comment above the helper)
@@ -3611,8 +3660,10 @@ function getIcebreakers(me, other) {
   // this one came from the ice-breaker QA sweep).
   // Suppressed when iSeekWhatTheyBuild already fired — that mutual-fit chip
   // already quotes other.working_on, no need to say it twice.
+  // Cap at 60 (was 80): word-boundary truncation cuts less aggressively than
+  // char-boundary, and 60 keeps a typical chip visibly within its 2-line clamp.
   if (other.working_on && !iSeekWhatTheyBuild) {
-    const wo = truncField(other.working_on, 80);
+    const wo = proseField(other.working_on, 60);
     chips.push({ label: '🛠 Their work', text: `You mentioned working on ${wo} — how did you get into that?` });
   }
 
@@ -3621,7 +3672,7 @@ function getIcebreakers(me, other) {
   // Also suppressed when theySeekWhatIBuild already fired — same reason as
   // the working_on suppression above.
   if (other.currently_exploring && !theySeekWhatIBuild && normalizeStr(other.currently_exploring) !== normalizeStr(other.working_on)) {
-    const ce = truncField(other.currently_exploring, 80);
+    const ce = proseField(other.currently_exploring, 60);
     chips.push({ label: '🔎 What they seek', text: `You mentioned you're looking for ${ce} — happy to compare notes if useful.` });
   }
 
