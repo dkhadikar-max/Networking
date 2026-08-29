@@ -3473,12 +3473,27 @@ function getMatchReasons(a, b) {
   if (sharedInterests.length) reasons.push(`Both into ${sharedInterests.slice(0,2).map(s => s.trim()).join(' & ')}`);
 
   // Exploring ↔ building overlap
-  if (a.currently_exploring && b.working_on) {
-    const kw = a.currently_exploring.toLowerCase().split(/\W+/).filter(x=>x.length>3);
-    if (kw.some(x=>b.working_on.toLowerCase().includes(x))) reasons.push("Their work connects to what you're exploring");
+  if (exploringMatchesWorkingOn(a.currently_exploring, b.working_on)) {
+    reasons.push("Their work connects to what you're exploring");
   }
 
   return reasons.slice(0, 3);
+}
+
+// Shared "does this exploring-text overlap this working-on text" check, used
+// by both getMatchReasons (single direction, viewer→other) and getIcebreakers
+// (bidirectional, since either party's exploring can match the other party's
+// build). Words shorter than 4 chars are dropped as noise; the check is
+// substring inclusion (fast enough at chip-generation scale, matches the
+// pre-existing shape of the getMatchReasons detection so both systems agree
+// on when this signal fires).
+function exploringMatchesWorkingOn(exploringText, workingText) {
+  if (typeof exploringText !== 'string' || typeof workingText !== 'string') return false;
+  if (!exploringText.trim() || !workingText.trim()) return false;
+  const kw = exploringText.toLowerCase().split(/\W+/).filter(x => x.length > 3);
+  if (!kw.length) return false;
+  const wo = workingText.toLowerCase();
+  return kw.some(x => wo.includes(x));
 }
 
 // ── ICEBREAKERS ──
@@ -3526,6 +3541,32 @@ function getIcebreakers(me, other) {
 
   const chips = [];
 
+  // 0. Mutual fit — the strongest possible personalization moment: one
+  // party is building what the other is looking for. Two independent
+  // directions, each detected by the same exploringMatchesWorkingOn helper
+  // getMatchReasons uses, so the two systems can never disagree on when
+  // this signal fires. When it does fire, the chip references BOTH sides
+  // (not just the other party) — the only chip that does. Sits at priority
+  // 0 above every other signal because it's both the highest-signal AND
+  // the most conversationally actionable ("you need X, I do X" gives an
+  // instant answer path in a way city / shared-skills / etc. don't).
+  //
+  // The `Their work` and `What they seek` chips below are suppressed
+  // when the mutual-fit chip already references the same field, to avoid
+  // two chips saying essentially the same thing.
+  const theySeekWhatIBuild = exploringMatchesWorkingOn(other.currently_exploring, me.working_on);
+  const iSeekWhatTheyBuild = exploringMatchesWorkingOn(me.currently_exploring, other.working_on);
+  if (theySeekWhatIBuild) {
+    const seek  = truncField(other.currently_exploring, 50);
+    const build = truncField(me.working_on, 50);
+    chips.push({ label: '💡 Direct match', text: `You mentioned looking for ${seek} — I've been working on ${build}. Could be a fit — worth a chat?` });
+  }
+  if (iSeekWhatTheyBuild) {
+    const build = truncField(other.working_on, 50);
+    const seek  = truncField(me.currently_exploring, 50);
+    chips.push({ label: '🔗 Their work fits', text: `You mentioned working on ${build} — I've been exploring ${seek}. Could be a fit — worth a chat?` });
+  }
+
   // 1. Same city — uses shared normalizeStr rule (see comment above the helper)
   if (me.location && other.location) {
     const meCity = normalizeStr(me.location.split(',')[0]);
@@ -3568,14 +3609,18 @@ function getIcebreakers(me, other) {
   // "you're building my consulting practice" — a real defect surfaced by the
   // QA matrix, docs/matching-chat-audit-2026-08-14.md wasn't the right pin,
   // this one came from the ice-breaker QA sweep).
-  if (other.working_on) {
+  // Suppressed when iSeekWhatTheyBuild already fired — that mutual-fit chip
+  // already quotes other.working_on, no need to say it twice.
+  if (other.working_on && !iSeekWhatTheyBuild) {
     const wo = truncField(other.working_on, 80);
     chips.push({ label: '🛠 Their work', text: `You mentioned working on ${wo} — how did you get into that?` });
   }
 
   // 5. Their currently_exploring — different angle than working_on, only add
-  // if it exists AND isn't just repeating what working_on already covered
-  if (other.currently_exploring && normalizeStr(other.currently_exploring) !== normalizeStr(other.working_on)) {
+  // if it exists AND isn't just repeating what working_on already covered.
+  // Also suppressed when theySeekWhatIBuild already fired — same reason as
+  // the working_on suppression above.
+  if (other.currently_exploring && !theySeekWhatIBuild && normalizeStr(other.currently_exploring) !== normalizeStr(other.working_on)) {
     const ce = truncField(other.currently_exploring, 80);
     chips.push({ label: '🔎 What they seek', text: `You mentioned you're looking for ${ce} — happy to compare notes if useful.` });
   }
