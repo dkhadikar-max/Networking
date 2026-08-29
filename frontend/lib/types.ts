@@ -65,6 +65,11 @@ export type Connection = {
   unread_count?: number;
   active?: boolean;
   is_priority?: boolean;
+  // Personalized ice-breaker chips, only emitted by GET /api/connections/:connId
+  // (the detail endpoint) — absent on the /api/connections list response.
+  // Deterministic server-side: same profile pair → same chip set. See
+  // getIcebreakers() in server.js.
+  icebreakers?: { label: string; text: string }[];
 };
 
 export type Message = {

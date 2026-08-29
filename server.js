@@ -3463,6 +3463,101 @@ function getMatchReasons(a, b) {
   return reasons.slice(0, 3);
 }
 
+// ── ICEBREAKERS ──
+// Deterministic, rule-based ice-breaker chips shown in a chat's empty state
+// (frontend consumes via `connection.icebreakers` on GET /api/connections/:connId).
+// Signal ranking mirrors getMatchReasons() so the ice-breaker is grounded in
+// the SAME "why matched" evidence discovery already showed the user — no drift
+// between what they thought the match was about and what the chat offers.
+//
+// Determinism is a hard spec requirement — no Math.random, no Date.now, no
+// per-request nondeterminism. Same (me, other) profile pair always produces
+// the same chip set until one of the underlying fields changes.
+//
+// Every interpolated field is hard-truncated before entering a template — a
+// pathological 5000-char `working_on` value would otherwise blow out chip
+// layout. React text nodes already escape HTML so classic XSS via these
+// fields is not the concern; unbounded length is.
+function truncField(s, max) {
+  if (typeof s !== 'string') return '';
+  const t = s.trim();
+  if (t.length <= max) return t;
+  return t.slice(0, max - 1).trimEnd() + '…';
+}
+
+// Order is stable and deterministic — chosen so that even the fallback path
+// picks the same generics in the same slots every time for a given signal set.
+const ICEBREAKER_GENERIC = [
+  { label: '📅 15-min intro', text: 'Hey! Would you be open to a quick 15-minute intro call sometime this week?' },
+  { label: '👋 Say hi', text: 'Hi — nice to match. What are you working on right now?' },
+  { label: '🤝 Explore fit', text: "Curious to hear more about what you're looking for — happy to share what I'm up to too." },
+  { label: '📁 Share your work', text: 'Do you have a link, repo, or deck I could take a look at?' },
+];
+
+function getIcebreakers(me, other) {
+  if (!me || !other) return ICEBREAKER_GENERIC.slice(0, 4);
+
+  const chips = [];
+
+  // 1. Same city — mirrors getMatchReasons()'s highest-priority "context" signal
+  if (me.location && other.location) {
+    const meCity = me.location.split(',')[0].trim();
+    const oCity  = other.location.split(',')[0].trim();
+    if (meCity && oCity && meCity.toLowerCase() === oCity.toLowerCase()) {
+      const city = truncField(oCity, 40);
+      chips.push({ label: '📍 Same city', text: `Since we're both in ${city}, would you be up for a coffee sometime?` });
+    }
+  }
+
+  // 2. Shared skills
+  const sharedSkills = (me.skills || []).filter(s =>
+    typeof s === 'string' &&
+    (other.skills || []).some(x => typeof x === 'string' && x.toLowerCase() === s.toLowerCase())
+  );
+  if (sharedSkills.length) {
+    const skill = truncField(sharedSkills[0], 40);
+    chips.push({ label: '💼 Shared skills', text: `We both work with ${skill} — what's the hardest problem you've hit with it lately?` });
+  }
+
+  // 3. Shared interests
+  const sharedInterests = (me.interests || []).filter(s =>
+    typeof s === 'string' &&
+    (other.interests || []).some(x => typeof x === 'string' && x.toLowerCase() === s.toLowerCase())
+  );
+  if (sharedInterests.length) {
+    const interest = truncField(sharedInterests[0], 40);
+    chips.push({ label: '💡 Shared interests', text: `Saw we're both into ${interest} — anything recent you'd recommend on it?` });
+  }
+
+  // 4. Their working_on — strong, grounded prompt with an obvious answer path
+  if (other.working_on) {
+    const wo = truncField(other.working_on, 80);
+    chips.push({ label: '🛠 Their work', text: `Saw you're building ${wo} — how did you get into that?` });
+  }
+
+  // 5. Their currently_exploring — different angle than working_on, only add
+  // if it exists AND isn't just repeating what working_on already covered
+  if (other.currently_exploring && other.currently_exploring.trim() !== (other.working_on || '').trim()) {
+    const ce = truncField(other.currently_exploring, 80);
+    chips.push({ label: '🔎 What they seek', text: `You mentioned you're looking for ${ce} — happy to compare notes if useful.` });
+  }
+
+  // 6. Same intent — least specific personalized signal, so lowest priority
+  if (me.intent && other.intent && me.intent === other.intent) {
+    const intent = truncField(formatIntent(other.intent), 40);
+    chips.push({ label: '🎯 Shared intent', text: `We both matched on ${intent.toLowerCase()} — where are you at with it right now?` });
+  }
+
+  // Fill any remaining slots with generic templates in stable order — never
+  // truncates the personalized list; a 4-signal match keeps all 4 personalized.
+  for (const g of ICEBREAKER_GENERIC) {
+    if (chips.length >= 4) break;
+    chips.push(g);
+  }
+
+  return chips.slice(0, 4);
+}
+
 // ── DATE HELPERS ──
 function todayKey()     { return new Date().toISOString().slice(0,10); }
 function thisMonthKey() { return new Date().toISOString().slice(0,7);  }
@@ -5789,6 +5884,10 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
     const lastMsg = lastMsgRow ? mapMessage(lastMsgRow) : null;
     const hoursLeft = conn.active ? null : Math.max(0, Math.round((new Date(conn.expires_at) - now) / 3600000));
     const unread_count = unreadCount || 0;
+    // Personalized ice-breakers, only emitted here (not on the /api/connections
+    // list) since chips render only in one conversation's empty state.
+    // getIcebreakers reads raw fields off `other` and `req.userData`; the
+    // response still ships the cleanPublic'd user object below, unchanged.
     res.json({
       connection: conn,
       user: cleanPublic(other),
@@ -5798,6 +5897,7 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
       msgCount: 0,
       unread_count,
       is_priority: (priMsgs || []).length > 0,
+      icebreakers: getIcebreakers(req.userData, other),
     });
   } catch(e) {
     console.error('Connection detail error:', e);
