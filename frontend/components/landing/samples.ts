@@ -18,19 +18,19 @@ import type { DiscoverProfile, User, CirclePost } from '@/lib/types';
 // which is worse than showing no badge at all.
 export const SAMPLE_USER = {
   id: '',
-  name: 'Meera Nair',
+  name: 'Deep',
   email_verified: true,
   onboarding_stage: 'complete',
   photos: [],
   location: 'Bengaluru',
   intent: 'find-cofounder',
-  interests: ['Design systems', 'Async collaboration'],
-  skills: ['Product', 'Growth'],
-  headline: 'Product Designer',
+  interests: ['Hospitality Tech', 'SaaS', 'Founder community', 'Product-led growth'],
+  skills: ['Product', 'Growth', 'Hospitality Ops', 'Go-to-market'],
+  headline: 'Founder @ Revist · Hospitality SaaS · Bengaluru',
   profile_score: 92,
   is_profile_complete: true,
-  working_on: 'A design-tech platform for async product reviews.',
-  currently_exploring: 'A technical co-founder to build with',
+  working_on: 'Revist — a SaaS platform helping hospitality businesses drive repeat visits and loyalty through personalised guest journeys.',
+  currently_exploring: 'A technical co-founder to build the core product with',
   verified: false,
 } as unknown as User;
 
@@ -69,7 +69,7 @@ export const SAMPLE_CIRCLE_POST: CirclePost = {
 };
 
 export const SAMPLE_CONVERSATION = [
-  { fromMe: false, text: "Hi! I saw you're looking for a technical co-founder. I'm building something similar in the climate space." },
-  { fromMe: true, text: 'Hey — yes, exactly. Would love to hear more about your background.' },
-  { fromMe: false, text: 'Sure. Ex-Stripe engineer, 6 years in infra. Looking for someone with product and GTM experience.' },
+  { fromMe: false, text: "Hi! I saw you're building in the hospitality space — Revist looks interesting. Would love to know more." },
+  { fromMe: true, text: "Hey — yes, we're helping hospitality businesses drive repeat visits. Would love to hear your background." },
+  { fromMe: false, text: 'Ex-Razorpay engineer, 5 years in product infra. Looking for someone with GTM and domain expertise.' },
 ];

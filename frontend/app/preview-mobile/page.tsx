@@ -311,7 +311,7 @@ function PreviewContent() {
              } />
 
              {/* Continuous Vertical Feed Document */}
-             <div className="w-full flex-1">
+             <div className="w-full flex-1 pb-[72px]">
                 <SwipeCard
                   profile={SAMPLE_PROFILE as any}
                   onConnect={async () => {}}
@@ -477,7 +477,7 @@ function PreviewContent() {
 
              {/* Message Canvas -- white background, no panel, scrollbar on outer viewport */}
              <div className="flex-1 min-h-0 overflow-y-auto text-left">
-                <div className="w-full px-5 py-3">
+                <div className="w-full px-4 py-3">
                    <div className="text-center mb-4">
                       <span className="text-[9px] uppercase tracking-widest font-semibold text-slate-400">
                          Match Established · Today
@@ -486,25 +486,25 @@ function PreviewContent() {
 
                    <div className="space-y-2">
                      {CHAT_MESSAGES.map((m) => (
-                       <div key={m.id} className={`w-full flex ${m.isMe ? 'justify-end' : 'justify-start'}`}>
+                       <div key={m.id} className={`w-full flex items-end gap-2 ${m.isMe ? 'justify-end' : 'justify-start'}`}>
                          {!m.isMe && (
-                           <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px] flex items-center justify-center mr-2 mt-auto shrink-0">
+                           <div className="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px] flex items-center justify-center shrink-0">
                              AS
                            </div>
                          )}
-                         <div className="flex flex-col min-w-0 max-w-[72%]">
+                         <div className={`flex flex-col min-w-0 max-w-[72%] ${m.isMe ? 'items-end' : 'items-start'}`}>
                            <div
-                             className={`px-3.5 py-2 text-[13px] leading-[1.45] rounded-xl ${
+                             className={`w-fit px-3.5 py-2 text-[13px] leading-[1.45] rounded-2xl break-words ${
                                m.isMe
-                                 ? 'bg-[#157A6E] text-white'
-                                 : 'bg-[#F3F4F6] text-slate-900'
+                                 ? 'bg-[#157A6E] text-white rounded-br-sm'
+                                 : 'bg-[#F3F4F6] text-slate-900 rounded-bl-sm'
                              }`}
                            >
-                             <p className="m-0 break-words">{m.text}</p>
+                             <p className="m-0">{m.text}</p>
                            </div>
-                           <div className={`flex items-center gap-1 mt-0.5 px-0.5 text-[9px] ${m.isMe ? 'text-slate-400 justify-end' : 'text-slate-400 justify-start'}`}>
+                           <div className={`flex items-center gap-1 mt-0.5 text-[9px] text-slate-400`}>
                              <span>{m.time}</span>
-                             {m.isMe && <span>✓✓</span>}
+                             {m.isMe && <span className="text-[#157A6E]">✓✓</span>}
                            </div>
                          </div>
                        </div>
@@ -531,7 +531,7 @@ function PreviewContent() {
              </div>
 
              {/* Composer */}
-             <div className="px-5 pt-2 pb-5 bg-white flex items-center gap-2 shrink-0">
+             <div className="px-4 pt-2 pb-6 bg-white flex items-center gap-2 shrink-0" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))' }}>
                 <button className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 cursor-pointer hover:bg-slate-200 transition-colors">
                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14m-7-7h14"/></svg>
                 </button>
