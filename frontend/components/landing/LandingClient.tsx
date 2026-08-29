@@ -9,10 +9,15 @@ export default function LandingClient() {
   const router = useRouter();
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('noredirect')) return;
     if (!loading && user?.email_verified && user.onboarding_stage === 'complete') {
-      router.replace('/discover');
+      // Don't auto-redirect offline dev mock user so the landing page can be developed & tested
+      if (process.env.NODE_ENV !== 'development' || !user.id?.startsWith('user-founder')) {
+        router.replace('/discover');
+      }
     }
   }, [user, loading, router]);
+
 
   useEffect(() => {
     const obs = new IntersectionObserver(

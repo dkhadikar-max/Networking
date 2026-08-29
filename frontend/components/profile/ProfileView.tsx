@@ -31,8 +31,9 @@ type Props = {
 export default function ProfileView({ user, isSelf, connected, connectionId, onConnect, onBack, onEdit }: Props) {
   const router = useRouter();
   const name = user.name ?? 'Aarav Sharma';
-  const photos = user.photos && user.photos.length > 0 ? user.photos : ['/assets/sample-founder-1.jpg', '/assets/sample-founder-2.jpg'];
   const headline = user.headline ?? 'Founder & CEO @ NeuroFlow · Bengaluru';
+  const photos = user.photos && user.photos.length > 0 ? user.photos : [];
+
   const location = user.location ?? 'Bengaluru, India';
   
   const working_on = user.working_on || 
@@ -71,7 +72,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
   }
 
   return (
-    <main className="w-full min-h-screen bg-white text-left font-sans relative" data-full-profile="true">
+    <main className="w-full min-h-full bg-white text-left font-sans relative" data-full-profile="true">
       <article className="w-full">
         {/* --- 1. FIXED TOP NAV ------------------------------------------------- */}
         <header className="px-5 h-[56px] border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-30 shrink-0">
@@ -101,11 +102,12 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
         {/* --- A. FULL-BLEED HERO PHOTO (420px tall) --- */}
         <section className="relative w-full overflow-hidden shrink-0" style={{ height: '420px', backgroundColor: '#F1F5F9' }}>
           {photos[photoIdx] && !lightboxError ? (
-            <img 
-              src={getUncroppedImageUrl(photos[photoIdx])} 
-              alt={name} 
+            <img
+              src={getUncroppedImageUrl(photos[photoIdx])}
+              alt={name}
               onError={() => setLightboxError(true)}
               className="w-full h-full object-cover select-none"
+              style={{ objectPosition: 'center 65%' }}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">

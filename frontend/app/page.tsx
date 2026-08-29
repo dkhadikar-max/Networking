@@ -58,13 +58,14 @@ const LANDING_CSS = `
   .nav-cta:hover { background:var(--primary-dark); transform:translateY(-1px); }
   .mobile-menu-btn { display:none; background:none; border:none; cursor:pointer; padding:8px; }
 
-  /* -- Hero -- */
-  .hero { min-height:92vh; display:flex; align-items:center; padding:112px 24px 64px; position:relative; overflow:hidden; }
-  .hero-bg { position:absolute; top:-20%; right:-10%; width:600px; height:600px; background:radial-gradient(circle,var(--highlight) 0%,transparent 70%); opacity:0.5; pointer-events:none; }
-  .hero-inner { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr minmax(0,420px); gap:56px; align-items:start; padding-top:16px; width:100%; }
-  .hero-content h1 { font-size:clamp(34px,4.6vw,56px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:18px; color:var(--text); }
+  /* -- Hero — split-screen: left=marketing, right=discovery workspace -- */
+  .hero { min-height:100vh; display:flex; align-items:stretch; position:relative; overflow:hidden; padding:0; }
+  .hero-bg { position:absolute; top:-20%; left:-10%; width:700px; height:700px; background:radial-gradient(circle,var(--highlight) 0%,transparent 70%); opacity:0.45; pointer-events:none; z-index:0; }
+  .hero-inner { width:100%; display:grid; grid-template-columns:1fr 1fr; align-items:stretch; position:relative; z-index:1; }
+  .hero-content { display:flex; flex-direction:column; justify-content:center; padding:128px 56px 80px 64px; }
+  .hero-content h1 { font-size:clamp(32px,4vw,52px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:18px; color:var(--text); }
   .hero-content h1 span { color:var(--primary); }
-  .hero-content .subtitle { font-size:17px; color:var(--text-soft); max-width:460px; margin-bottom:32px; line-height:1.6; }
+  .hero-content .subtitle { font-size:17px; color:var(--text-soft); max-width:440px; margin-bottom:32px; line-height:1.6; }
   .hero-badges { display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
   .badge { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:100px; font-size:12px; font-weight:500; color:var(--text-soft); }
   .badge svg { width:14px; height:14px; }
@@ -74,7 +75,9 @@ const LANDING_CSS = `
   .btn-primary svg { width:19px; height:19px; }
   .btn-secondary { display:inline-flex; align-items:center; gap:8px; padding:15px 24px; background:transparent; color:var(--primary); text-decoration:none; border-radius:12px; font-weight:600; font-size:15px; border:2px solid var(--primary); transition:all 0.2s; }
   .btn-secondary:hover { background:var(--primary-light); transform:translateY(-2px); }
-  .hero-visual { position:relative; display:flex; justify-content:center; }
+  /* Discovery workspace panel — visually independent from marketing content */
+  .hero-visual { display:flex; align-items:center; justify-content:center; padding:64px 48px; background:var(--bg-subtle); border-left:1px solid var(--border-subtle); position:relative; }
+  .hero-visual::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 60% 40%, var(--highlight) 0%, transparent 65%); opacity:0.35; pointer-events:none; }
 
   section { padding:88px 24px; position:relative; }
   .section-inner { max-width:1080px; margin:0 auto; }
@@ -177,8 +180,10 @@ const LANDING_CSS = `
   .success-icon { width:64px; height:64px; background:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; color:var(--primary); }
 
   @media (max-width:900px) {
-    .hero-inner { grid-template-columns:1fr; gap:32px; padding-top:0; }
-    .hero-visual { order:1; }
+    .hero-inner { grid-template-columns:1fr; align-items:start; }
+    .hero-content { padding:100px 28px 40px; }
+    .hero-visual { order:2; border-left:none; border-top:1px solid var(--border-subtle); padding:28px 16px 48px; min-height:auto; }
+
     .why-grid { grid-template-columns:1fr; }
     .screens-grid { grid-template-columns:1fr; }
     .trust-grid { grid-template-columns:1fr; }
