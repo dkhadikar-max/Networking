@@ -61,8 +61,8 @@ const LANDING_CSS = `
   /* -- Hero -- */
   .hero { min-height:92vh; display:flex; align-items:center; padding:112px 24px 64px; position:relative; overflow:hidden; }
   .hero-bg { position:absolute; top:-20%; right:-10%; width:600px; height:600px; background:radial-gradient(circle,var(--highlight) 0%,transparent 70%); opacity:0.5; pointer-events:none; }
-  .hero-inner { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; width:100%; }
-  .hero-content h1 { font-size:clamp(34px,4.6vw,52px); font-weight:800; line-height:1.12; letter-spacing:-1.5px; margin-bottom:18px; color:var(--text); }
+  .hero-inner { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr minmax(0,420px); gap:56px; align-items:start; padding-top:16px; width:100%; }
+  .hero-content h1 { font-size:clamp(34px,4.6vw,56px); font-weight:800; line-height:1.1; letter-spacing:-1.5px; margin-bottom:18px; color:var(--text); }
   .hero-content h1 span { color:var(--primary); }
   .hero-content .subtitle { font-size:17px; color:var(--text-soft); max-width:460px; margin-bottom:32px; line-height:1.6; }
   .hero-badges { display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap; }
@@ -177,8 +177,8 @@ const LANDING_CSS = `
   .success-icon { width:64px; height:64px; background:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; color:var(--primary); }
 
   @media (max-width:900px) {
-    .hero-inner { grid-template-columns:1fr; gap:40px; }
-    .hero-visual { order:-1; }
+    .hero-inner { grid-template-columns:1fr; gap:32px; padding-top:0; }
+    .hero-visual { order:1; }
     .why-grid { grid-template-columns:1fr; }
     .screens-grid { grid-template-columns:1fr; }
     .trust-grid { grid-template-columns:1fr; }

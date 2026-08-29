@@ -27,7 +27,7 @@ type Props = {
 export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
   const user = (profile?.user ?? profile ?? {}) as User;
   const name = user?.name ?? 'Aarav Sharma';
-  const photos = user?.photos && user.photos.length > 0 ? user.photos : ['/assets/sample-founder-1.jpg', '/assets/sample-founder-2.jpg'];
+  const photos = user?.photos && user.photos.length > 0 ? user.photos : [];
   const headline = user?.headline ?? 'Founder & CEO @ NeuroFlow · Bengaluru';
   const location = user?.location ?? 'Bengaluru, India';
   

@@ -21,7 +21,7 @@ export const SAMPLE_USER = {
   name: 'Deep',
   email_verified: true,
   onboarding_stage: 'complete',
-  photos: [],
+  photos: ['/assets/deep-profile.jpg'],
   location: 'Bengaluru',
   intent: 'find-cofounder',
   interests: ['Hospitality Tech', 'SaaS', 'Founder community', 'Product-led growth'],
