@@ -1,0 +1,1055 @@
+{
+  "auditLog": {
+    "320": {
+      "discovery": {
+        "docWidth": 320,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 296,
+        "cardHeight": 437,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 106,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 108,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 320,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "375": {
+      "discovery": {
+        "docWidth": 375,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 351,
+        "cardHeight": 464,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 134,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 136,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 375,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "390": {
+      "discovery": {
+        "docWidth": 390,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 366,
+        "cardHeight": 641,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 141,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 143,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 390,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "430": {
+      "discovery": {
+        "docWidth": 430,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 406,
+        "cardHeight": 729,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 164,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 160,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 430,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "768": {
+      "discovery": {
+        "docWidth": 768,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 456,
+        "cardHeight": 821,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 214,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 160,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 768,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "1024": {
+      "discovery": {
+        "docWidth": 1024,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 400,
+        "cardHeight": 656,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 158,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 160,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 1024,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    },
+    "1440": {
+      "discovery": {
+        "docWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "cardWidth": 456,
+        "cardHeight": 788,
+        "authorName": "Rohit Verma",
+        "hasBuildingPrompt": true,
+        "hasLookingForPrompt": true,
+        "hasConnectBtn": true,
+        "hasNoteBtn": true,
+        "hasSkipBtn": true,
+        "connectBtnWidth": 214,
+        "connectBtnHeight": 56,
+        "noteBtnWidth": 160,
+        "noteBtnHeight": 56
+      },
+      "likes": {
+        "docWidth": 1440,
+        "hasHorizontalOverflow": false,
+        "likeRowCount": 2,
+        "connectBtnCount": 2
+      }
+    }
+  },
+  "consoleLogs": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://www.googletagmanager.com/td?id=G-5NQDBYG4CJ&v=3&t=t&pid=318276831&gtm=45je68o1h1v9246997339za200zd9246997339&seq=1&exp=115938465~115938468~118897920~118897930~119367802~119367810~120213116~120385423&dl=localhost%2Fdiscover&tdp=G-5NQDBYG4CJ;246997339;0;0;0&frm=0&rtg=246997339&slo=24&hlo=25&lst=3&bt=0&ct=3&z=0' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 130ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://www.googletagmanager.com/td?id=G-5NQDBYG4CJ&ncc=1&v=3&t=t&pid=318276831&gtm=45je68o1h1v9246997339za200zd9246997339&seq=2&exp=115938465~115938468~118897920~118897930~119367802~119367810~120213116~120385423&dl=localhost%2Fdiscover&tdp=G-5NQDBYG4CJ;246997339;0;0;0&csp=G-5NQDBYG4CJ;61_1_8&mde=G-5NQDBYG4CJ;61_1&fin=1&z=0&img=1' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 124ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 150ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 141ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 172ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 138ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 138ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 109ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 176ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 175ms"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 227ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 229ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 114ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 173ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 179ms"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 155ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 105ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 137ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 156ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=600' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 130ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 212ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 159ms"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] rebuilding"
+    },
+    {
+      "type": "log",
+      "text": "[Fast Refresh] done in 143ms"
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    },
+    {
+      "type": "error",
+      "text": "Loading the image 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200' violates the following Content Security Policy directive: \"img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com\". The action has been blocked."
+    }
+  ],
+  "pageErrors": []
+}

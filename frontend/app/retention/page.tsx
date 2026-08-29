@@ -95,12 +95,12 @@ export default function RetentionPage() {
             <span className="text-sm text-[var(--text-secondary)]">
               Hi, {profile?.name?.split(' ')[0] ?? 'there'} 👋
             </span>
-            <a
-              href="https://buildyournetwork.online/webapp.html"
-              className="text-sm px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white font-medium hover:bg-[var(--primary-dark)] transition-colors"
+            <Link
+              href="/discover"
+              className="text-xs px-3.5 py-1.5 rounded-xl bg-[#157A6E] text-white font-bold hover:bg-[#0D5F58] transition-colors shadow-2xs"
             >
-              Open app
-            </a>
+              Open App →
+            </Link>
           </div>
         </div>
       </header>

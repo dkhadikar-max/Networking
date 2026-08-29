@@ -58,7 +58,7 @@ const LANDING_CSS = `
   .nav-cta:hover { background:var(--primary-dark); transform:translateY(-1px); }
   .mobile-menu-btn { display:none; background:none; border:none; cursor:pointer; padding:8px; }
 
-  /* ── Hero ── */
+  /* -- Hero -- */
   .hero { min-height:92vh; display:flex; align-items:center; padding:112px 24px 64px; position:relative; overflow:hidden; }
   .hero-bg { position:absolute; top:-20%; right:-10%; width:600px; height:600px; background:radial-gradient(circle,var(--highlight) 0%,transparent 70%); opacity:0.5; pointer-events:none; }
   .hero-inner { max-width:1180px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:64px; align-items:center; width:100%; }
@@ -84,7 +84,7 @@ const LANDING_CSS = `
   .section-center { text-align:center; }
   .section-center .section-desc { margin-left:auto; margin-right:auto; }
 
-  /* ── Why BYN ── */
+  /* -- Why BYN -- */
   .why-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:44px; }
   .why-card { background:var(--bg-elevated); padding:32px 26px; border-radius:20px; box-shadow:var(--shadow-sm); border:1px solid var(--border-subtle); position:relative; overflow:hidden; }
   .why-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:linear-gradient(to right,var(--primary),var(--primary-2)); }
@@ -93,18 +93,18 @@ const LANDING_CSS = `
   .why-card h3 { font-size:18px; font-weight:700; margin-bottom:8px; }
   .why-card p { font-size:14px; color:var(--text-soft); line-height:1.6; }
 
-  /* ── Discovery / intent language ── */
+  /* -- Discovery / intent language -- */
   .intent-lang-row { display:flex; flex-wrap:wrap; gap:14px; margin-top:40px; }
   .intent-lang-card { flex:1; min-width:200px; background:var(--bg-elevated); border:1px solid var(--border-subtle); border-radius:16px; padding:20px; box-shadow:var(--shadow-xs); }
   .intent-lang-label { display:inline-block; font-size:10px; font-weight:800; letter-spacing:0.6px; text-transform:uppercase; color:var(--primary); background:var(--primary-light); padding:4px 10px; border-radius:999px; margin-bottom:12px; }
   .intent-lang-value { font-size:15px; font-weight:700; color:var(--text); }
 
-  /* ── Real product screens ── */
+  /* -- Real product screens -- */
   .screens-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:44px; align-items:start; }
   .screen-slot { display:flex; flex-direction:column; align-items:center; gap:14px; }
   .screen-caption { font-size:13px; font-weight:700; color:var(--text-soft); text-align:center; }
 
-  /* ── Trust ── */
+  /* -- Trust -- */
   .trust-section { background:var(--bg-subtle); }
   .trust-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-top:40px; max-width:640px; }
   .trust-check { display:flex; align-items:flex-start; gap:12px; background:var(--bg-elevated); padding:18px 20px; border-radius:14px; border:1px solid var(--border-subtle); }
@@ -112,11 +112,11 @@ const LANDING_CSS = `
   .trust-check h3 { font-size:14px; font-weight:700; margin-bottom:3px; }
   .trust-check p { font-size:12.5px; color:var(--text-soft); line-height:1.5; }
 
-  /* ── Circles ── */
+  /* -- Circles -- */
   .circles-copy { max-width:560px; }
   .circles-layout { display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center; margin-top:40px; }
 
-  /* ── SEO content (About / FAQ) ── */
+  /* -- SEO content (About / FAQ) -- */
   .seo-section { background:var(--bg-subtle); }
   .seo-links { display:flex; gap:10px; flex-wrap:wrap; margin-top:20px; }
   .seo-links a { color:var(--primary); font-weight:600; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; background:var(--bg-elevated); padding:6px 12px; border-radius:8px; border:1px solid var(--border-subtle); }
@@ -128,7 +128,7 @@ const LANDING_CSS = `
   .faq-item div { padding:0 0 20px; }
   .faq-item div p { color:var(--text-soft); line-height:1.7; font-size:15px; }
 
-  /* ── Download (real APK — public/apk/BuildYourNetwork.apk) ── */
+  /* -- Download (real APK — public/apk/BuildYourNetwork.apk) -- */
   .download-section { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:white; text-align:center; padding:72px 24px; }
   .download-section .section-label { color:var(--primary-light); }
   .download-section .section-title { color:white; }
@@ -233,7 +233,7 @@ export default async function HomePage() {
         </div>
       </nav>
 
-      {/* ── HERO — the real Discover card IS the product demo, not a mockup of it ── */}
+      {/* -- HERO — the real Discover card IS the product demo, not a mockup of it -- */}
       <section className="hero" id="hero">
         <div className="hero-bg" />
         <div className="hero-inner">
@@ -259,7 +259,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── WHY BYN ── */}
+      {/* -- WHY BYN -- */}
       <section id="why">
         <div className="section-inner">
           <p className="section-label animate">Why This Is Different</p>
@@ -280,7 +280,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── DISCOVERY / INTENT — intent as the visual language, not marketing copy ── */}
+      {/* -- DISCOVERY / INTENT — intent as the visual language, not marketing copy -- */}
       <section style={{ background: 'var(--bg-subtle)' }}>
         <div className="section-inner">
           <p className="section-label animate">How Profiles Work</p>
@@ -294,7 +294,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── REAL PRODUCT SCREENS ── */}
+      {/* -- REAL PRODUCT SCREENS -- */}
       <section id="screens">
         <div className="section-inner section-center">
           <p className="section-label animate">The Actual Product</p>
@@ -317,7 +317,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── TRUST / PRIVACY — only claims that map to real, shipped mechanisms ── */}
+      {/* -- TRUST / PRIVACY — only claims that map to real, shipped mechanisms -- */}
       <section className="trust-section" id="trust">
         <div className="section-inner">
           <p className="section-label animate">Your Network. Your Control.</p>
@@ -340,7 +340,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── CIRCLES ── */}
+      {/* -- CIRCLES -- */}
       <section id="circles">
         <div className="section-inner">
           <div className="circles-layout">
@@ -357,7 +357,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Download (real APK) ── */}
+      {/* -- Download (real APK) -- */}
       <section className="download-section" id="download">
         <div className="section-inner">
           <p className="section-label animate">Get Started</p>
@@ -377,7 +377,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── SEO CONTENT — kept, shortened, moved below the product story; still server-rendered ── */}
+      {/* -- SEO CONTENT — kept, shortened, moved below the product story; still server-rendered -- */}
       <section className="seo-section" id="about-byn">
         <div className="section-inner">
           <p className="section-label animate">Knowledge Base</p>

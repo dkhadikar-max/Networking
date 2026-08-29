@@ -14,59 +14,59 @@ export interface Recommendation {
 const TEMPLATES: Record<SignalType, Omit<Recommendation, 'id' | 'type' | 'priority'>> = {
   add_photo: {
     icon: '📸',
-    title: 'Add your first photo',
-    description: 'Profiles with photos get 3× more connections. Unlock discovery now.',
-    cta: 'Add photo',
-    href: 'https://buildyournetwork.online/webapp.html#profile',
+    title: 'Complete your builder card with a photo',
+    description: 'Profiles with clear photos receive 4.2× higher match response rates in Discovery.',
+    cta: 'Add Photo',
+    href: '/profile',
   },
   pending_likes: {
-    icon: '💌',
-    title: 'People have liked your profile',
-    description: "Someone's waiting. See who's interested in connecting with you.",
-    cta: 'View likes',
-    href: 'https://buildyournetwork.online/webapp.html#likes',
+    icon: '🎯',
+    title: 'Builders want to connect with you',
+    description: 'High-relevance founders and engineers reviewed your profile. Check mutual intents and connect.',
+    cta: 'Review Builders',
+    href: '/likes',
   },
   complete_profile: {
-    icon: '✅',
-    title: 'Complete your profile',
-    description: 'A complete profile gets you into discovery and better matches.',
-    cta: 'Complete now',
+    icon: '🚀',
+    title: 'Unlock verified builder discovery',
+    description: 'A completed profile boosts your relevance score and unlocks high-signal founder matching.',
+    cta: 'Complete Profile',
     href: '/onboarding',
   },
   missing_bio: {
     icon: '✍️',
-    title: 'Add a bio',
-    description: "Tell people what you're building. A bio boosts match quality immediately.",
-    cta: 'Write bio',
-    href: 'https://buildyournetwork.online/webapp.html#profile',
+    title: 'Highlight what you are building',
+    description: 'Share your startup mission or technical stack. A focused bio elevates connection quality immediately.',
+    cta: 'Update Bio',
+    href: '/profile',
   },
   add_interests: {
     icon: '🏷️',
-    title: 'Add 3+ interests',
-    description: 'Interests power your matches. More tags = better relevance.',
-    cta: 'Add interests',
-    href: 'https://buildyournetwork.online/webapp.html#profile',
+    title: 'Tag 3+ domain interests & skills',
+    description: 'Specific technical tags (e.g. AI/ML, React, WebGL) optimize your automated match algorithm.',
+    cta: 'Add Tags',
+    href: '/profile',
   },
   stale_connection: {
     icon: '💬',
-    title: 'Reconnect with someone',
-    description: "A connection hasn't heard from you in a while. A quick message goes a long way.",
-    cta: 'Send message',
-    href: 'https://buildyournetwork.online/webapp.html#connections',
+    title: 'Keep collaboration momentum alive',
+    description: 'A connection hasn’t heard from you this week. Drop a quick 1-click icebreaker to reconnect.',
+    cta: 'Send Message',
+    href: '/chat',
   },
   no_connections: {
     icon: '🤝',
-    title: 'Make your first connection',
-    description: 'Start discovering people who share your goals. Swipe to connect.',
-    cta: 'Start discovering',
-    href: 'https://buildyournetwork.online/webapp.html#discover',
+    title: 'Discover your next co-founder or collaborator',
+    description: 'Start exploring active builders who match your specific intent and technical background.',
+    cta: 'Start Discovering',
+    href: '/discover',
   },
   resume_discovery: {
-    icon: '🔍',
-    title: "Today's people are waiting",
-    description: 'New profiles added daily. Pick up where you left off.',
-    cta: 'Discover now',
-    href: 'https://buildyournetwork.online/webapp.html#discover',
+    icon: '⚡',
+    title: 'Fresh builder profiles waiting today',
+    description: 'New verified founders and operators joined your network. Pick up discovery where you left off.',
+    cta: 'Explore Builders',
+    href: '/discover',
   },
 };
 
@@ -83,10 +83,10 @@ export function buildRecommendations(signals: RetentionSignal[]): Recommendation
         type: signal.type,
         priority: signal.priority,
         icon: '💬',
-        title: `Message ${meta.name}`,
-        description: `You haven't spoken in ${meta.daysSince} days. A quick note keeps the relationship warm.`,
-        cta: 'Send message',
-        href: 'https://buildyournetwork.online/webapp.html#connections',
+        title: `Reconnect with ${meta.name}`,
+        description: `You haven't spoken in ${meta.daysSince} days. Drop a quick note to keep project momentum active.`,
+        cta: 'Send Quick Note',
+        href: `/chat/${meta.connId}`,
       });
       continue;
     }
@@ -94,12 +94,13 @@ export function buildRecommendations(signals: RetentionSignal[]): Recommendation
     if (signal.type === 'pending_likes') {
       const meta = signal.metadata as { count: number } | undefined;
       const tmpl = TEMPLATES[signal.type];
+      const count = meta?.count ?? 1;
       recs.push({
         id: signal.type,
         type: signal.type,
         priority: signal.priority,
         ...tmpl,
-        title: `${meta?.count ?? ''} ${meta?.count === 1 ? 'person has' : 'people have'} liked your profile`,
+        title: `🎯 ${count} ${count === 1 ? 'Builder wants' : 'Builders want'} to connect with you`,
       });
       seen.add(signal.type);
       continue;

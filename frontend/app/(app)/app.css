@@ -573,24 +573,37 @@
 }
 
 /* Profile screens scroll with the browser window instead of an inner box */
-.app-wrap:has(.profile-scroll) {
-  height: auto;
-  min-height: 100%;
-  overflow: visible;
+.app-wrap:has(.profile-scroll),
+.app-wrap:has(.profile-page-wrap),
+.app-wrap:has([data-full-profile]) {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
 }
-.app-wrap:has(.profile-scroll) .app-views {
-  height: auto;
-  overflow: visible;
+.app-wrap:has(.profile-scroll) .app-views,
+.app-wrap:has(.profile-page-wrap) .app-views,
+.app-wrap:has([data-full-profile]) .app-views {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
 }
-.app-wrap:has(.profile-scroll) .profile-page-wrap {
-  overflow: visible;
+.app-wrap:has(.profile-scroll) .profile-page-wrap,
+.app-wrap:has([data-full-profile]) .profile-page-wrap {
+  overflow: visible !important;
+  height: auto !important;
 }
 .app-wrap:has(.profile-scroll) .profile-scroll {
-  overflow-y: visible;
+  overflow-y: visible !important;
   flex: none;
 }
+html:has([data-full-profile]),
+body:has([data-full-profile]) {
+  overflow-y: auto !important;
+  height: auto !important;
+}
 @media (min-width: 1024px) {
-  .app-wrap:has(.profile-scroll) .desk-nav {
+  .app-wrap:has(.profile-scroll) .desk-nav,
+  .app-wrap:has([data-full-profile]) .desk-nav {
     position: sticky;
     top: 0;
     align-self: flex-start;

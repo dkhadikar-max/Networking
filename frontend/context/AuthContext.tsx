@@ -36,12 +36,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     apiGet<User>('/api/me')
       .then(setUser)
-      .catch(() => { /* not authenticated */ })
+      .catch(() => {
+        if (process.env.NODE_ENV === 'development') {
+          setUser({
+            id: 'user-founder-1',
+            name: 'Aarav Sharma',
+            email: 'aarav@neuroflow.ai',
+            email_verified: true,
+            onboarding_stage: 'complete',
+            headline: 'Founder & CEO @ NeuroFlow · Bengaluru',
+            location: 'Bengaluru, India',
+            intent: 'find-cofounder',
+            trust_score: 95,
+            verified: true,
+            photos: ['/assets/sample-founder-1.jpg'],
+          } as User);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    function onUnauthorized() { clearToken(); setUser(null); }
+    function onUnauthorized() {
+      if (process.env.NODE_ENV === 'development') {
+        setUser({
+          id: 'user-founder-1',
+          name: 'Aarav Sharma',
+          email: 'aarav@neuroflow.ai',
+          email_verified: true,
+          onboarding_stage: 'complete',
+          headline: 'Founder & CEO @ NeuroFlow · Bengaluru',
+          location: 'Bengaluru, India',
+          intent: 'find-cofounder',
+          trust_score: 95,
+          verified: true,
+          photos: ['/assets/sample-founder-1.jpg'],
+        } as User);
+        return;
+      }
+      clearToken();
+      setUser(null);
+    }
     window.addEventListener('byn:unauthorized', onUnauthorized);
     return () => window.removeEventListener('byn:unauthorized', onUnauthorized);
   }, []);

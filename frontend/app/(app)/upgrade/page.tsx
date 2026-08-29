@@ -161,7 +161,7 @@ export default function UpgradePage() {
         </div>
 
         {isPremium ? (
-          /* ── Already premium ── */
+          /* -- Already premium -- */
           <div style={{ textAlign: 'center', padding: '40px 24px' }}>
             <div style={{ fontSize: 52, marginBottom: 16 }}>⭐</div>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', marginBottom: 8, letterSpacing: '-0.3px' }}>
@@ -190,7 +190,7 @@ export default function UpgradePage() {
             </button>
           </div>
         ) : (
-          /* ── Upgrade flow ── */
+          /* -- Upgrade flow -- */
           <>
             {/* Hero */}
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
@@ -257,10 +257,13 @@ export default function UpgradePage() {
                     {p === 'quarterly' && (
                       <div style={{
                         position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-                        background: 'var(--accent)', color: 'white', fontSize: 10, fontWeight: 800,
-                        padding: '3px 10px', borderRadius: 99, letterSpacing: '0.3px', whiteSpace: 'nowrap',
+                        background: 'linear-gradient(135deg, #F4A259, #EA580C)', color: 'white', fontSize: 10, fontWeight: 800,
+                        padding: '3px 10px', borderRadius: 99, letterSpacing: '0.4px', whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 8px rgba(244,162,89,0.4)',
+                        display: 'flex', alignItems: 'center', gap: 4,
                       }}>
-                        BEST VALUE
+                        <span>SAVE 25%</span>
+                        <span style={{ opacity: 0.85, fontSize: 9 }}>· BEST VALUE</span>
                       </div>
                     )}
                     <div style={{ fontSize: 13, fontWeight: 700, color: active ? 'var(--primary)' : 'var(--text-soft)', marginBottom: 6, textTransform: 'capitalize' }}>
@@ -270,10 +273,10 @@ export default function UpgradePage() {
                       {price?.label ?? '—'}
                     </div>
                     {p === 'quarterly' && currency === 'INR' && (
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>~₹200/mo · save 20%</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>~₹200/mo · save 25%</div>
                     )}
                     {p === 'quarterly' && currency === 'USD' && (
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>~$13/mo · save 32%</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>~$13/mo · save 25%</div>
                     )}
                   </button>
                 );

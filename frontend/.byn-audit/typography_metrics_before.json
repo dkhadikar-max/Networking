@@ -1,0 +1,51 @@
+{
+  "320": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "375": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "390": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "430": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "768": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "1024": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  },
+  "1440": {
+    "h1FontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "badgeWidth": 76.6,
+    "plusJakartaLoaded": true,
+    "interLoaded": true
+  }
+}

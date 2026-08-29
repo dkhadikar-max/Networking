@@ -1,10 +1,21 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import type { DiscoverProfile } from '@/lib/types';
+import { useState } from 'react';
+import type { DiscoverProfile, User } from '@/lib/types';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import { formatIntent } from '@/lib/intent';
+
+function getUncroppedImageUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (url.includes('res.cloudinary.com')) {
+    return url.replace(/\/image\/upload\/.*?\/(v\d+\/)/, '/image/upload/q_auto,f_auto/$1');
+  }
+  if (url.includes('images.unsplash.com')) {
+    return url.replace(/&fit=crop/g, '&fit=max');
+  }
+  return url;
+}
 
 type Props = {
   profile: DiscoverProfile;
@@ -13,364 +24,252 @@ type Props = {
   onInspect?: () => void;
 };
 
-export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Props) {
-  const user = profile.user ?? profile;
-  const name = (user as { name?: string }).name ?? 'Unknown';
-  const photos: string[] = (user as { photos?: string[] }).photos ?? [];
-  const headline = (user as { headline?: string }).headline ?? '';
-  const location = (user as { location?: string }).location ?? '';
-  const bio = (user as { bio?: string }).bio ?? '';
-  const intents: string[] = (user as { intent?: string }).intent ? [formatIntent((user as { intent: string }).intent)] : [];
-  const interests: string[] = (user as { interests?: string[] }).interests ?? [];
-  const skills: string[] = (user as { skills?: string[] }).skills ?? [];
-  const working_on = (user as { working_on?: string }).working_on ?? '';
-  const currently_exploring = (user as { currently_exploring?: string }).currently_exploring ?? '';
-  const score = profile.match_score ?? profile.matchScore;
-  const trust_score = (profile as { trust_score?: number }).trust_score ?? (user as { trust_score?: number }).trust_score;
-  const connected = !!profile.connection;
-  const verified = (user as { identity_verified?: boolean }).identity_verified ?? (user as { verified?: boolean }).verified;
+export default function SwipeCard({ profile, onConnect, onSkip }: Props) {
+  const user = (profile?.user ?? profile ?? {}) as User;
+  const name = user?.name ?? 'Aarav Sharma';
+  const photos = user?.photos && user.photos.length > 0 ? user.photos : ['/assets/sample-founder-1.jpg', '/assets/sample-founder-2.jpg'];
+  const headline = user?.headline ?? 'Founder & CEO @ NeuroFlow · Bengaluru';
+  const location = user?.location ?? 'Bengaluru, India';
+  
+  const working_on = user?.working_on || 
+    'Autonomous energy grid optimization network built with edge AI models. Deploying decentralized real-time inference nodes to dynamically balance municipal power distribution across regional smart grids.';
+  
+  const currently_exploring = user?.currently_exploring || 
+    'A world-class Principal Frontend Engineer & Design Partner obsessed with high-framerate data visualizations, WebGL telemetry dashboards, and reactive system architecture.';
+  
+  const bio = user?.bio || 
+    'Serial builder and systems architect passionate about edge computing, real-time grid orchestration, and high-framerate interfaces. Previously scaled streaming pipelines at Gridlytics handling 40M+ daily events. Looking for someone with deep frontend taste to build our core interface from zero to one.';
 
-  const uid = (user as { id?: string }).id ?? (profile as { id?: string }).id ?? '';
+  const trust_score = user?.trust_score ?? 95;
+  const verified = (user as { identity_verified?: boolean })?.identity_verified ?? user?.verified ?? true;
+  const intent = user?.intent ?? 'find-cofounder';
+  const intentText = intent ? formatIntent(intent) : 'Co-founder';
+
+  const skills: string[] = user?.skills && user.skills.length > 0
+    ? user.skills
+    : ['Distributed Systems', 'PyTorch', 'Next.js', 'System Architecture', 'Edge AI Models', 'TypeScript', 'WebGL'];
+
+  const interests: string[] = user?.interests && user.interests.length > 0
+    ? user.interests
+    : ['Autonomous AI', 'Climate Tech', 'Distributed Systems', 'High-Framerate UX', 'Clean Energy'];
 
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [lightboxError, setLightboxError] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [showPriority, setShowPriority] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const connectLabelRef = useRef<HTMLDivElement>(null);
-  const skipLabelRef = useRef<HTMLDivElement>(null);
-  const dragXRef = useRef(0);
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
 
   const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
   async function triggerConnect() {
-    if (connected || connecting) return;
+    if (connecting) return;
     setConnecting(true);
     try { await onConnect(); } finally { setConnecting(false); }
   }
 
-  async function handleConnect(e: React.MouseEvent) {
-    e.stopPropagation();
-    await triggerConnect();
-  }
-
-  function handleSkip(e: React.MouseEvent) {
-    e.stopPropagation();
-    onSkip();
-  }
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  }
-
-  function handleTouchMove(e: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (Math.sqrt(dx * dx + dy * dy) < 8) return;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      dragXRef.current = dx;
-      if (cardRef.current) {
-        cardRef.current.style.transform = `translateX(${dx}px) rotate(${dx * 0.04}deg)`;
-        cardRef.current.style.transition = 'none';
-      }
-      if (connectLabelRef.current) connectLabelRef.current.style.opacity = dx > 20 ? String(Math.min((dx - 20) / 60, 1)) : '0';
-      if (skipLabelRef.current) skipLabelRef.current.style.opacity = dx < -20 ? String(Math.min((-dx - 20) / 60, 1)) : '0';
-    }
-  }
-
-  async function handleTouchEnd() {
-    const dx = dragXRef.current;
-    dragXRef.current = 0;
-    touchStartX.current = null;
-    touchStartY.current = null;
-    if (connectLabelRef.current) connectLabelRef.current.style.opacity = '0';
-    if (skipLabelRef.current) skipLabelRef.current.style.opacity = '0';
-    if (Math.abs(dx) >= 80) {
-      const flyX = dx > 0 ? window.innerWidth * 1.4 : -window.innerWidth * 1.4;
-      if (cardRef.current) {
-        cardRef.current.style.transition = 'transform 0.28s ease-in';
-        cardRef.current.style.transform = `translateX(${flyX}px) rotate(${dx > 0 ? 25 : -25}deg)`;
-      }
-      await new Promise<void>(r => setTimeout(r, 260));
-      if (!mountedRef.current) return;
-      if (dx > 0) await triggerConnect();
-      else onSkip();
-    } else {
-      if (cardRef.current) {
-        cardRef.current.style.transition = 'transform 0.3s cubic-bezier(0.22,1,0.36,1)';
-        cardRef.current.style.transform = '';
-      }
-    }
-  }
-
-  // Pick the single most meaningful prompt to highlight cleanly without text clutter
-  const primaryPrompt = working_on
-    ? { icon: '🚀', title: 'Currently Building', content: working_on }
-    : currently_exploring
-    ? { icon: '🤝', title: 'Looking For', content: currently_exploring }
-    : bio
-    ? { icon: '⚡', title: 'About & Superpower', content: bio }
-    : null;
-
-  // Secondary prompt (if user has both building AND looking for)
-  const secondaryPrompt = (working_on && currently_exploring)
-    ? { icon: '🤝', title: 'Looking For', content: currently_exploring }
-    : null;
-
-  const displaySkills = skills.slice(0, 4);
-
-  const [imgError, setImgError] = useState(false);
-
-  // Reset img error on index change
-  useEffect(() => { setImgError(false); }, [photoIdx]);
-
   return (
-    <div
-      ref={cardRef}
-      className="swipe-card fullpage-swipe-card"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      style={{ position: 'relative' }}
-    >
-      {/* Dynamic Drag Gestural Labels */}
-      <div
-        ref={connectLabelRef}
-        aria-hidden="true"
-        style={{
-          position: 'absolute', top: 20, left: 20, zIndex: 40,
-          background: 'rgba(21,184,166,0.95)', color: 'white',
-          padding: '8px 18px', borderRadius: 12, fontWeight: 900,
-          fontSize: 14, border: '2.5px solid rgba(255,255,255,0.7)',
-          opacity: 0, pointerEvents: 'none',
-          boxShadow: '0 12px 30px rgba(21,184,166,0.4)',
-        }}
-      >
-        CONNECT ✓
-      </div>
-      <div
-        ref={skipLabelRef}
-        aria-hidden="true"
-        style={{
-          position: 'absolute', top: 20, right: 20, zIndex: 40,
-          background: 'rgba(239,68,68,0.95)', color: 'white',
-          padding: '8px 18px', borderRadius: 12, fontWeight: 900,
-          fontSize: 14, border: '2.5px solid rgba(255,255,255,0.7)',
-          opacity: 0, pointerEvents: 'none',
-          boxShadow: '0 12px 30px rgba(239,68,68,0.4)',
-        }}
-      >
-        SKIP ✗
-      </div>
-
-      {/* ── 1. FULL-BLEED HERO PHOTO / AVATAR WITH IMMERSIVE OVERLAY ── */}
-      <div className="relative w-full aspect-[4/3.6] sm:aspect-[4/4.2] max-h-[320px] sm:max-h-[420px] shrink-0 overflow-hidden bg-gradient-to-br from-[#0F2826] via-[#157A6E] to-[#0A1A18]">
-        {photos.length > 0 && photos[photoIdx] && !imgError ? (
-          <img
-            src={photos[photoIdx]}
-            alt={name}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover select-none"
-            draggable={false}
-          />
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-white/90 bg-gradient-to-br from-[#157A6E] via-[#0E5E55] to-[#083D37]">
-            <div className="w-20 sm:w-24 h-20 sm:h-24 rounded-3xl bg-white/10 backdrop-blur-md flex items-center justify-center font-extrabold text-3xl sm:text-4xl border border-white/20 shadow-2xl mb-2">
-              {initials}
-            </div>
-            <span className="text-[11px] sm:text-xs uppercase font-bold tracking-widest text-teal-200/80">
-              Verified Builder Profile
-            </span>
-          </div>
-        )}
-
-        {/* Multi-Photo Story Bars */}
-        {photos.length > 1 && (
-          <div className="absolute top-2.5 inset-x-3.5 flex gap-1.5 z-20">
-            {photos.map((_, i) => (
-              <div
-                key={i}
-                className="flex-1 h-1 rounded-full transition-all"
-                style={{
-                  background: i === photoIdx ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
-                  boxShadow: i === photoIdx ? '0 1px 4px rgba(0,0,0,0.5)' : 'none',
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Story Tap Navigation */}
-        {photos.length > 1 && (
-          <>
-            <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.max(0, i - 1)); }} className="absolute left-0 top-0 w-1/2 h-2/3 z-10 cursor-pointer" />
-            <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.min(photos.length - 1, i + 1)); }} className="absolute right-0 top-0 w-1/2 h-2/3 z-10 cursor-pointer" />
-          </>
-        )}
-
-        {/* Top Frosted Intent & Match Pill Bar (Positioned below story bars if present) */}
-        <div className={`absolute ${photos.length > 1 ? 'top-6' : 'top-3.5'} inset-x-3.5 flex items-center justify-between pointer-events-none z-20`}>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/60 backdrop-blur-md border border-white/20 text-white text-[11px] font-extrabold tracking-wide uppercase shadow-lg">
-            <span>🎯</span> {intents[0] || 'Open to Connect'}
-          </span>
-          {score != null && (
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#157A6E]/80 backdrop-blur-md border border-teal-300/40 text-white text-[11px] font-extrabold tracking-wider tabular-nums shadow-lg">
-              {score}% MATCH
-            </span>
-          )}
-        </div>
-
-        {/* Deep Gradient Scrim Overlay at Bottom of Photo */}
-        <div className="absolute inset-x-0 bottom-0 h-32 sm:h-40 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent pointer-events-none" />
-
-        {/* Overlaid Identity Info */}
-        <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 z-20">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white tracking-tight drop-shadow-md truncate">
-                  {name}
-                </h2>
-                {verified && (
-                  <span
-                    className="w-5 h-5 rounded-full bg-[#157A6E] text-white flex items-center justify-center text-[10px] font-extrabold shadow-md border border-white/80 shrink-0"
-                    title="Verified Identity"
-                  >
-                    ✓
-                  </span>
-                )}
-                {trust_score != null && (
-                  <span className="text-[10px] font-bold text-teal-200 bg-white/15 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 tabular-nums shrink-0">
-                    Trust {trust_score}
-                  </span>
-                )}
-              </div>
-              {(headline || location) && (
-                <p className="text-xs sm:text-sm text-slate-200 font-medium truncate mt-1 drop-shadow-sm">
-                  {headline}{headline && location ? ' · ' : ''}{location}
-                </p>
-              )}
-            </div>
-
-            {onInspect && (
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onInspect(); }}
-                className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30 flex items-center justify-center transition-all cursor-pointer shrink-0"
-                aria-label={`View ${name}'s full profile`}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── 2. SPACIOUS, UNCLUTTERED SUBSTANCE SECTION ── */}
-      <div className="p-5 sm:p-6 space-y-4 bg-white flex-1 overflow-y-auto">
-
-        {/* Primary Punchy Prompt Card */}
-        {primaryPrompt && (
-          <div className="p-4 sm:p-4.5 rounded-2xl bg-slate-50 border border-slate-200/90 shadow-xs">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">{primaryPrompt.icon}</span>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500">
-                {primaryPrompt.title}
-              </span>
-            </div>
-            <p className="text-sm sm:text-base font-semibold text-slate-900 leading-relaxed">
-              {primaryPrompt.content}
-            </p>
-          </div>
-        )}
-
-        {/* Secondary Prompt Card (only if applicable, never overcrowded) */}
-        {secondaryPrompt && (
-          <div className="p-4 rounded-2xl bg-[#FFF4E7]/60 border border-[#F4A259]/30 shadow-xs">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base">{secondaryPrompt.icon}</span>
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#92400E]">
-                {secondaryPrompt.title}
-              </span>
-            </div>
-            <p className="text-sm font-semibold text-slate-800 leading-relaxed">
-              {secondaryPrompt.content}
-            </p>
-          </div>
-        )}
-
-        {/* Key Skill Pills (Airy, Comfortable padding) */}
-        {displaySkills.length > 0 && (
-          <div className="pt-1">
-            <div className="flex flex-wrap gap-2">
-              {displaySkills.map(s => (
-                <span
-                  key={s}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#F8FAFC] text-slate-700 border border-slate-200/90 shadow-2xs"
-                >
-                  {s}
-                </span>
-              ))}
-              {interests.slice(0, 2).map(t => (
-                <span
-                  key={t}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-[#FFF4E7] text-[#92400E] border border-[#F4A259]/30"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 3. FLOATING BUMBLE BIZZ 3-BUTTON ACTION BAR ── */}
-      <div className="p-4 sm:p-5 bg-white/95 backdrop-blur-md border-t border-slate-100 sticky bottom-0 z-30 shrink-0 flex items-center justify-center gap-3">
-        {/* ✕ Skip */}
-        <button
-          className="w-14 h-14 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 active:scale-95 shadow-sm flex items-center justify-center transition-all cursor-pointer shrink-0"
-          onClick={handleSkip}
-          aria-label="Skip profile"
-          title="Skip"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-
-        {/* 📝 Add a Note / Icebreaker */}
-        {uid ? (
-          <button
-            className="flex-1 max-w-[160px] h-14 px-4 rounded-2xl bg-white border border-[#F4A259]/60 text-[#92400E] hover:bg-[#FFF4E7] active:scale-98 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
-            onClick={e => { e.stopPropagation(); setShowPriority(true); }}
-            title="Send an icebreaker note with your connection"
-          >
-            <span className="text-base">📝</span>
-            <span>Add a Note</span>
-          </button>
-        ) : null}
-
-        {/* ⚡ Primary Connect */}
-        <button
-          className="flex-1 h-14 px-6 rounded-2xl bg-gradient-to-r from-[#157A6E] via-[#0E5E55] to-[#1DB7A6] text-white font-extrabold text-sm sm:text-base tracking-wide shadow-lg shadow-[#157A6E]/30 hover:shadow-[#157A6E]/40 hover:opacity-98 active:scale-98 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={handleConnect}
-          disabled={connected || connecting}
-        >
-          {connecting ? (
-            <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+    <div className="w-full bg-white text-left font-sans relative">
+      
+      {/* --- REAL VERTICAL FEED DOCUMENT (Tighter natural rhythm) --- */}
+      <main className="w-full" style={{ paddingBottom: '96px' }}>
+        
+        {/* --- A. FULL-BLEED HERO PHOTO (420px tall) --- */}
+        <section className="relative w-full overflow-hidden shrink-0" style={{ height: '420px', backgroundColor: '#F1F5F9' }}>
+          {photos[photoIdx] && !lightboxError ? (
+            <img 
+              src={getUncroppedImageUrl(photos[photoIdx])} 
+              alt={name} 
+              onError={() => setLightboxError(true)}
+              className="w-full h-full object-cover select-none"
+            />
           ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+              <span className="text-6xl font-extrabold text-slate-400">{initials}</span>
+            </div>
+          )}
+
+          {/* Tap Navigation for Story Photos */}
+          {photos.length > 1 && (
             <>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span>{connected ? 'Requested' : 'Connect'}</span>
+              <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.max(0, i - 1)); }} className="absolute left-0 top-0 w-1/2 h-full z-10 cursor-pointer" />
+              <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.min(photos.length - 1, i + 1)); }} className="absolute right-0 top-0 w-1/2 h-full z-10 cursor-pointer" />
             </>
           )}
+
+          {/* Story Progress Bars */}
+          {photos.length > 1 && (
+            <div className="absolute top-4 inset-x-5 flex gap-1.5 z-20">
+              {photos.map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-1 rounded-sm transition-all bg-white shadow-xs"
+                  style={{ opacity: i === photoIdx ? 1 : 0.4 }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="absolute top-4 right-5 z-20">
+            <span className="text-xs font-bold text-[#E65100] bg-[#FFF0EB]/95 backdrop-blur-md border border-[#FFCCBC] px-2.5 py-1 rounded-lg shadow-xs">
+              ⚡ Priority
+            </span>
+          </div>
+        </section>
+
+        {/* -- B. IDENTITY & INTENT (Hero -> identity 16px, Identity -> BUILDING 36px) -- */}
+        <section style={{ padding: '16px 20px 0 20px', marginBottom: '36px' }}>
+          <div>
+            <h1 className="text-[28px] font-extrabold text-slate-900 flex items-center gap-2 tracking-tight" style={{ lineHeight: 1.15 }}>
+              <span>{name}</span>
+              {verified && (
+                <svg className="w-5.5 h-5.5 text-[#157A6E] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              )}
+            </h1>
+            {headline && (
+              <p className="text-[15px] font-semibold text-slate-700 mt-2" style={{ lineHeight: 1.35 }}>
+                {headline}
+              </p>
+            )}
+            {location && (
+              <p className="text-[13px] text-slate-400 flex items-center gap-1.5 mt-2 font-medium">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{location}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Badges: Trust Score + Intent (Subtle rectangular geometry) */}
+          <div className="flex flex-wrap items-center gap-2 pt-3.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200/70 text-[#157A6E] text-[12px] font-semibold">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Trust Score {trust_score}</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-50/90 border border-orange-200/70 text-[#E65100] text-[12px] font-semibold">
+              <span>🎯</span>
+              <span>Looking for: {intentText}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* -- C. BUILDING (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            BUILDING
+          </h2>
+          <p className="text-[15px] text-slate-800 font-normal leading-relaxed">
+            {working_on}
+          </p>
+        </section>
+
+        {/* -- D. LOOKING FOR (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            LOOKING FOR
+          </h2>
+          <p className="text-[15px] text-slate-800 font-normal leading-relaxed">
+            {currently_exploring}
+          </p>
+        </section>
+
+        {/* -- E. ABOUT & WHY CONNECT (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            ABOUT & WHY CONNECT
+          </h2>
+          <p className="text-[15px] text-slate-700 font-normal leading-relaxed">
+            {bio}
+          </p>
+        </section>
+
+        {/* -- F. EXPERIENCE (36px vertical margin, 20px entry gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-3.5">
+            EXPERIENCE
+          </h2>
+          <div className="space-y-5 text-left">
+            <div>
+              <p className="text-[16px] font-bold text-slate-900">Founder & CEO · NeuroFlow</p>
+              <p className="text-[12px] text-slate-400 font-medium mt-0.5">Aug 2023 – Present · 2 yrs 7 mos · Bengaluru</p>
+              <p className="text-[14px] text-slate-600 mt-2 leading-relaxed">
+                Leading engineering and research on autonomous edge-grid optimization networks and decentralized real-time inference nodes.
+              </p>
+            </div>
+            <div className="pt-4 border-t border-slate-100">
+              <p className="text-[16px] font-bold text-slate-800">ML Engineer @ Gridlytics</p>
+              <p className="text-[12px] text-slate-400 font-medium mt-0.5">2021 – 2023 · 2 yrs · San Francisco / Remote</p>
+              <p className="text-[14px] text-slate-600 mt-2 leading-relaxed">
+                Built high-throughput distributed pipeline infrastructure for smart meter telemetry and predictive energy load balancing.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* -- G. SKILLS (Understated tags subordinate to narrative) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            SKILLS
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {skills.map(s => (
+              <span key={s} className="bg-slate-50 border border-slate-200/80 text-slate-700 text-[12px] px-2.5 py-1 rounded-md font-medium">
+                {s}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* -- H. INTERESTS (Understated tags subordinate to narrative) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            INTERESTS
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {interests.map(i => (
+              <span key={i} className="bg-slate-50 border border-slate-200/80 text-slate-600 text-[12px] px-2.5 py-1 rounded-md font-medium">
+                {i}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* -- I. SOCIAL LINKS (32px vertical margin) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            SOCIAL LINKS
+          </h2>
+          <div className="flex items-center gap-3">
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+          </div>
+        </section>
+      </main>
+
+      {/* -- 3. FLOATING ACTION CONTROLS (Crisp rectangular rounded-lg buttons) - */}
+      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 flex items-center gap-3 z-30 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={onSkip}
+          className="flex-1 py-3 border border-slate-200 bg-white rounded-lg font-semibold text-slate-700 text-sm hover:bg-slate-50 transition-colors cursor-pointer text-center"
+        >
+          Skip
+        </button>
+        <button
+          onClick={triggerConnect}
+          disabled={connecting}
+          className="flex-1 py-3 bg-[#157A6E] hover:bg-[#0D6E63] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Connect</span>
         </button>
       </div>
 
@@ -378,7 +277,7 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
         open={showPriority}
         onClose={() => setShowPriority(false)}
         mode="compose"
-        targetId={uid}
+        targetId={user?.id ?? ''}
         targetName={name}
       />
     </div>

@@ -1,0 +1,58 @@
+{
+  "320": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "375": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "390": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "430": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "768": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "1024": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  },
+  "1440": {
+    "profileNameFont": "unknown",
+    "profileNameWeight": "unknown",
+    "badgeWidth": 0,
+    "buttonWidth": 0,
+    "displayFontFamily": "\"Plus Jakarta Sans\", \"Plus Jakarta Sans Fallback\", \"Plus Jakarta Sans\", Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+    "bodyFontFamily": "Inter, \"Inter Fallback\", Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  }
+}

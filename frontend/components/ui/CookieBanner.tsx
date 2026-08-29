@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 declare global {
   interface Window {
@@ -40,6 +41,7 @@ function loadGA() {
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const consent = getConsent();
@@ -50,7 +52,7 @@ export default function CookieBanner() {
     }
   }, []);
 
-  if (!visible) return null;
+  if (!visible || pathname?.startsWith('/preview') || pathname?.startsWith('/design-preview')) return null;
 
   function accept() {
     setConsent('analytics');

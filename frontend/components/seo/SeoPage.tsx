@@ -31,7 +31,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "'Inter', -apple-system, sans-serif", color: C.text }}>
 
-      {/* ── Nav — fixed sticky glass morphism ── */}
+      {/* -- Nav — fixed sticky glass morphism -- */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(255,244,236,0.95)',
@@ -53,7 +53,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
         </div>
       </nav>
 
-      {/* ── Page body — top padding for fixed nav ── */}
+      {/* -- Page body — top padding for fixed nav -- */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '100px 24px 80px' }}>
 
         {/* Breadcrumb */}
@@ -64,7 +64,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           ))}
         </p>
 
-        {/* ── Hero ── */}
+        {/* -- Hero -- */}
         {tags && tags.length > 0 && (
           <span style={{
             display: 'inline-block', background: C.highlight, color: C.primary,
@@ -104,7 +104,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           </a>
         </div>
 
-        {/* ── Direct answer / body ── */}
+        {/* -- Direct answer / body -- */}
         <div style={{
           background: C.card,
           borderLeft: `4px solid ${C.primary}`,
@@ -116,7 +116,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           <p>{body}</p>
         </div>
 
-        {/* ── Why BYN ── */}
+        {/* -- Why BYN -- */}
         <section id="why" style={{ marginBottom: 64 }}>
           <h2 style={{ fontSize: 'clamp(22px,3vw,30px)', fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>
             Why Build Your Network?
@@ -144,7 +144,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           </div>
         </section>
 
-        {/* ── CTA block ── */}
+        {/* -- CTA block -- */}
         <section style={{
           background: C.primary, borderRadius: 20, padding: '48px 40px',
           textAlign: 'center', color: '#fff', marginBottom: 64,
@@ -164,7 +164,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           </a>
         </section>
 
-        {/* ── FAQ ── */}
+        {/* -- FAQ -- */}
         {faqs.length > 0 && (
           <section style={{ marginBottom: 64 }}>
             <h2 style={{ fontSize: 'clamp(22px,3vw,30px)', fontWeight: 800, letterSpacing: -0.5, marginBottom: 8 }}>
@@ -203,7 +203,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
 
       </div>
 
-      {/* ── Footer ── */}
+      {/* -- Footer -- */}
       <footer style={{ borderTop: `1px solid ${C.bgSecondary}`, padding: '32px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 13, color: C.textMuted }}>
           © {new Date().getFullYear()} buildyournetwork.online ·{' '}

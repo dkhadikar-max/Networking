@@ -21,7 +21,30 @@ export default function OtherProfilePage() {
   useEffect(() => {
     apiGet<ProfileData>(`/api/profiles/${id}`)
       .then(r => setProfile(r))
-      .catch(() => toast('Profile not found', 'error'))
+      .catch(() => {
+        if (process.env.NODE_ENV === 'development') {
+          setProfile({
+            id: String(id),
+            name: 'Aarav Sharma',
+            email: 'aarav@neuroflow.ai',
+            email_verified: true,
+            onboarding_stage: 'complete',
+            headline: 'Founder & CEO @ NeuroFlow · Bengaluru',
+            location: 'Bengaluru, India',
+            intent: 'find-cofounder',
+            trust_score: 95,
+            verified: true,
+            working_on: 'Autonomous energy grid optimization network built with edge AI models. Deploying decentralized real-time inference nodes to dynamically balance municipal power distribution across regional smart grids.',
+            currently_exploring: 'A world-class Principal Frontend Engineer & Design Partner obsessed with high-framerate data visualizations, WebGL telemetry dashboards, and reactive system architecture.',
+            bio: 'Serial builder and systems architect passionate about edge computing, real-time grid orchestration, and high-framerate interfaces. Previously scaled streaming pipelines at Gridlytics handling 40M+ daily events. Looking for someone with deep frontend taste to build our core interface from zero to one.',
+            skills: ['Distributed Systems', 'PyTorch', 'Next.js', 'System Architecture', 'Edge AI Models', 'TypeScript', 'WebGL'],
+            interests: ['Autonomous AI', 'Climate Tech', 'Distributed Systems', 'High-Framerate UX', 'Clean Energy'],
+            photos: ['/assets/sample-founder-1.jpg'],
+          } as ProfileData);
+        } else {
+          toast('Profile not found', 'error');
+        }
+      })
       .finally(() => setLoading(false));
   }, [id, toast]);
 

@@ -44,7 +44,7 @@ export default function IntentSelector({ onNext, loading }: Props) {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2.5">
         {INTENTS.map((intent, i) => {
           const active = selected.has(intent.label);
           return (

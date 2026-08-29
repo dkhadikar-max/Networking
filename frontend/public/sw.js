@@ -23,12 +23,16 @@ self.addEventListener('notificationclick', function (event) {
   let url = '/discover';
   if ((data.screen === 'Chat' || data.screen === 'ChatDetail') && data.connectionId) {
     url = `/chat/${data.connectionId}`;
+  } else if (data.screen === 'Chat') {
+    url = '/chat';
   } else if (data.screen === 'Circles') {
     url = '/circles';
   } else if (data.screen === 'PriorityMessages') {
-    url = '/messages';
-  } else if (data.screen === 'LikedMe') {
-    url = '/liked-me';
+    url = '/chat';
+  } else if (data.screen === 'LikedMe' || data.screen === 'Likes') {
+    url = '/likes';
+  } else if (data.screen === 'Profile') {
+    url = '/profile';
   }
 
   event.waitUntil(

@@ -87,8 +87,11 @@
   --glass-blur:      blur(20px) saturate(180%);
   --glass-blur-sm:   blur(12px) saturate(160%);
 
-  /* Typography */
-  --font-sans:       var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Typography — Dual-Engine System */
+  --byn-font-sans:       var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --byn-font-display:    var(--font-space-grotesk), 'Space Grotesk', var(--byn-font-sans);
+  --font-sans:           var(--byn-font-sans);
+  --font-display:        var(--byn-font-display);
 
   /* Easing curves */
   --ease-spring:     cubic-bezier(0.22,1,0.36,1);
@@ -103,40 +106,58 @@
   --duration-slower: 400ms;
 }
 
+html, :root {
+  --byn-font-sans:       var(--font-inter), 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --byn-font-display:    var(--font-space-grotesk), 'Space Grotesk', var(--byn-font-sans);
+  --font-sans:           var(--byn-font-sans);
+  --font-display:        var(--byn-font-display);
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
   --color-primary:    var(--primary);
   --color-accent:     var(--accent);
-  --font-sans:        var(--font-sans);
+  --font-sans:        var(--byn-font-sans);
+  --font-display:     var(--byn-font-display);
+}
+
+.font-display {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', var(--byn-font-sans) !important;
+  letter-spacing: -0.5px;
+}
+
+.font-sans {
+  font-family: var(--font-inter), 'Inter', var(--byn-font-sans) !important;
 }
 
 /* ── Reset & Base ────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
 
-html {
-  height: 100%;
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-  -webkit-tap-highlight-color: transparent;
+  html {
+    min-height: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100%;
+    background:
+      radial-gradient(ellipse at 0% 0%, #D8FAF2 0%, transparent 45%),
+      radial-gradient(ellipse at 100% 100%, #FEE9D1 0%, transparent 40%),
+      var(--bg);
+    font-family: var(--font-sans);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }
 
-body {
-  height: 100%;
-  background:
-    radial-gradient(ellipse at 0% 0%, #D8FAF2 0%, transparent 45%),
-    radial-gradient(ellipse at 100% 100%, #FEE9D1 0%, transparent 40%),
-    var(--bg);
-  font-family: var(--font-sans);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  overscroll-behavior: none;
-  text-rendering: optimizeLegibility;
-}
-
-#__next, main { height: 100%; }
+#__next { min-height: 100%; }
 
 /* ── Focus visibility (keyboard users) ──────────────────────
    No component in the app defines its own focus-visible state,

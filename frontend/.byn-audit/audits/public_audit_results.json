@@ -1,0 +1,1800 @@
+[
+  {
+    "route": "/",
+    "status": 200,
+    "loadTime": 2405,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 1,
+    "h1Text": "Meet people by intent, not by resume.",
+    "buttonsCount": 41,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/login",
+    "status": 200,
+    "loadTime": 1259,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 0,
+    "h1Text": "NONE",
+    "buttonsCount": 3,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/signup",
+    "status": 200,
+    "loadTime": 1171,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 0,
+    "h1Text": "NONE",
+    "buttonsCount": 5,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/verify",
+    "status": 200,
+    "loadTime": 1371,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 1,
+    "h1Text": "Verify your email",
+    "buttonsCount": 3,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/forgot-password",
+    "status": 200,
+    "loadTime": 1278,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 1,
+    "h1Text": "Forgot password?",
+    "buttonsCount": 3,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/reset-password",
+    "status": 200,
+    "loadTime": 1123,
+    "title": "Build Your Network — High-Signal Networking for Builders",
+    "h1Count": 1,
+    "h1Text": "Reset your password",
+    "buttonsCount": 4,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/about",
+    "status": 200,
+    "loadTime": 7563,
+    "title": "About — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "About Build Your Network",
+    "buttonsCount": 11,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/contact",
+    "status": 200,
+    "loadTime": 4230,
+    "title": "Contact — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Contact Us",
+    "buttonsCount": 18,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/privacy",
+    "status": 200,
+    "loadTime": 4478,
+    "title": "Privacy Policy — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Privacy Policy",
+    "buttonsCount": 10,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/terms",
+    "status": 200,
+    "loadTime": 3643,
+    "title": "Terms of Service — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Terms of Service",
+    "buttonsCount": 7,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/cities",
+    "status": 200,
+    "loadTime": 5614,
+    "title": "Professional Networking in Indian Cities — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Professional Networking Across Indian Cities",
+    "buttonsCount": 32,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/cities/bengaluru",
+    "status": 200,
+    "loadTime": 10915,
+    "title": "Professional Networking in Bengaluru — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Connect with Bengaluru's best professionals",
+    "buttonsCount": 16,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/cities/mumbai",
+    "status": 200,
+    "loadTime": 1198,
+    "title": "Professional Networking in Mumbai — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Connect with Mumbai's best professionals",
+    "buttonsCount": 16,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/cities/delhi",
+    "status": 200,
+    "loadTime": 1094,
+    "title": "Professional Networking in Delhi / NCR — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Connect with Delhi / NCR's best professionals",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/industries",
+    "status": 200,
+    "loadTime": 4765,
+    "title": "Industry-Specific Professional Networking in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Industry-Specific Professional Networking in India",
+    "buttonsCount": 17,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/industries/saas",
+    "status": 200,
+    "loadTime": 5669,
+    "title": "SaaS Networking — Connect with SaaS Professionals — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Connect with SaaS founders and professionals",
+    "buttonsCount": 14,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/industries/fintech",
+    "status": 200,
+    "loadTime": 1031,
+    "title": "Fintech Networking — Connect with Fintech Professionals — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Connect with Fintech founders and professionals",
+    "buttonsCount": 14,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/roles",
+    "status": 200,
+    "loadTime": 3097,
+    "title": "Professional Networking by Role in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Professional Networking for Every Role",
+    "buttonsCount": 17,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/roles/founder",
+    "status": 200,
+    "loadTime": 5254,
+    "title": "Networking for Founders in India — Build Your Network — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "The professional network built for Founders",
+    "buttonsCount": 17,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/roles/engineer",
+    "status": 200,
+    "loadTime": 1079,
+    "title": "Networking for Software Engineers in India — Build Your Network — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "The professional network built for Software Engineers",
+    "buttonsCount": 13,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/professionals/founder",
+    "status": 200,
+    "loadTime": 3763,
+    "title": "Founder Professionals Network in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Where Founders build their network in India",
+    "buttonsCount": 18,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/business-networking-app",
+    "status": 200,
+    "loadTime": 2449,
+    "title": "Business Networking App India — Connect with Intent — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "The business networking app that matches by intent",
+    "buttonsCount": 16,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/linkedin-alternative",
+    "status": 200,
+    "loadTime": 2526,
+    "title": "LinkedIn Alternative for Professionals in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Professional networking that actually works — unlike LinkedIn",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/startup-community-india",
+    "status": 200,
+    "loadTime": 3221,
+    "title": "Startup Community India — Connect with Founders & Builders — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "India's startup community — built by founders, for founders",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/networking-for-founders",
+    "status": 200,
+    "loadTime": 3294,
+    "title": "Networking for Startup Founders — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "The networking app built for startup founders",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/networking-for-investors",
+    "status": 200,
+    "loadTime": 2410,
+    "title": "Networking for Investors — Discover Founders & Deals in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Find founders actively seeking investment — no cold emails",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/networking-for-creators",
+    "status": 200,
+    "loadTime": 3994,
+    "title": "Networking for Creators — Collaborate, Brand Deals & Community — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Where creators find real collaborators and brand partners",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/networking-for-freelancers",
+    "status": 200,
+    "loadTime": 2475,
+    "title": "Networking for Freelancers — Find Clients & Collaborators in India — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "Find freelance clients without platform fees or bidding wars",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  },
+  {
+    "route": "/networking-for-entrepreneurs",
+    "status": 200,
+    "loadTime": 3164,
+    "title": "Networking for Entrepreneurs — Find Partners, Mentors & Investors — Build Your Network",
+    "h1Count": 1,
+    "h1Text": "The network built for entrepreneurs, not employees",
+    "buttonsCount": 19,
+    "imagesWithoutAlt": 0,
+    "consoleLogs": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "pageErrors": [],
+    "failedRequests": [],
+    "overflowResults": {
+      "320px": {
+        "hasOverflow": false,
+        "scrollWidth": 320,
+        "innerWidth": 320,
+        "overflowingElements": []
+      },
+      "375px": {
+        "hasOverflow": false,
+        "scrollWidth": 375,
+        "innerWidth": 375,
+        "overflowingElements": []
+      },
+      "390px": {
+        "hasOverflow": false,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "overflowingElements": []
+      },
+      "430px": {
+        "hasOverflow": false,
+        "scrollWidth": 430,
+        "innerWidth": 430,
+        "overflowingElements": []
+      },
+      "768px": {
+        "hasOverflow": false,
+        "scrollWidth": 768,
+        "innerWidth": 768,
+        "overflowingElements": []
+      },
+      "1024px": {
+        "hasOverflow": false,
+        "scrollWidth": 1024,
+        "innerWidth": 1024,
+        "overflowingElements": []
+      },
+      "1440px": {
+        "hasOverflow": false,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "overflowingElements": []
+      }
+    }
+  }
+]

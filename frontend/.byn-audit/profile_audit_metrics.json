@@ -1,0 +1,296 @@
+{
+  "320": {
+    "view": {
+      "docWidth": 320,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 292,
+        "height": 569
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 320,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 320,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "375": {
+    "view": {
+      "docWidth": 375,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 347,
+        "height": 547
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 375,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 375,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "390": {
+    "view": {
+      "docWidth": 390,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 362,
+        "height": 547
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 390,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 390,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "430": {
+    "view": {
+      "docWidth": 430,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 402,
+        "height": 526
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 430,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 430,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "768": {
+    "view": {
+      "docWidth": 768,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 452,
+        "height": 526
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 768,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 768,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "1024": {
+    "view": {
+      "docWidth": 1024,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 612,
+        "height": 504
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 1024,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 1024,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  },
+  "1440": {
+    "view": {
+      "docWidth": 1440,
+      "hasOverflow": false,
+      "heroBounds": {
+        "width": 612,
+        "height": 504
+      },
+      "avatarImgSrc": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+      "avatarImgNaturalSize": {
+        "w": 0,
+        "h": 0
+      },
+      "avatarComputed": {
+        "width": "100px",
+        "height": "100px",
+        "borderRadius": "50%",
+        "objectFit": "cover"
+      },
+      "photoCount": 3,
+      "panelCount": 5,
+      "socialLinkCount": 3
+    },
+    "edit": {
+      "docWidth": 1440,
+      "hasOverflow": false,
+      "photosInGrid": 3,
+      "hasMainBadge": true,
+      "deleteBtnCount": 3,
+      "hasAddButton": true,
+      "nameValue": "Aarav Mehta"
+    },
+    "other": {
+      "docWidth": 1440,
+      "hasOverflow": false,
+      "hasConnectBtn": true,
+      "hasPriorityFab": true,
+      "hasTrustBadge": true,
+      "hasRating": true,
+      "mutualText": "4 mutual connections"
+    }
+  }
+}

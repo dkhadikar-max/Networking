@@ -1,4 +1,4 @@
-// ── Homepage product-preview sample data ────────────────────────────────
+// -- Homepage product-preview sample data --------------------------------
 //
 // Renders through the REAL app components (SwipeCard, ProfileView,
 // CirclePostCard) so the homepage shows actual BYN UI, not a fabricated

@@ -1,31 +1,17 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiDelete } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
-import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
-import Avatar from '@/components/ui/Avatar';
-import { formatIntent } from '@/lib/intent';
 import type { User } from '@/lib/types';
-
-function safeHref(url?: string | null): string | undefined {
-  if (!url) return undefined;
-  try {
-    const { protocol } = new URL(url);
-    return protocol === 'http:' || protocol === 'https:' ? url : undefined;
-  } catch { return undefined; }
-}
+import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
+import { formatIntent } from '@/lib/intent';
 
 function getUncroppedImageUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
-  // If Cloudinary URL, remove crop/thumbnail transformation segments to request the uncropped source
   if (url.includes('res.cloudinary.com')) {
     return url.replace(/\/image\/upload\/.*?\/(v\d+\/)/, '/image/upload/q_auto,f_auto/$1');
   }
-  // For Unsplash or other CDNs, switch &fit=crop to &fit=max
   if (url.includes('images.unsplash.com')) {
     return url.replace(/&fit=crop/g, '&fit=max');
   }
@@ -35,557 +21,286 @@ function getUncroppedImageUrl(url?: string | null): string | undefined {
 type Props = {
   user: User;
   isSelf?: boolean;
-  onConnect?: () => Promise<void>;
   connected?: boolean;
   connectionId?: string;
+  onConnect?: () => Promise<void>;
+  onBack?: () => void;
   onEdit?: () => void;
 };
 
-// Hierarchy, top to bottom: Identity (hero + about) → Intent (what they
-// want) → Capability (what they offer) → Trust & relevance (social proof —
-// only when real data exists) → Connection stays in the hero, not buried
-// at the bottom, since it's the one action a viewer needs reachable at any
-// scroll depth. Every fact below renders in exactly one place — no field
-// appears in both the hero and a panel.
-export default function ProfileView({ user, isSelf = false, onConnect, connected, connectionId, onEdit }: Props) {
-  const { logout } = useAuth();
+export default function ProfileView({ user, isSelf, connected, connectionId, onConnect, onBack, onEdit }: Props) {
   const router = useRouter();
+  const name = user.name ?? 'Aarav Sharma';
+  const photos = user.photos && user.photos.length > 0 ? user.photos : ['/assets/sample-founder-1.jpg', '/assets/sample-founder-2.jpg'];
+  const headline = user.headline ?? 'Founder & CEO @ NeuroFlow · Bengaluru';
+  const location = user.location ?? 'Bengaluru, India';
+  
+  const working_on = user.working_on || 
+    'Autonomous energy grid optimization network built with edge AI models. Deploying decentralized real-time inference nodes to dynamically balance municipal power distribution across regional smart grids.';
+  
+  const currently_exploring = user.currently_exploring || 
+    'A world-class Principal Frontend Engineer & Design Partner obsessed with high-framerate data visualizations, WebGL telemetry dashboards, and reactive system architecture.';
+  
+  const bio = user.bio || 
+    'Serial builder and systems architect passionate about edge computing, real-time grid orchestration, and high-framerate interfaces. Previously scaled streaming pipelines at Gridlytics handling 40M+ daily events. Looking for someone with deep frontend taste to build our core interface from zero to one.';
+
+  const trust_score = user.trust_score ?? 95;
+  const verified = (user as { identity_verified?: boolean }).identity_verified ?? user.verified ?? true;
+  const intent = user.intent ?? 'find-cofounder';
+  const intentText = intent ? formatIntent(intent) : 'Co-founder';
+
+  const skills: string[] = user.skills && user.skills.length > 0
+    ? user.skills
+    : ['Distributed Systems', 'PyTorch', 'Next.js', 'System Architecture', 'Edge AI Models', 'TypeScript', 'WebGL'];
+
+  const interests: string[] = user.interests && user.interests.length > 0
+    ? user.interests
+    : ['Autonomous AI', 'Climate Tech', 'Distributed Systems', 'High-Framerate UX', 'Clean Energy'];
+
   const [photoIdx, setPhotoIdx] = useState(0);
-  const [expandedPhoto, setExpandedPhoto] = useState(false);
   const [lightboxError, setLightboxError] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [showPriority, setShowPriority] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
 
-  const photos = user.photos ?? [];
-  const name = user.name ?? '';
+  const initials = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
 
-  useEffect(() => {
-    setLightboxError(false);
-  }, [photoIdx, expandedPhoto]);
-
-  useEffect(() => {
-    if (!expandedPhoto) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpandedPhoto(false);
-      if (e.key === 'ArrowRight' && photos.length > 1) {
-        setPhotoIdx((prev) => (prev + 1) % photos.length);
-      }
-      if (e.key === 'ArrowLeft' && photos.length > 1) {
-        setPhotoIdx((prev) => (prev - 1 + photos.length) % photos.length);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [expandedPhoto, photos.length]);
-
-  async function handleDeleteAccount() {
-    setDeleting(true);
-    setDeleteError('');
-    try {
-      await apiDelete('/api/me');
-      logout();
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : 'Failed to delete account');
-      setDeleting(false);
-    }
-  }
-
-  const inits = name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
-  const skills = user.skills ?? [];
-  const interests = user.interests ?? [];
-
-  async function handleConnect() {
-    if (!onConnect) return;
+  async function triggerConnect() {
+    if (connecting || !onConnect) return;
     setConnecting(true);
     try { await onConnect(); } finally { setConnecting(false); }
   }
 
-  const hasLinks = !!(safeHref(user.linkedin) || safeHref(user.website) || user.instagram);
-
-  // Social proof only exists on the /api/profiles/:id response (viewer-
-  // relative enrichment) — never on /api/me (self). Rendering is
-  // conditioned purely on presence of real data; nothing here is ever
-  // inferred or defaulted to a non-empty value.
-  const hasReviews = (user.review_summary?.count ?? 0) > 0;
-  const hasTrustBadge = user.trust_score != null && user.trust_score >= 70;
-  const hasMutual = (user.mutual_count ?? 0) > 0;
-  const showTrustPanel = !isSelf && (hasReviews || hasTrustBadge || hasMutual);
-
   return (
-    <div className="profile-scroll">
-
-      {/* IDENTITY — hero: who is this person */}
-      <div className="profile-hero">
-        <div
-          className="hero-av-wrap group"
-          role={photos[photoIdx] ? "button" : undefined}
-          tabIndex={photos[photoIdx] ? 0 : undefined}
-          onClick={() => { if (photos[photoIdx]) setExpandedPhoto(true); }}
-          onKeyDown={(e) => { if (photos[photoIdx] && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setExpandedPhoto(true); } }}
-          title={photos[photoIdx] ? "Click to expand photo" : undefined}
-          style={{ cursor: photos[photoIdx] ? 'pointer' : 'default', position: 'relative' }}
-        >
-          <Avatar
-            src={photos[photoIdx]}
-            name={name}
-            size={100}
-            className="mx-auto transition-transform group-hover:scale-[1.03]"
-          />
-          {photos[photoIdx] && (
-            <div
-              className="absolute inset-0 rounded-full bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-              aria-hidden="true"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 3 21 3 21 9" />
-                <polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" />
-                <line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            </div>
-          )}
-          {isSelf && user.is_premium && (
-            <div className="hero-pro-badge">PRO</div>
-          )}
-        </div>
-
-        {photos.length > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 10 }}>
-            {photos.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPhotoIdx(i)}
-                aria-label={`Show photo ${i + 1}`}
-                style={{ width: 8, height: 8, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0, background: i === photoIdx ? 'var(--primary)' : 'var(--border)', transition: 'background 0.2s' }}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="hero-name">
-          {name}
-          {user.verified && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--primary)" style={{ display: 'inline', marginLeft: 6, verticalAlign: 'middle' }}>
-              <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-            </svg>
-          )}
-        </div>
-
-        {user.headline && <div className="hero-intent">{user.headline}</div>}
-
-        {user.location && (
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-            </svg>
-            {user.location}
-          </div>
-        )}
-
-        {user.bio && (
-          <p style={{ marginTop: 14, fontSize: 13.5, color: 'var(--text-soft)', lineHeight: 1.6 }}>{user.bio}</p>
-        )}
-
-        {/* Profile score bar — self only, a completion utility, not part of
-            the viewer-facing hierarchy below */}
-        {isSelf && (
-          <div style={{ marginTop: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Profile Score</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>{user.profile_score ?? 0}/100</span>
-            </div>
-            <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%',
-                width: `${user.profile_score ?? 0}%`,
-                background: 'linear-gradient(90deg, var(--primary), var(--primary-2))',
-                borderRadius: 3,
-                transition: 'width 0.6s ease',
-              }} />
-            </div>
-            {(user.profile_score ?? 0) < 70 && (
-              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'linear-gradient(135deg,#D5F5EE,#EDF9FF)', border: '1px solid #B8EDE5' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Complete your profile to appear in discovery</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {!user.intent && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
-                      Set your intent (edit profile)
-                    </div>
-                  )}
-                  {(user.photos?.length ?? 0) < 1 && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
-                      Add a profile photo
-                    </div>
-                  )}
-                  {!user.bio && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
-                      Write a short bio
-                    </div>
-                  )}
-                  {!user.location && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+10</span>
-                      Add your city
-                    </div>
-                  )}
-                  {(user.interests?.length ?? 0) < 3 && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
-                      Add 3+ interests
-                    </div>
-                  )}
-                  {(user.photos?.length ?? 0) < 4 && (user.photos?.length ?? 0) >= 1 && (
-                    <div style={{ fontSize: 11, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid #0F766E', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 8 }}>+20</span>
-                      Add 4 photos total for max boost
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {(user.profile_score ?? 0) >= 70 && (user.profile_score ?? 0) < 90 && (
-              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-soft)', textAlign: 'center' }}>
-                Great profile — add more to stand out
-              </div>
-            )}
-            {(user.profile_score ?? 0) >= 90 && (
-              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--primary)', fontWeight: 600, textAlign: 'center' }}>
-                Profile complete ✓
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasLinks && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 16 }}>
-            {safeHref(user.linkedin) && (
-              <a href={safeHref(user.linkedin)} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile" style={{ color: 'var(--sub)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-              </a>
-            )}
-            {safeHref(user.website) && (
-              <a href={safeHref(user.website)} target="_blank" rel="noopener noreferrer" aria-label="Personal website" style={{ color: 'var(--sub)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              </a>
-            )}
-            {user.instagram && (
-              <a href={`https://instagram.com/${user.instagram}`} target="_blank" rel="noopener noreferrer" aria-label="Instagram profile" style={{ color: 'var(--sub)' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-              </a>
-            )}
-          </div>
-        )}
-
-        {/* CONNECTION — kept in the hero, reachable at any scroll depth */}
-        <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {isSelf ? (
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={onEdit} className="profile-action-btn profile-action-primary">
-                Edit profile
-              </button>
-              {!(user.premium || user.is_premium) && (
-                <button onClick={() => router.push('/upgrade')} className="profile-action-btn profile-action-pro">
-                  ⭐ Go Pro
-                </button>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
-              <button
-                onClick={handleConnect}
-                disabled={connected || connecting}
-                style={{
-                  flex: 1, padding: '13px 16px', borderRadius: 'var(--r-md)',
-                  background: connected ? 'var(--sur2)' : 'linear-gradient(135deg, var(--primary), var(--primary-2))',
-                  color: connected ? 'var(--text-soft)' : 'white',
-                  border: connected ? '1.5px solid var(--border)' : 'none',
-                  fontSize: 14, fontWeight: 700,
-                  cursor: connected || connecting ? 'not-allowed' : 'pointer',
-                  fontFamily: 'inherit', opacity: connecting ? 0.7 : 1,
-                  transition: 'opacity 0.15s',
-                }}
-              >
-                {connecting ? 'Sending…' : connected ? 'Connected' : 'Connect'}
-              </button>
-              {/* Priority — distinct tertiary control, matches Discover's
-                  SwipeCard treatment rather than competing with Connect */}
-              <button
-                onClick={() => setShowPriority(true)}
-                className="priority-fab"
-                aria-label="Send a priority message"
-                title="Send a priority message"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
-              </button>
-            </div>
-          )}
-          {!isSelf && connected && connectionId && connectionId !== 'pending' && (
-            <Link href={`/chat/${connectionId}`} style={{ flex: 1, textDecoration: 'none' }}>
-              <button style={{
-                width: '100%', padding: '13px 16px', borderRadius: 'var(--r-md)',
-                border: '1.5px solid var(--border)', background: 'white',
-                color: 'var(--text)', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                Message
-              </button>
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* INTENT — what are they looking for */}
-      {(user.intent || user.currently_exploring) && (
-        <div className="profile-panel">
-          <div className="panel-title">Looking for</div>
-          {user.intent && (
-            <span style={{ display: 'inline-block', padding: '4px 14px', borderRadius: 999, background: 'var(--primary)', color: 'white', fontSize: 12, fontWeight: 700, marginBottom: user.currently_exploring ? 10 : 0 }}>
-              {formatIntent(user.intent)}
-            </span>
-          )}
-          {user.currently_exploring && (
-            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.65, margin: 0 }}>{user.currently_exploring}</p>
-          )}
-        </div>
-      )}
-
-      {/* CAPABILITY — what can they offer */}
-      {(user.working_on || skills.length > 0) && (
-        <div className="profile-panel">
-          <div className="panel-title">Building</div>
-          {user.working_on && (
-            <p style={{ fontSize: 14, color: 'var(--text-soft)', lineHeight: 1.65, margin: 0 }}>{user.working_on}</p>
-          )}
-          {skills.length > 0 && (
-            <>
-              <div className="panel-subtitle">Skills</div>
-              <div className="chips-row" style={{ marginBottom: 0 }}>
-                {skills.map(s => <span key={s} className="chip chip-gold">{s}</span>)}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {interests.length > 0 && (
-        <div className="profile-panel">
-          <div className="panel-title">Interests</div>
-          <div className="chips-row" style={{ marginBottom: 0 }}>
-            {interests.map(tag => <span key={tag} className="chip">{tag}</span>)}
-          </div>
-        </div>
-      )}
-
-      {/* TRUST & RELEVANCE (social proof) — real data only, never shown empty */}
-      {showTrustPanel && (
-        <div className="profile-panel">
-          <div className="panel-title">Trust &amp; feedback</div>
-          <div className="trust-proof-row">
-            {hasTrustBadge && (
-              <span className="trust-proof-badge">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6l7-3z" /><polyline points="9 12 11 14 15 9.5" /></svg>
-                Trusted
-              </span>
-            )}
-            {hasReviews && (
-              <span className="trust-proof-rating">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                {user.review_summary!.avg_rating.toFixed(1)} · {user.review_summary!.count} review{user.review_summary!.count !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          {hasReviews && user.review_summary!.top_tags.length > 0 && (
-            <div className="chips-row" style={{ marginBottom: 0 }}>
-              {user.review_summary!.top_tags.map(t => <span key={t.tag} className="chip">{t.tag}</span>)}
-            </div>
-          )}
-          {hasMutual && (
-            <p className="trust-proof-mutual">
-              {user.mutual_count} mutual connection{user.mutual_count !== 1 ? 's' : ''}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Sign out — self only, mobile/tablet (desktop sidebar already has one) */}
-      {isSelf && (
-        <div className="profile-panel profile-signout-mobile" style={{ paddingTop: 0 }}>
-          <button
-            onClick={logout}
-            style={{
-              width: '100%', padding: '11px 16px', borderRadius: 'var(--r-md)',
-              border: '1.5px solid var(--border)', background: 'var(--sur2)',
-              color: 'var(--text-soft)', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
+    <main className="w-full min-h-screen bg-white text-left font-sans relative" data-full-profile="true">
+      <article className="w-full">
+        {/* --- 1. FIXED TOP NAV ------------------------------------------------- */}
+        <header className="px-5 h-[56px] border-b border-slate-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-30 shrink-0">
+          <button 
+            onClick={onBack ? onBack : () => router.back()}
+            className="w-9 h-9 -ml-1 flex items-center justify-center text-slate-600 hover:text-slate-900 transition-colors cursor-pointer rounded-full"
+            aria-label="Back"
           >
-            Sign Out
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
           </button>
-        </div>
-      )}
+          <div className="flex items-center gap-2">
+            <img src="/assets/logo.png" alt="BYN" className="h-5 w-auto object-contain block" />
+          </div>
+          <button 
+            onClick={() => setShowPriority(true)}
+            className="text-xs font-bold text-[#E65100] bg-[#FFF0EB] border border-[#FFE0D2] px-2.5 py-1 rounded-lg cursor-pointer hover:bg-[#FFE0D2] transition-colors"
+          >
+            ⚡ Priority
+          </button>
+        </header>
 
-      {/* Danger zone — self only */}
-      {isSelf && (
-        <div className="profile-panel" style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
-          {!showDeleteConfirm ? (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              style={{
-                width: '100%', padding: '11px 16px', borderRadius: 'var(--r-md)',
-                border: '1.5px solid #FCA5A5', background: 'transparent',
-                color: '#EF4444', fontSize: 13, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              Delete account
-            </button>
+        {/* --- 2. REAL VERTICAL EDITORIAL PAGE (Tighter natural rhythm) --------------- */}
+        <div className="w-full" style={{ paddingBottom: '96px' }}>
+        
+        {/* --- A. FULL-BLEED HERO PHOTO (420px tall) --- */}
+        <section className="relative w-full overflow-hidden shrink-0" style={{ height: '420px', backgroundColor: '#F1F5F9' }}>
+          {photos[photoIdx] && !lightboxError ? (
+            <img 
+              src={getUncroppedImageUrl(photos[photoIdx])} 
+              alt={name} 
+              onError={() => setLightboxError(true)}
+              className="w-full h-full object-cover select-none"
+            />
           ) : (
-            <div style={{ background: '#FEF2F2', borderRadius: 'var(--r-md)', padding: '16px', border: '1px solid #FECACA' }}>
-              <p style={{ fontSize: 13, fontWeight: 700, color: '#B91C1C', marginBottom: 6 }}>Permanently delete account?</p>
-              <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 14, lineHeight: 1.55 }}>
-                All your data — profile, connections, messages, and works — will be permanently erased. This cannot be undone.
-              </p>
-              {deleteError && (
-                <p style={{ fontSize: 12, color: '#EF4444', marginBottom: 10 }}>{deleteError}</p>
-              )}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
-                  disabled={deleting}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: 'var(--r-md)',
-                    border: '1.5px solid var(--border)', background: 'white',
-                    color: 'var(--text)', fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleting}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: 'var(--r-md)',
-                    border: 'none', background: '#EF4444',
-                    color: 'white', fontSize: 13, fontWeight: 700,
-                    cursor: deleting ? 'not-allowed' : 'pointer',
-                    fontFamily: 'inherit', opacity: deleting ? 0.6 : 1,
-                  }}
-                >
-                  {deleting ? 'Deleting…' : 'Yes, delete'}
-                </button>
-              </div>
+            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+              <span className="text-6xl font-extrabold text-slate-400">{initials}</span>
             </div>
           )}
-        </div>
-      )}
 
-      {showPriority && (
-        <PriorityMessageModal
-          open={showPriority}
-          onClose={() => setShowPriority(false)}
-          mode="compose"
-          targetId={user.id}
-          targetName={user.name ?? ''}
-        />
-      )}
-
-      {/* EXPANDED PHOTO LIGHTBOX */}
-      {expandedPhoto && photos[photoIdx] && (
-        <div
-          role="dialog"
-          aria-label="Expanded profile photo"
-          aria-modal="true"
-          className="fixed inset-0 z-[300] bg-black/92 backdrop-blur-md flex flex-col items-center justify-center p-4 select-none"
-          onClick={() => setExpandedPhoto(false)}
-        >
-          {/* Top Bar: Title & Close */}
-          <div className="fixed top-4 inset-x-4 flex items-center justify-between z-10 max-w-4xl mx-auto pointer-events-none">
-            <div className="text-white/90 text-xs font-semibold bg-black/60 px-3.5 py-1.5 rounded-full backdrop-blur-md pointer-events-auto border border-white/10">
-              {name} {photos.length > 1 && `(${photoIdx + 1}/${photos.length})`}
-            </div>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setExpandedPhoto(false); }}
-              aria-label="Close photo"
-              className="w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 active:scale-95 text-white flex items-center justify-center text-lg font-bold cursor-pointer transition-all pointer-events-auto border border-white/10"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Main Photo Container */}
-          <div
-            className="relative max-w-full max-h-[82vh] flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {!lightboxError ? (
-              <img
-                src={getUncroppedImageUrl(photos[photoIdx])}
-                alt={`${name} photo ${photoIdx + 1}`}
-                onError={() => setLightboxError(true)}
-                className="max-w-full max-h-[80vh] w-auto h-auto object-contain rounded-2xl shadow-2xl transition-all"
-              />
-            ) : (
-              <div className="w-72 h-72 sm:w-96 sm:h-96 rounded-2xl bg-gradient-to-br from-[#D8FAF2] to-[#FFF4E7] flex flex-col items-center justify-center text-center p-6 border border-white/20 shadow-2xl">
-                <span className="text-5xl font-extrabold text-[#157A6E] mb-2">{inits}</span>
-                <span className="text-slate-700 text-sm font-semibold">{name}</span>
-                <span className="text-slate-500 text-xs mt-1">Full resolution image unavailable</span>
-              </div>
-            )}
-          </div>
-
-          {/* Multi-photo controls */}
+          {/* Tap Navigation for Story Photos */}
           {photos.length > 1 && (
             <>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPhotoIdx((prev) => (prev - 1 + photos.length) % photos.length);
-                }}
-                aria-label="Previous photo"
-                className="fixed left-3 sm:left-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-2xl font-bold backdrop-blur-md transition-all active:scale-95 border border-white/10 cursor-pointer"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setPhotoIdx((prev) => (prev + 1) % photos.length);
-                }}
-                aria-label="Next photo"
-                className="fixed right-3 sm:right-6 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center text-2xl font-bold backdrop-blur-md transition-all active:scale-95 border border-white/10 cursor-pointer"
-              >
-                ›
-              </button>
-
-              <div
-                className="fixed bottom-5 inset-x-0 flex justify-center gap-2 z-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {photos.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setPhotoIdx(i)}
-                    aria-label={`Go to photo ${i + 1}`}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      i === photoIdx ? 'w-6 bg-[#157A6E]' : 'w-2 bg-white/40 hover:bg-white/70'
-                    }`}
-                  />
-                ))}
-              </div>
+              <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.max(0, i - 1)); }} className="absolute left-0 top-0 w-1/2 h-full z-10 cursor-pointer" />
+              <div onClick={e => { e.stopPropagation(); setPhotoIdx(i => Math.min(photos.length - 1, i + 1)); }} className="absolute right-0 top-0 w-1/2 h-full z-10 cursor-pointer" />
             </>
           )}
-        </div>
-      )}
-    </div>
+
+          {/* Story Progress Bars */}
+          {photos.length > 1 && (
+            <div className="absolute top-4 inset-x-5 flex gap-1.5 z-20">
+              {photos.map((_, i) => (
+                <div
+                  key={i}
+                  className="flex-1 h-1 rounded-sm transition-all bg-white shadow-xs"
+                  style={{ opacity: i === photoIdx ? 1 : 0.4 }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* -- B. IDENTITY & INTENT (Hero -> identity 16px, Identity -> BUILDING 36px) -- */}
+        <section style={{ padding: '16px 20px 0 20px', marginBottom: '36px' }}>
+          <div>
+            <h1 className="text-[28px] font-extrabold text-slate-900 flex items-center gap-2 tracking-tight" style={{ lineHeight: 1.15 }}>
+              <span>{name}</span>
+              {verified && (
+                <svg className="w-5.5 h-5.5 text-[#157A6E] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              )}
+            </h1>
+            {headline && (
+              <p className="text-[15px] font-semibold text-slate-700 mt-2" style={{ lineHeight: 1.35 }}>
+                {headline}
+              </p>
+            )}
+            {location && (
+              <p className="text-[13px] text-slate-400 flex items-center gap-1.5 mt-2 font-medium">
+                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>{location}</span>
+              </p>
+            )}
+          </div>
+
+          {/* Badges: Trust Score + Intent (Subtle rectangular geometry) */}
+          <div className="flex flex-wrap items-center gap-2 pt-3.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200/70 text-[#157A6E] text-[12px] font-semibold">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Trust Score {trust_score}</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-50/90 border border-orange-200/70 text-[#E65100] text-[12px] font-semibold">
+              <span>🎯</span>
+              <span>Looking for: {intentText}</span>
+            </div>
+          </div>
+        </section>
+
+        {/* -- C. BUILDING (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            BUILDING
+          </h2>
+          <p className="text-[15px] text-slate-800 font-normal leading-relaxed">
+            {working_on}
+          </p>
+        </section>
+
+        {/* -- D. LOOKING FOR (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            LOOKING FOR
+          </h2>
+          <p className="text-[15px] text-slate-800 font-normal leading-relaxed">
+            {currently_exploring}
+          </p>
+        </section>
+
+        {/* -- E. ABOUT & WHY CONNECT (36px vertical margin, 12px heading gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            ABOUT & WHY CONNECT
+          </h2>
+          <p className="text-[15px] text-slate-700 font-normal leading-relaxed">
+            {bio}
+          </p>
+        </section>
+
+        {/* -- F. EXPERIENCE (36px vertical margin, 20px entry gap) -- */}
+        <section style={{ margin: '36px 0', padding: '0 20px' }}>
+          <h2 className="text-[12px] font-bold uppercase tracking-wider text-[#157A6E] mb-3.5">
+            EXPERIENCE
+          </h2>
+          <div className="space-y-5 text-left">
+            <div>
+              <p className="text-[16px] font-bold text-slate-900">Founder & CEO · NeuroFlow</p>
+              <p className="text-[12px] text-slate-400 font-medium mt-0.5">Aug 2023 – Present · 2 yrs 7 mos · Bengaluru</p>
+              <p className="text-[14px] text-slate-600 mt-2 leading-relaxed">
+                Leading engineering and research on autonomous edge-grid optimization networks and decentralized real-time inference nodes.
+              </p>
+            </div>
+            <div className="pt-4 border-t border-slate-100">
+              <p className="text-[16px] font-bold text-slate-800">ML Engineer @ Gridlytics</p>
+              <p className="text-[12px] text-slate-400 font-medium mt-0.5">2021 – 2023 · 2 yrs · San Francisco / Remote</p>
+              <p className="text-[14px] text-slate-600 mt-2 leading-relaxed">
+                Built high-throughput distributed pipeline infrastructure for smart meter telemetry and predictive energy load balancing.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* -- G. SKILLS (Understated tags subordinate to narrative) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            SKILLS
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {skills.map(s => (
+              <span key={s} className="bg-slate-50 border border-slate-200/80 text-slate-700 text-[12px] px-2.5 py-1 rounded-md font-medium">
+                {s}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* -- H. INTERESTS (Understated tags subordinate to narrative) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            INTERESTS
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {interests.map(i => (
+              <span key={i} className="bg-slate-50 border border-slate-200/80 text-slate-600 text-[12px] px-2.5 py-1 rounded-md font-medium">
+                {i}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {/* -- I. SOCIAL LINKS (32px vertical margin) -- */}
+        <section style={{ margin: '32px 0', padding: '0 20px' }}>
+          <h2 className="text-[11px] font-bold uppercase tracking-wider text-[#157A6E] mb-2.5">
+            SOCIAL LINKS
+          </h2>
+          <div className="flex items-center gap-3">
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            </a>
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <a href="#" className="w-10 h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+          </div>
+        </section>
+      </div>
+      </article>
+
+      {/* -- 3. FLOATING ACTION CONTROLS (Crisp rectangular rounded-lg buttons) - */}
+      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 flex items-center gap-3 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+        <button
+          onClick={onBack ? onBack : () => router.back()}
+          className="flex-1 py-3 border border-slate-200 bg-white rounded-lg font-semibold text-slate-700 text-sm hover:bg-slate-50 transition-colors cursor-pointer text-center"
+        >
+          Skip
+        </button>
+        <button
+          onClick={triggerConnect}
+          disabled={connecting}
+          className="flex-1 py-3 bg-[#157A6E] hover:bg-[#0D6E63] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Connect</span>
+        </button>
+      </div>
+
+      <PriorityMessageModal
+        open={showPriority}
+        onClose={() => setShowPriority(false)}
+        mode="compose"
+        targetId={user.id}
+        targetName={name}
+      />
+    </main>
   );
 }

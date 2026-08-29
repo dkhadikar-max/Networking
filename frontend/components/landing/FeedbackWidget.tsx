@@ -48,7 +48,9 @@ export default function FeedbackWidget() {
                   const form = e.currentTarget;
                   const category = (form.elements.namedItem('category') as HTMLSelectElement).value;
                   const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
-                  try { await apiPost('/api/feedback', { category, message }); } catch {}
+                  const emailInput = form.elements.namedItem('email') as HTMLInputElement | null;
+                  const email = emailInput?.value?.trim() || undefined;
+                  try { await apiPost('/api/feedback', { category, message, ...(email ? { email } : {}) }); } catch {}
                   setDone(true);
                 }}>
                   <p className="feedback-intro">Help us improve Build Your Network. Your feedback shapes the product.</p>
@@ -69,7 +71,7 @@ export default function FeedbackWidget() {
                   </div>
                   <div className="feedback-field">
                     <label>Email (optional)</label>
-                    <input type="email" placeholder="you@example.com" />
+                    <input type="email" name="email" placeholder="you@example.com" />
                     <span className="field-hint">Only if you&apos;d like us to follow up</span>
                   </div>
                   <button type="submit" className="feedback-submit">

@@ -1,0 +1,127 @@
+{
+  "authForms": {
+    "login": {
+      "hasEmail": true,
+      "hasPass": true,
+      "hasSubmit": true,
+      "hasForgot": false,
+      "hasSignup": true,
+      "emptyValidationMsg": [],
+      "invalidEmailMsg": [],
+      "authErrorAlert": null,
+      "failedAuthResponse": {
+        "status": 401
+      }
+    },
+    "signup": {
+      "hasName": true,
+      "hasEmail": true,
+      "hasPass": true,
+      "hasSubmit": true,
+      "shortPassMsg": []
+    },
+    "verify": {
+      "inputCount": 1,
+      "buttonCount": 5
+    },
+    "forgotPassword": {
+      "inputCount": 1
+    },
+    "resetPassword": {
+      "inputCount": 4
+    }
+  },
+  "routeGuards": {
+    "/discover": {
+      "attemptedRoute": "/discover",
+      "finalUrl": "http://localhost:3000/discover",
+      "redirectedPath": "/discover",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/likes": {
+      "attemptedRoute": "/likes",
+      "finalUrl": "http://localhost:3000/likes",
+      "redirectedPath": "/likes",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/chat": {
+      "attemptedRoute": "/chat",
+      "finalUrl": "http://localhost:3000/chat",
+      "redirectedPath": "/chat",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/chat/test-conv-id": {
+      "attemptedRoute": "/chat/test-conv-id",
+      "finalUrl": "http://localhost:3000/chat/test-conv-id",
+      "redirectedPath": "/chat/test-conv-id",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/circles": {
+      "attemptedRoute": "/circles",
+      "finalUrl": "http://localhost:3000/circles",
+      "redirectedPath": "/circles",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/circles/groups": {
+      "attemptedRoute": "/circles/groups",
+      "finalUrl": "http://localhost:3000/circles/groups",
+      "redirectedPath": "/circles/groups",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/circles/groups/test-group-id": {
+      "attemptedRoute": "/circles/groups/test-group-id",
+      "finalUrl": "http://localhost:3000/circles/groups/test-group-id",
+      "redirectedPath": "/circles/groups/test-group-id",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/profile": {
+      "attemptedRoute": "/profile",
+      "finalUrl": "http://localhost:3000/profile",
+      "redirectedPath": "/profile",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/profile/test-user-id": {
+      "attemptedRoute": "/profile/test-user-id",
+      "finalUrl": "http://localhost:3000/profile/test-user-id",
+      "redirectedPath": "/profile/test-user-id",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/upgrade": {
+      "attemptedRoute": "/upgrade",
+      "finalUrl": "http://localhost:3000/upgrade",
+      "redirectedPath": "/upgrade",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/onboarding": {
+      "attemptedRoute": "/onboarding",
+      "finalUrl": "http://localhost:3000/onboarding",
+      "redirectedPath": "/onboarding",
+      "isGuarded": true,
+      "initialTextSnippet": ""
+    },
+    "/opportunities": {
+      "attemptedRoute": "/opportunities",
+      "finalUrl": "http://localhost:3000/opportunities",
+      "redirectedPath": "/opportunities",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    },
+    "/retention": {
+      "attemptedRoute": "/retention",
+      "finalUrl": "http://localhost:3000/retention",
+      "redirectedPath": "/retention",
+      "isGuarded": false,
+      "initialTextSnippet": ""
+    }
+  }
+}

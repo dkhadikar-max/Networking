@@ -93,11 +93,11 @@ const nextConfig: NextConfig = {
         { source: '/llms.txt',    destination: `${backend}/llms.txt` },
       ],
       afterFiles: [
-        // ── Core proxies (existing) ──
+        // -- Core proxies (existing) --
         { source: '/api/:path*',     destination: `${backend}/api/:path*` },
         { source: '/uploads/:path*', destination: `${backend}/uploads/:path*` },
 
-        // ── Static SEO landing pages (Express-only, no Next.js equivalent) ──
+        // -- Static SEO landing pages (Express-only, no Next.js equivalent) --
         { source: '/what-is-byn',                          destination: `${backend}/what-is-byn` },
         { source: '/intent-based-networking',              destination: `${backend}/intent-based-networking` },
         { source: '/find-cofounders',                      destination: `${backend}/find-cofounders` },
@@ -111,7 +111,7 @@ const nextConfig: NextConfig = {
         { source: '/find-startup-mentor',                  destination: `${backend}/find-startup-mentor` },
         { source: '/startup-networking-events',            destination: `${backend}/startup-networking-events` },
 
-        // ── International hub pages ──
+        // -- International hub pages --
         { source: '/startup-networking-us',                destination: `${backend}/startup-networking-us` },
         { source: '/startup-networking-europe',            destination: `${backend}/startup-networking-europe` },
         { source: '/startup-networking-uk',                destination: `${backend}/startup-networking-uk` },
@@ -122,7 +122,7 @@ const nextConfig: NextConfig = {
         { source: '/startup-networking-south-africa',      destination: `${backend}/startup-networking-south-africa` },
         { source: '/startup-networking-turkey',            destination: `${backend}/startup-networking-turkey` },
 
-        // ── Programmatic SEO patterns (Indian cities × intents × categories) ──
+        // -- Programmatic SEO patterns (Indian cities × intents × categories) --
         { source: '/networking-in-:city',           destination: `${backend}/networking-in-:city` },
         { source: '/founders-in-:city',             destination: `${backend}/founders-in-:city` },
         { source: '/startup-founders-:city',        destination: `${backend}/startup-founders-:city` },
@@ -137,11 +137,11 @@ const nextConfig: NextConfig = {
         { source: '/investor-networking-:city',     destination: `${backend}/investor-networking-:city` },
         { source: '/startup-ecosystem-:city',       destination: `${backend}/startup-ecosystem-:city` },
 
-        // ── Blog ──
+        // -- Blog --
         { source: '/blog',         destination: `${backend}/blog` },
         { source: '/blog/:slug*',  destination: `${backend}/blog/:slug*` },
 
-        // ── Admin + utility ──
+        // -- Admin + utility --
         { source: '/admin',        destination: `${backend}/admin` },
         { source: '/admin.html',   destination: `${backend}/admin.html` },
         { source: '/terms',        destination: `${backend}/terms` },

@@ -22,7 +22,7 @@ export default function LoginPage() {
       const { user } = await login(email, password);
       if (!user.email_verified) {
         apiPost('/api/auth/send-otp', {}).catch(() => {});
-        router.replace('/verify');
+        router.replace('/verify?email=' + encodeURIComponent(email));
         return;
       }
       if (user.onboarding_stage !== 'complete') { router.replace('/onboarding'); return; }
@@ -92,9 +92,9 @@ export default function LoginPage() {
         boxShadow: '0 12px 36px rgba(15,23,42,.09)',
         marginBottom: 20,
       }}>
-        <h2 style={{ fontSize: 21, fontWeight: 800, color: '#0F172A', marginBottom: 4, letterSpacing: '-0.3px' }}>
+        <h1 style={{ fontSize: 21, fontWeight: 800, color: '#0F172A', marginBottom: 4, letterSpacing: '-0.3px' }}>
           Welcome back
-        </h2>
+        </h1>
         <p style={{ fontSize: 13, color: '#64748B', marginBottom: 22 }}>Sign in to continue</p>
 
         {error && (
@@ -148,10 +148,19 @@ export default function LoginPage() {
               width: '100%', background: '#F8FAFC',
               border: '1.5px solid #E2E8F0', borderRadius: 12,
               padding: '14px 16px', color: '#0F172A', fontSize: 15,
-              marginBottom: 14, outline: 'none',
+              marginBottom: 8, outline: 'none',
               fontFamily: 'inherit', transition: 'border-color .18s,box-shadow .18s',
             }}
           />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <Link
+              href="/forgot-password"
+              style={{ fontSize: 12.5, color: '#157A6E', fontWeight: 600, textDecoration: 'none' }}
+            >
+              Forgot password?
+            </Link>
+          </div>
 
           <button
             type="submit"

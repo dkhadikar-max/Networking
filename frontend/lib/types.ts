@@ -34,7 +34,9 @@ export type User = {
   premium?: boolean;
   // Returned by GET /api/profiles/:id only (viewer-relative enrichment) —
   // absent on /api/me (self) and on any other endpoint. Always check for
-  // presence before rendering; never assume it exists.
+  // presence before rendering; never assume these exist.
+  review_summary?: { count: number; avg_rating: number; top_tags: { tag: string; count: number }[] };
+  mutual_count?: number;
   is_connected?: boolean;
 };
 
