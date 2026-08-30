@@ -425,7 +425,21 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
 
       {/* -- 1-CLICK QUICK PROMPT TRAY (If conversation is ongoing) ----------- */}
       {messages.length > 0 && (
-        <div className="px-4 sm:px-5 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+        <div
+          className="px-4 sm:px-5 py-2 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0"
+          /* This row scrolls horizontally (no-scrollbar hides the native
+             scrollbar for a cleaner chip-tray look), but with 3 chips it
+             regularly overflows narrow viewports — the trailing chip was
+             getting cut off flush against the screen edge with zero visual
+             hint that there was more to swipe to, reading as a layout bug
+             rather than an intentional carousel. A fading right edge
+             signals "more content this way" without needing JS scroll-
+             position tracking. */
+          style={{
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 28px), transparent 100%)',
+            maskImage: 'linear-gradient(to right, black calc(100% - 28px), transparent 100%)',
+          }}
+        >
           {ICEBREAKER_TEMPLATES.slice(0, 3).map(tmpl => {
             const iconMatch = tmpl.label.match(/^(\p{Emoji}|\p{Extended_Pictographic})/u);
             const icon = iconMatch ? iconMatch[0] : '';

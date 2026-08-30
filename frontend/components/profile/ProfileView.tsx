@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/lib/types';
 import { formatIntent } from '@/lib/intent';
@@ -135,29 +134,21 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
               <path d="m15 18-6-6 6-6"/>
             </svg>
           </button>
-          {/* Was a bare, unlinked icon — no accompanying wordmark (unlike
-              Discover's header) and nothing to tap, so it just floated
-              there with no explained purpose. Now a real "go home" control,
-              matching the same logo-links-to-Discover pattern DesktopNav
-              already uses.
-              profile-header-logo + the .app-wrap-scoped rule in app.css
-              hides this on desktop (>=1024px) — DesktopNav's sidebar brand
-              mark is already on screen there, so without this rule Profile
-              was the one page in the app showing the BYN logo twice at
-              once. Scoped to .app-wrap specifically (not a bare width media
-              query) so the landing page's standalone ProfileView previews —
-              which have no sidebar at any width — keep their logo. */}
-          <Link
-            href="/discover"
-            aria-label="Build Your Network — go to Discover"
-            className="profile-header-logo flex items-center gap-2 hover:opacity-75 active:opacity-60 transition-opacity"
-          >
-            <img src="/assets/logo.png" alt="" className="h-6 w-auto object-contain block" />
-          </Link>
-          {/* Spacer matching the back button's footprint — keeps the logo
-              centered now that Priority messaging has no entry point on
-              Profile. Priority already lives on Chat (composing/inbox
-              there is contextual to an actual conversation); Profile
+          {/* Was a bare logo icon here — first unlinked (confusing: looked
+              tappable-but-wasn't), then made a real link back to Discover
+              (still confusing: a small standalone brand mark floating in
+              the center of an inner screen's header reads as a misplaced
+              element, not a control, since nothing else on the page hints
+              at what it does). Standard back+title+spacer header instead —
+              the screen title people actually expect here. Discover is
+              still one tap away via the bottom nav regardless. */}
+          <h1 className="text-[15px] font-bold text-slate-900 truncate max-w-[60%]">
+            {isSelf ? 'Profile' : name}
+          </h1>
+          {/* Spacer matching the back button's footprint — keeps the title
+              visually centered now that Priority messaging has no entry
+              point on Profile. Priority already lives on Chat (composing/
+              inbox there is contextual to an actual conversation); Profile
               doesn't need its own separate entry point — see the
               2026-08-30 IA freeze. */}
           <div className="w-9 h-9" aria-hidden="true" />

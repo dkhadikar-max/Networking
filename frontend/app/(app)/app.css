@@ -885,12 +885,6 @@ textarea.pe-input { resize: none; }
      because its flex:1 is what pushes .filter-btn to the right edge. */
   .disc-logo { visibility: hidden; }
   .circles-header-icon { display: none; }
-  /* Same reasoning, third instance: Profile's own header logo, but scoped
-     to .app-wrap specifically (unlike the two rules above) — ProfileView
-     is also embedded standalone on the landing page (ProfilePreview,
-     DiscoverySummaryCard's full-profile portal), where there is no
-     sidebar at any width and the logo must stay. */
-  .app-wrap [data-full-profile] .profile-header-logo { display: none; }
 
   /* Desktop sidebar nav */
   .desk-nav {
