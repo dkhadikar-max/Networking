@@ -579,12 +579,19 @@
   gap: 12px;
 }
 
-/* Profile screens scroll with the browser window instead of an inner box */
+/* Profile screens scroll with the browser window instead of an inner box.
+   max-height is set explicitly (not just height) because the >=1024px
+   block further down also sets `.app-wrap{max-height:100vh!important}` —
+   a property this rule never touched, so on desktop it kept silently
+   winning and clamping .app-wrap back to one screen no matter what
+   height/min-height said, with the excess content spilling invisibly
+   past the box instead of the page ever growing enough to scroll to it. */
 .app-wrap:has(.profile-scroll),
 .app-wrap:has(.profile-page-wrap),
 .app-wrap:has([data-full-profile]) {
   height: auto !important;
   min-height: 100vh !important;
+  max-height: none !important;
   overflow: visible !important;
 }
 .app-wrap:has(.profile-scroll) .app-views,
@@ -603,10 +610,76 @@
   overflow-y: visible !important;
   flex: none;
 }
-html:has([data-full-profile]),
-body:has([data-full-profile]) {
+/* Scoped to .app-wrap [data-full-profile], not a bare [data-full-profile] —
+   two reasons. (1) Specificity: the desktop media query below also has a
+   `body:has(.app-wrap){height:100vh!important;overflow:hidden!important}`
+   rule of equal (0,1,0) specificity to a bare `body:has([data-full-profile])`
+   — a tie resolved by source order, and that desktop rule comes later, so
+   on real desktop viewports it silently won, clamping body back to a
+   clipped 100vh box with no scrollbar. Content past the fold (on Profile,
+   this reached as far as the new ACCOUNT section's Sign Out link) became
+   permanently unreachable — nothing to scroll, nothing visibly broken,
+   just gone. `.app-wrap [data-full-profile]` is a (0,2,0) selector, so it
+   now wins outright regardless of source order. (2) Correctness: a bare
+   `[data-full-profile]` also matches ProfileView's landing-page previews
+   (ProfilePreview, DiscoverySummaryCard), which live outside .app-wrap —
+   scoping this to .app-wrap keeps it from touching that page's own scroll
+   behavior at all, intentional or not. */
+html:has(.app-wrap [data-full-profile]),
+body:has(.app-wrap [data-full-profile]) {
   overflow-y: auto !important;
   height: auto !important;
+}
+/* Height/overflow alone weren't enough on desktop: the >=1024px block
+   below also sets `body:has(.app-wrap){align-items:stretch}`, and
+   flexbox stretch keys off the cross-size's *computed* value being auto
+   — which `height:auto!important` still is, explicit or not. Stretch
+   still won, clamping .app-wrap back to exactly body's own height, so
+   Profile's overflow just spilled past .app-wrap's box invisibly
+   (overflow:visible paints outside the box, it doesn't grow it) instead
+   of ever making body/html tall enough to scroll to it. flex-start lets
+   .app-wrap size to its actual (taller) content instead of being
+   stretched down to match the viewport. */
+body:has(.app-wrap [data-full-profile]) {
+  align-items: flex-start !important;
+}
+/* ProfileView's own fixed Edit-Profile / Skip-Connect footer bar. On
+   mobile/tablet (<1024px) the persistent .bottom-nav pill is a normal-flow
+   element inside the now-scrollable page (see the profile-scroll rules
+   above) rather than something reserved-around, so once the page could
+   actually be scrolled to its end, this bar — pinned flush to the true
+   viewport bottom — started rendering directly on top of it. 96px clears
+   .bottom-nav's own measured footprint (66.6px pill + 14px bottom margin)
+   with a little breathing room. Desktop hides .bottom-nav entirely (see
+   `.bottom-nav{display:none!important}` below), so there's nothing to
+   clear there — back to flush with the viewport edge. */
+.profile-action-bar {
+  bottom: 96px;
+}
+/* Tablet (768-1023px): .app-wrap becomes a centered 480px phone shell here
+   (see the >=768px block below), but this bar's Tailwind `inset-x-0` is
+   `position:fixed` relative to the true viewport, not the shell — so it
+   was rendering edge-to-edge across the surrounding gray background
+   instead of matching the shell it visually belongs to. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .profile-action-bar {
+    left: 50%;
+    right: auto;
+    width: 480px;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .profile-action-bar {
+    bottom: 0;
+    /* Same issue as the tablet case above, different cause: at >=1024px
+       this bar's fixed inset-x-0 spans the full viewport including
+       DesktopNav's 240px sidebar, rendering on top of its bottom edge
+       (Sign Out) at z-40. Clear the sidebar's width instead. */
+    left: 240px;
+    right: 0;
+    width: auto;
+  }
 }
 @media (min-width: 1024px) {
   .app-wrap:has(.profile-scroll) .desk-nav,
@@ -812,6 +885,12 @@ textarea.pe-input { resize: none; }
      because its flex:1 is what pushes .filter-btn to the right edge. */
   .disc-logo { visibility: hidden; }
   .circles-header-icon { display: none; }
+  /* Same reasoning, third instance: Profile's own header logo, but scoped
+     to .app-wrap specifically (unlike the two rules above) — ProfileView
+     is also embedded standalone on the landing page (ProfilePreview,
+     DiscoverySummaryCard's full-profile portal), where there is no
+     sidebar at any width and the logo must stay. */
+  .app-wrap [data-full-profile] .profile-header-logo { display: none; }
 
   /* Desktop sidebar nav */
   .desk-nav {

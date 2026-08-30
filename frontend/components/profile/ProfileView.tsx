@@ -139,11 +139,18 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
               Discover's header) and nothing to tap, so it just floated
               there with no explained purpose. Now a real "go home" control,
               matching the same logo-links-to-Discover pattern DesktopNav
-              already uses. */}
+              already uses.
+              profile-header-logo + the .app-wrap-scoped rule in app.css
+              hides this on desktop (>=1024px) — DesktopNav's sidebar brand
+              mark is already on screen there, so without this rule Profile
+              was the one page in the app showing the BYN logo twice at
+              once. Scoped to .app-wrap specifically (not a bare width media
+              query) so the landing page's standalone ProfileView previews —
+              which have no sidebar at any width — keep their logo. */}
           <Link
             href="/discover"
             aria-label="Build Your Network — go to Discover"
-            className="flex items-center gap-2 hover:opacity-75 active:opacity-60 transition-opacity"
+            className="profile-header-logo flex items-center gap-2 hover:opacity-75 active:opacity-60 transition-opacity"
           >
             <img src="/assets/logo.png" alt="" className="h-6 w-auto object-contain block" />
           </Link>
@@ -415,10 +422,14 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
               >
                 Contact
               </a>
+              {/* profile-signout-mobile: DesktopNav's sidebar already has its
+                  own Sign Out (app.css hides this one at >=1024px so desktop
+                  doesn't show two). Terms/Privacy/Contact above have no
+                  sidebar equivalent, so those stay visible at every width. */}
               <button
                 type="button"
                 onClick={logout}
-                className="py-2.5 text-[14px] text-left text-red-600 font-semibold hover:text-red-700 active:opacity-60 transition-colors cursor-pointer"
+                className="profile-signout-mobile py-2.5 text-[14px] text-left text-red-600 font-semibold hover:text-red-700 active:opacity-60 transition-colors cursor-pointer"
               >
                 Sign Out
               </button>
@@ -437,7 +448,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
              reading the full document — not duplicated swipe controls. -- */}
       {isSelf ? (
         onEdit && (
-          <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+          <div className="profile-action-bar fixed inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
             <button
               onClick={onEdit}
               className="w-full py-3 bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
@@ -448,7 +459,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
           </div>
         )
       ) : (
-        <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 flex items-center gap-3 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+        <div className="profile-action-bar fixed inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-6 py-3.5 flex items-center gap-3 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
           <button
             onClick={onBack ? onBack : () => router.back()}
             className="flex-1 py-3 border border-slate-200 bg-white rounded-lg font-semibold text-slate-700 text-sm hover:bg-slate-50 active:scale-[0.97] transition-all cursor-pointer text-center"
