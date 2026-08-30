@@ -4179,6 +4179,55 @@ async function sendMagicLinkEmail(toEmail, link, name) {
   }
 }
 
+// Sent instead of a real sign-in link when the requesting email already
+// belongs to an account with a real password (`password_set: true`).
+// Passwordless entry is scoped to signup (a brand-new email) and to the
+// existing forgot-password flow — never a side-door around a password an
+// already-registered user already has. This mail grants no session by
+// itself; it only points the recipient at /login and /forgot-password.
+async function sendAlreadyRegisteredEmail(toEmail, name) {
+  if (!ResendClient) {
+    console.error('[MagicLink] Resend client not created — RESEND_API_KEY env var is missing or empty');
+    return { ok: false, reason: 'not_configured' };
+  }
+  const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
+  console.log(`[MagicLink] Sending already-registered notice from="${FROM}" to="${maskEmail(toEmail)}"`);
+  const baseUrl = process.env.BASE_URL || 'https://buildyournetwork.online';
+  const loginLink = `${baseUrl}/login`;
+  const resetLink = `${baseUrl}/forgot-password`;
+  try {
+    const { error } = await ResendClient.emails.send({
+      from: FROM,
+      to: toEmail,
+      subject: 'You already have a Build Your Network account',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
+          <h2 style="color:#0F766E;margin-bottom:4px">Build Your Network</h2>
+          <p style="color:#6B7280;font-size:13px;margin-top:0">connect · grow · thrive</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:16px;color:#111827">Hi ${name || 'there'},</p>
+          <p style="font-size:15px;color:#374151">Someone just tried to sign in to Build Your Network with this email address. This account already has a password set, so a sign-in link can't be used here.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="${loginLink}" style="display:inline-block;background:#0F766E;color:#ffffff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none">Sign in with your password</a>
+          </div>
+          <p style="font-size:14px;color:#374151;text-align:center;margin-top:-12px">Forgot it? <a href="${resetLink}" style="color:#0F766E;font-weight:600">Reset your password</a></p>
+          <p style="font-size:12px;color:#9CA3AF;margin-top:24px">If this wasn't you, you can safely ignore this email — your account is unaffected.</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
+          <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
+        </div>
+      `,
+    });
+    if (error) {
+      console.error('[MagicLink] Resend rejected the already-registered notice:', maskEmail(toEmail), JSON.stringify(error));
+      return { ok: false, reason: classifyResendError(error) };
+    }
+    return { ok: true };
+  } catch(e) {
+    console.error('[MagicLink] Already-registered notice send threw (network/transport):', e.message);
+    return { ok: false, reason: 'provider_error' };
+  }
+}
+
 // Shared per-account cooldown/hour/day claim, same atomic-UPDATE-WHERE
 // pattern as issueAndSendOtp — see that function's comment for why this is
 // genuinely race-safe, not just app-level. Also claims the SAME global
@@ -4250,6 +4299,70 @@ async function issueAndSendMagicLink(user) {
   return { ok: true };
 }
 
+// Same shape as issueAndSendMagicLink (shared rate-limit counters, same
+// global budget claim) but for an email that already belongs to a
+// password-set account: no token is issued or stored, so there is nothing
+// this request could use to sign in — it only sends the notice above. Using
+// the same counters matters: without it, this path would be a free way to
+// spam an already-registered inbox that skips the real send's rate limits.
+async function issueAlreadyRegisteredNotice(user) {
+  if (user.email_suppressed) {
+    return { ok: false, code: 'EMAIL_SUPPRESSED' };
+  }
+  if (!claimGlobalOtpBudget()) {
+    console.error(`[MagicLink] Global email budget exhausted (hour:${otpGlobalHourCount}/${OTP_GLOBAL_HOUR_BUDGET}, day:${otpGlobalDayCount}/${OTP_GLOBAL_DAY_BUDGET}) — refusing already-registered notice`);
+    return { ok: false, code: 'GLOBAL_BUDGET_EXHAUSTED' };
+  }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const cooldownCutoffIso = new Date(now.getTime() - MAGIC_LINK_COOLDOWN_MS).toISOString();
+
+  const hourStale = !user.magic_link_hour_window_start || (now - new Date(user.magic_link_hour_window_start)) >= 60 * 60 * 1000;
+  const dayStale  = !user.magic_link_day_window_start  || (now - new Date(user.magic_link_day_window_start))  >= 24 * 60 * 60 * 1000;
+  const nextHourCount = hourStale ? 1 : (user.magic_link_hour_count || 0) + 1;
+  const nextDayCount  = dayStale  ? 1 : (user.magic_link_day_count  || 0) + 1;
+
+  if (!hourStale && nextHourCount > MAGIC_LINK_HOUR_LIMIT) return { ok: false, code: 'HOURLY_LIMIT' };
+  if (!dayStale  && nextDayCount  > MAGIC_LINK_DAY_LIMIT)  return { ok: false, code: 'DAILY_LIMIT' };
+
+  // Atomic claim, same cooldown pattern as issueAndSendMagicLink — but no
+  // token_hash/expires_at/used_at are touched, since this send should never
+  // be independently verifiable as a sign-in credential.
+  const { data: claimed, error: claimErr } = await supabase.from('users')
+    .update({
+      magic_link_last_sent_at: nowIso,
+      magic_link_hour_count: nextHourCount, magic_link_hour_window_start: hourStale ? nowIso : user.magic_link_hour_window_start,
+      magic_link_day_count: nextDayCount, magic_link_day_window_start: dayStale ? nowIso : user.magic_link_day_window_start,
+    })
+    .eq('id', user.id)
+    .or(`magic_link_last_sent_at.is.null,magic_link_last_sent_at.lt.${cooldownCutoffIso}`)
+    .select('email, name')
+    .maybeSingle();
+
+  if (claimErr) {
+    console.error('[MagicLink] Already-registered cooldown-claim failed:', claimErr.message);
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  if (!claimed) {
+    return { ok: false, code: 'COOLDOWN' };
+  }
+
+  const sendResult = await sendAlreadyRegisteredEmail(claimed.email, claimed.name);
+  if (!sendResult.ok) {
+    if (sendResult.reason === 'suppressed') {
+      await supabase.from('users').update({
+        email_suppressed: true,
+        email_suppressed_reason: 'magic_link_rejected',
+        email_suppressed_at: new Date().toISOString(),
+      }).eq('id', user.id);
+      return { ok: false, code: 'EMAIL_SUPPRESSED' };
+    }
+    return { ok: false, code: 'PROVIDER_ERROR' };
+  }
+  return { ok: true };
+}
+
 // Atomic claim on verify too: only succeeds if the hash matches, the token
 // hasn't been used yet, and it hasn't expired. The hash is deliberately
 // NOT cleared on success (see the migration's comment) so a reuse attempt
@@ -4287,7 +4400,8 @@ async function verifyMagicLinkToken(rawToken) {
   return { ok: false, code: 'INVALID' };
 }
 
-// ── REQUEST MAGIC LINK (signup + login unified — email is the only input) ──
+// ── REQUEST MAGIC LINK (signup + forgot-password only — never a login
+// side-door for an already-registered password account) ──
 // Never issues a session here — knowledge of an email address must never be
 // sufficient for authentication. A session is only ever issued in
 // /api/auth/magic-link/verify, on successful proof of inbox access. This is
@@ -4295,6 +4409,12 @@ async function verifyMagicLinkToken(rawToken) {
 // create an account for a brand-new email (mirroring /api/signup's existing
 // eager-creation behavior) — an eagerly-created row grants no access to
 // anyone until its magic link is actually clicked.
+//
+// If the email already belongs to an account with a real password
+// (password_set !== false), no sign-in token is issued at all — see
+// issueAlreadyRegisteredNotice below. The HTTP response is identical either
+// way (no enumeration), but only a brand-new or still-mid-passwordless-
+// signup account ever receives an actual usable sign-in link.
 app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (req, res) => {
   try {
     // Honeypot — same convention as /api/signup's.
@@ -4308,10 +4428,16 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
 
     const { data: existing } = await supabase.from('users')
-      .select('id, email, name, email_suppressed, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
+      .select('id, email, name, email_suppressed, password_set, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
       .eq('email', normalizedEmail).maybeSingle();
 
+    // Passwordless entry is scoped to signup + forgot-password, not a
+    // side-door login for an account that already has a real password.
+    // `password_set` defaults true (migration 017 backfill), so a row with
+    // no explicit false is treated as already-registered, same as any
+    // pre-passwordless-feature account.
     let user = existing;
+    let alreadyRegistered = Boolean(existing) && existing.password_set !== false;
     if (!user) {
       // New email — require the same consent gate /api/signup requires,
       // since this eagerly creates an account exactly like signup does.
@@ -4351,9 +4477,10 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
         // Fall through to the existing-user path rather than error.
         if (insertErr.code === '23505') {
           const { data: raced } = await supabase.from('users')
-            .select('id, email, name, email_suppressed, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
+            .select('id, email, name, email_suppressed, password_set, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
             .eq('email', normalizedEmail).maybeSingle();
           user = raced;
+          alreadyRegistered = Boolean(raced) && raced.password_set !== false;
         } else {
           throw new Error(insertErr.message);
         }
@@ -4363,7 +4490,11 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
     }
 
     if (user) {
-      issueAndSendMagicLink(user).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
+      if (alreadyRegistered) {
+        issueAlreadyRegisteredNotice(user).catch(e => console.error('[magic-link] issueAlreadyRegisteredNotice failed:', e.message));
+      } else {
+        issueAndSendMagicLink(user).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
+      }
     }
     // Identical response regardless of new/existing/failed-to-queue — never
     // reveals whether the address is registered.
