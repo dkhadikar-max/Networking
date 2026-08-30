@@ -291,10 +291,13 @@ export default function SignupPage() {
                 </div>
               )}
               <form onSubmit={handleMagicLinkSubmit} noValidate>
-                {/* Honeypot — shared with the password form below (same field). */}
+                {/* Honeypot — shared with the password form below (same field,
+                    posted as company_website regardless of this input's own
+                    name — see the other honeypot's comment for why the name
+                    below isn't "company_website" itself). */}
                 <input
                   type="text"
-                  name="company_website"
+                  name="bx_hp_9f2"
                   value={companyWebsite}
                   onChange={e => setCompanyWebsite(e.target.value)}
                   tabIndex={-1}
@@ -356,10 +359,20 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} noValidate>
           {/* Honeypot — positioned off-screen rather than display:none (some
               scrapers skip display:none fields), not tab-reachable, no label
-              a screen reader would announce as a real field. */}
+              a screen reader would announce as a real field.
+              `name` is deliberately NOT "company_website" (or "company",
+              "organization", "website", "url", etc.) — that was the actual
+              bug: Chrome/password-manager autofill matches an input's `name`
+              (and autocomplete token) against known field categories
+              regardless of CSS visibility, so a real user with a saved
+              "Company"/organization profile got this hidden field silently
+              filled in and their genuine signup rejected as "Invalid signup
+              request". The value posted to the API is still keyed
+              `company_website` (see handleSubmit below) — only the DOM
+              attribute autofill actually reads has changed. */}
           <input
             type="text"
-            name="company_website"
+            name="bx_hp_9f2"
             value={companyWebsite}
             onChange={e => setCompanyWebsite(e.target.value)}
             tabIndex={-1}
