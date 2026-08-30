@@ -215,22 +215,21 @@ export default function SignupPage() {
       {/* Brand */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <span style={{ display: 'block', marginBottom: 14 }}>
-          <div style={{
-            width: 60, height: 60, borderRadius: 18,
-            background: 'linear-gradient(145deg,#157A6E,#0E5E55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14),0 18px 36px rgba(21,122,110,.32)',
-            margin: '0 auto 2px',
-          }}>
-            <svg width="34" height="34" viewBox="0 0 100 100" fill="none">
-              <circle cx="25" cy="25" r="10" fill="#1DB7A6"/>
-              <circle cx="75" cy="50" r="16" fill="#1DB7A6"/>
-              <circle cx="25" cy="75" r="10" fill="#F4A259"/>
-              <line x1="34" y1="30" x2="62" y2="44" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="25" y1="35" x2="25" y2="64" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-              <line x1="34" y1="70" x2="62" y2="56" stroke="white" strokeWidth="7" strokeLinecap="round"/>
-            </svg>
-          </div>
+          {/* Real BYN logo asset — this used to be a hand-drawn SVG approximation
+              (different node layout, different colors) that didn't match the
+              actual mark used everywhere else in the product. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/assets/logo.png"
+            alt="Build Your Network"
+            width={60}
+            height={60}
+            style={{
+              width: 60, height: 60, borderRadius: 18,
+              boxShadow: '0 18px 36px rgba(21,122,110,.32)',
+              margin: '0 auto 2px', display: 'block',
+            }}
+          />
         </span>
         <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px', marginTop: 4 }}>
           Build Your Network

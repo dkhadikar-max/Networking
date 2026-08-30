@@ -181,7 +181,7 @@ export default function DiscoverFeed() {
             PNG or a different SVG — this IS the canonical BYN logo asset. */}
         <div className="disc-header">
           <div className="disc-logo" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/assets/logo.png" alt="Build Your Network" width={28} height={28} style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0 }} />
+            <img src="/assets/logo.png" alt="Build Your Network" width={32} height={32} style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0 }} />
             <span>Build Your Network</span>
           </div>
 

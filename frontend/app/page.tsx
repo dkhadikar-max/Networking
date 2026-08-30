@@ -72,8 +72,13 @@ const LANDING_CSS = `
   .btn-primary svg { width:19px; height:19px; }
   .btn-secondary { display:inline-flex; align-items:center; gap:8px; padding:15px 24px; background:transparent; color:var(--primary); text-decoration:none; border-radius:12px; font-weight:600; font-size:15px; border:2px solid var(--primary); transition:all 0.2s; }
   .btn-secondary:hover { background:var(--primary-light); transform:translateY(-2px); }
-  /* Discovery workspace panel — visually independent from marketing content */
-  .hero-visual { display:flex; align-items:center; justify-content:center; padding:64px 48px; background:var(--bg-subtle); border-left:1px solid var(--border-subtle); position:relative; }
+  /* Discovery workspace panel — same page background as the marketing
+     column on purpose. This used to carry its own flat --bg-subtle fill
+     plus a border-left, which read as a hard seam splitting the hero in
+     half (worse under forced-dark rendering, where two very-close light
+     grays invert into two visibly different darks). The glow is the only
+     thing that should distinguish this half — no separate fill, no border. */
+  .hero-visual { display:flex; align-items:center; justify-content:center; padding:64px 48px; position:relative; }
   .hero-visual::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 60% 40%, var(--highlight) 0%, transparent 65%); opacity:0.35; pointer-events:none; }
 
   section { padding:88px 24px; position:relative; }
@@ -179,7 +184,7 @@ const LANDING_CSS = `
   @media (max-width:900px) {
     .hero-inner { grid-template-columns:1fr; align-items:start; }
     .hero-content { padding:100px 28px 40px; }
-    .hero-visual { order:2; border-left:none; border-top:1px solid var(--border-subtle); padding:28px 16px 48px; min-height:auto; }
+    .hero-visual { order:2; padding:28px 16px 48px; min-height:auto; }
 
     .why-grid { grid-template-columns:1fr; }
     .screens-grid { grid-template-columns:1fr; }

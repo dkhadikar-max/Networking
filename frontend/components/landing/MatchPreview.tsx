@@ -19,7 +19,7 @@ export default function MatchPreview() {
         <Avatar src={null} name={SAMPLE_USER.name} size={92} className="match-avatar match-avatar--right" />
       </div>
       <h3 className="match-title">It&apos;s a match!</h3>
-      <p className="match-sub">You and {SAMPLE_USER.name} are both interested — say hello and start building something together.</p>
+      <p className="match-sub">You and {SAMPLE_USER.name} are both interested. Say hello and start building something together.</p>
       <div className="match-actions">
         <span className="profile-action-btn profile-action-primary" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Send a message →</span>
       </div>

@@ -5,7 +5,11 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[var(--bg)]">
       <header className="border-b border-[var(--border)] bg-white">
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="font-bold text-[var(--primary)] text-lg">BuildYourNetwork</Link>
+          <Link href="/" className="font-bold text-[var(--primary)] text-lg flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/logo.png" alt="" width={28} height={28} style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0 }} />
+            Build Your Network
+          </Link>
           <Link href="/login" className="text-sm text-[var(--sub)] hover:text-[var(--primary)] transition-colors">Sign in</Link>
         </div>
       </header>

@@ -145,7 +145,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             aria-label="Build Your Network — go to Discover"
             className="flex items-center gap-2 hover:opacity-75 active:opacity-60 transition-opacity"
           >
-            <img src="/assets/logo.png" alt="" className="h-5 w-auto object-contain block" />
+            <img src="/assets/logo.png" alt="" className="h-6 w-auto object-contain block" />
           </Link>
           {/* Spacer matching the back button's footprint — keeps the logo
               centered now that Priority messaging has no entry point on

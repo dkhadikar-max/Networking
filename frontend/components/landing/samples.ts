@@ -29,8 +29,8 @@ export const SAMPLE_USER = {
   headline: 'Founder & CEO · Revisit · Hospitality SaaS',
   profile_score: 92,
   is_profile_complete: true,
-  working_on: 'Revisit — turning one-time hospitality guests into repeat customers. A SaaS platform that helps hospitality businesses understand guest behaviour and build the ongoing relationships that drive loyalty and repeat visits.',
-  currently_exploring: 'A technical co-founder to take ownership of product and engineering — from architecture and systems to shipping the first truly scalable version of Revisit.',
+  working_on: "Revisit, a SaaS platform that turns one-time hospitality guests into repeat customers. We help hospitality businesses understand guest behaviour and build the ongoing relationships that drive loyalty and repeat visits.",
+  currently_exploring: "A technical co-founder to take ownership of product and engineering. Someone who can own everything from architecture and systems to shipping the first truly scalable version of Revisit.",
   bio: 'Founder and systems-oriented builder focused on the intersection of hospitality and customer retention. Currently building Revisit around the insight that the relationship with a guest should not end when the bill is paid. Interested in SaaS, product systems, and scalable retention infrastructure.',
   verified: false,
 } as unknown as User;
@@ -42,7 +42,7 @@ export const SAMPLE_DISCOVER_PROFILE: DiscoverProfile = {
 export const SAMPLE_CIRCLE_POST: CirclePost = {
   id: 'sample',
   user_id: '',
-  text: "Looking for a growth marketer to launch a B2B SaaS product — let's build together.",
+  text: "Looking for a growth marketer to launch a B2B SaaS product. Let's build together.",
   tags: [],
   structured_meta: { looking_for: 'Growth marketer', industry: 'SaaS' },
   links: [],
@@ -70,7 +70,7 @@ export const SAMPLE_CIRCLE_POST: CirclePost = {
 };
 
 export const SAMPLE_CONVERSATION = [
-  { fromMe: false, text: "Hi! I saw you're building in the hospitality space — Revist looks interesting. Would love to know more." },
-  { fromMe: true, text: "Hey — yes, we're helping hospitality businesses drive repeat visits. Would love to hear your background." },
+  { fromMe: false, text: "Hi! I saw you're building in the hospitality space. Revisit looks interesting, would love to know more." },
+  { fromMe: true, text: "Hey, yes! We're helping hospitality businesses drive repeat visits. Would love to hear your background." },
   { fromMe: false, text: 'Ex-Razorpay engineer, 5 years in product infra. Looking for someone with GTM and domain expertise.' },
 ];

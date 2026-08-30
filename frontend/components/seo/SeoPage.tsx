@@ -42,7 +42,7 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
         <div style={{ maxWidth: 1100, margin: '0 auto', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ fontWeight: 800, fontSize: 18, color: C.primary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <img src="/assets/logo.png" alt="Build Your Network" width={26} height={26} style={{ borderRadius: 6 }} />
-            BuildYourNetwork
+            Build Your Network
           </a>
           <a href="/signup" style={{
             background: C.primary, color: '#fff', padding: '9px 18px',
