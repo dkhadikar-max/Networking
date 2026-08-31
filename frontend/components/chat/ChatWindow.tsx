@@ -9,6 +9,7 @@ import { useProfileDrawer } from '@/context/ProfileDrawerContext';
 import Avatar from '@/components/ui/Avatar';
 import PriorityMessageModal from '@/components/ui/PriorityMessageModal';
 import { formatIntent } from '@/lib/intent';
+import { getReplySuggestions } from '@/lib/replySuggestions';
 import type { Connection, Message } from '@/lib/types';
 
 type Props = {
@@ -196,6 +197,17 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
       };
     });
   }, [messages, user?.id]);
+
+  // Ongoing-conversation reply suggestions — contextual to what was actually
+  // just said (see frontend/lib/replySuggestions.ts), replacing the always-
+  // generic ICEBREAKER_TEMPLATES the quick-prompt tray used to fall back to
+  // the instant a conversation had any messages at all. Must sit before the
+  // loading/!connection early returns below (Rules of Hooks), so it reads
+  // connection?.user defensively rather than a later-declared `other` const.
+  const replySuggestions = useMemo(() => {
+    if (!user || !connection?.user) return [];
+    return getReplySuggestions(messages, user, connection.user, connection.icebreakers ?? [], ICEBREAKER_TEMPLATES);
+  }, [messages, user, connection]);
 
   if (loading) {
     return (
@@ -440,7 +452,13 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
             maskImage: 'linear-gradient(to right, black calc(100% - 28px), transparent 100%)',
           }}
         >
-          {ICEBREAKER_TEMPLATES.slice(0, 3).map(tmpl => {
+          {/* Prefer contextual reply suggestions (see the replySuggestions
+              useMemo above) over the fully generic templates — falls back
+              to ICEBREAKER_TEMPLATES only if getReplySuggestions produced
+              nothing at all (e.g. still loading, or genuinely no signal to
+              work with), same fallback shape as the empty-state block
+              above. */}
+          {(replySuggestions.length > 0 ? replySuggestions : ICEBREAKER_TEMPLATES).slice(0, 3).map(tmpl => {
             const iconMatch = tmpl.label.match(/^(\p{Emoji}|\p{Extended_Pictographic})/u);
             const icon = iconMatch ? iconMatch[0] : '';
             const text = tmpl.label.replace(/^(\p{Emoji}|\p{Extended_Pictographic})\s*/u, '');
