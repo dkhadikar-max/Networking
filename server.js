@@ -63,6 +63,14 @@ const { createClient } = require('@supabase/supabase-js');
 const https = require('https');
 const uuidv4 = () => crypto.randomUUID();
 
+// Slack Incoming Webhooks — one URL per destination channel, plain fetch
+// POST, no SDK/package needed (matches the fetch() already used elsewhere
+// in this file). Each is independently optional: a missing URL just means
+// that notification type silently no-ops, same as ResendClient/razorpay/
+// webpush above when their env vars aren't set.
+const SLACK_SIGNUP_WEBHOOK_URL   = process.env.SLACK_SIGNUP_WEBHOOK_URL   || null;
+const SLACK_FEEDBACK_WEBHOOK_URL = process.env.SLACK_FEEDBACK_WEBHOOK_URL || null;
+
 // ── FIXED: multer fallback returns correct object shape with .single(), .array(), etc. ──
 const multer = multerPkg || (() => {
   const handler = (req, res, next) => res.status(503).json({ error: 'File uploads are temporarily unavailable on this server.' });
@@ -3196,6 +3204,89 @@ function maskEmail(email) {
   return `${maskedUser}@${domain}`;
 }
 
+// ── SLACK NOTIFICATIONS ──
+// Internal customer-intelligence pings only — never load-bearing for the
+// request that triggers them. Every call site fires this fire-and-forget
+// (`.catch(e => console.error(...))`, same shape as issueAndSendOtp/
+// sendPush elsewhere) so a Slack outage can never fail a signup or a
+// feedback submission. Credentials are two plain webhook URLs read from
+// env at module load (see top of file) — never sent to, or reachable
+// from, any client bundle.
+async function sendSlackWebhook(url, text) {
+  if (!url) return { ok: false, reason: 'not_configured' };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[slack] webhook rejected: ${res.status} ${body.slice(0, 200)}`);
+      return { ok: false, reason: 'http_error', status: res.status };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error('[slack] webhook send threw (network/transport):', e.message);
+    return { ok: false, reason: 'provider_error' };
+  }
+}
+
+function notifySlackSignup(user) {
+  if (!SLACK_SIGNUP_WEBHOOK_URL) return Promise.resolve({ ok: false, reason: 'not_configured' });
+  const text = [
+    '🎉 New BYN Signup',
+    `• Name: ${user.name || '(no name)'}`,
+    `• Email: ${user.email}`,
+  ].join('\n');
+  return sendSlackWebhook(SLACK_SIGNUP_WEBHOOK_URL, text);
+}
+
+const FEEDBACK_CATEGORY_LABELS = {
+  bug: 'Bug or issue',
+  feature: 'Feature request',
+  ux: 'User experience',
+  install: 'Installation problem',
+  other: 'Something else',
+};
+
+// Dedupes identical (user, message) feedback notifications fired within a
+// short window — covers a double-click/retry without needing a DB-level
+// idempotency key. Feedback still always persists exactly once per actual
+// insert; this only guards the Slack ping. Swept opportunistically on each
+// call (submission volume is low enough that an O(n) scan is negligible),
+// so the map never grows unbounded across a long-running process.
+const recentFeedbackSlackPings = new Map(); // `${userId}:${message}` -> sentAt ms
+const FEEDBACK_DEDUPE_WINDOW_MS = 15_000;
+
+function shouldSkipFeedbackSlackPing(userId, message) {
+  const now = Date.now();
+  for (const [key, sentAt] of recentFeedbackSlackPings) {
+    if (now - sentAt > FEEDBACK_DEDUPE_WINDOW_MS) recentFeedbackSlackPings.delete(key);
+  }
+  const dedupeKey = `${userId}:${message}`;
+  if (recentFeedbackSlackPings.has(dedupeKey)) return true;
+  recentFeedbackSlackPings.set(dedupeKey, now);
+  return false;
+}
+
+function notifySlackFeedback({ id, category, message, user, page, createdAt }) {
+  if (!SLACK_FEEDBACK_WEBHOOK_URL) return Promise.resolve({ ok: false, reason: 'not_configured' });
+  if (shouldSkipFeedbackSlackPing(user.id, message)) return Promise.resolve({ ok: false, reason: 'deduped' });
+  const lines = [
+    '💬 New Customer Feedback',
+    `Type: ${FEEDBACK_CATEGORY_LABELS[category] || category || 'General Feedback'}`,
+    `User: ${user.name || '(no name)'}`,
+    `Email: ${user.email}`,
+  ];
+  if (page) lines.push(`Page: ${page}`);
+  lines.push(`Feedback: "${message}"`);
+  lines.push(`Timestamp: ${createdAt}`);
+  if (id) lines.push(`Feedback ID: ${id}`);
+  return sendSlackWebhook(SLACK_FEEDBACK_WEBHOOK_URL, lines.join('\n'));
+}
+
 // ── CLEAN HELPERS ──
 function cleanPublic(u) {
   if (!u) return null;
@@ -4714,6 +4805,13 @@ app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, r
     // rate-limited; account creation must succeed independently of email
     // delivery, per docs/email-verification-audit-2026-08-15.md item #15).
     issueAndSendOtp(inserted).catch(e => console.error('[signup] issueAndSendOtp failed:', e.message));
+
+    // Slack customer-intelligence ping — same non-blocking shape as the OTP
+    // send above. Fires exactly once per successful insert (this line is
+    // only reached after insertErr is confirmed falsy), so the email
+    // UNIQUE constraint that already guards against a double-submit race
+    // guards this too: at most one request per email ever reaches here.
+    notifySlackSignup(inserted).catch(e => console.error('[slack] signup notify failed:', e.message));
 
     // Referral attribution — look up referrer by 8-char code prefix, best-effort
     if (ref_code) {
@@ -6296,12 +6394,35 @@ app.post('/api/feedback', auth, feedbackLimiter, async (req, res) => {
     const { category, message } = req.body;
     if (!message || message.trim().length < 5)
       return res.status(400).json({ error: 'Message too short' });
-    await supabase.from('feedback').insert({
+    const trimmedMessage = message.trim().slice(0, 1000);
+    const { data: inserted, error: insertErr } = await supabase.from('feedback').insert({
       user_id: req.user.id,
       category: category || 'General Feedback',
-      message: message.trim().slice(0, 1000),
+      message: trimmedMessage,
       created_at: new Date().toISOString(),
-    });
+    }).select().single();
+    if (insertErr) throw new Error(insertErr.message);
+
+    // Slack customer-intelligence ping — fired only after the row above is
+    // confirmed persisted (insertErr checked), same non-blocking shape as
+    // every other Slack/email/push side-effect in this file: not awaited,
+    // errors only logged, never affects the response below. req.user is
+    // the full row the `auth` middleware already fetched — no extra query
+    // for name/email. Page comes from the Referer header (no frontend
+    // change needed) since the widget doesn't send one.
+    const refererPath = (() => {
+      try { return new URL(req.headers['referer'] || '').pathname || null; }
+      catch { return null; }
+    })();
+    notifySlackFeedback({
+      id: inserted?.id,
+      category,
+      message: trimmedMessage,
+      user: req.user,
+      page: refererPath,
+      createdAt: inserted?.created_at,
+    }).catch(e => console.error('[slack] feedback notify failed:', e.message));
+
     res.json({ ok: true });
   } catch(e) {
     console.error('Feedback error:', e);
