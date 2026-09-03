@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { IconMenu } from '@/components/ui/BynIcons';
 
 export default function MobileNav() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -22,9 +23,7 @@ export default function MobileNav() {
         <a href="/signup" className="nav-cta" onClick={() => setMenuOpen(false)}>Join free</a>
       </div>
       <button className="mobile-menu-btn" aria-label="Menu" onClick={() => setMenuOpen(o => !o)}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
+        <IconMenu size={24} strokeWidth={2} className="text-[#1F2937]" />
       </button>
     </>
   );

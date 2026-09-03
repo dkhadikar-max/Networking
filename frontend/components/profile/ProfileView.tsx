@@ -6,6 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import type { User } from '@/lib/types';
 import { formatIntent } from '@/lib/intent';
+import {
+  IconBack,
+  IconVerified,
+  IconLocation,
+  IconTrust,
+  IconIntent,
+  IconLinkedIn,
+  IconWebsite,
+  IconInstagram,
+  IconEdit,
+  IconConnect,
+} from '@/components/ui/BynIcons';
 
 function safeHref(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -68,23 +80,17 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
     {
       label: 'LinkedIn',
       href: safeHref(user.linkedin),
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-      ),
+      icon: <IconLinkedIn size={18} />,
     },
     {
       label: 'Website',
       href: safeHref(user.website),
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9.5" /><path d="M2.5 12h19M12 2.5c2.5 2.7 3.8 6 3.8 9.5s-1.3 6.8-3.8 9.5c-2.5-2.7-3.8-6-3.8-9.5s1.3-6.8 3.8-9.5z" /></svg>
-      ),
+      icon: <IconWebsite size={18} />,
     },
     {
       label: 'Instagram',
       href: safeHref(user.instagram ? `https://instagram.com/${user.instagram.replace(/^@/, '')}` : undefined),
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5" /><circle cx="12" cy="12" r="4.2" /><circle cx="17.3" cy="6.7" r="0.9" fill="currentColor" stroke="none" /></svg>
-      ),
+      icon: <IconInstagram size={18} />,
     },
   ].filter((l): l is typeof l & { href: string } => !!l.href);
 
@@ -130,9 +136,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             className="w-9 h-9 -ml-1 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 active:scale-90 transition-all cursor-pointer rounded-full"
             aria-label="Back"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
+            <IconBack size={22} />
           </button>
           {/* Was a bare logo icon here — first unlinked (confusing: looked
               tappable-but-wasn't), then made a real link back to Discover
@@ -215,9 +219,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             <h1 className="text-[28px] font-extrabold text-slate-900 flex items-center gap-2 tracking-tight" style={{ lineHeight: 1.15 }}>
               <span>{name}</span>
               {verified && (
-                <svg className="w-5.5 h-5.5 text-[#157A6E] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
+                <IconVerified size={20} className="text-[#157A6E] shrink-0" />
               )}
             </h1>
             {headline && (
@@ -227,10 +229,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             )}
             {location && (
               <p className="text-[13px] text-slate-400 flex items-center gap-1.5 mt-2 font-medium">
-                <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <IconLocation size={14} className="text-slate-400 shrink-0" />
                 <span>{location}</span>
               </p>
             )}
@@ -241,13 +240,13 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             <div className="flex flex-wrap items-center gap-2 pt-3.5">
               {trust_score != null && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200/70 text-[#157A6E] text-[12px] font-semibold">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <IconTrust size={13} className="text-[#157A6E]" />
                   <span>Trust Score {trust_score}</span>
                 </div>
               )}
               {intentText && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FFF0EB] border border-[#FFCCBC] text-[#E65100] text-[12px] font-semibold">
-                  <span>🎯</span>
+                  <IconIntent size={13} className="text-[#E65100]" />
                   <span>Looking for: {intentText}</span>
                 </div>
               )}
@@ -444,7 +443,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
               onClick={onEdit}
               className="w-full py-3 bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              <IconEdit size={16} strokeWidth={2.2} />
               <span>Edit Profile</span>
             </button>
           </div>
@@ -462,7 +461,7 @@ export default function ProfileView({ user, isSelf, connected, connectionId, onC
             disabled={connecting}
             className="flex-1 py-3 bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <IconConnect size={16} strokeWidth={2.5} />
             <span>Connect</span>
           </button>
         </div>

@@ -15,6 +15,12 @@ import DiscoverFilters, { DEFAULT_FILTERS, activeFilterCount } from './DiscoverF
 import type { FilterState } from './DiscoverFilters';
 import type { DiscoverProfile } from '@/lib/types';
 import { SAMPLE_DISCOVER_PROFILE } from '@/components/landing/samples';
+import {
+  IconFilters,
+  IconActionPhoto,
+  IconAlert,
+  IconEmptyDiscover,
+} from '@/components/ui/BynIcons';
 
 type ApiResponse = { profiles: DiscoverProfile[] };
 type MatchInfo = { connectionId: string | null; theirPhoto?: string | null; theirName: string };
@@ -186,7 +192,10 @@ export default function DiscoverFeed() {
           </div>
 
           <button className="filter-btn" onClick={() => setShowFilters(true)}>
-            ⚡ Filters&nbsp;
+            <span className="inline-flex items-center gap-1">
+              <IconFilters size={14} />
+              <span>Filters</span>
+            </span>&nbsp;
             <span style={{
               background: filterCount > 0 ? 'var(--primary)' : 'var(--border)',
               color: filterCount > 0 ? 'white' : 'var(--text-soft)',
@@ -221,9 +230,7 @@ export default function DiscoverFeed() {
           {!loading && !current && blockReason && (
             <div className="disc-empty">
               <div className="disc-empty-icon disc-empty-icon--action">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="4" y="4" width="16" height="16" rx="5" /><circle cx="12" cy="10" r="2.75" /><path d="M7 19c0.8-2.6 2.9-4 5-4s4.2 1.4 5 4" />
-                </svg>
+                <IconActionPhoto size={28} />
               </div>
               <h3>{blockReason === 'NO_PHOTO' ? 'Add a photo to start discovering people' : 'Set your networking goal to unlock Discovery'}</h3>
               <p>{blockReason === 'NO_PHOTO'
@@ -244,9 +251,7 @@ export default function DiscoverFeed() {
           {!loading && !current && !blockReason && fetchError && (
             <div className="disc-empty">
               <div className="disc-empty-icon disc-empty-icon--muted">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 8v4M12 16h.01" /><circle cx="12" cy="12" r="9" />
-                </svg>
+                <IconAlert size={26} />
               </div>
               <h3>Couldn&apos;t load people right now</h3>
               <p>Check your connection and try again.</p>
@@ -257,9 +262,7 @@ export default function DiscoverFeed() {
           {!loading && !current && !blockReason && !fetchError && (
             <div className="disc-empty">
               <div className="disc-empty-icon disc-empty-icon--muted">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
-                </svg>
+                <IconEmptyDiscover size={26} />
               </div>
               <h3>You&apos;ve seen everyone available right now</h3>
               <p>Check back later or widen your filters — new members join every day.</p>

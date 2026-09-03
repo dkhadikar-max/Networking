@@ -1,6 +1,14 @@
 'use client';
 
 import { User } from '@/lib/types';
+import {
+  IconVerified,
+  IconLocation,
+  IconBuilding,
+  IconLookingFor,
+  IconChat,
+  IconArrowRight,
+} from '@/components/ui/BynIcons';
 
 type Props = {
   user: User;
@@ -31,18 +39,13 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
           <h2 className="font-bold text-xl sm:text-2xl text-slate-900 flex items-center gap-1.5 leading-tight">
             <span>{name}</span>
             {user.verified && (
-              <svg className="w-4.5 h-4.5 text-[#157A6E] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
+              <IconVerified size={18} className="text-[#157A6E] shrink-0" />
             )}
           </h2>
           {headline && <p className="text-sm font-medium text-slate-600 mt-0.5">{headline}</p>}
           {location && (
             <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
-              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+              <IconLocation size={14} className="text-slate-400 shrink-0" />
               <span>{location}</span>
             </p>
           )}
@@ -61,12 +64,7 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
         {working_on && (
           <div className="flex items-start gap-3.5 pt-1">
             <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
-                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
-                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
-              </svg>
+              <IconBuilding size={20} />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">BUILDING</h3>
@@ -79,12 +77,7 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
         {currently_exploring && (
           <div className="flex items-start gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
+              <IconLookingFor size={20} />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">LOOKING FOR</h3>
@@ -97,9 +90,7 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
         {bio && (
           <div className="flex items-start gap-3.5">
             <div className="w-10 h-10 rounded-2xl bg-[#FFF0EB] text-[#E65100] flex items-center justify-center shrink-0 shadow-2xs">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
+              <IconChat size={20} />
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-[11px] uppercase tracking-wider text-[#157A6E]">WHY CONNECT</h3>
@@ -133,9 +124,7 @@ export default function ProfileQuickPeek({ user, onViewFull }: Props) {
           className="w-full bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
         >
           <span>View Full Profile</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
+          <IconArrowRight size={18} />
         </button>
       </div>
     </div>

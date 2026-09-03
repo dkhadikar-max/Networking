@@ -6,6 +6,13 @@ import { apiPost, apiGet } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import type { User } from '@/lib/types';
+import {
+  IconFeatureBoost,
+  IconFeatureReveal,
+  IconFeaturePriority,
+  IconFeatureSpotlight,
+  IconFeatureRadius,
+} from '@/components/ui/BynIcons';
 
 type PlanKey = 'monthly' | 'quarterly';
 type CurrencyKey = 'INR' | 'USD';
@@ -43,11 +50,11 @@ function loadRazorpay(): Promise<boolean> {
 }
 
 const FEATURES = [
-  { icon: '⚡', text: '200 connections/day', sub: 'vs 30 on free' },
-  { icon: '❤️', text: 'See everyone who liked you', sub: 'full reveal, no blur' },
-  { icon: '🎯', text: '20 priority messages/month', sub: 'skip the queue' },
-  { icon: '⭐', text: 'Priority badge on your profile', sub: 'stand out in discovery' },
-  { icon: '📍', text: 'Exact location radius filter', sub: 'find people under 200 km' },
+  { icon: <IconFeatureBoost size={20} className="text-[#F4A259]" />, text: '200 connections/day', sub: 'vs 30 on free' },
+  { icon: <IconFeatureReveal size={20} className="text-[#157A6E]" />, text: 'See everyone who liked you', sub: 'full reveal, no blur' },
+  { icon: <IconFeaturePriority size={20} className="text-[#F4A259]" />, text: '20 priority messages/month', sub: 'skip the queue' },
+  { icon: <IconFeatureSpotlight size={20} className="text-[#157A6E]" />, text: 'Priority badge on your profile', sub: 'stand out in discovery' },
+  { icon: <IconFeatureRadius size={20} className="text-[#157A6E]" />, text: 'Exact location radius filter', sub: 'find people under 200 km' },
 ];
 
 export default function UpgradePage() {

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ProfileQuickPeek from '@/components/profile/ProfileQuickPeek';
 import type { DiscoverProfile, User } from '@/lib/types';
+import { IconClose } from '@/components/ui/BynIcons';
 
 function getUid(p: DiscoverProfile | null): string {
   if (!p) return '';
@@ -72,9 +73,7 @@ export default function ProfileInspectOverlay({ profile, onClose }: Props) {
         <div className="inspect-overlay-header">
           <span />
           <button type="button" className="inspect-overlay-close" onClick={onClose} aria-label="Close">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <IconClose size={16} strokeWidth={2.5} />
           </button>
         </div>
         <div className="inspect-overlay-body">

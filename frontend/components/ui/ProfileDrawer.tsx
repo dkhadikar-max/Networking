@@ -6,6 +6,18 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Avatar from '@/components/ui/Avatar';
 import { formatIntent } from '@/lib/intent';
+import {
+  IconClose,
+  IconVerified,
+  IconLocation,
+  IconIntent,
+  IconInsight,
+  IconBuilding,
+  IconLinkedIn,
+  IconWebsite,
+  IconInstagram,
+  IconArrowRight,
+} from '@/components/ui/BynIcons';
 
 function safeHref(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -103,9 +115,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             className="absolute top-3.5 left-3.5 w-9 h-9 rounded-full bg-black/40 hover:bg-black/65 backdrop-blur-md border border-white/20 flex items-center justify-center text-white transition-all cursor-pointer shadow-md"
             aria-label="Close"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+            <IconClose size={15} strokeWidth={2.5} />
           </button>
 
           {/* Badges — top-right */}
@@ -157,9 +167,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
               </h2>
               {raw?.verified && (
                 <span title="Verified identity" className="inline-flex items-center text-[#157A6E]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+                  <IconVerified size={20} className="text-[#157A6E]" />
                 </span>
               )}
             </div>
@@ -169,9 +177,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
                 {raw?.headline && <span className="text-slate-700">{raw.headline}</span>}
                 {raw?.location && (
                   <span className="inline-flex items-center gap-1 text-slate-500 text-xs sm:text-sm">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#157A6E]">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" />
-                    </svg>
+                    <IconLocation size={13} className="text-[#157A6E]" />
                     {raw.location}
                   </span>
                 )}
@@ -185,8 +191,8 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
               <div className="absolute -right-6 -top-6 w-24 h-24 bg-teal-300/20 rounded-full blur-xl pointer-events-none" />
               <div className="flex items-center justify-between gap-3 relative z-10">
                 <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-white shadow-2xs border border-teal-200/60 flex items-center justify-center text-lg shrink-0">
-                    🎯
+                  <div className="w-10 h-10 rounded-xl bg-white shadow-2xs border border-teal-200/60 flex items-center justify-center shrink-0">
+                    <IconIntent size={20} className="text-[#157A6E]" />
                   </div>
                   <div className="min-w-0">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-teal-800/90">
@@ -206,7 +212,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
 
           {insight && (
             <div className="px-4 py-2.5 bg-teal-50/80 rounded-xl text-xs sm:text-sm text-[#157A6E] font-medium border border-teal-200/60 flex items-center gap-2.5 shadow-2xs">
-              <span className="text-teal-600 text-sm">✦</span>
+              <IconInsight size={13} className="text-[#157A6E] shrink-0" />
               <span>{insight}</span>
             </div>
           )}
@@ -215,7 +221,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
           {raw?.working_on && (
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <span>🚀</span>
+                <IconBuilding size={14} className="text-slate-500" />
                 <span>Working on</span>
               </div>
               <p className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
@@ -290,9 +296,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
                   aria-label="LinkedIn profile"
                   title="LinkedIn"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z" /><circle cx="4" cy="4" r="2" />
-                  </svg>
+                  <IconLinkedIn size={16} />
                 </a>
               )}
               {safeHref(raw?.website) && (
@@ -304,9 +308,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
                   aria-label="Website"
                   title="Website"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
+                  <IconWebsite size={16} />
                 </a>
               )}
               {raw?.instagram && (
@@ -318,9 +320,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
                   aria-label="Instagram"
                   title="Instagram"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                  </svg>
+                  <IconInstagram size={16} />
                 </a>
               )}
             </div>
@@ -338,7 +338,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
                 className="h-12 px-5 rounded-2xl bg-slate-100/90 hover:bg-slate-200/80 border border-slate-200 text-slate-600 hover:text-slate-900 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
                 onClick={onSkip}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <IconClose size={15} strokeWidth={2.5} />
                 Skip
               </button>
             )}
@@ -365,9 +365,7 @@ export default function ProfileDrawer({ profile, onClose, onConnect, onSkip }: P
             className="w-full h-12 rounded-2xl bg-slate-50 hover:bg-teal-50/70 border border-slate-200 hover:border-teal-300 text-slate-700 hover:text-[#157A6E] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all no-underline shadow-2xs"
           >
             <span>View full profile</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
+            <IconArrowRight size={14} strokeWidth={2.5} />
           </Link>
         </div>
       )}

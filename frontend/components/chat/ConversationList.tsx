@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import Avatar from '@/components/ui/Avatar';
 import type { Connection } from '@/lib/types';
+import {
+  IconEmptyChat,
+  IconSearch,
+  IconClear,
+  IconEmptySearch,
+  IconPriority,
+  IconTimer,
+} from '@/components/ui/BynIcons';
 
 type Props = {
   connections: Connection[];
@@ -40,8 +48,8 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
   if (connections.length === 0) {
     return (
       <div className="chat-empty p-8 text-center flex flex-col items-center justify-center flex-1 bg-white">
-        <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl mb-3 shadow-xs">
-          💬
+        <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 shadow-xs">
+          <IconEmptyChat size={28} className="text-slate-400" />
         </div>
         <h3 className="font-display font-semibold text-lg text-slate-900 mb-1">No conversations yet</h3>
         <p className="text-sm font-sans text-slate-500 max-w-[240px] leading-relaxed">
@@ -56,9 +64,7 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
       {/* Search Bar */}
       <div className="px-4 pt-4 pb-3 shrink-0">
         <div className="relative flex items-center">
-          <svg className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          <IconSearch size={16} className="absolute left-3 text-slate-400 pointer-events-none" />
           <input
             type="text"
             value={search}
@@ -71,9 +77,9 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
               type="button"
               onClick={() => setSearch('')}
               aria-label="Clear search"
-              className="absolute right-3 text-xs text-slate-400 hover:text-slate-900/80 p-0.5 transition-colors"
+              className="absolute right-3 p-0.5 transition-colors text-slate-400 hover:text-slate-900/80 cursor-pointer"
             >
-              ✕
+              <IconClear size={14} />
             </button>
           )}
         </div>
@@ -83,8 +89,8 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
       <div className="flex-1 overflow-y-auto divide-y divide-slate-100 px-2 pb-4 space-y-1">
         {filtered.length === 0 ? (
           <div className="p-8 text-center flex flex-col items-center justify-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-2xl mb-3 shadow-xs">
-              🔍
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mb-3 shadow-xs">
+              <IconEmptySearch size={28} className="text-slate-400" />
             </div>
             <h3 className="font-display font-semibold text-lg text-slate-900 mb-1">No matches</h3>
             <p className="text-sm font-sans text-slate-500 max-w-[240px] leading-relaxed mb-3">
@@ -141,7 +147,7 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-1 min-w-0">
                     <span className="font-sans font-semibold text-[15px] text-slate-900 tracking-tight truncate flex items-center gap-1.5 min-w-0">
-                      {is_priority && <span className="text-[#E65100] shrink-0" title="Priority Connection">⚡</span>}
+                      {is_priority && <IconPriority size={12} className="text-[#E65100] shrink-0" />}
                       <span className="truncate">{user.name}</span>
                     </span>
                     {lastMessage && (
@@ -167,8 +173,9 @@ export default function ConversationList({ connections, activeId, onSelect }: Pr
                   {/* Expiry Badge */}
                   {hoursLeft != null && hoursLeft <= 24 && (
                     <div className="flex items-center gap-1 mt-1.5">
-                      <span className="text-[10px] font-bold font-sans tracking-wide uppercase text-[#E65100] bg-[#E65100]/10 px-2 py-0.5 rounded border border-[#E65100]/20">
-                        ⏳ {hoursLeft}h left
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold font-sans tracking-wide uppercase text-[#E65100] bg-[#E65100]/10 px-2 py-0.5 rounded border border-[#E65100]/20">
+                        <IconTimer size={11} className="inline text-[#E65100]" />
+                        <span>{hoursLeft}h left</span>
                       </span>
                     </div>
                   )}

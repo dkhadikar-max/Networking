@@ -6,6 +6,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { formatDistanceToNow } from 'date-fns';
 import type { PriorityMessagesResponse } from '@/lib/types';
+import { IconPriority, IconClose } from '@/components/ui/BynIcons';
 
 type Props = {
   open: boolean;
@@ -108,16 +109,16 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16, flexShrink: 0 }}>
-          <span style={{ fontSize: 18, marginRight: 8 }}>⚡</span>
+          <IconPriority size={18} className="text-[#F4A259] mr-2 shrink-0" />
           <h2 style={{ fontSize: 16, fontWeight: 700, flex: 1, margin: 0, color: 'var(--text)' }}>
             {mode === 'inbox' ? 'Priority Inbox' : `Message ${targetName ?? ''}`}
           </h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--muted)', fontSize: 18, lineHeight: 1 }}
+            style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px 8px', color: 'var(--muted)', display: 'flex', alignItems: 'center' }}
           >
-            ✕
+            <IconClose size={14} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -129,8 +130,8 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
               </div>
             ) : received.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--sur2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>
-                  ⚡
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--sur2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                  <IconPriority size={24} className="text-[#F4A259]" />
                 </div>
                 <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>No priority messages yet</h4>
                 <p style={{ fontSize: 13, color: 'var(--text-soft)', lineHeight: 1.5, margin: '0 auto', maxWidth: 240 }}>
@@ -143,8 +144,9 @@ export default function PriorityMessageModal({ open, onClose, mode, targetId, ta
                   <SenderAvatar name={msg.sender?.name} photo={msg.sender?.photos?.[0]} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        ⚡ {msg.sender?.name ?? 'Unknown'}
+                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <IconPriority size={12} className="text-[#F4A259] shrink-0 inline" />
+                        <span>{msg.sender?.name ?? 'Unknown'}</span>
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto', flexShrink: 0 }}>{timeAgo(msg.created_at)}</span>
                     </div>

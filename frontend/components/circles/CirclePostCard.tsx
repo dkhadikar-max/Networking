@@ -10,6 +10,14 @@ import Avatar from '@/components/ui/Avatar';
 import { formatIntent } from '@/lib/intent';
 import type { CirclePost } from '@/lib/types';
 import LinkPreviewCard from './LinkPreviewCard';
+import {
+  IconVerified,
+  IconPriority,
+  IconEdit,
+  IconTrash,
+  IconBuilding,
+  IconLookingFor,
+} from '@/components/ui/BynIcons';
 
 const META_LABELS: Record<string, string> = {
   looking_for: 'Looking for',
@@ -152,11 +160,8 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
               {author.name}
             </span>
             {author.verification?.status === 'verified' && (
-              <span
-                className="w-4 h-4 rounded-full bg-[#157A6E] text-white flex items-center justify-center text-[9px] font-extrabold shrink-0 border border-white"
-                title="Verified Builder"
-              >
-                ✓
+              <span title="Verified Builder" className="inline-flex items-center text-[#157A6E]">
+                <IconVerified size={16} />
               </span>
             )}
             {author.trust_score != null && (
@@ -176,9 +181,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
             ) : null}
             {isActive(author.last_active) && (
               <span className="momentum-badge">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                  <path d="M13 2 3 14h9l-1 8 10-12h-9z"/>
-                </svg>
+                <IconPriority size={9} style={{ flexShrink: 0 }} />
                 Active recently
               </span>
             )}
@@ -193,10 +196,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
               title="Edit post"
               onClick={() => setIsEditing(true)}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
+              <IconEdit size={13} strokeWidth={2.2} />
             </button>
           )}
           {isOwn && onDelete && !isEditing && (
@@ -205,9 +205,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
               title="Delete post"
               onClick={() => onDelete(post.id)}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-              </svg>
+              <IconTrash size={13} strokeWidth={2.2} />
             </button>
           )}
         </div>
@@ -250,7 +248,8 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
           {buildingText && (
             <div className="p-3 rounded-xl bg-[#CCFBF1]/50 border border-[#157A6E]/30 text-[#064E4E] shadow-2xs">
               <div className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-[#064E4E] mb-1">
-                <span>🚀</span> Building
+                <IconBuilding size={13} className="text-[#064E4E]" />
+                <span>Building</span>
               </div>
               <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug [overflow-wrap:anywhere] break-words">
                 {buildingText}
@@ -260,7 +259,8 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
           {lookingForText && (
             <div className="p-3 rounded-xl bg-[#FFF4E7] border border-[#F4A259]/40 text-[#92400E] shadow-2xs">
               <div className="flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wider text-[#92400E] mb-1">
-                <span>🤝</span> Looking For
+                <IconLookingFor size={13} className="text-[#92400E]" />
+                <span>Looking For</span>
               </div>
               <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug [overflow-wrap:anywhere] break-words">
                 {lookingForText}
@@ -305,7 +305,7 @@ export default function CirclePostCard({ post, onDelete, onEdit }: Props) {
             onClick={handleCollaborateClick}
             title="Send collaboration priority message"
           >
-            <span>⚡</span>
+            <IconPriority size={13} className="text-white" />
             <span>Collaborate</span>
           </button>
         )}

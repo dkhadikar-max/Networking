@@ -5,6 +5,16 @@ import { useState } from 'react';
 import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { DiscoverProfile, User } from '@/lib/types';
 import { formatIntent } from '@/lib/intent';
+import {
+  IconPriority,
+  IconVerified,
+  IconLocation,
+  IconChevronRight,
+  IconTrust,
+  IconIntent,
+  IconInsight,
+  IconConnect,
+} from '@/components/ui/BynIcons';
 
 // Distance (px) or velocity (px/s) past which a drag release commits to
 // Skip/Connect instead of springing back — standard Tinder-style card
@@ -198,8 +208,9 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
           )}
 
           <div className="absolute top-4 right-5 z-20">
-            <span className="text-xs font-bold text-[#E65100] bg-[#FFF0EB]/95 backdrop-blur-md border border-[#FFCCBC] px-2.5 py-1 rounded-lg shadow-xs">
-              ⚡ Priority
+            <span className="inline-flex items-center text-xs font-bold text-[#E65100] bg-[#FFF0EB]/95 backdrop-blur-md border border-[#FFCCBC] px-2.5 py-1 rounded-lg shadow-xs">
+              <IconPriority size={12} className="mr-1" />
+              Priority
             </span>
           </div>
         </section>
@@ -216,9 +227,7 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
               <h1 className="text-[26px] font-extrabold text-slate-900 flex items-center gap-2 tracking-tight" style={{ lineHeight: 1.15 }}>
                 <span className="truncate">{name}</span>
                 {verified && (
-                  <svg className="w-5.5 h-5.5 text-[#157A6E] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
+                  <IconVerified size={20} className="text-[#157A6E] shrink-0" />
                 )}
               </h1>
               {headline && (
@@ -228,30 +237,25 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
               )}
               {location && (
                 <p className="text-[13px] text-slate-400 flex items-center gap-1.5 mt-2 font-medium">
-                  <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  <IconLocation size={14} className="text-slate-400 shrink-0" />
                   <span className="truncate">{location}</span>
                 </p>
               )}
             </div>
-            <svg className="card-identity-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
+            <IconChevronRight size={20} strokeWidth={2.5} className="card-identity-chevron" />
           </button>
 
           {(trustScore != null || intentText) && (
             <div className="flex flex-wrap items-center gap-2 pt-3.5">
               {trustScore != null && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-teal-50 border border-teal-200/70 text-[#157A6E] text-[12px] font-semibold">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <IconTrust size={13} className="text-[#157A6E]" />
                   <span>Trust Score {trustScore}</span>
                 </div>
               )}
               {intentText && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#FFF0EB] border border-[#FFCCBC] text-[#E65100] text-[12px] font-semibold">
-                  <span>🎯</span>
+                  <IconIntent size={13} className="text-[#E65100]" />
                   <span>Looking for: {intentText}</span>
                 </div>
               )}
@@ -263,7 +267,10 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
         {matchReasons.length > 0 && (
           <section style={{ margin: '20px 0 0', padding: '0 20px' }}>
             <div className="rounded-xl border border-[#157A6E]/15 bg-gradient-to-br from-teal-50 to-emerald-50 px-3.5 py-3">
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#157A6E] mb-1">💡 Direct Match</p>
+              <p className="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#157A6E] mb-1">
+                <IconInsight size={12} className="text-[#157A6E]" />
+                <span>Direct Match</span>
+              </p>
               {matchReasons.map((r, i) => (
                 <p key={i} className="text-[13px] text-slate-800 leading-relaxed">{r}</p>
               ))}
@@ -315,7 +322,7 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
           disabled={connecting}
           className="flex-1 py-3 bg-[#157A6E] hover:bg-[#0D6E63] active:scale-[0.97] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <IconConnect size={16} strokeWidth={2.5} />
           <span>Connect</span>
         </button>
       </div>

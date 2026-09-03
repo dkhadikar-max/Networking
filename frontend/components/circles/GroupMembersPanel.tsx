@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { apiGet, apiPost, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { CircleGroupMember } from '@/lib/types';
+import { IconClose } from '@/components/ui/BynIcons';
 
 type Props = {
   groupId: string;
@@ -103,7 +104,7 @@ export default function GroupMembersPanel({ groupId, groupName, isAdmin, isCreat
         <div className="compose-header">
           <span className="compose-title">{groupName} · Members</span>
           <button className="compose-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <IconClose size={14} strokeWidth={2.5} />
           </button>
         </div>
 

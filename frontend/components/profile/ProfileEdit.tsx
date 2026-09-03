@@ -6,6 +6,7 @@ import { apiPut, apiUpload, apiDelete } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 import type { User } from '@/lib/types';
+import { IconVerified, IconLocation } from '@/components/ui/BynIcons';
 
 type Props = {
   user: User;
@@ -243,7 +244,7 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
                       display: 'flex', alignItems: 'center', gap: 3,
                     }}
                   >
-                    ⭐ Make Main
+                    <IconVerified size={11} className="inline mr-0.5" /> Make Main
                   </button>
                 )}
               </div>
@@ -284,8 +285,8 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
             <label className="pe-label">Location</label>
             <div style={{ display: 'flex', gap: 8 }}>
               <input type="text" value={form.location} onChange={field('location')} placeholder="e.g. Bengaluru, India" className="pe-input" style={{ flex: 1 }} />
-              <button type="button" onClick={detectGps} disabled={detectingGps} className="pe-gps" title="Detect my location">
-                {detectingGps ? '…' : '📍'}
+              <button type="button" onClick={detectGps} disabled={detectingGps} className="pe-gps flex items-center justify-center" title="Detect my location">
+                {detectingGps ? '…' : <IconLocation size={14} className="text-[#157A6E]" />}
               </button>
             </div>
           </div>

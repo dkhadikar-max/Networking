@@ -8,6 +8,7 @@
 // everything else is quieter reference detail, not a second card. The
 // discovery card stays the primary interaction throughout.
 import type { DiscoverProfile } from '@/lib/types';
+import { IconConnect, IconArrowRight } from '@/components/ui/BynIcons';
 
 type Props = { profile: DiscoverProfile; onInspect?: () => void };
 
@@ -29,7 +30,7 @@ export default function ContextPanel({ profile, onInspect }: Props) {
           <div className="ctx-panel-headline-label">Why this person</div>
           {matchReasons.map((r, i) => (
             <div key={i} className="ctx-panel-reason">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+              <IconConnect size={14} strokeWidth={2.5} />
               {r}
             </div>
           ))}
@@ -74,7 +75,7 @@ export default function ContextPanel({ profile, onInspect }: Props) {
       {onInspect && (
         <button type="button" className="ctx-panel-inspect-link" onClick={onInspect}>
           View full profile
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+          <IconArrowRight size={13} strokeWidth={2.2} />
         </button>
       )}
     </div>

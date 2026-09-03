@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiGet, apiPatch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import type { CircleNotification } from '@/lib/types';
+import { IconClose } from '@/components/ui/BynIcons';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -94,9 +95,7 @@ export default function NotificationPanel({ onClose, onAllRead }: Props) {
               </button>
             )}
             <button className="notif-close-btn" onClick={onClose} aria-label="Close">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
+              <IconClose size={14} strokeWidth={2.5} />
             </button>
           </div>
         </div>
