@@ -1,4 +1,30 @@
 /* ── WEBAPP APP SHELL ─────────────────────────────────────── */
+/* iPadOS/iOS Safari has a long-standing quirk where a NESTED overflow-y:auto
+   region (exactly this app's shape everywhere: a scrollable content area
+   inside .card-stack-area/.chat-rows-area/etc., itself inside the bounded
+   .app-wrap) can end up inert to touch — no error, no visual sign, the
+   region just doesn't respond to a swipe, even though the identical DOM/CSS
+   scrolls fine in Chromium (desktop or Android). -webkit-overflow-scrolling
+   is the standard, purely-additive fix (enables momentum scrolling and, as
+   a side effect, reliably wakes up touch scroll on these nested regions);
+   it has no effect at all on browsers that don't recognize it, so applying
+   it broadly here carries no downside. Targets every Tailwind
+   `overflow-y-auto` utility usage (SwipeCard, ChatWindow's message canvas,
+   ConversationList, etc.) via the exact-class attribute selector, plus
+   every custom named scroll container below by hand.
+   Reported: "on iPad the website does not scroll" — this repo has zero
+   prior occurrences of this property anywhere, and no real-Safari test
+   environment is available here to confirm live, so treat this as the
+   correct, standard, low-risk fix rather than a verified-live one; worth
+   confirming on an actual iPad after deploy. */
+.app-wrap [class~="overflow-y-auto"],
+.app-wrap .card-stack-area,
+.app-wrap .chat-rows-area,
+.app-wrap .circles-feed,
+.app-wrap .compose-body,
+.app-wrap .notif-list {
+  -webkit-overflow-scrolling: touch;
+}
 .app-wrap {
   flex: 1;
   display: flex;

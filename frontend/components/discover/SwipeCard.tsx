@@ -2,8 +2,15 @@
 'use client';
 
 import { useState } from 'react';
+import { motion, useMotionValue, useTransform, type PanInfo } from 'framer-motion';
 import type { DiscoverProfile, User } from '@/lib/types';
 import { formatIntent } from '@/lib/intent';
+
+// Distance (px) or velocity (px/s) past which a drag release commits to
+// Skip/Connect instead of springing back — standard Tinder-style card
+// thresholds. Below either, the card just snaps back to center.
+const SWIPE_DISTANCE_THRESHOLD = 100;
+const SWIPE_VELOCITY_THRESHOLD = 500;
 
 function getUncroppedImageUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -66,6 +73,35 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
     try { await onConnect(); } finally { setConnecting(false); }
   }
 
+  // Drag-to-swipe — this component's own name promised this gesture and it
+  // never actually existed: Skip/Connect were tap-button-only, so a real
+  // swipe on mobile did nothing. drag="x" on the card root; framer-motion
+  // automatically sets touch-action so vertical touch scrolling inside the
+  // card's own overflow-y-auto content area (Building/Looking For text)
+  // keeps working natively alongside the horizontal drag — same reasoning
+  // as the photo-nav buttons and Skip/Connect buttons nested inside this
+  // draggable root: a tap with no meaningful pointer movement still reaches
+  // its own onClick, only a real horizontal drag is captured here.
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-320, 320], [-14, 14]);
+  const connectStampOpacity = useTransform(x, [20, SWIPE_DISTANCE_THRESHOLD], [0, 1]);
+  const skipStampOpacity = useTransform(x, [-SWIPE_DISTANCE_THRESHOLD, -20], [1, 0]);
+
+  function handleDragEnd(_event: unknown, info: PanInfo) {
+    const pastDistance = Math.abs(info.offset.x) > SWIPE_DISTANCE_THRESHOLD;
+    const pastVelocity = Math.abs(info.velocity.x) > SWIPE_VELOCITY_THRESHOLD;
+    if (info.offset.x > 0 && (pastDistance || pastVelocity)) {
+      triggerConnect();
+    } else if (info.offset.x < 0 && (pastDistance || pastVelocity)) {
+      onSkip();
+    }
+    // Spring back regardless of outcome — the parent replaces this card via
+    // a new `current` profile (and thus a fresh `key`) once Skip/Connect
+    // resolves, so this only matters for the released-but-under-threshold
+    // case where the same card stays mounted.
+    x.set(0);
+  }
+
   return (
     // h-full bounds the card to .card-stack-area's box (the app shell
     // reserves the space below it for the persistent bottom nav — see
@@ -83,7 +119,31 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
     // the same flex sandwich ChatWindow's header/message-canvas/composer
     // already use correctly — the scrollable region and the fixed footer
     // are siblings, never sharing one scrolling box.
-    <div className="w-full h-full bg-white text-left font-sans flex flex-col">
+    <motion.div
+      className="w-full h-full bg-white text-left font-sans flex flex-col relative"
+      style={{ x, rotate }}
+      drag="x"
+      dragElastic={0.6}
+      onDragEnd={handleDragEnd}
+    >
+      {/* Swipe-direction stamps — only visible mid-drag (opacity driven by
+          x), pointer-events-none so they never intercept the gesture or a
+          tap underneath. */}
+      <motion.div
+        aria-hidden="true"
+        style={{ opacity: connectStampOpacity }}
+        className="absolute top-8 left-6 z-40 pointer-events-none -rotate-12 border-[3px] border-[#157A6E] text-[#157A6E] text-xl font-extrabold px-3 py-1 rounded-lg bg-white/90 tracking-wide"
+      >
+        CONNECT
+      </motion.div>
+      <motion.div
+        aria-hidden="true"
+        style={{ opacity: skipStampOpacity }}
+        className="absolute top-8 right-6 z-40 pointer-events-none rotate-12 border-[3px] border-slate-400 text-slate-500 text-xl font-extrabold px-3 py-1 rounded-lg bg-white/90 tracking-wide"
+      >
+        SKIP
+      </motion.div>
+
       <div className="w-full flex-1 overflow-y-auto">
 
         {/* --- HERO PHOTO (420px tall) --- */}
@@ -259,6 +319,6 @@ export default function SwipeCard({ profile, onConnect, onSkip, onInspect }: Pro
           <span>Connect</span>
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
