@@ -3879,6 +3879,51 @@ async function sendWebPush(userIds, title, body, data = {}) {
   }
 }
 
+// ── AUTH USER CACHE ──
+// Narrow, TTL-bound cache of ONLY the fields authorization actually gates
+// on. Deliberately excludes every profile field (bio, photos, skills, ...)
+// — req.userData built from a cache hit is intentionally incomplete, and
+// profileGuard/trustGuard/discoverGuard (below) reject it via `_cached` and
+// fetch the full row themselves when they need more than this.
+//
+// Single-instance only: verified live against Railway (numReplicas: 1 on
+// every service — adequate-dedication, Frontend, Orchestrator, Postgres —
+// as of 2026-09-04, both in serviceManifest.deploy.numReplicas and the
+// actual running instance count) before this cache was written. An
+// in-process Map is only correct because of that; if this service is ever
+// scaled to >1 replica, this cache must move to Redis or be removed, since
+// a ban/upgrade/password-reset on one instance would not invalidate the
+// stale entry sitting in another instance's memory.
+const AUTH_CACHE_TTL_MS = 30 * 1000;
+const authCache = new Map(); // userId -> { data, expiresAt }
+
+function authCacheGet(userId) {
+  const entry = authCache.get(userId);
+  if (!entry) return null;
+  if (Date.now() >= entry.expiresAt) { authCache.delete(userId); return null; }
+  return entry.data;
+}
+function authCacheSet(userId, fullUser) {
+  authCache.set(userId, {
+    data: {
+      id: fullUser.id,
+      banned: fullUser.banned,
+      premium: fullUser.premium,
+      password_changed_at: fullUser.password_changed_at,
+      deleted_at: fullUser.deleted_at,
+      role: fullUser.role,
+      _cached: true, // profileGuard/trustGuard/discoverGuard must reject this and fetch fresh
+    },
+    expiresAt: Date.now() + AUTH_CACHE_TTL_MS,
+  });
+}
+// Called at every mutation of a cached field (banned, premium,
+// password_changed_at, deleted_at, role) — see call sites at each of those
+// updates. Safe to call on a user with no cache entry (no-op).
+function authCacheInvalidate(userId) {
+  authCache.delete(userId);
+}
+
 // ── FIXED: AUTH MIDDLEWARE ──
 // Verifies token, checks user exists in DB, checks banned status,
 // and attaches full user data to avoid duplicate DB queries in guards.
@@ -3895,7 +3940,34 @@ async function auth(req, res, next) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  // Step 2: Fetch user from DB — DB errors return 503, not 401
+  // Step 1.5: Cache fast path — same gate checks as the DB path below, just
+  // against the cached slice instead of a fresh row. No DB call on this
+  // path at all, so a Supabase outage can never turn into a false-positive
+  // authorization here (there's simply nothing for it to fail on). A cache
+  // MISS always falls through to the authoritative DB path unchanged.
+  const cached = authCacheGet(decoded.id);
+  if (cached) {
+    if (cached.banned) return res.status(403).json({ error: 'Account restricted' });
+    if (cached.password_changed_at && decoded.iat * 1000 < new Date(cached.password_changed_at).getTime()) {
+      return res.status(401).json({ error: 'Password was changed — please sign in again' });
+    }
+
+    req.user     = decoded;
+    req.userData = cached;
+
+    setImmediate(async () => {
+      try {
+        await supabase.from('users')
+          .update({ last_active: new Date().toISOString() })
+          .eq('id', decoded.id);
+      } catch(e) { /* non-critical */ }
+    });
+    return next();
+  }
+
+  // Step 2: Cache miss — authoritative fetch from DB, unchanged from before
+  // the cache existed. DB errors still return 503, not 401 — a failed
+  // lookup here must never be treated as "authorized".
   try {
     const { data: user, error } = await supabase.from('users')
       .select('*').eq('id', decoded.id).maybeSingle();
@@ -3907,6 +3979,8 @@ async function auth(req, res, next) {
     if (user.password_changed_at && decoded.iat * 1000 < new Date(user.password_changed_at).getTime()) {
       return res.status(401).json({ error: 'Password was changed — please sign in again' });
     }
+
+    authCacheSet(user.id, user);
 
     req.user     = decoded;
     req.userData = user;
@@ -3959,7 +4033,11 @@ async function adminAuth(req, res, next) {
 async function profileGuard(req, res, next) {
   try {
     const user = req.userData;
-    if (!user) {
+    // A cache-hit req.userData (from auth()'s narrow, TTL-bound auth cache)
+    // carries only banned/premium/password_changed_at/deleted_at/role — not
+    // enough for calcProfileScore, which needs the full profile. Reject it
+    // the same way a missing req.userData is rejected: fetch the real row.
+    if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
       req.userData = u;
@@ -3983,7 +4061,9 @@ async function profileGuard(req, res, next) {
 async function trustGuard(req, res, next) {
   try {
     const user = req.userData;
-    if (!user) {
+    // Same reasoning as profileGuard above — calcTrust/trustSteps need the
+    // full profile, which a cache-hit req.userData deliberately lacks.
+    if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
       req.userData = u;
@@ -4012,7 +4092,9 @@ async function trustGuard(req, res, next) {
 async function discoverGuard(req, res, next) {
   try {
     const user = req.userData;
-    if (!user) {
+    // Same reasoning as profileGuard above — calcTrust/trustSteps need the
+    // full profile, which a cache-hit req.userData deliberately lacks.
+    if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
       req.userData = u;
@@ -5204,6 +5286,7 @@ app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
       failed_login_attempts:   0,
       lockout_until:           null,
     }).eq('id', user.id);
+    authCacheInvalidate(user.id); // password_changed_at just changed
 
     res.json({ ok: true });
   } catch(e) {
@@ -5287,6 +5370,7 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('payments').delete().eq('user_id', id);
     const { error: selfDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (selfDelErr) { console.error('Self-delete error:', selfDelErr); return res.status(500).json({ error: 'Failed to delete account' }); }
+    authCacheInvalidate(id); // deleted_at just changed
     await auditLog(id, 'self_delete', id);
     res.clearCookie('byn_token', { httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
     res.json({ ok: true });
@@ -6694,6 +6778,7 @@ app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res)
     // Temporarily ban target pending review if category is CSAM or Terrorism
     if (category === 'CSAM' || category === 'Terrorism') {
       await supabase.from('users').update({ banned: true }).eq('id', targetId);
+      authCacheInvalidate(targetId); // banned just changed
       await auditLog(req.user.id, 'dsa_auto_ban', targetId);
     }
     console.log(`[DSA] report from=${req.user.id} target=${targetId} category=${category}`);
@@ -6867,6 +6952,7 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
     await supabase.from('users').update({ banned: !!banned }).eq('id', targetId);
+    authCacheInvalidate(targetId); // banned just changed
     await auditLog(req.user.id, banned ? 'ban' : 'unban', targetId);
     res.json({ ok: true });
   } catch(e) {
@@ -6899,6 +6985,7 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
     await supabase.from('users').update({ premium: !!premium }).eq('id', targetId);
+    authCacheInvalidate(targetId); // premium just changed
     await auditLog(req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId);
     res.json({ ok: true });
   } catch(e) {
@@ -6932,6 +7019,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     await supabase.from('payments').delete().eq('user_id', id);
     const { error: adminDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (adminDelErr) { console.error('Admin delete error:', adminDelErr); return res.status(500).json({ error: 'Failed to delete user' }); }
+    authCacheInvalidate(id); // deleted_at just changed
     await auditLog(req.user.id, 'delete_user', id);
     res.json({ ok: true });
   } catch(e) {
@@ -7590,6 +7678,7 @@ app.post('/api/admin/bootstrap', bootstrapLimiter, async (req, res) => {
       .select('id').eq('email', email).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
     await supabase.from('users').update({ role: 'admin' }).eq('id', user.id);
+    authCacheInvalidate(user.id); // role just changed
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin bootstrap error:', e);
@@ -7751,6 +7840,7 @@ app.post('/api/payments/verify', auth, async (req, res) => {
       premium_since:       new Date().toISOString(),
       premium_expires_at:  expiresAt,
     }).eq('id', req.user.id);
+    authCacheInvalidate(req.user.id); // premium just changed
 
     // Update payment record
     await supabase.from('payments').update({
@@ -7828,6 +7918,7 @@ app.post('/api/payments/webhook', async (req, res) => {
           premium_since:      new Date().toISOString(),
           premium_expires_at: expiresAt,
         }).eq('id', payRec.user_id);
+        authCacheInvalidate(payRec.user_id); // premium just changed
         await supabase.from('payments').update({ razorpay_payment_id: payId, status: 'paid' })
           .eq('razorpay_order_id', orderId);
       }
@@ -9509,6 +9600,7 @@ app.listen(PORT, () => {
         await supabase.from('push_subscriptions').delete().eq('user_id', id);
         await supabase.from('payments').delete().eq('user_id', id);
         await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
+        authCacheInvalidate(id); // deleted_at just changed
         console.log(`[Retention] Deleted inactive account ${id}`);
       }
 
