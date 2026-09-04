@@ -4966,8 +4966,9 @@ app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, r
                 : new Date();
               base.setMonth(base.getMonth() + 1);
               await supabase.from('users')
-                .update({ premium_expires_at: base.toISOString(), is_premium: true })
+                .update({ premium_expires_at: base.toISOString(), is_premium: true, premium: true })
                 .eq('id', referrer.id);
+              authCacheInvalidate(referrer.id); // premium just changed
             }
           }
         } catch(_) {}
