@@ -97,6 +97,21 @@ const nextConfig: NextConfig = {
         { source: '/api/:path*',     destination: `${backend}/api/:path*` },
         { source: '/uploads/:path*', destination: `${backend}/uploads/:path*` },
 
+        // -- Referral short link (Express-only, no Next.js equivalent) --
+        // GET /api/profile/referral (server.js) hands out links shaped
+        // ${BASE_URL}/r/:code, where BASE_URL is this frontend's own public
+        // domain — but /r/:code only ever existed as a backend Express
+        // route (server.js) and had no rewrite here, so the link 404'd
+        // against Next.js's own router before ever reaching the backend's
+        // redirect handler. Found while fixing the referral-capture gap
+        // (2026-09-04) — the backend side (ref_code -> referred_by ->
+        // verified-count -> atomic reward) was already correct and
+        // regression-tested; this was the literal first hop that was
+        // broken. The backend responds 302 to /app?ref=:code, which the
+        // browser then follows back onto this same domain and into the
+        // /app -> /signup redirect below.
+        { source: '/r/:code', destination: `${backend}/r/:code` },
+
         // -- Static SEO landing pages (Express-only, no Next.js equivalent) --
         { source: '/what-is-byn',                          destination: `${backend}/what-is-byn` },
         { source: '/intent-based-networking',              destination: `${backend}/intent-based-networking` },

@@ -26,6 +26,16 @@ function SignupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
+  // Referral attribution — /r/:code (server.js) redirects to /app?ref=:code,
+  // which next.config.ts's redirects() then forwards on to here as
+  // /signup?ref=:code (Next.js passes incoming query values through a
+  // redirect automatically — confirmed against the installed version's own
+  // docs, not assumed). This is the ONLY entry point a referral link ever
+  // uses, so capturing it here at signup-page load is sufficient — nothing
+  // downstream needs it to survive further navigation. Server-side
+  // (server.js) re-validates and sanitizes this regardless; no need to
+  // duplicate that here.
+  const refCode = searchParams.get('ref');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -77,6 +87,10 @@ function SignupInner() {
         // validation alone isn't enough) so the CTA that brought this
         // visitor to signup survives all the way through.
         next: next ? safeNext(next) : undefined,
+        // Referral attribution — see refCode above. Magic-link signup had no
+        // equivalent to /api/signup's ref_code handling at all before this;
+        // server.js now accepts and attributes it the same way.
+        ref_code: refCode || undefined,
       });
       setMagicSent(true);
       startMagicCooldown();
@@ -100,7 +114,11 @@ function SignupInner() {
     if (!termsAccepted) { setError('Please accept the Terms and Privacy Policy.'); return; }
     setError(''); setLoading(true);
     try {
-      await signup(name, email, password, { age_confirmed: true, company_website: companyWebsite });
+      await signup(name, email, password, {
+        age_confirmed: true, company_website: companyWebsite,
+        // Referral attribution — see refCode above.
+        ref_code: refCode || undefined,
+      });
       router.replace(withNext('/verify?email=' + encodeURIComponent(email), next));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');

@@ -3316,6 +3316,10 @@ function notifySlackFeedback({ id, category, message, user, page, createdAt }) {
 function cleanPublic(u) {
   if (!u) return null;
   const r = { ...u };
+  // Computed, not raw — every client-facing view of another user's premium
+  // badge/status must reflect actual current entitlement, not the stored
+  // boolean (isPremiumActive defined near the auth cache, further down).
+  r.premium = isPremiumActive(u);
   delete r.password;
   delete r.email;
   delete r.lat; delete r.lng;
@@ -3335,6 +3339,10 @@ function cleanPublic(u) {
 function clean(u) {
   if (!u) return null;
   const r = { ...u };
+  // Computed, not raw — this is what the frontend's own user.premium checks
+  // (e.g. upgrade page) ultimately read, on login/signup/verify/profile
+  // responses alike. isPremiumActive is defined near the auth cache, below.
+  r.premium = isPremiumActive(u);
   delete r.password;
   delete r.otp_code;
   delete r.otp_expires_at;
@@ -3843,12 +3851,16 @@ async function sendLikeNotification(likerId, targetId) {
   try {
     const [{ data: liker }, { data: target }] = await Promise.all([
       supabase.from('users').select('name,intent,interests,skills,lat,lng,location,remote,working_on,currently_exploring,interested_in').eq('id', likerId).maybeSingle(),
-      supabase.from('users').select('premium,is_premium,interests,skills,lat,lng,location,remote,working_on,currently_exploring,interested_in').eq('id', targetId).maybeSingle(),
+      supabase.from('users').select('premium,premium_expires_at,interests,skills,lat,lng,location,remote,working_on,currently_exploring,interested_in').eq('id', targetId).maybeSingle(),
     ]);
     if (!liker || !target) return;
 
     const score = Math.min(matchScore(liker, target), 99);
-    const isPremium = !!(target.premium || target.is_premium);
+    // is_premium is legacy/cosmetic only (locked spec) — use the canonical
+    // predicate, not the old raw-boolean OR-fallback, so an expired account
+    // doesn't get shown the "premium" push copy just because is_premium was
+    // set true once and never cleared.
+    const isPremium = isPremiumActive(target);
     const intent = liker.intent || null;
 
     const title = isPremium ? `❤️ ${liker.name} liked you` : '❤️ Someone liked you';
@@ -3876,6 +3888,93 @@ async function sendWebPush(userIds, title, body, data = {}) {
           .then(() => {}).catch(() => {});
       }
     }
+  }
+}
+
+// ── PREMIUM ENTITLEMENT PREDICATE ──
+// Canonical, single source of truth for "is this user's Premium access
+// currently active" — locked spec, 2026-09-04 ("Premium entitlement
+// specification"). `premium` alone is NOT authorization once expiry
+// enforcement exists; every authorization decision must go through this,
+// not a raw `.premium` read.
+//
+// premium_expires_at === NULL means perpetual and can NEVER cause
+// revocation — this covers legacy pre-expiry-enforcement accounts, admin
+// grants (see /api/admin/upgrade, which explicitly clears expires_at to
+// NULL on grant), and any historical row whose true expiry was never
+// recorded. Only a resolved PAST timestamp denies access. This is the
+// safety property the whole fix leans on — do not change the polarity of
+// this check.
+function isPremiumActive(user) {
+  if (!user || user.premium !== true) return false;
+  if (!user.premium_expires_at) return true; // NULL = perpetual, never revoked
+  return new Date(user.premium_expires_at) > new Date();
+}
+
+// Extends (never replaces) a user's premium entitlement by `days`, from
+// whichever is later: their current premium_expires_at or now. Used by
+// every grant path — paid purchase, paid webhook, referral reward — so
+// entitlements from any source combination stack identically: there is
+// only ever one premium_expires_at, and a grant only ever pushes it
+// further out, never pulls it in (locked spec, concurrent-entitlements
+// decision — no per-source tracking needed).
+async function grantOrExtendPremium(userId, days, extraFields = {}) {
+  const { data: current } = await supabase.from('users')
+    .select('premium_expires_at').eq('id', userId).maybeSingle();
+  const base = current?.premium_expires_at && new Date(current.premium_expires_at) > new Date()
+    ? new Date(current.premium_expires_at)
+    : new Date();
+  base.setDate(base.getDate() + days);
+  const expiresAt = base.toISOString();
+  await supabase.from('users')
+    .update({ premium: true, premium_expires_at: expiresAt, ...extraFields })
+    .eq('id', userId);
+  authCacheInvalidate(userId); // premium just changed
+  return expiresAt;
+}
+
+// Referral milestone — locked spec: one-time-ever per referrer, exactly 10
+// VERIFIED referrals -> +1 month Premium. No repeat at 20/30/etc. Call this
+// ONLY at the moment a referred user's email_verified transitions
+// false->true (magic-link verify, passwordless OTP verify, or the
+// password-signup verify-otp route) — never at signup. An unverified
+// referral never counts toward the 10, permanently, not just until they
+// verify — see migrations/020_referral_rewards.sql.
+//
+// Atomicity: the claim (referral_rewards insert) and the premium grant run
+// inside grant_referral_reward(), a single Postgres function — see
+// migrations/021_referral_reward_rpc.sql. A single PL/pgSQL function body
+// is one implicit transaction, so the two writes commit or roll back
+// together. This replaced an earlier two-step version (insert, then a
+// separate grantOrExtendPremium call) found during the final pre-commit
+// security review to have a real gap: if the insert succeeded and the
+// second call then failed for any reason, the one-time claim was
+// permanently burned with no premium ever granted — a unique constraint
+// prevents a DOUBLE claim, it does not make two separate calls
+// transactional. The RPC also verifies the referrer still exists and isn't
+// deleted/banned inside that same transaction, closing the analogous
+// "referrer removed between accumulating referrals and the 10th verifying"
+// gap. The count check below can still transiently double-count under
+// concurrency (harmless — it's just the redundant call's input); the RPC's
+// internal ON CONFLICT DO NOTHING is what guarantees exactly one grant ever.
+async function maybeGrantReferralReward(referrerId) {
+  if (!referrerId) return;
+  try {
+    const { count: verifiedCount } = await supabase.from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('referred_by', referrerId)
+      .eq('email_verified', true);
+    if ((verifiedCount || 0) < 10) return;
+
+    const { data: granted, error } = await supabase.rpc('grant_referral_reward', {
+      p_referrer_id: referrerId,
+      p_qualifying_count: verifiedCount,
+      p_days: PLANS.monthly.days,
+    });
+    if (error) { console.error('[ReferralReward] rpc failed:', error.message); return; }
+    if (granted) authCacheInvalidate(referrerId); // premium just changed
+  } catch (e) {
+    console.error('[ReferralReward] error:', e.message);
   }
 }
 
@@ -3908,7 +4007,16 @@ function authCacheSet(userId, fullUser) {
     data: {
       id: fullUser.id,
       banned: fullUser.banned,
-      premium: fullUser.premium,
+      // Computed, not raw: isPremiumActive() is evaluated ONCE here, at
+      // population time, using the full row's premium_expires_at. The
+      // cache-hit path (auth(), below) then trusts this value as-is with
+      // no further Date comparison — this is deliberate, not an oversight:
+      // it keeps the cache's whole premise (no per-request work on a hit)
+      // intact while staying expiry-correct, at the cost of the same
+      // bounded ≤30s staleness every other cached field already accepts.
+      // Do NOT change this back to fullUser.premium — that reintroduces
+      // stale-access-past-expiry for up to the full TTL, not just its tail.
+      premium: isPremiumActive(fullUser),
       password_changed_at: fullUser.password_changed_at,
       deleted_at: fullUser.deleted_at,
       role: fullUser.role,
@@ -3980,7 +4088,13 @@ async function auth(req, res, next) {
       return res.status(401).json({ error: 'Password was changed — please sign in again' });
     }
 
-    authCacheSet(user.id, user);
+    authCacheSet(user.id, user); // caches the computed isPremiumActive(user), not raw user.premium
+
+    // req.userData.premium must mean the same thing on this path as it does
+    // on a cache hit (see authCacheSet above) — normalize here too, so every
+    // downstream .premium read (guards, limits, endpoints) is expiry-correct
+    // regardless of which of the two auth() branches produced it.
+    user.premium = isPremiumActive(user);
 
     req.user     = decoded;
     req.userData = user;
@@ -4040,6 +4154,7 @@ async function profileGuard(req, res, next) {
     if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
+      u.premium = isPremiumActive(u); // same normalization as auth() — this bypasses auth() entirely
       req.userData = u;
       return profileGuard(req, res, next);
     }
@@ -4066,6 +4181,7 @@ async function trustGuard(req, res, next) {
     if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
+      u.premium = isPremiumActive(u); // same normalization as auth() — this bypasses auth() entirely
       req.userData = u;
       return trustGuard(req, res, next);
     }
@@ -4097,6 +4213,7 @@ async function discoverGuard(req, res, next) {
     if (!user || user._cached) {
       const { data: u } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
       if (!u) return res.status(404).json({ error: 'Not found' });
+      u.premium = isPremiumActive(u); // same normalization as auth() — this bypasses auth() entirely
       req.userData = u;
       return discoverGuard(req, res, next);
     }
@@ -4598,7 +4715,7 @@ async function verifyMagicLinkToken(rawToken) {
     .eq('magic_link_token_hash', tokenHash)
     .is('magic_link_used_at', null)
     .gt('magic_link_expires_at', nowIso)
-    .select('id, email, name, onboarding_stage, email_verified, otp_code')
+    .select('id, email, name, onboarding_stage, email_verified, otp_code, referred_by')
     .maybeSingle();
 
   if (claimErr) {
@@ -4641,7 +4758,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       return res.json({ ok: true }); // generic response, no enumeration, no signal that this was rejected
     }
 
-    const { email, age_confirmed, next } = req.body;
+    const { email, age_confirmed, next, ref_code } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
@@ -4705,6 +4822,28 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
         }
       } else {
         user = inserted;
+        // Referral attribution — was previously handled only by /api/signup;
+        // magic-link is an equally-real signup path and had no equivalent
+        // (locked spec, signup/referral attribution decision). Mirrors
+        // /api/signup's logic exactly. Best-effort, same as there — not
+        // applied on the insertErr-23505 race-fallback branch above, same
+        // scope as the pre-existing password-signup behavior.
+        if (ref_code) {
+          const cleanCode = String(ref_code).replace(/[^a-f0-9]/gi, '').slice(0, 8);
+          if (cleanCode.length >= 6) {
+            try {
+              const { data: referrer } = await supabase.from('users')
+                .select('id').ilike('id', `${cleanCode}%`).limit(1).maybeSingle();
+              if (referrer && referrer.id !== id) {
+                await supabase.from('users').update({ referred_by: referrer.id }).eq('id', id);
+                await supabase.from('user_acquisition').upsert(
+                  { user_id: id, source: 'Friend/Referral', referral: referrer.id },
+                  { onConflict: 'user_id' }
+                );
+              }
+            } catch(_) {}
+          }
+        }
       }
     }
 
@@ -4750,12 +4889,18 @@ app.post('/api/auth/magic-link/verify', verifyLimiter, async (req, res) => {
 
     const user = result.user;
     const updates = {};
-    if (!user.email_verified) updates.email_verified = true;
+    const justVerified = !user.email_verified; // real false->true transition, not a re-verify
+    if (justVerified) updates.email_verified = true;
     // Invalidate any outstanding OTP for this account too — this
     // authentication is already complete, a stale code shouldn't linger.
     if (user.otp_code) { updates.otp_code = null; updates.otp_expires_at = null; }
     if (Object.keys(updates).length > 0) {
       await supabase.from('users').update(updates).eq('id', user.id);
+    }
+    // Referral reward check — only on the real verification transition, not
+    // on every idempotent re-verify (locked spec: verified referrals only).
+    if (justVerified && user.referred_by) {
+      maybeGrantReferralReward(user.referred_by).catch(e => console.error('[ReferralReward] magic-link hook failed:', e.message));
     }
 
     const jwtToken = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
@@ -4844,7 +4989,7 @@ app.post('/api/auth/passwordless/otp/verify', verifyLimiter, async (req, res) =>
     const normalizedEmail = String(email).trim().toLowerCase();
 
     const { data: user } = await supabase.from('users')
-      .select('id, email, name, otp_code, otp_expires_at, onboarding_stage, magic_link_used_at, magic_link_token_hash')
+      .select('id, email, name, otp_code, otp_expires_at, onboarding_stage, magic_link_used_at, magic_link_token_hash, email_verified, referred_by')
       .eq('email', normalizedEmail).maybeSingle();
     // Same shape of error for "no such account" and "wrong code" — an
     // unauthenticated endpoint that distinguished them would let an
@@ -4854,6 +4999,7 @@ app.post('/api/auth/passwordless/otp/verify', verifyLimiter, async (req, res) =>
     if (new Date() > new Date(user.otp_expires_at)) return res.status(400).json({ error: 'Code expired — request a new one', code: 'EXPIRED' });
     if (String(code).trim() !== String(user.otp_code)) return res.status(400).json({ error: 'Incorrect code', code: 'INVALID' });
 
+    const justVerified = !user.email_verified; // real false->true transition, not a re-verify
     const updates = { email_verified: true, otp_code: null, otp_expires_at: null };
     // Invalidate any outstanding magic link too, for the same reason as the
     // reverse case in /api/auth/magic-link/verify.
@@ -4861,6 +5007,11 @@ app.post('/api/auth/passwordless/otp/verify', verifyLimiter, async (req, res) =>
       updates.magic_link_used_at = new Date().toISOString();
     }
     await supabase.from('users').update(updates).eq('id', user.id);
+    // Referral reward check — only on the real verification transition
+    // (locked spec: verified referrals only).
+    if (justVerified && user.referred_by) {
+      maybeGrantReferralReward(user.referred_by).catch(e => console.error('[ReferralReward] passwordless-otp hook failed:', e.message));
+    }
 
     const jwtToken = jwt.sign({ id: user.id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '24h' });
     res.cookie('byn_token', jwtToken, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
@@ -4941,7 +5092,14 @@ app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, r
     // guards this too: at most one request per email ever reaches here.
     notifySlackSignup(inserted).catch(e => console.error('[slack] signup notify failed:', e.message));
 
-    // Referral attribution — look up referrer by 8-char code prefix, best-effort
+    // Referral attribution — look up referrer by 8-char code prefix, best-effort.
+    // Attribution (referred_by) is recorded here at signup, unchanged. The
+    // reward itself is NOT granted here anymore — locked spec requires a
+    // referral to be VERIFIED before it counts, and this account isn't
+    // verified yet at signup time. See maybeGrantReferralReward(), called
+    // from the verification endpoints (magic-link/verify,
+    // passwordless/otp/verify, verify-otp) instead, at the exact moment
+    // email_verified transitions false->true.
     if (ref_code) {
       const cleanCode = String(ref_code).replace(/[^a-f0-9]/gi, '').slice(0, 8);
       if (cleanCode.length >= 6) {
@@ -4954,22 +5112,6 @@ app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, r
               { user_id: id, source: 'Friend/Referral', referral: referrer.id },
               { onConflict: 'user_id' }
             );
-            // Referral reward: 10 successful referrals → 1 month Premium free
-            const { count: refCount } = await supabase.from('users')
-              .select('*', { count: 'exact', head: true })
-              .eq('referred_by', referrer.id);
-            if (refCount === 10) {
-              const { data: ref } = await supabase.from('users')
-                .select('premium_expires_at').eq('id', referrer.id).single();
-              const base = ref?.premium_expires_at && new Date(ref.premium_expires_at) > new Date()
-                ? new Date(ref.premium_expires_at)
-                : new Date();
-              base.setMonth(base.getMonth() + 1);
-              await supabase.from('users')
-                .update({ premium_expires_at: base.toISOString(), is_premium: true, premium: true })
-                .eq('id', referrer.id);
-              authCacheInvalidate(referrer.id); // premium just changed
-            }
           }
         } catch(_) {}
       }
@@ -5151,7 +5293,7 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
     if (!code) return res.status(400).json({ error: 'Code required' });
 
     const { data: user } = await supabase.from('users')
-      .select('otp_code, otp_expires_at, email_verified').eq('id', req.user.id).maybeSingle();
+      .select('otp_code, otp_expires_at, email_verified, referred_by').eq('id', req.user.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
     // NOTE: do NOT short-circuit for email_verified === true.
     // Always validate the actual OTP code — even for already-verified accounts.
@@ -5163,9 +5305,15 @@ app.post('/api/auth/verify-otp', verifyLimiter, auth, async (req, res) => {
     if (String(code).trim() !== String(user.otp_code))
       return res.status(400).json({ error: 'Incorrect code' });
 
+    const justVerified = !user.email_verified; // real false->true transition, not a re-verify
     // Mark email_verified = true (idempotent — safe to re-apply even if already true)
     await supabase.from('users')
       .update({ email_verified: true, otp_code: null, otp_expires_at: null }).eq('id', req.user.id);
+    // Referral reward check — only on the real verification transition
+    // (locked spec: verified referrals only).
+    if (justVerified && user.referred_by) {
+      maybeGrantReferralReward(user.referred_by).catch(e => console.error('[ReferralReward] verify-otp hook failed:', e.message));
+    }
 
     res.json({ ok: true });
   } catch(e) {
@@ -5394,7 +5542,7 @@ app.get('/api/me/export', auth, async (req, res) => {
         linkedin: user.linkedin,
         instagram: user.instagram,
         website: user.website,
-        premium: user.premium,
+        premium: isPremiumActive(user), // report actual current entitlement, not the raw stored flag
         created_at: user.created_at,
         consent_given_at: user.consent_given_at,
         consent_version: user.consent_version,
@@ -6562,6 +6710,7 @@ app.post('/api/priority-message', auth, async (req, res) => {
     const { data: sender } = await supabase.from('users')
       .select('*').eq('id', req.user.id).maybeSingle();
     if (!sender) return res.status(404).json({ error: 'Not found' });
+    sender.premium = isPremiumActive(sender); // independent fetch, bypasses auth()/req.userData — normalize here too
 
     const { data: target } = await supabase.from('users')
       .select('id').eq('id', targetId).maybeSingle();
@@ -6610,9 +6759,9 @@ app.get('/api/priority-messages', auth, async (req, res) => {
     if (senderIds.length > 0) {
       // Select only public-safe fields — never expose otp_code, push_token, lat/lng
       const { data: senders } = await supabase.from('users')
-        .select('id,name,photos,bio,location,intent,trust_score,verification,premium')
+        .select('id,name,photos,bio,location,intent,trust_score,verification,premium,premium_expires_at')
         .in('id', senderIds);
-      (senders || []).forEach(u => { senderMap[u.id] = u; });
+      (senders || []).forEach(u => { u.premium = isPremiumActive(u); senderMap[u.id] = u; });
     }
 
     const month = thisMonthKey();
@@ -6953,7 +7102,14 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
     const { targetId, premium } = req.body;
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
-    await supabase.from('users').update({ premium: !!premium }).eq('id', targetId);
+    // Locked spec, admin grants/revocations: a grant clears premium_expires_at
+    // to NULL, making it unambiguously perpetual regardless of any prior
+    // dated (paid/referral) expiry already on the account — an admin action
+    // is presumed to mean "this user has Premium, full stop", not "extend
+    // whatever they already had". A revoke leaves expires_at untouched
+    // (irrelevant once premium is false; no need to clear it).
+    const updates = premium ? { premium: true, premium_expires_at: null } : { premium: false };
+    await supabase.from('users').update(updates).eq('id', targetId);
     authCacheInvalidate(targetId); // premium just changed
     await auditLog(req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId);
     res.json({ ok: true });
@@ -7798,18 +7954,15 @@ app.post('/api/payments/verify', auth, async (req, res) => {
       return res.status(409).json({ error: 'Payment already redeemed — replay attack detected' });
     }
 
-    // Look up plan to calculate expiry
+    // Activate premium — extends from whichever is later, current expiry or
+    // now, rather than replacing it (locked spec, repurchase-before-expiry
+    // decision: a user with remaining paid time left must not lose it to a
+    // second purchase).
     const planDef = PLANS[plan] || PLANS.monthly;
-    const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
-
-    // Activate premium
-    await supabase.from('users').update({
-      premium:             true,
-      premium_plan:        plan,
-      premium_since:       new Date().toISOString(),
-      premium_expires_at:  expiresAt,
-    }).eq('id', req.user.id);
-    authCacheInvalidate(req.user.id); // premium just changed
+    const expiresAt = await grantOrExtendPremium(req.user.id, planDef.days, {
+      premium_plan:  plan,
+      premium_since: new Date().toISOString(),
+    });
 
     // Update payment record
     await supabase.from('payments').update({
@@ -7879,15 +8032,14 @@ app.post('/api/payments/webhook', async (req, res) => {
       const { data: payRec } = await supabase.from('payments')
         .select('*').eq('razorpay_order_id', orderId).maybeSingle();
       if (payRec && payRec.status !== 'paid') {
-        const planDef  = PLANS[payRec.plan] || PLANS.monthly;
-        const expiresAt = new Date(Date.now() + planDef.days * 24 * 3600 * 1000).toISOString();
-        await supabase.from('users').update({
-          premium:            true,
-          premium_plan:       payRec.plan,
-          premium_since:      new Date().toISOString(),
-          premium_expires_at: expiresAt,
-        }).eq('id', payRec.user_id);
-        authCacheInvalidate(payRec.user_id); // premium just changed
+        // Same extend-not-replace logic as /api/payments/verify — see the
+        // comment there. Both paths must agree, since either can be the one
+        // that actually lands first for a given purchase.
+        const planDef = PLANS[payRec.plan] || PLANS.monthly;
+        await grantOrExtendPremium(payRec.user_id, planDef.days, {
+          premium_plan:  payRec.plan,
+          premium_since: new Date().toISOString(),
+        });
         await supabase.from('payments').update({ razorpay_payment_id: payId, status: 'paid' })
           .eq('razorpay_order_id', orderId);
       }
@@ -8262,9 +8414,15 @@ app.get('/r/:code', (req, res) => {
 app.get('/api/profile/referral', auth, async (req, res) => {
   try {
     const code  = req.user.id.slice(0, 8);
+    // Verified count, not raw — the milestone only ever counted verified
+    // referrals (locked spec), so this is the number that actually reflects
+    // progress toward it. Showing the raw (unverified-included) count would
+    // mislead a user into thinking they're closer to the reward than they
+    // are.
     const { count } = await supabase.from('users')
       .select('*', { count: 'exact', head: true })
-      .eq('referred_by', req.user.id);
+      .eq('referred_by', req.user.id)
+      .eq('email_verified', true);
     const base = (process.env.BASE_URL || 'https://buildyournetwork.online').replace(/\/$/, '');
     res.json({ code, link: `${base}/r/${code}`, count: count || 0 });
   } catch(e) { res.status(500).json({ error: 'Internal server error' }); }
@@ -9411,6 +9569,43 @@ async function sendExpiryWarnings() {
   }
 }
 
+// ── PREMIUM EXPIRY SWEEP ──
+// isPremiumActive() (see the predicate near the auth cache) is already the
+// real-time source of truth for every authorization decision — this sweep
+// changes nothing about correctness. It exists only for eventual
+// consistency of the raw `premium` boolean itself: admin-dashboard
+// aggregate counts (e.g. GET /api/admin/analytics' verifiedCount-style
+// .eq('premium', true) queries) read that column directly, not through the
+// predicate, and would otherwise keep counting an expired user as premium
+// forever. Runs hourly; also invalidates the auth cache for anyone it
+// flips, tightening the ≤30s staleness window for a warm-cached session
+// past its expiry.
+//
+// premium_expires_at IS NOT NULL is a hard requirement in the WHERE clause
+// below, not just a filter — it makes it structurally impossible for this
+// sweep to ever touch a legacy/admin perpetual (NULL-expiry) grant. Do not
+// remove it or "simplify" this into a plain premium_expires_at <= now()
+// check; that would revoke exactly the accounts the locked spec requires
+// this fix to never touch.
+async function runPremiumExpirySweep() {
+  try {
+    const nowIso = new Date().toISOString();
+    const { data: expired } = await supabase.from('users')
+      .select('id')
+      .eq('premium', true)
+      .not('premium_expires_at', 'is', null)
+      .lte('premium_expires_at', nowIso);
+    if (!expired || expired.length === 0) return;
+
+    const ids = expired.map(u => u.id);
+    await supabase.from('users').update({ premium: false }).in('id', ids);
+    ids.forEach(id => authCacheInvalidate(id));
+    console.log(`[PremiumSweep] Flipped ${ids.length} expired premium account(s) to premium:false`);
+  } catch (e) {
+    console.error('[PremiumSweep] Error:', e.message);
+  }
+}
+
 // ── CONVERSATION NUDGE (48h silence) ──
 // Runs daily. Finds active connections where the last message was sent >48h ago
 // and the connection has at least 1 message. Sends one push to the user who sent
@@ -9515,6 +9710,11 @@ app.listen(PORT, () => {
   // 24h expiry warning: run hourly alongside profile nudge
   sendExpiryWarnings();
   setInterval(sendExpiryWarnings, 60 * 60 * 1000);
+
+  // Premium expiry sweep: run hourly — see runPremiumExpirySweep for why
+  // this exists despite isPremiumActive() already being real-time-correct.
+  runPremiumExpirySweep();
+  setInterval(runPremiumExpirySweep, 60 * 60 * 1000);
 
   // Data retention: GDPR Art. 5(1)(e) storage limitation — runs every 24 hours
   async function runRetentionCycle() {

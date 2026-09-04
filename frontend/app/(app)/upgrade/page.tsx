@@ -67,7 +67,12 @@ export default function UpgradePage() {
   const [currency, setCurrency] = useState<CurrencyKey>('INR');
   const [paying, setPaying]   = useState(false);
 
-  const isPremium = !!(user?.premium || user?.is_premium);
+  // is_premium is legacy/cosmetic only (backend locked spec, 2026-09-04) —
+  // premium alone is now expiry-computed server-side (server.js clean()),
+  // so trusting the frozen is_premium flag too would show "Premium" forever
+  // for anyone whose is_premium was set true by the old referral-reward
+  // code, even after their real entitlement expires.
+  const isPremium = !!user?.premium;
 
   useEffect(() => {
     apiGet<Config>('/api/payments/config').then(setConfig).catch(() => {});
