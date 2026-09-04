@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
         <div>
           <h1 className="text-xl font-bold text-[var(--text)]">Check your email</h1>
           <p className="text-sm text-[var(--sub)] mt-2 leading-relaxed">
-            If <span className="font-medium text-[var(--text)]">{email}</span> is registered, you&apos;ll receive a 6-digit reset code shortly. It expires in 15 minutes.
+            If <span className="font-medium text-[var(--text)]">{email}</span> is registered, you&apos;ll receive a 6-digit reset code shortly. It expires in 10 minutes.
           </p>
         </div>
         <Link

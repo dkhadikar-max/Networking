@@ -5183,45 +5183,27 @@ app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) =>
 
     const normalized = String(email).trim().toLowerCase();
     const { data: user } = await supabase.from('users')
-      .select('id, name, email').eq('email', normalized).maybeSingle();
+      .select('id, email, name, email_suppressed, otp_last_sent_at, otp_hour_count, otp_hour_window_start, otp_day_count, otp_day_window_start')
+      .eq('email', normalized).maybeSingle();
 
+    // BUG FIX: this used to write reset_token_hash/reset_token_expires_at —
+    // columns that do not exist on the live users table (confirmed directly
+    // against Supabase: 72 real columns, none of those). Every call silently
+    // failed inside the catch block below, which always returns {ok:true}
+    // regardless — so forgot-password looked like it worked from the
+    // outside while never sending a code. Nobody could reset a forgotten
+    // password.
+    //
+    // Fix reuses the SAME OTP infrastructure (issueAndSendOtp/otp_code/
+    // otp_expires_at) already used by signup verification and the
+    // passwordless-login OTP fallback (/api/auth/passwordless/otp/request,
+    // below) rather than resurrecting the dead reset_token_* design or
+    // inventing a third one. Same reasoning as that endpoint's own comment:
+    // different trust model (no session yet), same "prove inbox access"
+    // primitive, same per-account/global send budget rather than a second,
+    // divergent issuance system.
     if (user) {
-      const rawCode = crypto.randomInt(100000, 1000000);
-      const hash    = crypto.createHash('sha256').update(String(rawCode)).digest('hex');
-      const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-      await supabase.from('users').update({
-        reset_token_hash:       hash,
-        reset_token_expires_at: expires,
-      }).eq('id', user.id);
-
-      // Send email (non-blocking — don't fail the request if email fails)
-      if (ResendClient) {
-        const FROM = process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>';
-        console.log(`[Reset] Sending from="${FROM}" to="${maskEmail(user.email)}"`);
-        ResendClient.emails.send({
-          from:    FROM,
-          to:      user.email,
-          subject: `${rawCode} is your BYN password reset code`,
-          html: `
-            <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px">
-              <h2 style="color:#0F766E;margin-bottom:4px">Build Your Network</h2>
-              <p style="color:#6B7280;font-size:13px;margin-top:0">connect · grow · thrive</p>
-              <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
-              <p style="font-size:16px;color:#111827">Hi ${user.name || 'there'},</p>
-              <p style="font-size:15px;color:#374151">Your password reset code is:</p>
-              <div style="background:#F0FDF4;border:2px solid #0F766E;border-radius:12px;padding:24px;text-align:center;margin:20px 0">
-                <span style="font-size:40px;font-weight:700;letter-spacing:10px;color:#0F766E">${rawCode}</span>
-              </div>
-              <p style="font-size:13px;color:#6B7280">This code expires in <strong>15 minutes</strong>. If you didn't request a reset, ignore this email — your password has not changed.</p>
-              <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0">
-              <p style="font-size:12px;color:#9CA3AF">Build Your Network · buildyournetwork.online</p>
-            </div>
-          `,
-        }).catch(e => console.error('[Reset] Email send failed:', e.message, e.statusCode ?? '', JSON.stringify(e.response ?? {})));
-      } else {
-        console.error('[Reset] Resend client not initialised — RESEND_API_KEY missing');
-      }
+      issueAndSendOtp(user).catch(e => console.error('[forgot-password] issueAndSendOtp failed:', e.message));
     }
 
     res.json({ ok: true });
@@ -5232,8 +5214,15 @@ app.post('/api/auth/forgot-password', forgotPasswordLimiter, async (req, res) =>
 });
 
 // ── RESET PASSWORD ──
-// resetPasswordLimiter: 10 attempts / 15 min / IP — caps brute-force window
-// Attempt counter: token voided after 5 wrong codes regardless of IP
+// Verifies the same otp_code/otp_expires_at issued by forgot-password above
+// (via issueAndSendOtp). Unauthenticated by design, so this cannot reuse
+// /api/auth/verify-otp (requires an existing session) — instead mirrors
+// /api/auth/passwordless/otp/verify's shape: email+code, same-shaped error
+// for "no account" / "no pending code" / "wrong code" (anti-enumeration),
+// plaintext comparison against the stored code. No persisted per-account
+// wrong-attempt counter, matching every other OTP-verify route in this
+// codebase — resetPasswordLimiter (10/15min per IP) is this endpoint's
+// brute-force defense, same role verifyLimiter plays for the others.
 app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
   try {
     const { email, code, newPassword } = req.body;
@@ -5246,45 +5235,24 @@ app.post('/api/auth/reset-password', resetPasswordLimiter, async (req, res) => {
 
     const normalized = String(email).trim().toLowerCase();
     const { data: user } = await supabase.from('users')
-      .select('id, reset_token_hash, reset_token_expires_at, reset_token_attempts').eq('email', normalized).maybeSingle();
+      .select('id, otp_code, otp_expires_at').eq('email', normalized).maybeSingle();
 
-    if (!user || !user.reset_token_hash)
-      return res.status(400).json({ error: INVALID });
-    if (new Date() > new Date(user.reset_token_expires_at))
-      return res.status(400).json({ error: INVALID });
-
-    // SECURITY: timing-safe comparison — prevents hash timing side-channel
-    const incomingBuf = Buffer.from(crypto.createHash('sha256').update(String(code).trim()).digest('hex'), 'hex');
-    const storedBuf   = Buffer.from(user.reset_token_hash, 'hex');
-    const match = crypto.timingSafeEqual(incomingBuf, storedBuf);
-
-    if (!match) {
-      const attempts = (user.reset_token_attempts || 0) + 1;
-      if (attempts >= 5) {
-        // Void token after 5 wrong attempts — force a fresh code request
-        await supabase.from('users').update({
-          reset_token_hash:       null,
-          reset_token_expires_at: null,
-          reset_token_attempts:   null,
-        }).eq('id', user.id);
-      } else {
-        await supabase.from('users').update({ reset_token_attempts: attempts }).eq('id', user.id);
-      }
-      return res.status(400).json({ error: INVALID });
-    }
+    // Same shape of error for "no such account", "no pending code", and
+    // "wrong code" — an unauthenticated endpoint that distinguished these
+    // would let an attacker enumerate registered emails.
+    if (!user || !user.otp_code) return res.status(400).json({ error: INVALID });
+    if (new Date() > new Date(user.otp_expires_at)) return res.status(400).json({ error: INVALID });
+    if (String(code).trim() !== String(user.otp_code)) return res.status(400).json({ error: INVALID });
 
     const hashed = await bcrypt.hash(String(newPassword), 12);
     await supabase.from('users').update({
-      password:                hashed,
-      reset_token_hash:        null,
-      reset_token_expires_at:  null,
-      reset_token_attempts:    null,
-      password_changed_at:     new Date().toISOString(),
-      otp_code:                null,
-      otp_expires_at:          null,
+      password:              hashed,
+      otp_code:              null,
+      otp_expires_at:        null,
+      password_changed_at:   new Date().toISOString(),
       // Clear lockout — a successful password reset proves identity
-      failed_login_attempts:   0,
-      lockout_until:           null,
+      failed_login_attempts: 0,
+      lockout_until:         null,
     }).eq('id', user.id);
     authCacheInvalidate(user.id); // password_changed_at just changed
 
