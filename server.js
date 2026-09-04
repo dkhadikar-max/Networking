@@ -5693,25 +5693,11 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
     if (swipedToday >= DAILY_LIMIT)
       return res.json({ limited: true, remaining: 0, profiles: [] });
 
-    // Build exclusion sets — independent queries, run concurrently
-    const [{ data: swipedData }, { data: connData }, { data: blockData }] = await Promise.all([
-      supabase.from('swipes').select('to_user').eq('from_user', req.user.id),
-      supabase.from('connections').select('user1, user2')
-        .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`),
-      supabase.from('blocks').select('from_user, to_user')
-        .or(`from_user.eq.${req.user.id},to_user.eq.${req.user.id}`),
-    ]);
-    const swiped = new Set((swipedData || []).map(s => s.to_user));
-    const connected = new Set((connData || [])
-      .map(c => c.user1 === req.user.id ? c.user2 : c.user1));
-    const blocked = new Set((blockData || [])
-      .map(b => b.from_user === req.user.id ? b.to_user : b.from_user));
-
-    const excluded = new Set([req.user.id, ...swiped, ...connected, ...blocked]);
-
     const { skill, intent, location, remote, interest, sort = 'relevance', radius, worldwide } = req.query;
 
-    // Location mode resolution: nearby(default)/remote/worldwide
+    // Location mode resolution: nearby(default)/remote/worldwide — resolved
+    // before the DB batch below so the PREMIUM_REQUIRED short-circuit still
+    // returns without running any exclusion/candidate queries, same as before.
     let radiusKm = null;
     if (worldwide !== 'true' && remote !== 'true' && me.lat != null && me.lng != null) {
       const _meLat = parseFloat(me.lat);
@@ -5741,15 +5727,35 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
       'banned','role','last_active','verification',
       'instagram','linkedin','website','created_at',
     ].join(',');
-    const { data: allUsers } = await supabase.from('users')
-      .select(DISCOVER_FIELDS)
-      .or('banned.is.null,banned.eq.false')
-      .is('deleted_at', null)
-      .eq('email_verified', true)
-      .gte('trust_score', 10)
-      .neq('id', req.user.id)
-      .order('last_active', { ascending: false })
-      .limit(200);
+
+    // Exclusion sets (swipes/connections/blocks) and the candidate pool are
+    // four independent queries — the candidate query doesn't depend on the
+    // exclusion sets at all, only the in-memory .filter() below does — so
+    // all four run concurrently instead of the candidate query waiting on
+    // the exclusion queries to finish first.
+    const [{ data: swipedData }, { data: connData }, { data: blockData }, { data: allUsers }] = await Promise.all([
+      supabase.from('swipes').select('to_user').eq('from_user', req.user.id),
+      supabase.from('connections').select('user1, user2')
+        .or(`user1.eq.${req.user.id},user2.eq.${req.user.id}`),
+      supabase.from('blocks').select('from_user, to_user')
+        .or(`from_user.eq.${req.user.id},to_user.eq.${req.user.id}`),
+      supabase.from('users')
+        .select(DISCOVER_FIELDS)
+        .or('banned.is.null,banned.eq.false')
+        .is('deleted_at', null)
+        .eq('email_verified', true)
+        .gte('trust_score', 10)
+        .neq('id', req.user.id)
+        .order('last_active', { ascending: false })
+        .limit(200),
+    ]);
+    const swiped = new Set((swipedData || []).map(s => s.to_user));
+    const connected = new Set((connData || [])
+      .map(c => c.user1 === req.user.id ? c.user2 : c.user1));
+    const blocked = new Set((blockData || [])
+      .map(b => b.from_user === req.user.id ? b.to_user : b.from_user));
+
+    const excluded = new Set([req.user.id, ...swiped, ...connected, ...blocked]);
 
     let candidates = (allUsers || []).filter(u => !excluded.has(u.id) && u.photos && u.photos.length > 0);
 
@@ -6511,9 +6517,8 @@ app.get('/api/priority-messages', auth, async (req, res) => {
     }
 
     const month = thisMonthKey();
-    const { data: meRow } = await supabase.from('users')
-      .select('premium').eq('id', req.user.id).maybeSingle();
-    const limit = (meRow && meRow.premium) ? 20 : 3;
+    // req.userData already carries premium — no need to re-query it.
+    const limit = req.userData.premium ? 20 : 3;
     const used  = (sent || []).filter(p => p.month === month).length;
 
     res.json({
@@ -6561,11 +6566,8 @@ app.get('/api/liked-me', auth, async (req, res) => {
 
     const count = filteredIds.length;
 
-    // 4. Check premium status
-    const { data: me } = await supabase.from('users')
-      .select('premium').eq('id', req.user.id).maybeSingle();
-
-    if (!me?.premium) {
+    // 4. Check premium status — already on req.userData from auth middleware
+    if (!req.userData?.premium) {
       // Free users: return count + first photo only — NO id or identifying info.
       // Returning the id would let free users call GET /api/profiles/:id to bypass premium.
       const previewData = filteredIds.length > 0
