@@ -870,7 +870,22 @@ textarea.pe-input { resize: none; }
 
 /* ── DESKTOP: sidebar + 2-column (≥1024px) ───────────────── */
 @media (min-width: 1024px) {
-  html, body {
+  /* BUG (found 2026-09-05, reported as "scroll not working" on iPad AND
+     PC — the same underlying rule, not two separate issues): this used to
+     be a bare `html, body { ... }` with no .app-wrap scoping, unlike every
+     other rule in this file. It fired on *any* page at this breakpoint —
+     marketing pages, SEO pages, /login, /signup, everywhere — not just the
+     authenticated app shell, clamping the whole document to exactly 100vh
+     with overflow:hidden and killing normal page scroll on every page that
+     doesn't have its own internal .app-views-style scroll region. Most
+     iPads exceed 1024px CSS width in landscape (and larger models even in
+     portrait), so "iPad" and "PC" were the same bug, not two — a prior
+     session's -webkit-overflow-scrolling fix (further up this file) was a
+     reasonable-sounding but incorrect diagnosis for a report that was
+     actually this. Scoping to :has(.app-wrap) makes this identical in
+     shape to body:has(.app-wrap) directly below, which already only ever
+     applied when the app shell is actually present. */
+  html:has(.app-wrap), body:has(.app-wrap) {
     height: 100vh !important;
     min-height: 100vh !important;
     overflow: hidden !important;
