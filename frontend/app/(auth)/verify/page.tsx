@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import Button from '@/components/ui/Button';
+import { safeNext, withNext } from '@/lib/authRedirect';
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -28,6 +29,7 @@ function VerifyForm() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get('email');
   const targetEmail = emailParam || user?.email;
+  const next = searchParams.get('next');
 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
@@ -58,9 +60,9 @@ function VerifyForm() {
       await apiPost('/api/auth/verify-otp', { code: otp });
       const updated = await refreshUser();
       if (updated?.onboarding_stage === 'complete') {
-        router.replace('/discover');
+        router.replace(safeNext(next));
       } else {
-        router.replace('/onboarding');
+        router.replace(withNext('/onboarding', next));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid code');
@@ -100,7 +102,7 @@ function VerifyForm() {
       <div className="bg-white rounded-2xl shadow-[var(--shadow-md)] p-8 space-y-4 text-center">
         <h1 className="text-2xl font-bold text-[var(--text)]">Your email is already verified</h1>
         <p className="text-sm text-[var(--sub)]">There&apos;s nothing left to confirm here.</p>
-        <Button type="button" onClick={() => router.replace('/discover')} fullWidth>Continue →</Button>
+        <Button type="button" onClick={() => router.replace(safeNext(next))} fullWidth>Continue →</Button>
       </div>
     );
   }

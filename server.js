@@ -401,7 +401,7 @@ app.use((req, res, next) => {
 });
 
 // ── SITEMAP + ROBOTS: registered BEFORE express.static so static files can never shadow them ──
-app.get('/sitemap.xml', (req, res) => {
+app.get('/sitemap.xml', async (req, res) => {
   const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
   // Stable per-tier dates — prevents crawlers from seeing 709 pages as "changed today"
   // on every sitemap fetch, which wastes crawl budget.
@@ -462,6 +462,31 @@ app.get('/sitemap.xml', (req, res) => {
     { loc: BASE + '/privacy',                        priority: '0.3', freq: 'monthly', lastmod: D_UTIL },
     { loc: BASE + '/support',                        priority: '0.4', freq: 'monthly', lastmod: D_UTIL },
   ];
+
+  // Phase 3 — Circles public indexing. Continuously created, eligibility
+  // changes over time (opt-out, a report, an edit, a Circle going private —
+  // see migrations/018_circles_public_indexing.sql), so unlike everything
+  // above this can't be a fixed list: it's queried fresh on every sitemap
+  // request. A failure here must not take the rest of the sitemap down —
+  // every static section above still matters even if this part comes up
+  // empty for a request.
+  let circleUrls = [];
+  try {
+    const entries = await getPublicCircleIndexEntries(1000);
+    circleUrls = [
+      { loc: BASE + '/c', priority: '0.6', freq: 'daily', lastmod: D_UTIL },
+      ...entries.map(e => ({
+        loc: BASE + '/c/' + e.id,
+        priority: '0.5',
+        freq: 'monthly',
+        lastmod: new Date(e.indexed_at).toISOString().slice(0, 10),
+      })),
+    ];
+  } catch (e) {
+    console.error('[sitemap.xml] circle index fetch failed:', e.message);
+  }
+  urls.push(...circleUrls);
+
   const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
     urls.map(u => '  <url>\n    <loc>' + u.loc + '</loc>\n    <lastmod>' + u.lastmod + '</lastmod>\n    <changefreq>' + u.freq + '</changefreq>\n    <priority>' + u.priority + '</priority>\n  </url>').join('\n') +
     '\n</urlset>';
@@ -4231,6 +4256,25 @@ const MAGIC_LINK_HOUR_LIMIT  = 3;
 const MAGIC_LINK_DAY_LIMIT   = 5;
 const MAGIC_LINK_EXPIRY_MS   = 15 * 60 * 1000; // upper end of the 10-15min spec
 
+// Open-redirect guard for the `next` deep-link param embedded in a magic
+// link. Mirrors frontend/lib/authRedirect.ts's safeNext exactly — that copy
+// runs client-side for in-app redirects, but this one is the actual
+// enforcement here: a `next` value on this path gets written into a real
+// email sent to the user, so client-side validation alone is not enough —
+// a client (or a compromised/buggy one) could send anything as `next` and
+// have it embedded in a legitimate-looking BYN email otherwise.
+function safeNextPath(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  let path;
+  try { path = decodeURIComponent(raw); } catch { return null; }
+  if (!path.startsWith('/')) return null;
+  if (path.startsWith('//')) return null;
+  if (/^\/\\+/.test(path)) return null;
+  if (/^\/[^/?#]*[a-z][a-z0-9+.-]*:/i.test(path)) return null;
+  if (/[\x00-\x1f]/.test(path)) return null;
+  return path.slice(0, 500); // cap length — this rides in a URL query string
+}
+
 async function sendMagicLinkEmail(toEmail, link, name) {
   if (!ResendClient) {
     console.error('[MagicLink] Resend client not created — RESEND_API_KEY env var is missing or empty');
@@ -4325,7 +4369,7 @@ async function sendAlreadyRegisteredEmail(toEmail, name) {
 // budget (claimGlobalOtpBudget) as OTP sends — required so magic-link
 // requests can't bypass the circuit breaker protecting the Resend account
 // itself by using a "different" budget.
-async function issueAndSendMagicLink(user) {
+async function issueAndSendMagicLink(user, next) {
   if (user.email_suppressed) {
     return { ok: false, code: 'EMAIL_SUPPRESSED' };
   }
@@ -4374,7 +4418,9 @@ async function issueAndSendMagicLink(user) {
     return { ok: false, code: 'COOLDOWN' };
   }
 
-  const link = `${process.env.BASE_URL || 'https://buildyournetwork.online'}/verify-magic?token=${rawToken}`;
+  const safeNext = safeNextPath(next);
+  const link = `${process.env.BASE_URL || 'https://buildyournetwork.online'}/verify-magic?token=${rawToken}`
+    + (safeNext ? `&next=${encodeURIComponent(safeNext)}` : '');
   const sendResult = await sendMagicLinkEmail(claimed.email, link, claimed.name);
   if (!sendResult.ok) {
     if (sendResult.reason === 'suppressed') {
@@ -4513,7 +4559,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       return res.json({ ok: true }); // generic response, no enumeration, no signal that this was rejected
     }
 
-    const { email, age_confirmed } = req.body;
+    const { email, age_confirmed, next } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
@@ -4584,7 +4630,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       if (alreadyRegistered) {
         issueAlreadyRegisteredNotice(user).catch(e => console.error('[magic-link] issueAlreadyRegisteredNotice failed:', e.message));
       } else {
-        issueAndSendMagicLink(user).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
+        issueAndSendMagicLink(user, next).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
       }
     }
     // Identical response regardless of new/existing/failed-to-queue — never
@@ -8521,18 +8567,250 @@ app.patch('/api/circles/posts/:id', auth, async (req, res) => {
     if (!text || typeof text !== 'string' || !text.trim()) return res.status(400).json({ error: 'Text required' });
     if (circleWordCount(text) > 250) return res.status(400).json({ error: 'Post exceeds 250 words' });
     const { data, error } = await supabase.from('circle_posts')
-      .select('user_id, created_at').eq('id', req.params.id).single();
+      .select('user_id, created_at, public_opt_in').eq('id', req.params.id).single();
     if (error || !data) return res.status(404).json({ error: 'Post not found' });
     if (data.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
     const ageMin = (Date.now() - new Date(data.created_at).getTime()) / 60000;
     if (ageMin > 30) return res.status(403).json({ error: 'Edit window has closed (30 min limit)' });
+    const updates = { text: text.trim() };
+    // Locked exposure policy: any edit invalidates public eligibility and, if
+    // opted in, restarts the 72h moderation window from this edit rather than
+    // the original opt-in — the 30-min edit window makes this unreachable
+    // today (opt-in→indexed always takes ≥72h), but that's an implicit
+    // coincidence, not a guarantee, so this stays explicit.
+    if (data.public_opt_in) {
+      updates.public_opt_in_at = new Date().toISOString();
+      updates.indexed_at = null;
+    }
     const { error: updateError } = await supabase.from('circle_posts')
-      .update({ text: text.trim() }).eq('id', req.params.id);
+      .update(updates).eq('id', req.params.id);
     if (updateError) throw updateError;
     res.json({ ok: true });
   } catch (e) {
     console.error('[circles/posts PATCH]', e.message);
     res.status(500).json({ error: 'Failed to update post' });
+  }
+});
+
+// ── PUBLIC INDEXING (AEO) — Phase 1 endpoints ────────────────────────────────
+// Locked exposure policy: migrations/018_circles_public_indexing.sql.
+// Eligibility for indexed_at is decided ONLY by the sweep job below, never by
+// these endpoints or any client-supplied flag — opt-in just starts the clock.
+
+app.post('/api/circles/posts/:id/public-opt-in', auth, async (req, res) => {
+  try {
+    const { data: post, error } = await supabase.from('circle_posts')
+      .select('user_id, group_id, text, public_opt_in').eq('id', req.params.id).single();
+    if (error || !post) return res.status(404).json({ error: 'Post not found' });
+    if (post.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    if (post.public_opt_in) return res.json({ ok: true }); // already opted in — don't reset the clock
+
+    if (circleWordCount(post.text) < 15) {
+      return res.status(400).json({ error: 'Post is too short to be eligible (15-word minimum)' });
+    }
+    if (!post.group_id) return res.status(400).json({ error: 'Only posts in a Circle group are eligible' });
+
+    // Checkpoint 1 of "zero reports at both checkpoints" — the other is the
+    // 72h sweep. Author-unrestricted is implied here (they're an active,
+    // authenticated, non-deleted user making this request), but re-checked
+    // explicitly again at the sweep and at read time regardless.
+    const [{ data: group }, { count: reportCount }] = await Promise.all([
+      supabase.from('circle_groups').select('privacy').eq('id', post.group_id).maybeSingle(),
+      supabase.from('circle_post_reports').select('id', { count: 'exact', head: true }).eq('post_id', req.params.id),
+    ]);
+    if (!group || group.privacy !== 'public') {
+      return res.status(400).json({ error: 'Only posts in a public Circle are eligible' });
+    }
+    if ((reportCount || 0) > 0) {
+      return res.status(400).json({ error: 'This post has been reported and is not eligible' });
+    }
+
+    await supabase.from('circle_posts').update({
+      public_opt_in: true,
+      public_opt_in_at: new Date().toISOString(),
+      indexed_at: null,
+    }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[circles/public-opt-in]', e.message);
+    res.status(500).json({ error: 'Failed to opt in' });
+  }
+});
+
+app.post('/api/circles/posts/:id/public-opt-out', auth, async (req, res) => {
+  try {
+    const { data: post, error } = await supabase.from('circle_posts')
+      .select('user_id, indexed_at').eq('id', req.params.id).single();
+    if (error || !post) return res.status(404).json({ error: 'Post not found' });
+    if (post.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+    // Immediate revocation: cleared right away regardless of sweep timing.
+    // revoked_at is set (only) if the post was actually live-public, so the
+    // public endpoint can 410 rather than 404 it. External caches may still
+    // retain the content — acknowledged residual risk, not something a
+    // takedown endpoint can guarantee away.
+    await supabase.from('circle_posts').update({
+      public_opt_in: false, public_opt_in_at: null, indexed_at: null,
+      ...(post.indexed_at ? { revoked_at: new Date().toISOString() } : {}),
+    }).eq('id', req.params.id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[circles/public-opt-out]', e.message);
+    res.status(500).json({ error: 'Failed to opt out' });
+  }
+});
+
+// Minimal post-level report primitive — did not exist before (see migration
+// 018). Dedup per (post, reporter) via the DB unique constraint. A report on
+// an already-indexed post immediately clears indexed_at rather than waiting
+// for the next sweep — defense in depth beyond the locked spec's literal
+// "zero reports at both checkpoints" wording.
+app.post('/api/circles/posts/:id/report', auth, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const { data: post, error } = await supabase.from('circle_posts')
+      .select('id, user_id, indexed_at').eq('id', req.params.id).single();
+    if (error || !post) return res.status(404).json({ error: 'Post not found' });
+    if (post.user_id === req.user.id) return res.status(400).json({ error: 'Cannot report your own post' });
+
+    const { error: insertError } = await supabase.from('circle_post_reports').insert({
+      id: uuidv4(), post_id: req.params.id, from_user: req.user.id,
+      reason: reason ? String(reason).slice(0, 500) : null,
+      created_at: new Date().toISOString(),
+    });
+    if (insertError) {
+      if (insertError.code === '23505') return res.status(400).json({ error: 'You have already reported this post' });
+      throw insertError;
+    }
+
+    if (post.indexed_at) {
+      await supabase.from('circle_posts')
+        .update({ indexed_at: null, revoked_at: new Date().toISOString() })
+        .eq('id', req.params.id);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[circles/posts report]', e.message);
+    res.status(500).json({ error: 'Failed to report post' });
+  }
+});
+
+// Unauthenticated. Returns ONLY the sanitized excerpt — never raw `text`,
+// replies, like/collaborate counts, or a profile link. indexed_at gates
+// existence, but eligibility is re-verified live here too rather than
+// trusting that column alone — a report or ban landing between sweep runs
+// must not leave a stale post visible. Same 404 on "not found" and
+// "not eligible" so existence of ineligible posts isn't enumerable.
+app.get('/api/circles/public/:id', async (req, res) => {
+  try {
+    const { data: post, error } = await supabase.from('circle_posts')
+      .select('id, user_id, tags, group_id, created_at, indexed_at, revoked_at, public_opt_in, public_excerpt')
+      .eq('id', req.params.id).single();
+    // "Never eligible / never existed" (404) vs "was public, now revoked"
+    // (410) — the locked spec's "immediate revocation -> 410/noindex" only
+    // means something to a crawler if these are actually distinguishable.
+    // The Phase 2 SSR page is responsible for turning a 410 here into an
+    // HTTP 410 response + noindex meta tag; this endpoint just signals it.
+    if (error || !post || !post.indexed_at || !post.public_opt_in) {
+      if (post?.revoked_at) return res.status(410).set('Cache-Control', 'no-store').json({ error: 'Gone' });
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const [{ data: group }, { count: reportCount }, { data: author }] = await Promise.all([
+      supabase.from('circle_groups').select('id, name, privacy').eq('id', post.group_id).maybeSingle(),
+      supabase.from('circle_post_reports').select('id', { count: 'exact', head: true }).eq('post_id', post.id),
+      supabase.from('users').select('name, banned, deleted_at').eq('id', post.user_id).maybeSingle(),
+    ]);
+    const stillEligible = group && group.privacy === 'public'
+      && (reportCount || 0) === 0
+      && author && !author.banned && !author.deleted_at;
+    if (!stillEligible) {
+      // Live check failed even though indexed_at was set — self-heal so the
+      // next request 410s immediately instead of re-doing this every time.
+      // This post WAS just served as public, so revoked_at (not a plain
+      // 404) is the correct signal from here on.
+      supabase.from('circle_posts')
+        .update({ indexed_at: null, revoked_at: new Date().toISOString() })
+        .eq('id', post.id).then(() => {}, () => {});
+      return res.status(410).set('Cache-Control', 'no-store').json({ error: 'Gone' });
+    }
+
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({
+      id: post.id,
+      excerpt: post.public_excerpt || '',
+      tags: post.tags || [],
+      group_name: group.name,
+      author_first_name: (author.name || '').trim().split(/\s+/)[0] || null,
+      created_at: post.created_at,
+    });
+  } catch (e) {
+    console.error('[circles/public GET]', e.message);
+    res.status(500).json({ error: 'Failed to load post' });
+  }
+});
+
+// Unauthenticated. Phase 3 (sitemap + /c discovery page) — same eligibility
+// reasoning as GET /api/circles/public/:id (indexed_at gate + a live
+// re-verification, not a blind trust of that column), just batched instead
+// of one row at a time so this scales to a list. Returns the same sanitized
+// shape as the single-post endpoint: excerpt only, never raw text, no
+// replies/counts/profile links. This is strictly additive — the locked
+// exposure policy and the single-post endpoint above are untouched.
+// Shared by GET /api/circles/public-index (below) and GET /sitemap.xml
+// (Phase 3 — see the "SITEMAP" section). Kept as one function so the
+// eligibility reasoning can never drift between the two callers: an
+// indexed_at gate plus a live re-verification, not a blind trust of that
+// column (same principle as GET /api/circles/public/:id).
+async function getPublicCircleIndexEntries(limit) {
+  const cappedLimit = Math.min(Math.max(1, limit || 500), 1000);
+  const { data: posts, error } = await supabase.from('circle_posts')
+    .select('id, public_excerpt, tags, group_id, user_id, created_at, indexed_at')
+    .not('indexed_at', 'is', null)
+    .order('indexed_at', { ascending: false })
+    .limit(cappedLimit);
+  if (error) throw error;
+  if (!posts || posts.length === 0) return [];
+
+  const groupIds = [...new Set(posts.map(p => p.group_id))];
+  const postIds  = posts.map(p => p.id);
+  const userIds  = [...new Set(posts.map(p => p.user_id))];
+
+  const [{ data: groups }, { data: reports }, { data: authors }] = await Promise.all([
+    supabase.from('circle_groups').select('id, name, privacy').in('id', groupIds),
+    supabase.from('circle_post_reports').select('post_id').in('post_id', postIds),
+    supabase.from('users').select('id, name, banned, deleted_at').in('id', userIds),
+  ]);
+  const groupMap    = new Map((groups  || []).map(g => [g.id, g]));
+  const reportedSet = new Set((reports || []).map(r => r.post_id));
+  const authorMap   = new Map((authors || []).map(u => [u.id, u]));
+
+  return posts
+    .filter(p => {
+      const group  = groupMap.get(p.group_id);
+      const author = authorMap.get(p.user_id);
+      return group && group.privacy === 'public'
+        && !reportedSet.has(p.id)
+        && author && !author.banned && !author.deleted_at;
+    })
+    .map(p => ({
+      id: p.id,
+      excerpt: p.public_excerpt || '',
+      tags: p.tags || [],
+      group_name: groupMap.get(p.group_id)?.name || '',
+      author_first_name: (authorMap.get(p.user_id)?.name || '').trim().split(/\s+/)[0] || null,
+      created_at: p.created_at,
+      indexed_at: p.indexed_at,
+    }));
+}
+
+app.get('/api/circles/public-index', async (req, res) => {
+  try {
+    const entries = await getPublicCircleIndexEntries(parseInt(req.query.limit));
+    res.set('Cache-Control', 'public, max-age=300');
+    res.json({ posts: entries });
+  } catch (e) {
+    console.error('[circles/public-index]', e.message);
+    res.status(500).json({ error: 'Failed to load index' });
   }
 });
 
@@ -9247,6 +9525,61 @@ app.listen(PORT, () => {
   // Conversation nudge: run daily
   sendConversationNudges();
   setInterval(sendConversationNudges, 24 * 60 * 60 * 1000);
+
+  // Circles public indexing (AEO) sweep — locked exposure policy, see
+  // migrations/018_circles_public_indexing.sql. This is the ONLY place
+  // indexed_at is ever set. Runs hourly; each opted-in post is evaluated
+  // once its 72h window (anchored to public_opt_in_at, not created_at) has
+  // elapsed. A failure here is NOT retried indefinitely — it cancels the
+  // opt-in outright, per the locked spec, rather than leaving it pending.
+  async function runCirclesPublicIndexingSweep() {
+    try {
+      const cutoff = new Date(Date.now() - 72 * 3600 * 1000).toISOString();
+      const { data: candidates, error } = await supabase.from('circle_posts')
+        .select('id, text, user_id, group_id, public_opt_in_at')
+        .eq('public_opt_in', true)
+        .is('indexed_at', null)
+        .lte('public_opt_in_at', cutoff)
+        .limit(100);
+      if (error) throw error;
+      if (!candidates || candidates.length === 0) return;
+
+      let indexed = 0, cancelled = 0;
+      for (const post of candidates) {
+        const [{ data: group }, { count: reportCount }, { data: author }] = await Promise.all([
+          supabase.from('circle_groups').select('privacy').eq('id', post.group_id).maybeSingle(),
+          supabase.from('circle_post_reports').select('id', { count: 'exact', head: true }).eq('post_id', post.id),
+          supabase.from('users').select('banned, deleted_at').eq('id', post.user_id).maybeSingle(),
+        ]);
+        const eligible = group && group.privacy === 'public'
+          && (reportCount || 0) === 0
+          && author && !author.banned && !author.deleted_at
+          && circleWordCount(post.text) >= 15;
+
+        if (eligible) {
+          await supabase.from('circle_posts').update({
+            public_excerpt: buildPublicExcerpt(post.text),
+            indexed_at: new Date().toISOString(),
+          }).eq('id', post.id);
+          indexed++;
+        } else {
+          // Outright cancellation, not a retry — a future opt-in starts a
+          // fresh full 72h window rather than silently re-qualifying.
+          await supabase.from('circle_posts').update({
+            public_opt_in: false, public_opt_in_at: null,
+          }).eq('id', post.id);
+          cancelled++;
+        }
+      }
+      if (indexed || cancelled) {
+        console.log(`[CirclesIndexing] Indexed: ${indexed}, Cancelled: ${cancelled}`);
+      }
+    } catch (e) {
+      console.error('[CirclesIndexing] Sweep error:', e.message);
+    }
+  }
+  runCirclesPublicIndexingSweep();
+  setInterval(runCirclesPublicIndexingSweep, 60 * 60 * 1000);
 
   // IndexNow — submit all indexable URLs to Bing/Yandex/Seznam on every deploy
   if (INDEXNOW_KEY) {

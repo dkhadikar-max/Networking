@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import Button from '@/components/ui/Button';
+import { safeNext, withNext } from '@/lib/authRedirect';
 
 // Mandatory step after a magic-link signup, before onboarding continues —
 // magic link is scoped to signup only; every login after this uses the
@@ -13,8 +14,10 @@ import Button from '@/components/ui/Button';
 // password_set is false (see AuthContext-driven redirect on /verify-magic);
 // not linked from anywhere else, and /api/auth/set-password itself refuses
 // to run again once password_set is true.
-export default function SetPasswordPage() {
+function SetPasswordInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const { user, setUser } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -29,8 +32,8 @@ export default function SetPasswordPage() {
     try {
       await apiPost('/api/auth/set-password', { password });
       if (user) setUser({ ...user, password_set: true });
-      if (user?.onboarding_stage === 'complete') router.replace('/discover');
-      else router.replace('/onboarding');
+      if (user?.onboarding_stage === 'complete') router.replace(safeNext(next));
+      else router.replace(withNext('/onboarding', next));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set password');
     } finally { setLoading(false); }
@@ -77,5 +80,17 @@ export default function SetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+      </div>
+    }>
+      <SetPasswordInner />
+    </Suspense>
   );
 }

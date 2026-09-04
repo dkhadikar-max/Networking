@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import Button from '@/components/ui/Button';
 import type { User } from '@/lib/types';
+import { safeNext, withNext } from '@/lib/authRedirect';
 
 const OTP_COOLDOWN_S = 60;
 
@@ -29,12 +30,14 @@ function otpErrorMessage(err: unknown): string {
   }
 }
 
-function routeAfterAuth(router: ReturnType<typeof useRouter>, user: User) {
+function routeAfterAuth(router: ReturnType<typeof useRouter>, user: User, next: string | null) {
   // Magic-link signups must set a real password before continuing — takes
-  // priority over the normal onboarding/discover split.
-  if (user.password_set === false) { router.replace('/set-password'); return; }
-  if (user.onboarding_stage === 'complete') router.replace('/discover');
-  else router.replace('/onboarding');
+  // priority over the normal onboarding/discover split. `next` is forwarded
+  // at every branch so the CTA that brought this visitor in (e.g. a Circles
+  // post) survives set-password and onboarding too, not just a direct login.
+  if (user.password_set === false) { router.replace(withNext('/set-password', next)); return; }
+  if (user.onboarding_stage === 'complete') router.replace(safeNext(next));
+  else router.replace(withNext('/onboarding', next));
 }
 
 function VerifyMagicInner() {
@@ -44,6 +47,11 @@ function VerifyMagicInner() {
   const token = searchParams.get('token');
   const fallbackParam = searchParams.get('fallback') === '1';
   const emailParam = searchParams.get('email') || '';
+  // Embedded server-side in the token link itself (see server.js
+  // issueAndSendMagicLink) for the email path, or carried client-side via
+  // this page's own URL for the OTP-fallback path — either way it's just
+  // read from here, once.
+  const next = searchParams.get('next');
 
   // Link-verification state (only relevant when a token is present).
   const [linkStatus, setLinkStatus] = useState<'checking' | 'error' | 'idle'>(token ? 'checking' : 'idle');
@@ -80,19 +88,22 @@ function VerifyMagicInner() {
       const res = await apiPost<{ user: User }>('/api/auth/magic-link/verify', { token: rawToken });
       setUser(res.user);
       // Strip the token from the URL/history immediately on success too —
-      // it's single-use and now spent either way.
-      router.replace('/verify-magic');
-      routeAfterAuth(router, res.user);
+      // it's single-use and now spent either way. `next` is kept (not just
+      // dropped with the token) since routeAfterAuth below, and a later
+      // fallback attempt on this same page, both still need it.
+      router.replace(withNext('/verify-magic', next));
+      routeAfterAuth(router, res.user, next);
     } catch (err) {
       const code = (err as { code?: string })?.code;
       setLinkError(linkErrorMessage(code));
       setLinkStatus('error');
       setShowFallback(true);
       // Remove the token from the visible URL/history even on failure —
-      // no reason a spent or invalid token should linger there.
-      router.replace('/verify-magic');
+      // no reason a spent or invalid token should linger there. `next`
+      // survives the same way as the success path above.
+      router.replace(withNext('/verify-magic', next));
     }
-  }, [router, setUser]);
+  }, [router, setUser, next]);
 
   useEffect(() => {
     if (token) verifyLink(token);
@@ -135,7 +146,7 @@ function VerifyMagicInner() {
     try {
       const res = await apiPost<{ user: User }>('/api/auth/passwordless/otp/verify', { email: fbEmail, code: fbCode });
       setUser(res.user);
-      routeAfterAuth(router, res.user);
+      routeAfterAuth(router, res.user, next);
     } catch (err) {
       setFbError(err instanceof Error ? err.message : 'Invalid code');
     } finally { setFbVerifying(false); }

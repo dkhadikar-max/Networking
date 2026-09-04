@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
+import { safeNext, withNext } from '@/lib/authRedirect';
 
-export default function LoginPage() {
+function LoginInner() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,11 +25,11 @@ export default function LoginPage() {
       const { user } = await login(email, password);
       if (!user.email_verified) {
         apiPost('/api/auth/send-otp', {}).catch(() => {});
-        router.replace('/verify?email=' + encodeURIComponent(email));
+        router.replace(withNext('/verify?email=' + encodeURIComponent(email), next));
         return;
       }
-      if (user.onboarding_stage !== 'complete') { router.replace('/onboarding'); return; }
-      router.replace('/discover');
+      if (user.onboarding_stage !== 'complete') { router.replace(withNext('/onboarding', next)); return; }
+      router.replace(safeNext(next));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally { setLoading(false); }
@@ -154,7 +157,7 @@ export default function LoginPage() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
             <Link
-              href="/forgot-password"
+              href={withNext('/forgot-password', next)}
               style={{ fontSize: 12.5, color: '#157A6E', fontWeight: 600, textDecoration: 'none' }}
             >
               Forgot password?
@@ -183,10 +186,22 @@ export default function LoginPage() {
       {/* Switch row */}
       <div style={{ textAlign: 'center', fontSize: 14 }}>
         <span style={{ color: '#64748B' }}>Don&apos;t have an account? </span>
-        <Link href="/signup" style={{ color: '#157A6E', fontWeight: 600 }}>Create one →</Link>
+        <Link href={withNext('/signup', next)} style={{ color: '#157A6E', fontWeight: 600 }}>Create one →</Link>
       </div>
 
       </div>{/* /zIndex wrapper */}
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+      </div>
+    }>
+      <LoginInner />
+    </Suspense>
   );
 }

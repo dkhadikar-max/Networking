@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { safeNext } from '@/lib/authRedirect';
 import IntentSelector from '@/components/onboarding/IntentSelector';
 import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
@@ -266,7 +267,19 @@ export default function OnboardingPage() {
                     <SuggestedConnections
                       profiles={suggestions}
                       userInterests={userInterests}
-                      onDone={() => { router.push('/discover'); }}
+                      onDone={() => {
+                        // Read `next` directly rather than useSearchParams() —
+                        // avoids restructuring this whole page behind a
+                        // Suspense boundary for one query param read only
+                        // needed in this single click handler, well after
+                        // mount. Preserves a deep-link destination (e.g. a
+                        // Circles post CTA) through onboarding for new
+                        // signups — see lib/authRedirect.ts.
+                        const raw = typeof window !== 'undefined'
+                          ? new URLSearchParams(window.location.search).get('next')
+                          : null;
+                        router.push(safeNext(raw));
+                      }}
                     />
                   )}
                 </motion.div>

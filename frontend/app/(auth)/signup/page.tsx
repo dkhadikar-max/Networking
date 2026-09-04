@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
+import { safeNext, withNext } from '@/lib/authRedirect';
 
 const MAGIC_LINK_COOLDOWN_S = 60;
 
@@ -20,9 +21,11 @@ function magicLinkErrorMessage(err: unknown): string {
   }
 }
 
-export default function SignupPage() {
+function SignupInner() {
   const { signup } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -69,6 +72,11 @@ export default function SignupPage() {
     try {
       await apiPost('/api/auth/magic-link/request', {
         email: magicEmail, age_confirmed: true, company_website: companyWebsite,
+        // Embedded in the emailed link itself (server.js validates
+        // server-side too — this crosses an email round-trip, so client
+        // validation alone isn't enough) so the CTA that brought this
+        // visitor to signup survives all the way through.
+        next: next ? safeNext(next) : undefined,
       });
       setMagicSent(true);
       startMagicCooldown();
@@ -93,7 +101,7 @@ export default function SignupPage() {
     setError(''); setLoading(true);
     try {
       await signup(name, email, password, { age_confirmed: true, company_website: companyWebsite });
-      router.replace('/verify?email=' + encodeURIComponent(email));
+      router.replace(withNext('/verify?email=' + encodeURIComponent(email), next));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally { setLoading(false); }
@@ -274,7 +282,7 @@ export default function SignupPage() {
               </button>
               <p style={{ fontSize: 12.5, color: '#64748B', marginTop: 14 }}>
                 Didn&apos;t get the email?{' '}
-                <Link href={`/verify-magic?fallback=1&email=${encodeURIComponent(magicEmail)}`} style={{ color: '#157A6E', fontWeight: 600 }}>
+                <Link href={withNext(`/verify-magic?fallback=1&email=${encodeURIComponent(magicEmail)}`, next)} style={{ color: '#157A6E', fontWeight: 600 }}>
                   Use verification code instead
                 </Link>
               </p>
@@ -472,10 +480,22 @@ export default function SignupPage() {
       {/* Switch row */}
       <div style={{ textAlign: 'center', fontSize: 14 }}>
         <span style={{ color: '#64748B' }}>Already have an account? </span>
-        <Link href="/login" style={{ color: '#157A6E', fontWeight: 600 }}>Sign in →</Link>
+        <Link href={withNext('/login', next)} style={{ color: '#157A6E', fontWeight: 600 }}>Sign in →</Link>
       </div>
 
       </div>{/* /zIndex wrapper */}
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />
+      </div>
+    }>
+      <SignupInner />
+    </Suspense>
   );
 }

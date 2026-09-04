@@ -4,6 +4,7 @@ import './app.css';
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { withNext } from '@/lib/authRedirect';
 import { ProfileDrawerProvider, useProfileDrawer } from '@/context/ProfileDrawerContext';
 import BottomNav from '@/components/layout/BottomNav';
 import DesktopNav from '@/components/layout/DesktopNav';
@@ -30,10 +31,26 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) { router.replace('/login'); return; }
-    if (!user.email_verified) { router.replace('/verify'); return; }
+    // Preserve where the user was actually trying to go (e.g. a Circles
+    // post CTA landing on /circles?post=:id) across the whole auth chain —
+    // without this, a logged-out visitor bounces through login/onboarding
+    // and lands on the generic /discover, losing the page that brought
+    // them in. See lib/authRedirect.ts.
+    //
+    // Read via window.location rather than useSearchParams(): this layout
+    // wraps every (app) page, some of which (e.g. /circles/groups) are
+    // statically prerendered at build time, and useSearchParams() here
+    // requires a Suspense boundary around the whole tree to avoid a build
+    // failure (confirmed against a real `next build` — see node_modules/
+    // next/dist/docs .../missing-suspense-with-csr-bailout). This only ever
+    // runs inside an effect (never during render/SSR), so window is always
+    // defined here regardless.
+    const search = window.location.search;
+    const here = search ? `${path}${search}` : path;
+    if (!user) { router.replace(withNext('/login', here)); return; }
+    if (!user.email_verified) { router.replace(withNext('/verify', here)); return; }
     if (user.onboarding_stage !== 'complete' && !path.startsWith('/onboarding')) {
-      router.replace('/onboarding'); return;
+      router.replace(withNext('/onboarding', here)); return;
     }
   }, [user, loading, router, path]);
 
