@@ -707,6 +707,27 @@ body:has(.app-wrap [data-full-profile]) {
     width: auto;
   }
 }
+/* landing page: .profile-preview-shell (ProfilePreview.tsx) — the three
+   .profile-action-bar variants above (base/tablet/desktop) are all
+   calibrated for real in-app metrics (.bottom-nav's footprint, the 480px
+   phone shell, DesktopNav's 240px sidebar) that don't exist inside the
+   ~420px marketing-page card ProfileView gets embedded in there.
+   .profile-preview-shell's `contain:layout` (see that file) makes it the
+   CSS containing block for this fixed-position bar, so it resolves
+   against the card instead of the real browser viewport — but the
+   offset/width values above would still be wrong once contained (e.g.
+   desktop's `left:240px` sidebar clearance, applied to a 420px-wide
+   card, would push the bar mostly off the card's right edge). Reset
+   unconditionally at higher specificity (0,2,0 vs 0,1,0) so it wins
+   over all three variants regardless of viewport width, flush to the
+   bottom of the card itself. */
+.profile-preview-shell .profile-action-bar {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: auto;
+  transform: none;
+}
 @media (min-width: 1024px) {
   .app-wrap:has(.profile-scroll) .desk-nav,
   .app-wrap:has([data-full-profile]) .desk-nav {
