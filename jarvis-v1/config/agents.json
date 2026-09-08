@@ -1,0 +1,15 @@
+{
+  "core": "ceo",
+  "agents": [
+    { "name": "ceo", "role": "chief_of_staff", "mode": "delegate" },
+    { "name": "research", "role": "research_intelligence", "mode": "execute" },
+    { "name": "backend", "role": "software_engineering", "mode": "execute" },
+    { "name": "frontend", "role": "ui_ux", "mode": "execute" },
+    { "name": "qa", "role": "audit_quality", "mode": "verify" },
+    { "name": "devops", "role": "deployment", "mode": "approve" },
+    { "name": "growth", "role": "growth_marketing", "mode": "execute" },
+    { "name": "security", "role": "security_permissions", "mode": "verify" },
+    { "name": "pm", "role": "project_management", "mode": "delegate" }
+  ],
+  "externalAdapters": ["openclaw", "browser-use", "openhands", "qwen3"]
+}
