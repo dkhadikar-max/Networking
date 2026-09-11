@@ -4020,7 +4020,7 @@ function authCacheSet(userId, fullUser) {
       password_changed_at: fullUser.password_changed_at,
       deleted_at: fullUser.deleted_at,
       role: fullUser.role,
-      _cached: true, // profileGuard/trustGuard/discoverGuard must reject this and fetch fresh
+      _cached: true, // profileGuard/trustGuard/discoverGuard/onboarding must reject this and fetch fresh
     },
     expiresAt: Date.now() + AUTH_CACHE_TTL_MS,
   });
@@ -4758,7 +4758,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       return res.json({ ok: true }); // generic response, no enumeration, no signal that this was rejected
     }
 
-    const { email, age_confirmed, next, ref_code } = req.body;
+    const { email, name, age_confirmed, next, ref_code } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
@@ -4778,16 +4778,23 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       // New email — require the same consent gate /api/signup requires,
       // since this eagerly creates an account exactly like signup does.
       if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
+      // Canonical registration flow (locked spec): Basic Details (name +
+      // email) -> Magic Link Verification -> Onboarding -> Active. This is
+      // now the ONLY account-creation entry point (/api/signup is retired,
+      // see below), so name is required here the same way it always was
+      // at /api/signup — an eagerly-created row must never be nameless.
+      if (!name) return res.status(400).json({ error: 'Name required' });
       const id = uuidv4();
       const role = ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'user';
       // Random, never-disclosed password hash — satisfies the NOT NULL
       // constraint; this account has no usable password unless the user
-      // later sets one via the existing forgot-password flow. Magic link
+      // later sets one via the existing set-password flow. Magic link
       // (or the OTP fallback below) is its only way in until then.
       const unusablePassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
       const newUser = {
         id, email: normalizedEmail, password: unusablePassword,
-        name: '', bio: '', photos: [], instagram: '', linkedin: '', website: '',
+        name: sanitize(name).slice(0, 120),
+        bio: '', photos: [], instagram: '', linkedin: '', website: '',
         location: '', lat: null, lng: null, remote: false,
         skills: [], interests: [],
         currently_exploring: '', working_on: '', interested_in: '',
@@ -5024,115 +5031,24 @@ app.post('/api/auth/passwordless/otp/verify', verifyLimiter, async (req, res) =>
   }
 });
 
-app.post('/api/signup', otpIpBlockGate, otpIpLimiter, authLimiter, async (req, res) => {
-  try {
-    // Honeypot: a field with no matching visible input in the real signup
-    // form (frontend/app/(auth)/signup/page.tsx) — kept off-screen rather
-    // than display:none, since some scrapers skip display:none fields.
-    // Real users never populate it; anything filling it in is scripted.
-    // Rejected as an ordinary validation error (not a distinct "bot
-    // detected" message) so an adaptive attacker can't fingerprint the
-    // honeypot from the response. No account is created, no email is sent.
-    if (req.body.company_website) {
-      return res.status(400).json({ error: 'Invalid signup request' });
-    }
-
-    const { email, password, name, ref_code, age_confirmed } = req.body;
-    if (!email || !password || !name) return res.status(400).json({ error: 'All fields required' });
-    if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
-    const normalizedEmail = String(email).trim().toLowerCase();
-    if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password min 8 chars' });
-
-    // Check email uniqueness
-    const { data: existing } = await supabase.from('users')
-      .select('id').eq('email', normalizedEmail).maybeSingle();
-    if (existing) return res.status(400).json({ error: 'Email already exists' });
-
-    const id   = uuidv4();
-    const role = ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'user';
-    const newUser = {
-      id, email: normalizedEmail, password: await bcrypt.hash(password.slice(0, 72), 12), name: sanitize(name).slice(0, 120),
-      bio: '', photos: [], instagram: '', linkedin: '', website: '',
-      location: '', lat: null, lng: null, remote: false,
-      skills: [], interests: [],
-      currently_exploring: '', working_on: '', interested_in: '',
-      intent: 'explore-network', role, premium: false,
-      trust_score: 0, profile_score: 0, is_profile_complete: false,
-      verification: { status: 'none', confidence: 0 },
-      banned: false, created_at: new Date().toISOString(),
-      consent_given_at: new Date().toISOString(), consent_version: 'v1.0',
-      do_not_sell: false,
-    };
-
-    newUser.trust_score         = calcTrust(newUser);
-    newUser.profile_score       = calcProfileScore(newUser);
-    newUser.is_profile_complete = newUser.profile_score >= 70;
-    newUser.email_verified      = false;
-    // otp_code/otp_expires_at intentionally left unset here — issueAndSendOtp()
-    // below sets them atomically as part of its own cooldown-claim update, so
-    // this signup's first send goes through the exact same 60s/hour/day/
-    // suppression checks as every subsequent resend (see the shared-path
-    // comment above issueAndSendOtp). Previously signup generated and stored
-    // its own OTP inline, bypassing all of those checks entirely.
-
-    const { data: inserted, error: insertErr } = await supabase.from('users')
-      .insert(newUser).select().single();
-    if (insertErr) throw new Error(insertErr.message);
-
-    // Send OTP email (non-blocking — don't fail signup if email fails or is
-    // rate-limited; account creation must succeed independently of email
-    // delivery, per docs/email-verification-audit-2026-08-15.md item #15).
-    issueAndSendOtp(inserted).catch(e => console.error('[signup] issueAndSendOtp failed:', e.message));
-
-    // Slack customer-intelligence ping — same non-blocking shape as the OTP
-    // send above. Fires exactly once per successful insert (this line is
-    // only reached after insertErr is confirmed falsy), so the email
-    // UNIQUE constraint that already guards against a double-submit race
-    // guards this too: at most one request per email ever reaches here.
-    notifySlackSignup(inserted).catch(e => console.error('[slack] signup notify failed:', e.message));
-
-    // Referral attribution — look up referrer by 8-char code prefix, best-effort.
-    // Attribution (referred_by) is recorded here at signup, unchanged. The
-    // reward itself is NOT granted here anymore — locked spec requires a
-    // referral to be VERIFIED before it counts, and this account isn't
-    // verified yet at signup time. See maybeGrantReferralReward(), called
-    // from the verification endpoints (magic-link/verify,
-    // passwordless/otp/verify, verify-otp) instead, at the exact moment
-    // email_verified transitions false->true.
-    if (ref_code) {
-      const cleanCode = String(ref_code).replace(/[^a-f0-9]/gi, '').slice(0, 8);
-      if (cleanCode.length >= 6) {
-        try {
-          const { data: referrer } = await supabase.from('users')
-            .select('id').ilike('id', `${cleanCode}%`).limit(1).maybeSingle();
-          if (referrer && referrer.id !== id) {
-            await supabase.from('users').update({ referred_by: referrer.id }).eq('id', id);
-            await supabase.from('user_acquisition').upsert(
-              { user_id: id, source: 'Friend/Referral', referral: referrer.id },
-              { onConflict: 'user_id' }
-            );
-          }
-        } catch(_) {}
-      }
-    }
-
-    // SEO landing page signup attribution — capture which page drove this signup
-    try {
-      const referer = req.headers['referer'] || req.headers['referrer'] || '';
-      if (referer) {
-        const matched = SEO_PAGES.find(p => p.slug && referer.includes('/' + p.slug));
-        if (matched) seoSignups.set(matched.slug, (seoSignups.get(matched.slug) || 0) + 1);
-      }
-    } catch(_) {}
-
-    const token = jwt.sign({ id, email: normalizedEmail, name: newUser.name }, JWT_SECRET, { expiresIn: '24h' });
-    res.cookie('byn_token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000, path: '/' });
-    res.json({ token, user: clean(inserted), email_verified: false });
-  } catch(e) {
-    console.error('Signup error:', e);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+// ── RETIRED: password-based registration ──
+// Canonical registration flow (locked spec): Basic Details (name + email)
+// -> Magic Link Verification -> Onboarding -> Active. This was the second
+// of two parallel account-creation paths (the other being
+// /api/auth/magic-link/request, above) — having both is exactly how BYN
+// ended up with accounts stuck mid-registration in inconsistent states.
+// Kept as a real route (not deleted outright) so a stale/bookmarked
+// client gets a clear, deliberate signal instead of a bare 404.
+// Existing accounts created through this endpoint historically, and
+// every other password-authentication concern (/api/login,
+// /api/auth/verify-otp, /api/auth/send-otp, /api/auth/set-password,
+// /api/auth/forgot-password, /api/auth/reset-password), are UNCHANGED —
+// this only retires the creation of new accounts via password.
+app.post('/api/signup', (req, res) => {
+  res.status(410).json({
+    error: 'Password signup has been retired. Use /api/auth/magic-link/request (name + email) instead.',
+    code: 'SIGNUP_RETIRED',
+  });
 });
 
 // ── LOGIN ──
@@ -5991,6 +5907,11 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
         .or('banned.is.null,banned.eq.false')
         .is('deleted_at', null)
         .eq('email_verified', true)
+        // Locked spec: "active" BYN user = email_verified AND onboarding
+        // complete. Without this, an abandoned/incomplete registration
+        // (no name, no profile, never finished onboarding) could surface
+        // in Discover as if it were a normal user.
+        .eq('onboarding_stage', 'complete')
         .gte('trust_score', 10)
         .neq('id', req.user.id)
         .order('last_active', { ascending: false })
@@ -7056,6 +6977,12 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
     res.json((allUsers || []).map(u => {
       const u2 = clean(u);
       u2.trust_steps = trustSteps(u);
+      // Locked spec: "active" BYN user = email_verified AND onboarding
+      // complete. Admin still shows every account (including incomplete
+      // registrations, for moderation visibility) — this only labels which
+      // ones are which, rather than a normal user being indistinguishable
+      // from an abandoned/incomplete one.
+      u2.is_active = u.onboarding_stage === 'complete' && u.email_verified === true;
       return u2;
     }));
   } catch(e) {
@@ -8155,7 +8082,20 @@ app.get('/api/onboarding/stage', auth, (req, res) => {
 // POST /api/onboarding/acquisition — Screen 1: "How did you hear about us?"
 app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res) => {
   try {
-    const user  = req.userData;
+    // req.userData may be the narrow, TTL-cached auth slice (id/banned/
+    // premium/password_changed_at/deleted_at/role only — see authCacheSet)
+    // on a cache hit; it never carries email_verified or onboarding_stage.
+    // Same reasoning and same fix as profileGuard/trustGuard/discoverGuard
+    // above: reject the cached shape and fetch the real row.
+    let user = req.userData;
+    if (user._cached) {
+      const { data: fresh } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!fresh) return res.status(404).json({ error: 'Not found' });
+      user = fresh;
+    }
+    // Verify-before-onboard: onboarding must not be reachable on an
+    // unverified account.
+    if (!user.email_verified) return res.status(403).json({ error: 'Verify your email first', code: 'EMAIL_NOT_VERIFIED' });
     const stage = user.onboarding_stage || 'acquisition';
     if (stage !== 'acquisition') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
 
@@ -8190,7 +8130,14 @@ app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res
 // POST /api/onboarding/intent — Screen 2: "What brings you here?"
 app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => {
   try {
-    const user  = req.userData;
+    // See /api/onboarding/acquisition above for why this re-fetch exists.
+    let user = req.userData;
+    if (user._cached) {
+      const { data: fresh } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!fresh) return res.status(404).json({ error: 'Not found' });
+      user = fresh;
+    }
+    if (!user.email_verified) return res.status(403).json({ error: 'Verify your email first', code: 'EMAIL_NOT_VERIFIED' });
     const stage = user.onboarding_stage || 'acquisition';
     if (stage !== 'intent') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
 
@@ -8226,7 +8173,17 @@ app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => 
 // Every field is optional. An empty body is a valid submission.
 app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) => {
   try {
-    const user  = req.userData;
+    // See /api/onboarding/acquisition above for why this re-fetch exists —
+    // doubly so here: below this point user.skills/user.interests are read
+    // to merge into (not replace), which a narrow cached object would
+    // silently treat as empty arrays.
+    let user = req.userData;
+    if (user._cached) {
+      const { data: fresh } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!fresh) return res.status(404).json({ error: 'Not found' });
+      user = fresh;
+    }
+    if (!user.email_verified) return res.status(403).json({ error: 'Verify your email first', code: 'EMAIL_NOT_VERIFIED' });
     const stage = user.onboarding_stage || 'acquisition';
     if (stage !== 'profile') return res.status(409).json({ error: 'Wrong onboarding stage', stage });
 

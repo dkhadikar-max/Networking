@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
 import { safeNext, withNext } from '@/lib/authRedirect';
@@ -22,7 +21,6 @@ function magicLinkErrorMessage(err: unknown): string {
 }
 
 function SignupInner() {
-  const { signup } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next');
@@ -37,25 +35,19 @@ function SignupInner() {
   // duplicate that here.
   const refCode = searchParams.get('ref');
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [showStrength, setShowStrength] = useState(false);
   // Honeypot — real users never see or fill this (see the off-screen input
   // below); a scripted signup that fills every field blind typically will.
-  // Server rejects silently (server.js, /api/signup) if non-empty.
+  // Server rejects silently (server.js, /api/auth/magic-link/request) if
+  // non-empty.
   const [companyWebsite, setCompanyWebsite] = useState('');
 
-  // Passwordless magic link is the primary path; the password form below
-  // is the explicit fallback, fully intact, nothing about it changes.
-  // Shares the same age/terms checkbox state above — same consent, same
-  // page, just a different final action.
-  const [authMode, setAuthMode] = useState<'magic' | 'password'>('magic');
+  // Canonical registration flow (locked spec): Basic Details (name + email)
+  // -> Magic Link Verification -> Onboarding -> Active. Magic link is the
+  // ONLY registration path now — password-based signup (/api/signup) was
+  // retired server-side; there is no fallback form on this page anymore.
+  const [magicName, setMagicName] = useState('');
   const [magicEmail, setMagicEmail] = useState('');
   const [magicSubmitting, setMagicSubmitting] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
@@ -81,15 +73,13 @@ function SignupInner() {
     setMagicError(''); setMagicSubmitting(true);
     try {
       await apiPost('/api/auth/magic-link/request', {
-        email: magicEmail, age_confirmed: true, company_website: companyWebsite,
+        name: magicName, email: magicEmail, age_confirmed: true, company_website: companyWebsite,
         // Embedded in the emailed link itself (server.js validates
         // server-side too — this crosses an email round-trip, so client
         // validation alone isn't enough) so the CTA that brought this
         // visitor to signup survives all the way through.
         next: next ? safeNext(next) : undefined,
-        // Referral attribution — see refCode above. Magic-link signup had no
-        // equivalent to /api/signup's ref_code handling at all before this;
-        // server.js now accepts and attributes it the same way.
+        // Referral attribution — see refCode above.
         ref_code: refCode || undefined,
       });
       setMagicSent(true);
@@ -103,50 +93,10 @@ function SignupInner() {
 
   function handleMagicLinkSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!magicName.trim()) { setMagicError('Please enter your name.'); return; }
     if (!ageConfirmed) { setMagicError('Please confirm you are 18 or older.'); return; }
     if (!termsAccepted) { setMagicError('Please accept the Terms and Privacy Policy.'); return; }
     requestMagicLink();
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!ageConfirmed) { setError('Please confirm you are 18 or older.'); return; }
-    if (!termsAccepted) { setError('Please accept the Terms and Privacy Policy.'); return; }
-    setError(''); setLoading(true);
-    try {
-      await signup(name, email, password, {
-        age_confirmed: true, company_website: companyWebsite,
-        // Referral attribution — see refCode above.
-        ref_code: refCode || undefined,
-      });
-      router.replace(withNext('/verify?email=' + encodeURIComponent(email), next));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Signup failed');
-    } finally { setLoading(false); }
-  }
-
-  function handlePasswordChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value;
-    setPassword(val);
-    if (val.length > 0) {
-      setShowStrength(true);
-      let strength = 0;
-      if (val.length >= 8) strength += 25;
-      if (val.length >= 12) strength += 25;
-      if (/[A-Z]/.test(val)) strength += 25;
-      if (/[0-9!@#$%^&*]/.test(val)) strength += 25;
-      setPasswordStrength(strength);
-    } else {
-      setShowStrength(false);
-      setPasswordStrength(0);
-    }
-  }
-
-  function getStrengthColor() {
-    if (passwordStrength <= 25) return '#EF4444';
-    if (passwordStrength <= 50) return '#F59E0B';
-    if (passwordStrength <= 75) return '#22C55E';
-    return '#157A6E';
   }
 
   function focusInput(e: React.FocusEvent<HTMLInputElement>) {
@@ -278,219 +228,115 @@ function SignupInner() {
         </h1>
         <p style={{ fontSize: 13, color: '#64748B', marginBottom: 22 }}>Join thousands of builders</p>
 
-        {authMode === 'magic' ? (
-          magicSent ? (
-            <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
-              <div style={{
-                background: 'rgba(21,122,110,.08)', border: '1.5px solid rgba(21,122,110,.2)',
-                borderRadius: 14, padding: '18px 16px', marginBottom: 16,
-              }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Check your email</p>
-                <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
-                  We sent a sign-in link to <strong>{magicEmail}</strong>. It expires in 15 minutes and works once.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={requestMagicLink}
-                disabled={magicCooldown > 0 || magicSubmitting}
-                style={{ background: 'none', border: 'none', color: '#157A6E', fontWeight: 600, fontSize: 13, cursor: magicCooldown > 0 ? 'not-allowed' : 'pointer', opacity: magicCooldown > 0 ? 0.4 : 1 }}
-              >
-                {magicSubmitting ? 'Sending…' : magicCooldown > 0 ? `Resend in ${magicCooldown}s` : 'Resend link'}
-              </button>
-              <p style={{ fontSize: 12.5, color: '#64748B', marginTop: 14 }}>
-                Didn&apos;t get the email?{' '}
-                <Link href={withNext(`/verify-magic?fallback=1&email=${encodeURIComponent(magicEmail)}`, next)} style={{ color: '#157A6E', fontWeight: 600 }}>
-                  Use verification code instead
-                </Link>
+        {magicSent ? (
+          <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+            <div style={{
+              background: 'rgba(21,122,110,.08)', border: '1.5px solid rgba(21,122,110,.2)',
+              borderRadius: 14, padding: '18px 16px', marginBottom: 16,
+            }}>
+              <p style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>Check your email</p>
+              <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
+                We sent a sign-in link to <strong>{magicEmail}</strong>. It expires in 15 minutes and works once.
               </p>
             </div>
-          ) : (
-            <>
-              {magicError && (
-                <div style={{
-                  background: 'rgba(239,68,68,.07)', border: '1.5px solid rgba(239,68,68,.2)',
-                  borderRadius: 12, padding: '12px 14px', marginBottom: 14,
-                  fontSize: 13, color: '#EF4444', lineHeight: 1.5,
-                }}>
-                  {magicError}
-                </div>
-              )}
-              <form onSubmit={handleMagicLinkSubmit} noValidate>
-                {/* Honeypot — shared with the password form below (same field,
-                    posted as company_website regardless of this input's own
-                    name — see the other honeypot's comment for why the name
-                    below isn't "company_website" itself). */}
-                <input
-                  type="text"
-                  name="bx_hp_9f2"
-                  value={companyWebsite}
-                  onChange={e => setCompanyWebsite(e.target.value)}
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
-                  style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
-                />
-                <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
-                  Email
-                </div>
-                <input
-                  type="email"
-                  value={magicEmail}
-                  onChange={e => setMagicEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                  onFocus={focusInput}
-                  onBlur={blurInput}
-                  style={{ ...inputStyle, marginBottom: 14 }}
-                />
-                {consentCheckboxes}
-                <button
-                  type="submit"
-                  disabled={magicSubmitting || magicCooldown > 0}
-                  style={{
-                    width: '100%', background: '#F4A259', color: '#fff',
-                    borderRadius: 12, padding: 16, fontSize: 15, fontWeight: 700,
-                    minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: magicSubmitting ? 'none' : '0 8px 20px rgba(244,162,89,.3)',
-                    border: 'none', cursor: magicSubmitting ? 'not-allowed' : 'pointer',
-                    opacity: magicSubmitting || magicCooldown > 0 ? 0.5 : 1,
-                    fontFamily: 'inherit',
-                  }}
-                >
-                  {magicSubmitting ? 'Sending…' : 'Continue with email'}
-                </button>
-              </form>
-              <p style={{ textAlign: 'center', fontSize: 13, marginTop: 16 }}>
-                <button type="button" onClick={() => setAuthMode('password')} style={{ background: 'none', border: 'none', color: '#157A6E', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-                  Use a password instead
-                </button>
-              </p>
-            </>
-          )
+            <button
+              type="button"
+              onClick={requestMagicLink}
+              disabled={magicCooldown > 0 || magicSubmitting}
+              style={{ background: 'none', border: 'none', color: '#157A6E', fontWeight: 600, fontSize: 13, cursor: magicCooldown > 0 ? 'not-allowed' : 'pointer', opacity: magicCooldown > 0 ? 0.4 : 1 }}
+            >
+              {magicSubmitting ? 'Sending…' : magicCooldown > 0 ? `Resend in ${magicCooldown}s` : 'Resend link'}
+            </button>
+            <p style={{ fontSize: 12.5, color: '#64748B', marginTop: 14 }}>
+              Didn&apos;t get the email?{' '}
+              <Link href={withNext(`/verify-magic?fallback=1&email=${encodeURIComponent(magicEmail)}`, next)} style={{ color: '#157A6E', fontWeight: 600 }}>
+                Use verification code instead
+              </Link>
+            </p>
+          </div>
         ) : (
           <>
-
-        {error && (
-          <div style={{
-            background: 'rgba(239,68,68,.07)', border: '1.5px solid rgba(239,68,68,.2)',
-            borderRadius: 12, padding: '12px 14px', marginBottom: 14,
-            fontSize: 13, color: '#EF4444', lineHeight: 1.5,
-          }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          {/* Honeypot — positioned off-screen rather than display:none (some
-              scrapers skip display:none fields), not tab-reachable, no label
-              a screen reader would announce as a real field.
-              `name` is deliberately NOT "company_website" (or "company",
-              "organization", "website", "url", etc.) — that was the actual
-              bug: Chrome/password-manager autofill matches an input's `name`
-              (and autocomplete token) against known field categories
-              regardless of CSS visibility, so a real user with a saved
-              "Company"/organization profile got this hidden field silently
-              filled in and their genuine signup rejected as "Invalid signup
-              request". The value posted to the API is still keyed
-              `company_website` (see handleSubmit below) — only the DOM
-              attribute autofill actually reads has changed. */}
-          <input
-            type="text"
-            name="bx_hp_9f2"
-            value={companyWebsite}
-            onChange={e => setCompanyWebsite(e.target.value)}
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden="true"
-            style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
-          />
-
-          <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
-            Full name
-          </div>
-          <input
-            type="text"
-            id="signup-name"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Alex Johnson"
-            autoComplete="name"
-            required
-            onFocus={focusInput}
-            onBlur={blurInput}
-            style={inputStyle}
-          />
-
-          <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
-            Email
-          </div>
-          <input
-            type="email"
-            id="signup-email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            required
-            onFocus={focusInput}
-            onBlur={blurInput}
-            style={inputStyle}
-          />
-
-          <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
-            Password
-          </div>
-          <input
-            type="password"
-            id="signup-password"
-            value={password}
-            onChange={handlePasswordChange}
-            placeholder="At least 8 characters"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            onFocus={focusInput}
-            onBlur={blurInput}
-            style={{ ...inputStyle, marginBottom: showStrength ? 6 : 14 }}
-          />
-          {showStrength && (
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ height: 4, background: '#E2E8F0', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', width: `${passwordStrength}%`,
-                  background: getStrengthColor(), borderRadius: 2,
-                  transition: 'width .3s,background .3s',
-                }} />
+            {magicError && (
+              <div style={{
+                background: 'rgba(239,68,68,.07)', border: '1.5px solid rgba(239,68,68,.2)',
+                borderRadius: 12, padding: '12px 14px', marginBottom: 14,
+                fontSize: 13, color: '#EF4444', lineHeight: 1.5,
+              }}>
+                {magicError}
               </div>
-            </div>
-          )}
+            )}
+            <form onSubmit={handleMagicLinkSubmit} noValidate>
+              {/* Honeypot — positioned off-screen rather than display:none (some
+                  scrapers skip display:none fields), not tab-reachable, no label
+                  a screen reader would announce as a real field.
+                  `name` is deliberately NOT "company_website" (or "company",
+                  "organization", "website", "url", etc.) — that was the actual
+                  bug: Chrome/password-manager autofill matches an input's `name`
+                  (and autocomplete token) against known field categories
+                  regardless of CSS visibility, so a real user with a saved
+                  "Company"/organization profile got this hidden field silently
+                  filled in and their genuine signup rejected as "Invalid signup
+                  request". The value posted to the API is still keyed
+                  `company_website` (see requestMagicLink above) — only the DOM
+                  attribute autofill actually reads has changed. */}
+              <input
+                type="text"
+                name="bx_hp_9f2"
+                value={companyWebsite}
+                onChange={e => setCompanyWebsite(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+              />
 
-          {consentCheckboxes}
+              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
+                Full name
+              </div>
+              <input
+                type="text"
+                id="signup-name"
+                value={magicName}
+                onChange={e => setMagicName(e.target.value)}
+                placeholder="Alex Johnson"
+                autoComplete="name"
+                required
+                onFocus={focusInput}
+                onBlur={blurInput}
+                style={inputStyle}
+              />
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%', background: '#F4A259', color: '#fff',
-              borderRadius: 12, padding: 16, fontSize: 15, fontWeight: 700,
-              minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: loading ? 'none' : '0 8px 20px rgba(244,162,89,.3)',
-              border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.5 : 1,
-              fontFamily: 'inherit',
-              transition: 'opacity .15s,transform .15s',
-            }}
-          >
-            {loading ? 'Creating account…' : 'Create account'}
-          </button>
-        </form>
-        <p style={{ textAlign: 'center', fontSize: 13, marginTop: 16 }}>
-          <button type="button" onClick={() => setAuthMode('magic')} style={{ background: 'none', border: 'none', color: '#157A6E', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-            Use an email link instead
-          </button>
-        </p>
+              <div style={{ fontSize: 11, color: '#64748B', marginBottom: 7, letterSpacing: '0.7px', fontWeight: 600, textTransform: 'uppercase' }}>
+                Email
+              </div>
+              <input
+                type="email"
+                value={magicEmail}
+                onChange={e => setMagicEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+                onFocus={focusInput}
+                onBlur={blurInput}
+                style={{ ...inputStyle, marginBottom: 14 }}
+              />
+              {consentCheckboxes}
+              <button
+                type="submit"
+                disabled={magicSubmitting || magicCooldown > 0}
+                style={{
+                  width: '100%', background: '#F4A259', color: '#fff',
+                  borderRadius: 12, padding: 16, fontSize: 15, fontWeight: 700,
+                  minHeight: 52, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: magicSubmitting ? 'none' : '0 8px 20px rgba(244,162,89,.3)',
+                  border: 'none', cursor: magicSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: magicSubmitting || magicCooldown > 0 ? 0.5 : 1,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {magicSubmitting ? 'Sending…' : 'Continue with email'}
+              </button>
+            </form>
           </>
         )}
       </div>

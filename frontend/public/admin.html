@@ -64,6 +64,7 @@ tbody td{padding:11px 14px;vertical-align:middle}
 .bp{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
 .bv{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
 .bb{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.bi{background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
 .tb{width:80px;background:var(--border);border-radius:20px;height:6px;overflow:hidden}
 .tf{height:100%;border-radius:20px;background:var(--teal-lt)}
 .tv{font-size:11px;color:var(--muted);margin-top:3px}
@@ -553,7 +554,11 @@ function renderUsers(users){
       `<span class="badge ${isAdmin?'ba':'bu'}">${u.role||'user'}</span>`,
       u.premium?'<span class="badge bp">Premium</span>':'',
       u.verification&&u.verification.status==='verified'?'<span class="badge bv">Verified</span>':'',
-      u.banned?'<span class="badge bb">Banned</span>':''
+      u.banned?'<span class="badge bb">Banned</span>':'',
+      // Locked spec: active = email_verified && onboarding_stage==='complete'
+      // (computed server-side as u.is_active). Shown, not hidden — admin
+      // still needs visibility into abandoned/incomplete registrations.
+      !u.is_active?'<span class="badge bi">Incomplete</span>':''
     ].filter(Boolean).join(' ');
     const tr=u.trust_score||0;
     return`<tr id="row-${u.id}">

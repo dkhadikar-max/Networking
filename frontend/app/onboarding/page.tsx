@@ -40,7 +40,7 @@ type DiscoverProfile = {
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, setUser, refreshUser } = useAuth();
+  const { user, loading: loadingAuth, setUser, refreshUser } = useAuth();
   const [stage, setStage]       = useState<Stage | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -49,7 +49,22 @@ export default function OnboardingPage() {
   const [suggestions, setSuggestions]     = useState<DiscoverProfile[]>([]);
   const [userInterests, setUserInterests] = useState<string[]>([]);
 
+  // Verify-before-onboard (locked spec): this route sits outside
+  // (app)/layout.tsx's route group, so it isn't covered by that layout's
+  // own !user.email_verified guard — mirrors it here explicitly. Runs
+  // before the stage-fetch effect below is ever allowed to produce
+  // renderable onboarding UI (see the `!stage` render guard further down,
+  // which now also covers this case) — /api/onboarding/stage itself
+  // doesn't require verification (it's a harmless read), but nothing past
+  // it should render for an unverified account.
   useEffect(() => {
+    if (loadingAuth) return;
+    if (!user) { router.replace('/login'); return; }
+    if (!user.email_verified) { router.replace('/verify'); return; }
+  }, [user, loadingAuth, router]);
+
+  useEffect(() => {
+    if (loadingAuth || !user || !user.email_verified) return;
     apiGet<{ stage: Stage }>('/api/onboarding/stage')
       .then(r => setStage(r.stage))
       .catch((e: unknown) => {
@@ -60,7 +75,7 @@ export default function OnboardingPage() {
           setStage('acquisition');
         }
       });
-  }, []);
+  }, [user, loadingAuth]);
 
   const stepIndex = stage ? STAGE_ORDER.indexOf(stage) : 0;
 
@@ -102,7 +117,7 @@ export default function OnboardingPage() {
     } finally { setLoading(false); }
   }
 
-  if (!stage) {
+  if (!stage || loadingAuth || !user || !user.email_verified) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
         <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2.5px solid #157A6E', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />

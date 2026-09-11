@@ -8,7 +8,6 @@ type AuthCtx = {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  signup: (name: string, email: string, password: string, extra?: Record<string, unknown>) => Promise<{ user: User; token: string }>;
   logout: () => void;
   refreshUser: () => Promise<User | undefined>;
   setUser: (u: User | null) => void;
@@ -87,11 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return r;
   }
 
-  async function signup(name: string, email: string, password: string, extra?: Record<string, unknown>) {
-    const r = await apiPost<{ token: string; user: User }>('/api/signup', { name, email, password, ...extra });
-    setUser(r.user);
-    return r;
-  }
+  // Password-based registration retired (server.js /api/signup now returns
+  // 410) — canonical flow is now Basic Details -> Magic Link -> Onboarding
+  // -> Active, via /api/auth/magic-link/request (see signup/page.tsx),
+  // which doesn't need a session-issuing helper here since it never issues
+  // a session itself (only /api/auth/magic-link/verify does).
 
   function logout() {
     apiPost('/api/logout', {}).catch(() => {});
@@ -101,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );
