@@ -3163,6 +3163,24 @@ function sanitize(s) {
   return s.trim().slice(0, 1000);
 }
 
+// Tests whether a string has at least one genuinely displayable character
+// left after stripping every kind of invisible content: standard and
+// Unicode whitespace (\p{White_Space} — covers plain spaces, NBSP, and
+// every other Unicode space separator, not just what .trim() catches),
+// format characters (\p{Cf} — zero-width space/joiner/non-joiner U+200B-D,
+// word joiner U+2060, BOM/ZWNBSP U+FEFF, soft hyphen, etc.), and control
+// characters (\p{Cc}). Everything else — letters, marks, numbers, symbols,
+// emoji, any script — passes through untouched, so this does not reject
+// legitimate international names; it only catches strings that would
+// render as visually blank. Used for the user-facing display name at
+// registration (see /api/auth/magic-link/request) — sanitize()'s trim()
+// alone only strips leading/trailing ASCII-ish whitespace and would let a
+// name that is ENTIRELY zero-width space through untouched.
+function hasDisplayableChar(s) {
+  if (typeof s !== 'string') return false;
+  return s.replace(/[\p{White_Space}\p{Cf}\p{Cc}]/gu, '').length > 0;
+}
+
 // Only http(s) links may be stored for user-supplied profile URLs — blocks
 // javascript:/data:/vbscript: URI injection via linkedin/website fields.
 function sanitizeUrlField(v) {
@@ -4783,7 +4801,17 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       // now the ONLY account-creation entry point (/api/signup is retired,
       // see below), so name is required here the same way it always was
       // at /api/signup — an eagerly-created row must never be nameless.
-      if (!name) return res.status(400).json({ error: 'Name required' });
+      // BUG FIX (post-commit-86e0054 verification): `if (!name)` alone
+      // passes a whitespace-only string ("   " is truthy), which sanitize()
+      // then trims down to '' when building newUser below — silently
+      // recreating the exact "Unnamed" state this whole flow exists to
+      // prevent. Compute the trimmed name once, validate THAT — and go one
+      // step further than a plain emptiness check: a name made entirely of
+      // zero-width Unicode characters (U+200B etc.) is non-empty as a
+      // string but renders as visually blank, so hasDisplayableChar()
+      // catches that too without rejecting legitimate international names.
+      const cleanName = sanitize(name);
+      if (!cleanName || !hasDisplayableChar(cleanName)) return res.status(400).json({ error: 'Name required' });
       const id = uuidv4();
       const role = ADMIN_EMAILS.includes(normalizedEmail) ? 'admin' : 'user';
       // Random, never-disclosed password hash — satisfies the NOT NULL
@@ -4793,7 +4821,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       const unusablePassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
       const newUser = {
         id, email: normalizedEmail, password: unusablePassword,
-        name: sanitize(name).slice(0, 120),
+        name: cleanName.slice(0, 120),
         bio: '', photos: [], instagram: '', linkedin: '', website: '',
         location: '', lat: null, lng: null, remote: false,
         skills: [], interests: [],
