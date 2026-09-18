@@ -23,12 +23,33 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+// Mirrors server.js's profileScoreChecklist() response shape exactly — this
+// component never computes or guesses a score itself, only displays what
+// the server (the single source of truth, shared with profileGuard) last
+// returned. See ProfileFeedback below.
+export type ProfileChecklistItem = {
+  key: string;
+  label: string;
+  points: number;
+  maxPoints: number;
+  done: boolean;
+};
+export type ProfileFeedback = {
+  profile_score: number;
+  required_score: number;
+  checklist: ProfileChecklistItem[];
+};
+
 interface Props {
   onNext: (data: FormValues & { interests: string[]; skills: string[] }) => void;
   loading: boolean;
+  // Set after a submit that the server rejected as PROFILE_INCOMPLETE (score
+  // below what profileGuard requires downstream). Null before the first
+  // attempt, and again after a submit that succeeds.
+  feedback?: ProfileFeedback | null;
 }
 
-export default function ProfileCompletion({ onNext, loading }: Props) {
+export default function ProfileCompletion({ onNext, loading, feedback }: Props) {
   const [interests, setInterests] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
@@ -211,6 +232,47 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
 
       <OpportunityTags selected={interests} onChange={setInterests} />
 
+      {feedback && (
+        <div style={{
+          padding: '14px 16px', borderRadius: 14,
+          background: 'rgba(244,162,89,0.08)', border: '1px solid rgba(244,162,89,0.3)',
+          display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Almost there</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#B45309' }}>
+                {feedback.profile_score}/{feedback.required_score} needed
+              </span>
+            </div>
+            <div style={{ width: '100%', height: 6, borderRadius: 3, background: '#F1E9DD', overflow: 'hidden' }}>
+              <div style={{
+                width: `${Math.min(100, Math.round((feedback.profile_score / feedback.required_score) * 100))}%`,
+                height: '100%', borderRadius: 3, background: '#F4A259', transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+          <p style={{ fontSize: 12.5, color: '#64748B', lineHeight: 1.5, margin: 0 }}>
+            This profile isn&apos;t ready to connect or swipe with yet. Add a few more of these to continue:
+          </p>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: 5, margin: 0, padding: 0, listStyle: 'none' }}>
+            {feedback.checklist
+              .filter(item => !item.done)
+              .sort((a, b) => (b.maxPoints - b.points) - (a.maxPoints - a.points))
+              .map(item => (
+                <li key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#0F172A' }}>
+                  <span style={{
+                    width: 16, height: 16, borderRadius: '50%', border: '1.5px solid #F4A259',
+                    flexShrink: 0, display: 'inline-block',
+                  }} />
+                  {item.label}
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#B45309' }}>+{item.maxPoints}</span>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={loading}
@@ -224,7 +286,7 @@ export default function ProfileCompletion({ onNext, loading }: Props) {
           fontFamily: 'inherit', transition: 'opacity 0.15s',
         }}
       >
-        {loading ? 'Saving…' : 'Finish profile →'}
+        {loading ? 'Saving…' : feedback ? 'Save & check again →' : 'Finish profile →'}
       </button>
     </form>
   );

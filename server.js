@@ -3455,6 +3455,32 @@ function calcProfileScore(u) {
   return Math.min(score, 100);
 }
 
+// Threshold profileGuard (below) already enforces for Connect/Swipe/Circles.
+// Onboarding completion uses this SAME constant rather than a second
+// definition of "complete" — see /api/onboarding/profile.
+const PROFILE_COMPLETION_THRESHOLD = 70;
+
+// Ordered, human-readable breakdown of calcProfileScore's own weights —
+// tells a user exactly what still counts toward PROFILE_COMPLETION_THRESHOLD.
+// Deliberately mirrors calcProfileScore field-for-field, weight-for-weight:
+// this must never claim a field or point value calcProfileScore doesn't
+// actually use, or the UI could ask for something that doesn't move the
+// score. Fields the onboarding profile form collects but calcProfileScore
+// doesn't score (headline, profession, industry, experience_level,
+// working_on) are intentionally absent here for the same reason.
+function profileScoreChecklist(u) {
+  const photos    = u.photos    || [];
+  const interests = u.interests || [];
+  return [
+    { key: 'photos',    label: 'Add at least 4 photos',        points: photos.length >= 4 ? 30 : (photos.length >= 1 ? 10 : 0), maxPoints: 30, done: photos.length >= 4 },
+    { key: 'interests', label: 'Select at least 3 interests',  points: interests.length >= 3 ? 20 : (interests.length >= 1 ? 8 : 0), maxPoints: 20, done: interests.length >= 3 },
+    { key: 'intent',    label: 'Set a networking goal',        points: (u.intent && u.intent.length > 0) ? 20 : 0, maxPoints: 20, done: !!(u.intent && u.intent.length > 0) },
+    { key: 'bio',       label: 'Write a bio (10+ characters)', points: (u.bio && u.bio.length >= 10) ? 10 : 0, maxPoints: 10, done: !!(u.bio && u.bio.length >= 10) },
+    { key: 'name',      label: 'Add your name',                points: (u.name && u.name.length >= 2) ? 10 : 0, maxPoints: 10, done: !!(u.name && u.name.length >= 2) },
+    { key: 'location',  label: 'Add your location',            points: (u.location && u.location.length > 0) ? 10 : 0, maxPoints: 10, done: !!(u.location && u.location.length > 0) },
+  ];
+}
+
 async function syncProfileScore(userId, user) {
   const score    = calcProfileScore(user);
   const complete = score >= 70;
@@ -4177,7 +4203,7 @@ async function profileGuard(req, res, next) {
       return profileGuard(req, res, next);
     }
     const score = calcProfileScore(user);
-    if (score < 70) {
+    if (score < PROFILE_COMPLETION_THRESHOLD) {
       return res.status(403).json({
         error: 'Complete your profile to continue',
         code:  'PROFILE_INCOMPLETE',
@@ -8102,9 +8128,27 @@ const VALID_LINK_PLATFORMS = ['linkedin','twitter','portfolio','website','github
 const URL_TEST_RE = /^https?:\/\/[^\s<>"']+$/i;
 
 // GET /api/onboarding/stage
-// Returns current stage from req.userData — no extra DB round-trip.
-app.get('/api/onboarding/stage', auth, (req, res) => {
-  res.json({ stage: req.userData.onboarding_stage || 'acquisition' });
+app.get('/api/onboarding/stage', auth, async (req, res) => {
+  try {
+    // req.userData may be the narrow, TTL-cached auth slice (id/banned/
+    // premium/password_changed_at/deleted_at/role only — see authCacheSet),
+    // which never carries onboarding_stage. Reading it directly on a cache
+    // hit silently falls back to 'acquisition' regardless of the real
+    // stage — reproduced directly: a DB-'complete' user got 'acquisition'
+    // back from this endpoint while the auth cache was warm. Same fix as
+    // the onboarding POST handlers below: reject the cached shape and
+    // fetch the real row.
+    let user = req.userData;
+    if (user._cached) {
+      const { data: fresh } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!fresh) return res.status(404).json({ error: 'Not found' });
+      user = fresh;
+    }
+    res.json({ stage: user.onboarding_stage || 'acquisition' });
+  } catch(e) {
+    console.error('Onboarding stage error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /api/onboarding/acquisition — Screen 1: "How did you hear about us?"
@@ -8198,7 +8242,11 @@ app.post('/api/onboarding/intent', onboardingLimiter, auth, async (req, res) => 
 });
 
 // POST /api/onboarding/profile — Screen 3: "Complete your profile"
-// Every field is optional. An empty body is a valid submission.
+// Every field is optional per submission — but onboarding only actually
+// completes once PROFILE_COMPLETION_THRESHOLD is met (see below). A user
+// can resubmit this endpoint repeatedly while stage stays 'profile',
+// accumulating fields across attempts, exactly like an empty submission
+// always could before.
 app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) => {
   try {
     // See /api/onboarding/acquisition above for why this re-fetch exists —
@@ -8234,8 +8282,14 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
 
     if (errors.length) return res.status(400).json({ errors });
 
-    // Build user updates
-    const userUpdates = { onboarding_stage: 'complete', onboarding_completed_at: new Date().toISOString() };
+    // Build user updates. onboarding_stage is NOT set unconditionally here
+    // anymore — it's decided below, once profile_score is known, so that
+    // "onboarding complete" and "passes profileGuard" can never disagree
+    // (previously any submission, including a fully empty one, flipped
+    // onboarding_stage to 'complete' regardless of profile_score, which is
+    // exactly how a user could finish onboarding and then immediately hit
+    // profileGuard's 403 PROFILE_INCOMPLETE on their first Connect/Swipe).
+    const userUpdates = {};
     if (cleanHeadline !== undefined) userUpdates.headline  = sanitize(cleanHeadline);
     if (cleanBio      !== undefined) userUpdates.bio       = sanitize(cleanBio);
     if (profession) userUpdates.profession  = sanitize(String(profession).trim().slice(0, 100));
@@ -8270,7 +8324,18 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     const merged = { ...user, ...userUpdates };
     userUpdates.trust_score         = calcTrust(merged);
     userUpdates.profile_score       = calcProfileScore(merged);
-    userUpdates.is_profile_complete = userUpdates.profile_score >= 70;
+    userUpdates.is_profile_complete = userUpdates.profile_score >= PROFILE_COMPLETION_THRESHOLD;
+
+    // Onboarding completion uses the SAME threshold profileGuard enforces
+    // downstream — not a second definition of "complete". If this
+    // submission doesn't reach it, the fields above are still persisted
+    // (nothing the user entered is lost) but onboarding_stage stays
+    // 'profile', so they can keep editing and resubmit.
+    const qualifies = userUpdates.is_profile_complete;
+    if (qualifies) {
+      userUpdates.onboarding_stage = 'complete';
+      userUpdates.onboarding_completed_at = new Date().toISOString();
+    }
 
     const { error: updateErr } = await supabase.from('users')
       .update(userUpdates).eq('id', user.id);
@@ -8322,8 +8387,23 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     }
 
     const elapsedPro = Math.round((Date.now() - new Date(user.created_at).getTime()) / 1000);
-    console.log(`[Onboarding] userId=${user.id} stage=complete elapsed=${elapsedPro}s score=${userUpdates.profile_score} gate=${userUpdates.is_profile_complete ? 'pass' : 'fail'}`);
-    res.json({ stage: 'complete', trust_score: userUpdates.trust_score });
+    console.log(`[Onboarding] userId=${user.id} stage=${qualifies ? 'complete' : 'profile(retry)'} elapsed=${elapsedPro}s score=${userUpdates.profile_score} gate=${qualifies ? 'pass' : 'fail'}`);
+
+    if (!qualifies) {
+      return res.status(403).json({
+        error: 'Complete your profile to continue',
+        code: 'PROFILE_INCOMPLETE',
+        profile_score: userUpdates.profile_score,
+        required_score: PROFILE_COMPLETION_THRESHOLD,
+        checklist: profileScoreChecklist(merged),
+      });
+    }
+
+    res.json({
+      stage: 'complete',
+      trust_score: userUpdates.trust_score,
+      profile_score: userUpdates.profile_score,
+    });
   } catch(e) {
     console.error('Onboarding profile error:', e);
     res.status(500).json({ error: 'Internal server error' });

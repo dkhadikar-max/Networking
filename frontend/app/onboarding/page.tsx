@@ -7,7 +7,7 @@ import { apiGet, apiPost } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { safeNext } from '@/lib/authRedirect';
 import IntentSelector from '@/components/onboarding/IntentSelector';
-import ProfileCompletion from '@/components/onboarding/ProfileCompletion';
+import ProfileCompletion, { type ProfileFeedback } from '@/components/onboarding/ProfileCompletion';
 import SuggestedConnections from '@/components/onboarding/SuggestedConnections';
 import NetworkBackground from '@/components/NetworkBackground';
 import { IconLinkedIn, IconInstagram, IconX, IconWhatsApp, IconWave, IconSearch, IconCalendarUsers, IconPlay, IconSparkle } from '@/components/onboarding/icons';
@@ -48,6 +48,7 @@ export default function OnboardingPage() {
   const [referral, setReferral] = useState('');
   const [suggestions, setSuggestions]     = useState<DiscoverProfile[]>([]);
   const [userInterests, setUserInterests] = useState<string[]>([]);
+  const [profileFeedback, setProfileFeedback] = useState<ProfileFeedback | null>(null);
 
   // Verify-before-onboard (locked spec): this route sits outside
   // (app)/layout.tsx's route group, so it isn't covered by that layout's
@@ -101,7 +102,7 @@ export default function OnboardingPage() {
   }
 
   async function submitProfile(data: Record<string, unknown>) {
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setProfileFeedback(null);
     const { interests, ...rest } = data;
     setUserInterests((interests as string[]) ?? []);
     try {
@@ -113,7 +114,22 @@ export default function OnboardingPage() {
       setSuggestions((res.profiles ?? []).slice(0, 3));
       setStage('complete');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
+      // A 403 PROFILE_INCOMPLETE means the save itself succeeded (fields are
+      // persisted server-side) but the resulting score is below what
+      // profileGuard requires downstream — not a "something went wrong"
+      // error. Show the score/checklist inline on ProfileCompletion instead
+      // of the generic error banner, and stay on this stage so the user can
+      // add more and resubmit.
+      const err = e as { code?: string; body?: Partial<ProfileFeedback> };
+      if (err.code === 'PROFILE_INCOMPLETE' && err.body) {
+        setProfileFeedback({
+          profile_score: err.body.profile_score ?? 0,
+          required_score: err.body.required_score ?? 70,
+          checklist: err.body.checklist ?? [],
+        });
+      } else {
+        setError(e instanceof Error ? e.message : 'Something went wrong');
+      }
     } finally { setLoading(false); }
   }
 
@@ -275,7 +291,7 @@ export default function OnboardingPage() {
                   )}
 
                   {stage === 'profile' && (
-                    <ProfileCompletion onNext={submitProfile} loading={loading} />
+                    <ProfileCompletion onNext={submitProfile} loading={loading} feedback={profileFeedback} />
                   )}
 
                   {stage === 'complete' && (

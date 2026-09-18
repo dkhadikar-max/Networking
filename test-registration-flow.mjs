@@ -133,8 +133,29 @@ async function createSecondaryVerifiedUser() {
   console.log('\n--- 6. Complete onboarding -> active, tested as direct invariants ---');
   const intentRes = await post('/api/onboarding/intent', { intents: ['Networking'] }, sessionToken);
   check('intent step succeeds', intentRes.status === 200, JSON.stringify(intentRes.body));
-  const profileRes = await post('/api/onboarding/profile', {}, sessionToken); // every field optional
-  check('profile step succeeds (empty body valid)', profileRes.status === 200, JSON.stringify(profileRes.body));
+
+  // Onboarding completion now requires reaching PROFILE_COMPLETION_THRESHOLD
+  // (same 70 profileGuard enforces downstream) — an empty submission is
+  // still accepted (fields are optional per-request) but must NOT complete
+  // onboarding on its own anymore.
+  const emptyProfileRes = await post('/api/onboarding/profile', {}, sessionToken);
+  check('empty profile submission rejected as PROFILE_INCOMPLETE (not silently completed)',
+    emptyProfileRes.status === 403 && emptyProfileRes.body?.code === 'PROFILE_INCOMPLETE',
+    JSON.stringify(emptyProfileRes.body));
+  const { data: stillProfileRow } = await supabase.from('users')
+    .select('onboarding_stage').eq('id', created.id).maybeSingle();
+  check('onboarding_stage stays "profile" after an under-threshold submission',
+    stillProfileRow?.onboarding_stage === 'profile', stillProfileRow?.onboarding_stage);
+
+  // Enough fields to cross the threshold: intent(20, already set) + name(10,
+  // already set) + bio(10) + location(10) + interests>=3(20) = 70.
+  const profileRes = await post('/api/onboarding/profile', {
+    bio: 'Building a fintech startup in Mumbai, always exploring new ideas.',
+    location: 'Mumbai',
+    interests: ['AI/ML', 'Startups', 'SaaS'],
+  }, sessionToken);
+  check('profile step succeeds once the submission reaches the completion threshold',
+    profileRes.status === 200 && profileRes.body?.profile_score >= 70, JSON.stringify(profileRes.body));
 
   const { data: finalRow } = await supabase.from('users')
     .select('onboarding_stage, email_verified, name').eq('id', created.id).maybeSingle();

@@ -16,7 +16,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
       // instead of every caller just showing a generic error toast forever.
       window.dispatchEvent(new Event('byn:unauthorized'));
     }
-    throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status, code: err.code });
+    // `body` carries the full parsed error payload (e.g. PROFILE_INCOMPLETE's
+    // profile_score/required_score/checklist) for callers that need more
+    // than just status/code — status/code stay as they were for existing
+    // callers that only check those.
+    throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status, code: err.code, body: err });
   }
   return res.json();
 }
