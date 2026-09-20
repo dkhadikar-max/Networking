@@ -6868,11 +6868,16 @@ app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res)
       type: 'illegal_content',
       created_at: new Date().toISOString(),
     });
-    // Temporarily ban target pending review if category is CSAM or Terrorism
+    // STOPGAP (audit A7): this endpoint no longer restricts any account. It used
+    // to set users.banned = true on the target from ONE report by ANY authenticated
+    // account - no target validation, no self/admin guard, no review, no expiry -
+    // so a single request could ban an arbitrary user (an admin, a deleted account,
+    // or the reporter themselves). The report is still recorded above; severe
+    // categories are flagged in the log for manual review, and restricting an
+    // account is a moderator action (POST /api/admin/ban) until the reviewed
+    // hold/threshold workflow replaces this.
     if (category === 'CSAM' || category === 'Terrorism') {
-      await supabase.from('users').update({ banned: true }).eq('id', targetId);
-      authCacheInvalidate(targetId); // banned just changed
-      await auditLog(req.user.id, 'dsa_auto_ban', targetId);
+      console.warn(`[DSA] HIGH-SEVERITY report from=${req.user.id} target=${targetId} category=${category} — recorded; no automatic action taken, needs manual review`);
     }
     console.log(`[DSA] report from=${req.user.id} target=${targetId} category=${category}`);
     res.json({ ok: true, message: 'Report received. Our team will review within 24 hours.' });
