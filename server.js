@@ -9972,19 +9972,4 @@ app.listen(PORT, () => {
       inReq.end();
     });
   }
-
-  // One-time idempotent migration: set all existing verified users to complete
-  // so they skip onboarding on next login. Safe to run on every startup.
-  setImmediate(async () => {
-    try {
-      const { count } = await supabase.from('users')
-        .update({ onboarding_stage: 'complete' })
-        .eq('email_verified', true)
-        .eq('onboarding_stage', 'acquisition')
-        .select('*', { count: 'exact', head: true });
-      if (count) console.log(`Onboarding migration: ${count} existing verified user(s) set to complete`);
-    } catch(e) {
-      console.error('Onboarding startup migration error:', e.message);
-    }
-  });
 });
