@@ -4296,23 +4296,47 @@ async function discoverGuard(req, res, next) {
   }
 }
 
-// ── FIXED: ADMIN AUDIT LOG ──
-// Persists to Supabase audit_logs table; keeps in-memory buffer for fast reads.
-const adminAuditLog = [];
+// ── ADMIN AUDIT LOG ──
+// Persisted to the audit_logs table (migrations/023) — the ONLY source of
+// truth; GET /api/admin/audit reads it back. There used to be an in-memory
+// buffer that served the reads, which is exactly what hid the fact that the
+// table did not exist (history looked fine until the next restart wiped it).
+//
+// supabase-js reports failures as `{ error }`, it does not throw — the old
+// code only had a try/catch, so a rejected INSERT (missing table, RLS, etc.)
+// was silently swallowed. Returns true ONLY if the row was durably written.
 async function auditLog(adminId, action, targetId) {
-  const entry = { adminId, action, targetId, at: new Date().toISOString() };
-  adminAuditLog.push(entry);
-  if (adminAuditLog.length > 1000) adminAuditLog.shift();
   try {
-    await supabase.from('audit_logs').insert({
+    const { error } = await supabase.from('audit_logs').insert({
       admin_id: adminId,
       action,
       target_id: targetId,
-      created_at: entry.at
+      created_at: new Date().toISOString()
     });
+    if (error) {
+      console.error(`[audit] FAILED to persist audit event "${action}" by ${adminId} on ${targetId} (audit_logs): ${error.message}`);
+      return false;
+    }
+    return true;
   } catch (e) {
-    console.error('Audit log persist error:', e.message);
+    console.error(`[audit] FAILED to persist audit event "${action}" by ${adminId} on ${targetId} (audit_logs): ${e.message}`);
+    return false;
   }
+}
+
+// For admin-INITIATED actions (ban, verify, upgrade, delete): if the audit row
+// cannot be persisted, answer with an error instead of a bare {ok:true}, so an
+// unaudited admin action is never presented as a clean success. The action
+// itself has already been applied by this point (audit follows the action, as
+// before) — the message says so, so the admin is not misled in either
+// direction. Returns true if the caller should go on to send its own success.
+async function auditAdminAction(res, adminId, action, targetId) {
+  if (await auditLog(adminId, action, targetId)) return true;
+  res.status(500).json({
+    error: 'The action was applied, but its audit record could not be persisted',
+    code: 'AUDIT_PERSIST_FAILED',
+  });
+  return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -6894,12 +6918,22 @@ app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res)
     if (!targetId || !category || !DSA_CATEGORIES.includes(category))
       return res.status(400).json({ error: 'targetId and valid category required', categories: DSA_CATEGORIES });
     const cleanDesc = description ? String(description).slice(0, 2000) : '';
-    await supabase.from('reports').insert({
+    // The report MUST be durably recorded before we tell the reporter it was
+    // received (DSA Art. 16). supabase-js returns {error} rather than throwing:
+    // this INSERT used to be unchecked, so with reports.type missing it was
+    // rejected while the endpoint answered "Report received". If it fails, stop
+    // here — no success response and no follow-on side effects for a report
+    // that was never recorded.
+    const { error: reportInsertErr } = await supabase.from('reports').insert({
       id: uuidv4(), from_user: req.user.id, target_id: targetId,
       reason: `[DSA:${category}] ${cleanDesc}`,
       type: 'illegal_content',
       created_at: new Date().toISOString(),
     });
+    if (reportInsertErr) {
+      console.error(`[DSA] FAILED to persist illegal-content report from=${req.user.id} target=${targetId} category=${category}: ${reportInsertErr.message}`);
+      return res.status(500).json({ error: 'Failed to record your report — please try again', code: 'REPORT_NOT_PERSISTED' });
+    }
     // STOPGAP (audit A7): this endpoint no longer restricts any account. It used
     // to set users.banned = true on the target from ONE report by ANY authenticated
     // account - no target validation, no self/admin guard, no review, no expiry -
@@ -7089,7 +7123,7 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Not found' });
     await supabase.from('users').update({ banned: !!banned }).eq('id', targetId);
     authCacheInvalidate(targetId); // banned just changed
-    await auditLog(req.user.id, banned ? 'ban' : 'unban', targetId);
+    if (!(await auditAdminAction(res, req.user.id, banned ? 'ban' : 'unban', targetId))) return;
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin ban error:', e);
@@ -7107,7 +7141,7 @@ app.post('/api/admin/verify', adminAuth, async (req, res) => {
     await supabase.from('users').update({
       verification, trust_score: calcTrust(merged)
     }).eq('id', targetId);
-    await auditLog(req.user.id, 'verify', targetId);
+    if (!(await auditAdminAction(res, req.user.id, 'verify', targetId))) return;
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin verify error:', e);
@@ -7129,7 +7163,7 @@ app.post('/api/admin/upgrade', adminAuth, async (req, res) => {
     const updates = premium ? { premium: true, premium_expires_at: null } : { premium: false };
     await supabase.from('users').update(updates).eq('id', targetId);
     authCacheInvalidate(targetId); // premium just changed
-    await auditLog(req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId);
+    if (!(await auditAdminAction(res, req.user.id, premium ? 'grant_premium' : 'revoke_premium', targetId))) return;
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin upgrade error:', e);
@@ -7163,7 +7197,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     const { error: adminDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (adminDelErr) { console.error('Admin delete error:', adminDelErr); return res.status(500).json({ error: 'Failed to delete user' }); }
     authCacheInvalidate(id); // deleted_at just changed
-    await auditLog(req.user.id, 'delete_user', id);
+    if (!(await auditAdminAction(res, req.user.id, 'delete_user', id))) return;
     res.json({ ok: true });
   } catch(e) {
     console.error('Admin delete error:', e);
@@ -7245,12 +7279,22 @@ function normalizeSource(src) {
 // ── DSA TRANSPARENCY REPORT (Art. 15) ──
 app.get('/api/admin/dsa-report', adminAuth, async (req, res) => {
   try {
-    const { data: illegal } = await supabase.from('reports')
+    const { data: illegal, error: illegalErr } = await supabase.from('reports')
       .select('reason,created_at,target_id').eq('type', 'illegal_content').order('created_at', { ascending: false });
-    const { data: social } = await supabase.from('reports')
-      .select('reason,created_at').not('type', 'eq', 'illegal_content').order('created_at', { ascending: false });
-    const { count: bannedCount } = await supabase.from('users')
+    // "Social" = everything that is not an illegal-content report. Ordinary user
+    // reports (POST /api/report) never set `type`, so they are NULL — and
+    // `.not('type','eq',...)` alone excludes NULLs (NOT (NULL = x) is NULL, not
+    // true), which would have reported 0 social reports forever.
+    const { data: social, error: socialErr } = await supabase.from('reports')
+      .select('reason,created_at').or('type.is.null,type.neq.illegal_content').order('created_at', { ascending: false });
+    const { count: bannedCount, error: bannedErr } = await supabase.from('users')
       .select('*', { count: 'exact', head: true }).eq('banned', true);
+    // A transparency report built from failed queries would present zeros as
+    // fact (that is exactly what it did while reports.type was missing).
+    if (illegalErr || socialErr || bannedErr) {
+      console.error('[DSA] transparency report query failed:', (illegalErr || socialErr || bannedErr).message);
+      return res.status(500).json({ error: 'Failed to build the DSA report' });
+    }
 
     const categoryCounts = {};
     (illegal || []).forEach(r => {
@@ -7404,8 +7448,25 @@ app.get('/api/admin/onboarding/funnel', adminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/audit', adminAuth, async (req, res) => {
-  // Return in-memory buffer (fast) + optionally fetch from DB for full history
-  res.json(adminAuditLog.slice(-200).reverse());
+  // Reads the persisted history (migrations/023) — newest first, the latest
+  // 200, ties on created_at broken by id so the order is deterministic. Same
+  // response shape as before ({adminId, action, targetId, at}). A read failure
+  // is an error, NOT a fallback to a partial in-memory list.
+  try {
+    const { data, error } = await supabase.from('audit_logs')
+      .select('id, admin_id, action, target_id, created_at')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(200);
+    if (error) {
+      console.error('[audit] failed to read audit_logs:', error.message);
+      return res.status(500).json({ error: 'Failed to read the audit log' });
+    }
+    res.json((data || []).map(r => ({ adminId: r.admin_id, action: r.action, targetId: r.target_id, at: r.created_at })));
+  } catch (e) {
+    console.error('[audit] failed to read audit_logs:', e.message);
+    res.status(500).json({ error: 'Failed to read the audit log' });
+  }
 });
 
 // ── PHASE 10 — SEO Analytics Dashboard ────────────────────────────────────────
@@ -9875,18 +9936,35 @@ app.listen(PORT, () => {
       const cutoff18m = new Date(Date.now() - 18 * 30 * 24 * 3600 * 1000).toISOString();
       const warnDeadline = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
 
+      // supabase-js returns {error}, it does not throw: these queries used to
+      // ignore it, so with users.deletion_scheduled_at missing (migrations/023)
+      // every query below failed silently and the cycle "ran" without ever
+      // scheduling or deleting anything. Every query error is now checked and
+      // logged, and a failed query aborts the cycle before any destructive step.
+      let warned = 0, deleted = 0;
+
       // Step 1: schedule deletion for inactive accounts not yet warned
-      const { data: toWarn } = await supabase.from('users')
+      const { data: toWarn, error: warnQueryErr } = await supabase.from('users')
         .select('id, email, name')
         .lt('last_active', cutoff18m)
         .is('deletion_scheduled_at', null)
         .neq('role', 'admin')
         .limit(100);
+      if (warnQueryErr) {
+        console.error('[Retention] Step 1 query (accounts to schedule) FAILED — cycle aborted, nothing scheduled or deleted:', warnQueryErr.message);
+        return;
+      }
 
       for (const u of (toWarn || [])) {
-        await supabase.from('users')
+        const { error: scheduleErr } = await supabase.from('users')
           .update({ deletion_scheduled_at: warnDeadline })
           .eq('id', u.id);
+        if (scheduleErr) {
+          // Nothing was scheduled, so do NOT tell the user their account will be deleted.
+          console.error(`[Retention] FAILED to schedule deletion for ${u.id} — no warning e-mail sent:`, scheduleErr.message);
+          continue;
+        }
+        warned++;
         if (ResendClient && u.email) {
           ResendClient.emails.send({
             from: process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
@@ -9899,11 +9977,15 @@ app.listen(PORT, () => {
 
       // Step 2: hard-delete accounts past their deletion_scheduled_at
       const now = new Date().toISOString();
-      const { data: toDelete } = await supabase.from('users')
+      const { data: toDelete, error: deleteQueryErr } = await supabase.from('users')
         .select('id')
         .lt('deletion_scheduled_at', now)
         .neq('role', 'admin')
         .limit(50);
+      if (deleteQueryErr) {
+        console.error('[Retention] Step 2 query (accounts due for deletion) FAILED — nothing deleted:', deleteQueryErr.message);
+        return;
+      }
 
       for (const u of (toDelete || [])) {
         const id = u.id;
@@ -9921,13 +10003,18 @@ app.listen(PORT, () => {
         await supabase.from('user_acquisition').delete().eq('user_id', id);
         await supabase.from('push_subscriptions').delete().eq('user_id', id);
         await supabase.from('payments').delete().eq('user_id', id);
-        await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
+        const { error: anonymizeErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
+        if (anonymizeErr) {
+          console.error(`[Retention] FAILED to anonymize ${id} (its related data was already removed):`, anonymizeErr.message);
+          continue;
+        }
         authCacheInvalidate(id); // deleted_at just changed
+        deleted++;
         console.log(`[Retention] Deleted inactive account ${id}`);
       }
 
-      if ((toWarn || []).length || (toDelete || []).length) {
-        console.log(`[Retention] Warned: ${(toWarn||[]).length}, Deleted: ${(toDelete||[]).length}`);
+      if (warned || deleted) {
+        console.log(`[Retention] Warned: ${warned}, Deleted: ${deleted}`);
       }
     } catch(e) {
       console.error('[Retention] Cycle error:', e.message);
