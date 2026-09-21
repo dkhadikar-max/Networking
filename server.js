@@ -3962,6 +3962,15 @@ function isPremiumActive(user) {
 // only ever one premium_expires_at, and a grant only ever pushes it
 // further out, never pulls it in (locked spec, concurrent-entitlements
 // decision — no per-source tracking needed).
+//
+// NOTE: paid purchases (verify + webhook) no longer call this — its
+// read-then-write is not atomic and its write error is unchecked, which is what
+// let concurrent verify/webhook double-grant and let a failed premium write be
+// followed by a "paid" marker. They go through processPaymentEntitlement()
+// (migrations/022), which implements these same extend-from-max(now, expiry)
+// semantics inside one transaction. Kept as the reference for those semantics;
+// do not use it for anything that can run concurrently or that must not
+// silently lose a failed write.
 async function grantOrExtendPremium(userId, days, extraFields = {}) {
   const { data: current } = await supabase.from('users')
     .select('premium_expires_at').eq('id', userId).maybeSingle();
@@ -7913,6 +7922,44 @@ app.post('/api/payments/create-order', auth, async (req, res) => {
   }
 });
 
+// ── PAYMENT ENTITLEMENT: ATOMIC + IDEMPOTENT ──
+// The ONLY place a paid payment becomes a premium entitlement — used by both
+// /api/payments/verify and the Razorpay webhook. Everything that must happen
+// together (lock the payment row, re-check it is still unpaid, mark it paid,
+// extend premium) runs inside ONE Postgres transaction —
+// process_payment_entitlement(), migrations/022 — so:
+//   * one payment -> one grant, however many verify/webhook calls race: the
+//     function locks the payment row, so concurrent callers queue behind it and
+//     the losers see status='paid' and get outcome 'already_processed';
+//   * a failure applying the entitlement rolls the "paid" marker back too, so a
+//     payment can never be left paid without its entitlement (the old code
+//     marked it paid even when the premium write had failed).
+// `storedPlan` MUST be the plan read from the payment/order row (A4) — the
+// function re-checks it against the stored row and the days come from PLANS.
+// Fails closed: if the RPC errors (including migration 022 not applied) this
+// throws, the caller answers 5xx, nothing is granted, and Razorpay retries the
+// webhook.
+async function processPaymentEntitlement(orderId, paymentId, storedPlan) {
+  const planDef = PLANS[storedPlan] || PLANS.monthly;
+  const { data, error } = await supabase.rpc('process_payment_entitlement', {
+    p_order_id:   orderId,
+    p_payment_id: paymentId,
+    p_plan:       storedPlan,
+    p_days:       planDef.days,
+  });
+  if (error) {
+    console.error('[payments] process_payment_entitlement failed (has migrations/022 been applied?):', error.message);
+    throw new Error(`process_payment_entitlement: ${error.message}`);
+  }
+  const outcome = data && data.outcome;
+  if (outcome === 'granted') {
+    authCacheInvalidate(data.user_id); // premium just changed
+    return { granted: true, outcome, expiresAt: data.expires_at, userId: data.user_id };
+  }
+  if (outcome === 'already_processed' || outcome === 'not_found') return { granted: false, outcome };
+  throw new Error(`process_payment_entitlement: unexpected result ${JSON.stringify(data)}`);
+}
+
 // ── VERIFY PAYMENT + ACTIVATE PREMIUM ──
 app.post('/api/payments/verify', auth, async (req, res) => {
   try {
@@ -7977,20 +8024,24 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     // Activate premium — extends from whichever is later, current expiry or
     // now, rather than replacing it (locked spec, repurchase-before-expiry
     // decision: a user with remaining paid time left must not lose it to a
-    // second purchase).
-    const planDef = PLANS[orderRec.plan] || PLANS.monthly;
-    const expiresAt = await grantOrExtendPremium(req.user.id, planDef.days, {
-      premium_plan:  orderRec.plan,
-      premium_since: new Date().toISOString(),
-    });
+    // second purchase) — atomically and idempotently: see
+    // processPaymentEntitlement. Same stored-plan derivation as the webhook,
+    // through the very same function, so both paths grant identical
+    // entitlements from the same persisted row.
+    const result = await processPaymentEntitlement(razorpay_order_id, razorpay_payment_id, orderRec.plan);
+    if (result.outcome === 'not_found') return res.status(404).json({ error: 'Order not found' });
+    if (!result.granted) {
+      // Lost the race to a concurrent verify/webhook that processed this
+      // payment first: the entitlement was applied exactly once, by them.
+      // Treat exactly like "already activated" above — success for the buyer,
+      // no second grant, no second e-mail.
+      const { data: me } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      return res.json({ ok: true, user: me ? clean(me) : null, alreadyActivated: true });
+    }
+    const expiresAt = result.expiresAt;
 
-    // Update payment record
-    await supabase.from('payments').update({
-      razorpay_payment_id,
-      status: 'paid',
-    }).eq('razorpay_order_id', razorpay_order_id);
-
-    // Send confirmation email (non-blocking)
+    // Send confirmation email (non-blocking) — only the request that actually
+    // granted reaches this point, so it is sent once per processed payment.
     const { data: u } = await supabase.from('users')
       .select('email, name').eq('id', req.user.id).maybeSingle();
     if (u && ResendClient) {
@@ -8052,16 +8103,14 @@ app.post('/api/payments/webhook', async (req, res) => {
       const { data: payRec } = await supabase.from('payments')
         .select('*').eq('razorpay_order_id', orderId).maybeSingle();
       if (payRec && payRec.status !== 'paid') {
-        // Same extend-not-replace logic as /api/payments/verify — see the
-        // comment there. Both paths must agree, since either can be the one
-        // that actually lands first for a given purchase.
-        const planDef = PLANS[payRec.plan] || PLANS.monthly;
-        await grantOrExtendPremium(payRec.user_id, planDef.days, {
-          premium_plan:  payRec.plan,
-          premium_since: new Date().toISOString(),
-        });
-        await supabase.from('payments').update({ razorpay_payment_id: payId, status: 'paid' })
-          .eq('razorpay_order_id', orderId);
+        // Same atomic, idempotent path as /api/payments/verify (see
+        // processPaymentEntitlement) — both paths must agree, since either can
+        // be the one that actually lands first for a given purchase, and they
+        // routinely arrive together. The `status !== 'paid'` check above is
+        // only a cheap shortcut on a possibly-stale read; the authoritative
+        // "already paid?" check happens under a row lock inside the function.
+        // Throws on failure -> 500 below -> Razorpay redelivers.
+        await processPaymentEntitlement(payRec.id, payId, payRec.plan);
       }
     }
     res.json({ ok: true });

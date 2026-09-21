@@ -114,6 +114,24 @@ const mock = http.createServer((req, res) => {
       }
       return json(204, undefined, { 'Content-Range': `*/${hit.length}` });
     }
+    // process_payment_entitlement() — a JS mirror of migrations/022 (atomic in-process: no awaits between
+    // the check and the writes). The real SQL, and its behavior under concurrency and failure, is tested
+    // on a real Postgres in test-payment-entitlement-sql.mjs and test-payment-idempotency.mjs; this fake
+    // only lets the A4 (plan source-of-truth) assertions run against the server's new RPC-based path.
+    if (req.method === 'POST' && table === 'rpc/process_payment_entitlement') {
+      const a = body || {};
+      const pay = tables.payments.find(p => p.id === a.p_order_id);
+      if (!pay) return json(200, { outcome: 'not_found' });
+      if (pay.status === 'paid') return json(200, { outcome: 'already_processed', user_id: pay.user_id });
+      if (pay.plan !== a.p_plan) return json(400, { code: '22023', message: 'plan does not match stored order plan' });
+      const u = tables.users.find(x => x.id === pay.user_id);
+      if (!u) return json(400, { code: 'P0002', message: 'user not found' });
+      const cur = u.premium_expires_at ? new Date(u.premium_expires_at).getTime() : 0;
+      const expires = new Date(Math.max(cur, Date.now()) + a.p_days * 864e5).toISOString();
+      Object.assign(pay, { status: 'paid', razorpay_payment_id: a.p_payment_id });
+      Object.assign(u, { premium: true, premium_expires_at: expires, premium_plan: pay.plan, premium_since: new Date().toISOString() });
+      return json(200, { outcome: 'granted', user_id: u.id, plan: pay.plan, expires_at: expires });
+    }
     res.writeHead(req.method === 'POST' ? 201 : 204, { 'Content-Range': '*/0' });
     res.end();
   });
