@@ -126,6 +126,7 @@ export default function OnboardingPage() {
           profile_score: err.body.profile_score ?? 0,
           required_score: err.body.required_score ?? 70,
           checklist: err.body.checklist ?? [],
+          photo_required: err.body.photo_required,
         });
       } else {
         setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -291,7 +292,7 @@ export default function OnboardingPage() {
                   )}
 
                   {stage === 'profile' && (
-                    <ProfileCompletion onNext={submitProfile} loading={loading} feedback={profileFeedback} />
+                    <ProfileCompletion onNext={submitProfile} loading={loading} feedback={profileFeedback} existingPhoto={user?.photos?.[0] ?? null} />
                   )}
 
                   {stage === 'complete' && (

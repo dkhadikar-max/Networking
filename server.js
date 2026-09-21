@@ -3473,6 +3473,23 @@ function calcProfileScore(u) {
 // definition of "complete" — see /api/onboarding/profile.
 const PROFILE_COMPLETION_THRESHOLD = 70;
 
+// THE definition of "profile complete" - the ONLY place the threshold is compared:
+//
+//     calcProfileScore(u) >= PROFILE_COMPLETION_THRESHOLD   AND   at least one photo
+//
+// The score stays a pure measure of profile points (a photo just adds points; it is NOT
+// capped or distorted to manufacture the dependency). Completion is a separate, explicit
+// rule: without a photo the score tops out at exactly 70 - the threshold - so an account
+// used to be flagged complete, pass profileGuard (swipe / connect) and finish onboarding
+// with no photo at all, while Discover (which needs a photo both to browse and to be
+// shown) stayed closed to it. Eleven places used to repeat `score >= 70` (or compare the
+// threshold constant); every one of them - onboarding, profileGuard, register / login /
+// GET /me / profile-status / PUT /me, the three photo endpoints and syncProfileScore -
+// now goes through this. (The "finish your profile" push nudge is photo-aware too.)
+function isProfileComplete(u) {
+  return !!u && calcProfileScore(u) >= PROFILE_COMPLETION_THRESHOLD && (u.photos || []).length >= 1;
+}
+
 // Ordered, human-readable breakdown of calcProfileScore's own weights —
 // tells a user exactly what still counts toward PROFILE_COMPLETION_THRESHOLD.
 // Deliberately mirrors calcProfileScore field-for-field, weight-for-weight:
@@ -3485,7 +3502,8 @@ function profileScoreChecklist(u) {
   const photos    = u.photos    || [];
   const interests = u.interests || [];
   return [
-    { key: 'photos',    label: 'Add at least 4 photos',        points: photos.length >= 4 ? 30 : (photos.length >= 1 ? 10 : 0), maxPoints: 30, done: photos.length >= 4 },
+    // One photo is REQUIRED for "complete" (see isProfileComplete); four earn the full points.
+    { key: 'photos',    label: photos.length >= 1 ? 'Add at least 4 photos' : 'Add a profile photo (required)', points: photos.length >= 4 ? 30 : (photos.length >= 1 ? 10 : 0), maxPoints: 30, done: photos.length >= 4, required: photos.length < 1 },
     { key: 'interests', label: 'Select at least 3 interests',  points: interests.length >= 3 ? 20 : (interests.length >= 1 ? 8 : 0), maxPoints: 20, done: interests.length >= 3 },
     { key: 'intent',    label: 'Set a networking goal',        points: (u.intent && u.intent.length > 0) ? 20 : 0, maxPoints: 20, done: !!(u.intent && u.intent.length > 0) },
     { key: 'bio',       label: 'Write a bio (10+ characters)', points: (u.bio && u.bio.length >= 10) ? 10 : 0, maxPoints: 10, done: !!(u.bio && u.bio.length >= 10) },
@@ -3496,7 +3514,7 @@ function profileScoreChecklist(u) {
 
 async function syncProfileScore(userId, user) {
   const score    = calcProfileScore(user);
-  const complete = score >= 70;
+  const complete = isProfileComplete(user);
   await supabase.from('users').update({
     profile_score: score,
     is_profile_complete: complete
@@ -4233,11 +4251,13 @@ async function profileGuard(req, res, next) {
       req.userData = u;
       return profileGuard(req, res, next);
     }
-    const score = calcProfileScore(user);
-    if (score < PROFILE_COMPLETION_THRESHOLD) {
+    if (!isProfileComplete(user)) {
+      // A photo is part of "complete": say so, so the client can ask for the right thing.
+      const noPhoto = (user.photos || []).length < 1;
       return res.status(403).json({
-        error: 'Complete your profile to continue',
+        error: noPhoto ? 'Add a profile photo to continue' : 'Complete your profile to continue',
         code:  'PROFILE_INCOMPLETE',
+        photo_required: noPhoto,
       });
     }
     next();
@@ -4992,7 +5012,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
       };
       newUser.trust_score   = calcTrust(newUser);
       newUser.profile_score = calcProfileScore(newUser);
-      newUser.is_profile_complete = newUser.profile_score >= 70;
+      newUser.is_profile_complete = isProfileComplete(newUser);
 
       const { data: inserted, error: insertErr } = await supabase.from('users').insert(newUser).select().single();
       if (insertErr) {
@@ -5315,7 +5335,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
     const ps = calcProfileScore(user);
     updates.profile_score       = ps;
-    updates.is_profile_complete = ps >= 70;
+    updates.is_profile_complete = isProfileComplete(user);
     updates.trust_score         = calcTrust(user);
 
     const { error: updateSuccessErr } = await supabase.from('users').update(updates).eq('id', user.id);
@@ -5530,7 +5550,7 @@ app.get('/api/me', auth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Not found' });
 
     const ps = calcProfileScore(user);
-    const isComplete = ps >= 70;
+    const isComplete = isProfileComplete(user);
     const scoreChanged = user.profile_score !== ps || user.is_profile_complete !== isComplete;
 
     const [, { data: worksData }] = await Promise.all([
@@ -5696,7 +5716,7 @@ app.get('/api/profile-status', auth, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Not found' });
 
     const score    = calcProfileScore(user);
-    const complete = score >= 70;
+    const complete = isProfileComplete(user);
     await supabase.from('users').update({
       profile_score: score, is_profile_complete: complete
     }).eq('id', user.id);
@@ -5704,6 +5724,7 @@ app.get('/api/profile-status', auth, async (req, res) => {
     res.json({
       profile_score:       score,
       is_profile_complete: complete,
+      photo_required:      (user.photos || []).length < 1,
       checklist: {
         photos:    (user.photos    || []).length >= 4,
         interests: (user.interests || []).length >= 3,
@@ -5791,7 +5812,7 @@ app.put('/api/me', auth, async (req, res) => {
     const merged = { ...user, ...updates };
     updates.trust_score         = calcTrust(merged);
     updates.profile_score       = calcProfileScore(merged);
-    updates.is_profile_complete = updates.profile_score >= 70;
+    updates.is_profile_complete = isProfileComplete(merged);
 
     const { data: updated } = await supabase.from('users')
       .update(updates).eq('id', user.id).select().single();
@@ -5826,7 +5847,7 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (r
     const merged  = { ...user, photos: newPhotos };
     const ts      = calcTrust(merged);
     const ps      = calcProfileScore(merged);
-    const complete = ps >= 70;
+    const complete = isProfileComplete(merged);
 
     await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
@@ -5859,10 +5880,11 @@ app.delete('/api/me/photos', auth, async (req, res) => {
 
     const newPhotos = photos.filter(p => p !== photoUrl);
 
+    // Removing the LAST photo makes the profile incomplete again (a photo is part of "complete").
     const merged  = { ...user, photos: newPhotos };
     const ts      = calcTrust(merged);
     const ps      = calcProfileScore(merged);
-    const complete = ps >= 70;
+    const complete = isProfileComplete(merged);
 
     await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
@@ -5904,7 +5926,7 @@ app.put('/api/me/photos', auth, async (req, res) => {
     const merged = { ...user, photos: newPhotos };
     const ts = calcTrust(merged);
     const ps = calcProfileScore(merged);
-    const complete = ps >= 70;
+    const complete = isProfileComplete(merged);
 
     await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
@@ -8694,7 +8716,7 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
     const merged = { ...user, ...userUpdates };
     userUpdates.trust_score         = calcTrust(merged);
     userUpdates.profile_score       = calcProfileScore(merged);
-    userUpdates.is_profile_complete = userUpdates.profile_score >= PROFILE_COMPLETION_THRESHOLD;
+    userUpdates.is_profile_complete = isProfileComplete(merged);
 
     // Onboarding completion uses the SAME threshold profileGuard enforces
     // downstream — not a second definition of "complete". If this
@@ -8765,6 +8787,8 @@ app.post('/api/onboarding/profile', onboardingLimiter, auth, async (req, res) =>
         code: 'PROFILE_INCOMPLETE',
         profile_score: userUpdates.profile_score,
         required_score: PROFILE_COMPLETION_THRESHOLD,
+        // A photo is part of "complete" even when the score alone would clear the bar.
+        photo_required: (merged.photos || []).length < 1,
         checklist: profileScoreChecklist(merged),
       });
     }
@@ -8791,7 +8815,7 @@ async function sendProfileNudges() {
     const lo    = new Date(now - 48 * 60 * 60 * 1000).toISOString();
     const hi    = new Date(now - 24 * 60 * 60 * 1000).toISOString();
     const { data: users } = await supabase.from('users')
-      .select('id, profile_score, push_token')
+      .select('id, profile_score, photos, push_token')
       .eq('onboarding_stage', 'complete')
       .eq('is_profile_complete', false)
       .not('push_token', 'is', null)
@@ -8799,11 +8823,16 @@ async function sendProfileNudges() {
       .lt('created_at', hi);
     if (!users || users.length === 0) return;
     for (const user of users) {
-      const gap = 70 - (user.profile_score || 0);
+      // A photo is part of "complete": someone whose score already clears the bar but who has
+      // no photo is not "0 points away" - the photo is the one thing missing.
+      const noPhoto = (user.photos || []).length < 1;
+      const gap = PROFILE_COMPLETION_THRESHOLD - (user.profile_score || 0);
       await sendPush(
         [user.id],
         'Complete your BYN profile',
-        `You're ${gap} points from unlocking Discovery. Add photos or interests to get started.`,
+        noPhoto
+          ? 'Add a profile photo to finish your profile and unlock Discovery.'
+          : `You're ${gap} points from unlocking Discovery. Add photos or interests to get started.`,
         { screen: 'ProfileComplete' }
       );
     }

@@ -33,28 +33,37 @@ export type ProfileChecklistItem = {
   points: number;
   maxPoints: number;
   done: boolean;
+  // A photo is REQUIRED for a profile to count as complete (server: isProfileComplete),
+  // whatever the score - the checklist flags it so it is asked for as a requirement.
+  required?: boolean;
 };
 export type ProfileFeedback = {
   profile_score: number;
   required_score: number;
   checklist: ProfileChecklistItem[];
+  // True when the profile has no photo. The score alone can clear the bar without one,
+  // but the profile is not complete until there is a photo.
+  photo_required?: boolean;
 };
 
 interface Props {
   onNext: (data: FormValues & { interests: string[]; skills: string[] }) => void;
   loading: boolean;
   // Set after a submit that the server rejected as PROFILE_INCOMPLETE (score
-  // below what profileGuard requires downstream). Null before the first
-  // attempt, and again after a submit that succeeds.
+  // below what profileGuard requires downstream, or no photo). Null before the
+  // first attempt, and again after a submit that succeeds.
   feedback?: ProfileFeedback | null;
+  // A photo the account already has (e.g. uploaded earlier, on resuming onboarding),
+  // so the photo requirement is not shown as unmet when it is met.
+  existingPhoto?: string | null;
 }
 
-export default function ProfileCompletion({ onNext, loading, feedback }: Props) {
+export default function ProfileCompletion({ onNext, loading, feedback, existingPhoto }: Props) {
   const [interests, setInterests] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
   const skillRef = useRef<HTMLInputElement>(null);
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(existingPhoto ?? null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
@@ -87,11 +96,19 @@ export default function ProfileCompletion({ onNext, loading, feedback }: Props) 
       const res = await apiUpload<{ url: string }>('/api/me/photos', fd);
       setPhotoUrl(res?.url ?? URL.createObjectURL(file));
     } catch {
-      setUploadError('Photo upload failed. You can continue without a photo.');
+      setUploadError('Photo upload failed. A profile photo is required to finish your profile - please try again.');
     } finally { setUploading(false); }
   }
 
-  const submit = (data: FormValues) => onNext({ ...data, interests, skills });
+  const submit = (data: FormValues) => {
+    // A profile photo is required for the profile to count as complete. Say so here rather
+    // than letting the user reach an apparent "finished" state the server would then refuse.
+    if (!photoUrl) {
+      setUploadError('A profile photo is required to finish your profile. Add one above to continue.');
+      return;
+    }
+    onNext({ ...data, interests, skills });
+  };
 
   return (
     <form onSubmit={handleSubmit(submit)} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -100,7 +117,7 @@ export default function ProfileCompletion({ onNext, loading, feedback }: Props) 
           Complete your profile
         </h2>
         <p style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>
-          The more you share, the better your matches.
+          A profile photo is required. The more you share, the better your matches.
         </p>
       </div>
 
@@ -132,7 +149,7 @@ export default function ProfileCompletion({ onNext, loading, feedback }: Props) 
             border: '1.5px solid rgba(21,122,110,0.25)',
           }}
         >
-          {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo'}
+          {uploading ? 'Uploading…' : photoUrl ? 'Change photo' : 'Add profile photo (required)'}
         </label>
         {uploadError && (
           <p style={{ fontSize: 12, color: '#B45309', background: '#FEF3C7', padding: '6px 12px', borderRadius: 8, textAlign: 'center', maxWidth: 280 }}>
@@ -266,7 +283,7 @@ export default function ProfileCompletion({ onNext, loading, feedback }: Props) 
                     flexShrink: 0, display: 'inline-block',
                   }} />
                   {item.label}
-                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#B45309' }}>+{item.maxPoints}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#B45309' }}>{item.required ? 'Required' : `+${item.maxPoints}`}</span>
                 </li>
               ))}
           </ul>

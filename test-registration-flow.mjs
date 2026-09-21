@@ -148,7 +148,11 @@ async function createSecondaryVerifiedUser() {
     stillProfileRow?.onboarding_stage === 'profile', stillProfileRow?.onboarding_stage);
 
   // Enough fields to cross the threshold: intent(20, already set) + name(10,
-  // already set) + bio(10) + location(10) + interests>=3(20) = 70.
+  // already set) + bio(10) + location(10) + interests>=3(20) = 70. A photo is ALSO
+  // part of "complete" (audit A13 - isProfileComplete = score >= 70 AND >= 1 photo),
+  // so give the disposable account one first (set directly: the upload endpoint
+  // needs Cloudinary or the local disk).
+  await supabase.from('users').update({ photos: ['https://example.com/registration-flow-test-photo.jpg'] }).eq('id', created.id);
   const profileRes = await post('/api/onboarding/profile', {
     bio: 'Building a fintech startup in Mumbai, always exploring new ideas.',
     location: 'Mumbai',

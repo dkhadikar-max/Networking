@@ -140,12 +140,23 @@ async function dbRow(id, cols = '*') {
   const afterEmpty = await dbRow(created.id, 'onboarding_stage,profile_score');
   check('DB: onboarding_stage did NOT become complete', afterEmpty?.onboarding_stage === 'profile', JSON.stringify(afterEmpty));
 
-  console.log('\n=== 4-5. Add enough valid data (bio + location + 3 interests) to reach >=70, resubmit ===');
-  const fullRes = await post('/api/onboarding/profile', {
+  console.log('\n=== 4. Enough data to reach >=70 (bio + location + 3 interests) but NO PHOTO — MUST NOT complete (audit A13: a photo is part of "complete") ===');
+  const profileBody = {
     bio: 'Building a fintech startup, exploring new markets across India.',
     location: 'Mumbai',
     interests: ['AI/ML', 'Startups', 'SaaS'],
-  }, sessionToken);
+  };
+  const noPhotoRes = await post('/api/onboarding/profile', profileBody, sessionToken);
+  check('score >= 70 without a photo returns 403 PROFILE_INCOMPLETE with photo_required',
+    noPhotoRes.status === 403 && noPhotoRes.body?.code === 'PROFILE_INCOMPLETE' && noPhotoRes.body?.photo_required === true,
+    JSON.stringify(noPhotoRes.body));
+  const afterNoPhoto = await dbRow(created.id, 'onboarding_stage,is_profile_complete');
+  check('DB: still onboarding_stage=profile and is_profile_complete=false',
+    afterNoPhoto?.onboarding_stage === 'profile' && afterNoPhoto?.is_profile_complete === false, JSON.stringify(afterNoPhoto));
+
+  console.log('\n=== 5. Add a photo (set directly: the upload endpoint needs Cloudinary or the disk), resubmit ===');
+  await supabase.from('users').update({ photos: ['https://example.com/onboarding-test-photo.jpg'] }).eq('id', created.id);
+  const fullRes = await post('/api/onboarding/profile', profileBody, sessionToken);
   check('qualifying submission returns 200 stage=complete',
     fullRes.status === 200 && fullRes.body?.stage === 'complete', JSON.stringify(fullRes.body));
   check('qualifying submission profile_score >= 70',
