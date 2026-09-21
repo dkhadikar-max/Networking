@@ -6735,7 +6735,12 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
     const otherId = conn.user1 === req.user.id ? conn.user2 : conn.user1;
     // Same real-count logic as GET /api/connections — see the comment there.
     const myReadAt = (conn.user1 === req.user.id ? conn.user1_last_read_at : conn.user2_last_read_at) || '1970-01-01T00:00:00.000Z';
-    const [{ data: other }, { data: lastMsgRow }, { data: priMsgs }, { count: unreadCount }] = await Promise.all([
+    // getIcebreakers reads the CALLER's working_on / currently_exploring / location / skills / interests /
+    // intent. On a warm auth-cache hit req.userData is the narrow cached slice with none of them, and the
+    // caller silently got the generic chips instead of the personalised ones - so fetch the current row
+    // (alongside the other reads, so it adds no round trip) when the cache is warm.
+    const meNeedsFetch = !req.userData || req.userData._cached;
+    const [{ data: other }, { data: lastMsgRow }, { data: priMsgs }, { count: unreadCount }, meResult] = await Promise.all([
       supabase.from('users').select('*').eq('id', otherId).maybeSingle(),
       supabase.from('messages').select('*').eq('connection_id', conn.id)
         .order('created_at', { ascending: false }).limit(1).maybeSingle(),
@@ -6743,15 +6748,23 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
         .eq('to_user', req.user.id).eq('from_user', otherId).eq('read', false),
       supabase.from('messages').select('*', { count: 'exact', head: true })
         .eq('connection_id', conn.id).neq('sender_id', req.user.id).gt('created_at', myReadAt),
+      meNeedsFetch
+        ? supabase.from('users').select('id, working_on, currently_exploring, location, skills, interests, intent')
+            .eq('id', req.user.id).maybeSingle()
+        : Promise.resolve({ data: req.userData }),
     ]);
     if (!other) return res.status(404).json({ error: 'User not found' });
+    // The chips are decoration: if the caller's row cannot be read, say so and fall back to the generic
+    // set (getIcebreakers' own answer for a missing caller) rather than failing the whole conversation view.
+    if (meResult.error) console.error('[connection detail] caller lookup for ice-breakers failed:', meResult.error.message);
+    const me = meResult.error ? null : meResult.data;
 
     const lastMsg = lastMsgRow ? mapMessage(lastMsgRow) : null;
     const hoursLeft = conn.active ? null : Math.max(0, Math.round((new Date(conn.expires_at) - now) / 3600000));
     const unread_count = unreadCount || 0;
     // Personalized ice-breakers, only emitted here (not on the /api/connections
     // list) since chips render only in one conversation's empty state.
-    // getIcebreakers reads raw fields off `other` and `req.userData`; the
+    // getIcebreakers reads raw fields off `other` and the caller's row (`me`); the
     // response still ships the cleanPublic'd user object below, unchanged.
     res.json({
       connection: conn,
@@ -6762,7 +6775,7 @@ app.get('/api/connections/:connId', auth, async (req, res) => {
       msgCount: 0,
       unread_count,
       is_priority: (priMsgs || []).length > 0,
-      icebreakers: getIcebreakers(req.userData, other),
+      icebreakers: getIcebreakers(me, other),
     });
   } catch(e) {
     console.error('Connection detail error:', e);
@@ -6851,10 +6864,25 @@ app.post('/api/messages/:connId', msgLimiter, auth, async (req, res) => {
         if (prevMsgs && prevMsgs.length > 0) {
           const replyMs  = Date.now() - new Date(prevMsgs[0].created_at).getTime();
           const replyMin = Math.max(0, Math.round(replyMs / 60000));
-          const prev  = sender.avg_reply_minutes || 0;
-          const count = sender.reply_count || 0;
-          senderUpdates.avg_reply_minutes = Math.round((prev * count + replyMin) / (count + 1));
-          senderUpdates.reply_count = count + 1;
+          // The running average is folded into the STORED reply_count / avg_reply_minutes. On a warm
+          // auth-cache hit req.userData is the narrow cached slice, which carries neither, so both read
+          // as 0 and this wrote back a count of 1 and the average of just this one reply - overwriting
+          // the sender's real history on every reply. Read the current values instead (only here, where
+          // they are needed - a message that is not a reply pays nothing). If that read fails, throw:
+          // writing a from-zero figure over the stored one is worse than skipping this update.
+          let stored = sender;
+          if (sender._cached) {
+            const { data: fresh, error: statsErr } = await supabase.from('users')
+              .select('reply_count, avg_reply_minutes').eq('id', req.user.id).maybeSingle();
+            if (statsErr) throw statsErr;
+            stored = fresh;
+          }
+          if (stored) {
+            const prev  = stored.avg_reply_minutes || 0;
+            const count = stored.reply_count || 0;
+            senderUpdates.avg_reply_minutes = Math.round((prev * count + replyMin) / (count + 1));
+            senderUpdates.reply_count = count + 1;
+          }
         }
 
         // Response rate
