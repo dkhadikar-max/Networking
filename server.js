@@ -5647,6 +5647,24 @@ app.get('/api/profile-status', auth, async (req, res) => {
   }
 });
 
+// The values PUT /api/me accepts for `intent` - the vocabularies the platform's OWN
+// clients write to users.intent (production holds all of them today):
+//   * the matching slugs (INTENT_COMPAT keys), which onboarding writes via INTENT_LEGACY_MAP;
+//   * the extra slugs the mobile app's profile screens send;
+//   * the labels the web ProfileEdit chips send;
+//   * onboarding's own labels (VALID_INTENTS).
+// Anything else used to be stored as-is - any string of any length, any JSON type - and then
+// shown on other users' profile cards and used by matching. Matched case-insensitively (the
+// web editor compares that way) and returned in canonical form. Read at call time:
+// VALID_INTENTS is declared further down this file.
+const PROFILE_INTENT_EXTRAS = ['find-cofounder', 'find-mentor', 'hire', 'find-investors',
+  'Hiring', 'Freelance', 'Co-founder', 'Mentorship', 'Investing', 'Networking'];
+function canonicalProfileIntent(value) {
+  const v = String(value).toLowerCase();
+  return [...Object.keys(INTENT_COMPAT), ...PROFILE_INTENT_EXTRAS, ...VALID_INTENTS]
+    .find(x => x.toLowerCase() === v) || null;
+}
+
 // ── UPDATE ME ──
 app.put('/api/me', auth, async (req, res) => {
   try {
@@ -5658,6 +5676,37 @@ app.put('/api/me', auth, async (req, res) => {
       'currently_exploring','working_on','interested_in']);
     if (req.body.linkedin !== undefined) req.body.linkedin = sanitizeUrlField(req.body.linkedin);
     if (req.body.website !== undefined) req.body.website = sanitizeUrlField(req.body.website);
+
+    // A display name set here must be a string of at most 120 characters (the registration
+    // limit - rejected here rather than silently truncated) with something a person can SEE
+    // in it: the same hasDisplayableChar() rule registration enforces.
+    // This used to go straight into the UPDATE, so '', spaces, zero-width characters (or a
+    // number/object; null failed the NOT NULL column and crashed the route) blanked a named
+    // account's name after registration. A bad value rejects the WHOLE request (nothing is
+    // partially applied). One deliberate exception: a LEGACY account whose stored name is
+    // already blank may re-submit that blank name while editing something else - it is
+    // dropped as a no-op rather than blocking the edit (what to do about those accounts is a
+    // separate data decision); it can still set a real name, and once named cannot blank it.
+    if (req.body.name !== undefined) {
+      if (typeof req.body.name !== 'string') return res.status(400).json({ error: 'Name must be text' });
+      if (req.body.name.length > 120) return res.status(400).json({ error: 'Name must be 120 characters or fewer' });
+      if (!hasDisplayableChar(req.body.name)) {
+        if (hasDisplayableChar(user.name)) return res.status(400).json({ error: 'Name required' });
+        delete req.body.name;
+      }
+    }
+    // intent: one of the platform's own values (see canonicalProfileIntent). A blank or null
+    // intent is a no-op, not an error: the web editor sends '' for an account with no intent yet.
+    if (req.body.intent !== undefined) {
+      if (req.body.intent === null) delete req.body.intent;
+      else if (typeof req.body.intent !== 'string') return res.status(400).json({ error: 'Invalid intent' });
+      else if (req.body.intent.trim() === '') delete req.body.intent;
+      else {
+        const intent = canonicalProfileIntent(req.body.intent.trim());
+        if (!intent) return res.status(400).json({ error: 'Invalid intent' });
+        req.body.intent = intent;
+      }
+    }
 
     if (req.body.lat != null) req.body.lat = Math.round(parseFloat(req.body.lat) * 100) / 100;
     if (req.body.lng != null) req.body.lng = Math.round(parseFloat(req.body.lng) * 100) / 100;
