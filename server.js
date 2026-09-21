@@ -9555,7 +9555,20 @@ app.get('/api/circles/feed', auth, async (req, res) => {
     const { tags, offset = '0', limit = '20', mode = 'for-you', group_id } = req.query;
     const off = Math.max(0, parseInt(offset) || 0);
     const lim = Math.min(Math.max(1, parseInt(limit) || 20), 50);
-    const me  = req.userData;
+    // The caller's profile is read in two places: the near-me filter (lat / lng / location) and
+    // the relevance ranking used by every non-"all", non-group feed (skills / interests / lat /
+    // lng / location). On a warm auth-cache hit req.userData is the narrow cached slice, which
+    // carries NONE of those - so a user with a location got { posts: [], noLocation: true } from
+    // near-me, and for-you silently lost all its personalisation (the web app warms the cache
+    // with GET /api/me on every page load). Fetch the current row instead, but only in the modes
+    // that actually read it: mode=all and group feeds never touch `me`, so they pay nothing.
+    let me = req.userData;
+    if ((mode === 'near-me' || (!group_id && mode !== 'all')) && (!me || me._cached)) {
+      const { data: fresh, error: meErr } = await supabase.from('users')
+        .select('id, skills, interests, lat, lng, location').eq('id', req.user.id).maybeSingle();
+      if (meErr) throw meErr;
+      me = fresh;
+    }
 
     if (group_id) {
       const { data: group } = await supabase.from('circle_groups').select('privacy').eq('id', group_id).maybeSingle();
