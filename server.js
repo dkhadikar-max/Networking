@@ -4326,6 +4326,28 @@ function isLiveTarget(u) {
   return !!u && !u.deleted_at && !u.banned;
 }
 
+// A BLOCK must be honored, not just recorded. POST /api/block stores it and deletes the
+// pair's connection, messages and swipes - but Discover was the only reader of the blocks
+// table, so a blocked user could immediately swipe on, connect to, priority-message, VIEW
+// and SEARCH for the person who blocked them (and the blocker's own swipe could re-match
+// them). Symmetric, like Discover: a block in EITHER direction ends contact both ways.
+// Every caller answers with the SAME response it gives for a nonexistent user, so a blocked
+// user cannot tell they were blocked. Both ids must be trustworthy (the caller's JWT id, and
+// a target that was validated or loaded from the database) - they go into a filter string.
+async function isBlockedEitherWay(a, b) {
+  const { data, error } = await supabase.from('blocks').select('id')
+    .or(`and(from_user.eq.${a},to_user.eq.${b}),and(from_user.eq.${b},to_user.eq.${a})`).limit(1);
+  if (error) throw error;
+  return !!(data && data.length);
+}
+// The ids of everyone the user has blocked or been blocked by (for filtering lists).
+async function blockedCounterparts(userId) {
+  const { data, error } = await supabase.from('blocks').select('from_user, to_user')
+    .or(`from_user.eq.${userId},to_user.eq.${userId}`);
+  if (error) throw error;
+  return new Set((data || []).map(b => b.from_user === userId ? b.to_user : b.from_user));
+}
+
 // Lightweight guard for browsing discovery — only requires intent to be set (trust >= 10).
 // The discover route itself gates on having at least 1 photo (NO_PHOTO check).
 // profileGuard (70) and full trustGuard (20) are still enforced on swipe/connect.
@@ -5948,6 +5970,9 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
     const { data: user } = await supabase.from('users')
       .select('*').eq('id', req.params.id).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
+    // A block in either direction: the profile is "not found" (see isBlockedEitherWay). You can
+    // always view your own. user.id comes from the database, so it is safe in the filter.
+    if (user.id !== req.user.id && await isBlockedEitherWay(req.user.id, user.id)) return res.status(404).json({ error: 'Not found' });
 
     const [{ data: worksData }, { data: userConns }, { data: reviews }] = await Promise.all([
       supabase.from('works').select('*').eq('user_id', user.id),
@@ -6278,11 +6303,13 @@ app.get('/api/search', auth, discoverGuard, async (req, res) => {
       .neq('id', req.user.id)
       .limit(200);
 
-    const results = (allUsers || []).filter(u =>
+    // Anyone the caller has blocked, or who has blocked the caller, is left out (see isBlockedEitherWay).
+    const blockedIds = await blockedCounterparts(req.user.id);
+    const results = (allUsers || []).filter(u => !blockedIds.has(u.id) && (
       (u.name||'').toLowerCase().includes(term) ||
       (u.interests||[]).some(i => i.toLowerCase().includes(term)) ||
       (u.skills||[]).some(s => s.toLowerCase().includes(term))
-    ).slice(0, 20).map(u => cleanPublic(u));
+    )).slice(0, 20).map(u => cleanPublic(u));
 
     res.json(results);
   } catch(e) {
@@ -6308,6 +6335,8 @@ app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, 
       .select('id, banned, deleted_at').eq('id', targetId).maybeSingle();
     if (targetErr) throw targetErr;
     if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
+    // A block in either direction: the other party is "not found" (see isBlockedEitherWay).
+    if (await isBlockedEitherWay(req.user.id, target.id)) return res.status(404).json({ error: 'User not found' });
 
     const swiper = req.userData;
     const SWIPE_LIMIT = swiper.premium ? 200 : 30;
@@ -6436,6 +6465,7 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
       { data: existingConn },
       { data: dupSwipe },
       { data: target, error: targetErr },
+      { data: blockRows, error: blockErr },
     ] = await Promise.all([
       supabase.from('swipes').select('*', { count: 'exact', head: true })
         .eq('from_user', req.user.id).gte('created_at', todayStart.toISOString()),
@@ -6448,9 +6478,13 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
       // same batch. Judged FIRST below - before the limit and before the "already connected"
       // shortcut - so a banned or deleted target is a 404 even where a connection already exists.
       supabase.from('users').select('id, banned, deleted_at').eq('id', targetId).maybeSingle(),
+      // ...and whether either side has blocked the other (see isBlockedEitherWay; targetId was
+      // validated as a UUID above, so it is safe in the filter string). Judged with the target.
+      supabase.from('blocks').select('id')
+        .or(`and(from_user.eq.${req.user.id},to_user.eq.${targetId}),and(from_user.eq.${targetId},to_user.eq.${req.user.id})`).limit(1),
     ]);
-    if (targetErr) throw targetErr;
-    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
+    if (targetErr || blockErr) throw (targetErr || blockErr);
+    if (!isLiveTarget(target) || (blockRows && blockRows.length)) return res.status(404).json({ error: 'User not found' });
     if (countErr) throw countErr;
     if ((todayCount || 0) >= SWIPE_LIMIT)
       return res.status(429).json({ error: 'Daily connection limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
@@ -6871,6 +6905,9 @@ app.post('/api/priority-message', auth, async (req, res) => {
     const { data: target } = await supabase.from('users')
       .select('id').eq('id', targetId).maybeSingle();
     if (!target) return res.status(404).json({ error: 'Recipient not found' });
+    // A block in either direction: same answer as a nonexistent recipient, before the monthly
+    // quota is read or anything is stored (target.id comes from the database, so it is safe in the filter).
+    if (await isBlockedEitherWay(req.user.id, target.id)) return res.status(404).json({ error: 'Recipient not found' });
 
     const month = thisMonthKey();
     const { data: monthMsgs } = await supabase.from('priority_msgs')
