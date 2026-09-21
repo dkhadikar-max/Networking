@@ -7919,7 +7919,9 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     if (!razorpay) return res.status(503).json({ error: 'Payments not configured' });
     if (req.user.scope !== 'payment') return res.status(403).json({ error: 'Use a payment session token' });
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan } = req.body;
+    // `plan` is deliberately NOT used as an entitlement input — see the
+    // orderRec lookup below. It is only captured to flag a mismatch.
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan: clientPlan } = req.body;
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature)
       return res.status(400).json({ error: 'Missing payment fields' });
 
@@ -7937,11 +7939,20 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     // Razorpay callback (order_id/payment_id/signature are all visible in the
     // browser) could race their own /verify call in first and get premium
     // activated on their own account for someone else's payment.
+    //
+    // The order row is also the ONLY source of truth for which plan was
+    // purchased (written server-side at create-order, from the plan/currency
+    // the server priced the Razorpay order with). The signature covers
+    // order_id|payment_id only, so a client-supplied `plan` is unauthenticated
+    // input and must never decide the entitlement.
     const { data: orderRec } = await supabase.from('payments')
-      .select('user_id').eq('id', razorpay_order_id).maybeSingle();
+      .select('user_id, plan').eq('id', razorpay_order_id).maybeSingle();
     if (!orderRec) return res.status(404).json({ error: 'Order not found' });
     if (orderRec.user_id !== req.user.id)
       return res.status(403).json({ error: 'This order does not belong to you' });
+    if (clientPlan !== undefined && clientPlan !== orderRec.plan) {
+      console.warn(`[payments/verify] client plan ${JSON.stringify(clientPlan)} != stored order plan ${JSON.stringify(orderRec.plan)} (order ${razorpay_order_id}); using the stored plan`);
+    }
 
     // BUG FIX 1: Replay-attack guard — reject any payment_id already consumed by a DIFFERENT user.
     // Without this, anyone holding a valid {order_id, payment_id, signature} tuple can
@@ -7967,9 +7978,9 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     // now, rather than replacing it (locked spec, repurchase-before-expiry
     // decision: a user with remaining paid time left must not lose it to a
     // second purchase).
-    const planDef = PLANS[plan] || PLANS.monthly;
+    const planDef = PLANS[orderRec.plan] || PLANS.monthly;
     const expiresAt = await grantOrExtendPremium(req.user.id, planDef.days, {
-      premium_plan:  plan,
+      premium_plan:  orderRec.plan,
       premium_since: new Date().toISOString(),
     });
 
@@ -7983,7 +7994,7 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     const { data: u } = await supabase.from('users')
       .select('email, name').eq('id', req.user.id).maybeSingle();
     if (u && ResendClient) {
-      const planLabel = plan === 'quarterly' ? 'Quarterly' : 'Monthly';
+      const planLabel = orderRec.plan === 'quarterly' ? 'Quarterly' : 'Monthly';
       ResendClient.emails.send({
         from: process.env.RESEND_FROM || 'Build Your Network <onboarding@resend.dev>',
         to:   u.email,
