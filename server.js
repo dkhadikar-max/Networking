@@ -4277,6 +4277,44 @@ async function trustGuard(req, res, next) {
   }
 }
 
+// The "active BYN user" rule (locked spec): a VERIFIED e-mail AND a FINISHED onboarding.
+// Discover enforces it as a query filter on the people it shows, the admin list reports it as
+// is_active, and the web app's layout redirects an inactive user to /verify or /onboarding - but
+// the API itself only checked it on the three onboarding POSTs. An account that never verified
+// or never finished onboarding could therefore fill its profile through PUT /api/me (raising
+// profile_score and trust past the guards below) and then swipe and connect from outside the
+// product flow. Strict `=== true` / `=== 'complete'`: a NULL or missing value is NOT active.
+function isActiveUser(u) {
+  return !!u && u.email_verified === true && u.onboarding_stage === 'complete';
+}
+
+// Requires an active user (see isActiveUser). Put FIRST in a chain, ahead of profileGuard /
+// trustGuard, so an unverified account with an empty profile is told to verify its e-mail
+// rather than to "complete your profile". Reads the CURRENT row: the auth cache's narrow slice
+// (req.userData._cached) does not carry email_verified / onboarding_stage, so it is replaced by
+// the real row - which the guards after this one then reuse instead of fetching it again.
+async function activeGuard(req, res, next) {
+  try {
+    let user = req.userData;
+    if (!user || user._cached) {
+      const { data: u, error } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+      if (!u) return res.status(404).json({ error: 'Not found' });
+      u.premium = isPremiumActive(u); // same normalization as auth() — this bypasses auth() entirely
+      req.userData = user = u;
+    }
+    if (!isActiveUser(user)) {
+      if (user.email_verified !== true)
+        return res.status(403).json({ error: 'Verify your email first', code: 'EMAIL_NOT_VERIFIED' });
+      return res.status(403).json({ error: 'Finish setting up your profile first', code: 'ONBOARDING_INCOMPLETE' });
+    }
+    next();
+  } catch(e) {
+    console.error('activeGuard error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
 // Lightweight guard for browsing discovery — only requires intent to be set (trust >= 10).
 // The discover route itself gates on having at least 1 photo (NO_PHOTO check).
 // profileGuard (70) and full trustGuard (20) are still enforced on swipe/connect.
@@ -6246,7 +6284,7 @@ app.get('/api/search', auth, discoverGuard, async (req, res) => {
 // - Checks limit before insert
 // - Handles duplicate swipes via manual check (add DB UNIQUE constraint for full safety)
 // - Catches unique violation (23505) as fallback
-app.post('/api/swipe', auth, profileGuard, trustGuard, async (req, res) => {
+app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, res) => {
   try {
     const { targetId, direction } = req.body;
     if (!targetId || !['right','left'].includes(direction))
@@ -6356,7 +6394,7 @@ app.post('/api/skip', auth, async (req, res) => {
 });
 
 // ── CONNECT (direct right-swipe from profile page or card button) ──
-app.post('/api/connect', auth, profileGuard, trustGuard, async (req, res) => {
+app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req, res) => {
   try {
     const { userId: targetId } = req.body;
     if (!targetId) return res.status(400).json({ error: 'userId required' });
