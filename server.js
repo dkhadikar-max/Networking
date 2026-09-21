@@ -6007,32 +6007,32 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
     u.connections_count = (userConns || []).length;
     u.review_summary   = buildReviewSummary(reviews || []);
 
-    // Optional auth — mutual connections + is_connected + my_review
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET);
-        if (decoded?.id && decoded.id !== user.id) {
-          const viewerId = decoded.id;
-          const targetConnSet = new Set(
-            (userConns || []).map(c => c.user1 === user.id ? c.user2 : c.user1)
-          );
-          const { data: viewerConns } = await supabase.from('connections')
-            .select('user1,user2').or(`user1.eq.${viewerId},user2.eq.${viewerId}`);
-          const viewerConnSet = new Set(
-            (viewerConns || []).map(c => c.user1 === viewerId ? c.user2 : c.user1)
-          );
-          u.is_connected = viewerConnSet.has(user.id);
-          let mutual = 0;
-          viewerConnSet.forEach(id => { if (targetConnSet.has(id)) mutual++; });
-          u.mutual_count = mutual;
-          if (u.is_connected) {
-            const { data: myReview } = await supabase.from('user_reviews')
-              .select('*').eq('reviewer_id', viewerId).eq('reviewed_id', user.id).maybeSingle();
-            u.my_review = myReview || null;
-          }
-        }
-      } catch {} // invalid token — skip enrichment
+    // Viewer-relative fields — is_connected, mutual_count, my_review. The viewer is req.user, which auth()
+    // set from the Authorization header (mobile) OR the byn_token cookie (web, which sends no header). This
+    // used to re-parse req.headers.authorization itself, so every cookie-authenticated caller got a response
+    // without these fields, and its empty catch turned a failed query into the same silently thinner (or
+    // wrongly "not connected") answer. A failed lookup is an error now, like the rest of this handler.
+    if (req.user.id !== user.id) {
+      const viewerId = req.user.id;
+      const targetConnSet = new Set(
+        (userConns || []).map(c => c.user1 === user.id ? c.user2 : c.user1)
+      );
+      const { data: viewerConns, error: viewerConnsErr } = await supabase.from('connections')
+        .select('user1,user2').or(`user1.eq.${viewerId},user2.eq.${viewerId}`);
+      if (viewerConnsErr) throw viewerConnsErr;
+      const viewerConnSet = new Set(
+        (viewerConns || []).map(c => c.user1 === viewerId ? c.user2 : c.user1)
+      );
+      u.is_connected = viewerConnSet.has(user.id);
+      let mutual = 0;
+      viewerConnSet.forEach(id => { if (targetConnSet.has(id)) mutual++; });
+      u.mutual_count = mutual;
+      if (u.is_connected) {
+        const { data: myReview, error: myReviewErr } = await supabase.from('user_reviews')
+          .select('*').eq('reviewer_id', viewerId).eq('reviewed_id', user.id).maybeSingle();
+        if (myReviewErr) throw myReviewErr;
+        u.my_review = myReview || null;
+      }
     }
 
     res.json(u);
