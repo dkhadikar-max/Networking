@@ -6319,9 +6319,19 @@ app.get('/api/search', auth, discoverGuard, async (req, res) => {
     if (!q || q.trim().length < 2) return res.json([]);
     const term = q.trim().toLowerCase();
     // FIXED: Limit results to prevent memory issues
+    // Only accounts Discover would also show: not banned, not soft-deleted, e-mail verified and
+    // onboarding complete (the same filters as the Discover query). This used to filter on
+    // `banned` alone, so search returned anonymised "Deleted User" rows, accounts that never
+    // verified and accounts still mid-onboarding (42% of what it could return in production) -
+    // and, because the 200-row limit is applied by the DATABASE before the name/interest
+    // matching below, those ineligible rows also crowded real matches out of the window. So the
+    // filters are in the query. A NULL flag or stage is not eligible (`eq` never matches NULL).
     const { data: allUsers } = await supabase.from('users')
       .select('*')
       .or('banned.is.null,banned.eq.false')
+      .is('deleted_at', null)
+      .eq('email_verified', true)
+      .eq('onboarding_stage', 'complete')
       .neq('id', req.user.id)
       .limit(200);
 
