@@ -220,7 +220,8 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     await rep('reporter', { targetId: 'victim_deleted', category: 'CSAM' });
     check('CSAM report against a soft-deleted account: not flagged banned', !(await bannedIds()).includes('victim_deleted'), JSON.stringify(await bannedIds()));
     const ghost = await rep('reporter', { targetId: 'no-such-user', category: 'CSAM' });
-    check('CSAM report against a NONEXISTENT id: no crash (still answers)', ghost.status === 200 || ghost.status === 500 || ghost.status === 400, `status=${ghost.status}`);
+    // (originally only "no crash"; the A7 safeguards then made a nonexistent target a clean 404)
+    check('CSAM report against a NONEXISTENT id: rejected (404), nobody restricted', ghost.status === 404 && !(await bannedIds()).length, `status=${ghost.status}`);
     if (migrated) {
       const auto = (await q(`SELECT target_id FROM audit_logs WHERE action = 'dsa_auto_ban'`)).rows.map(r => r.target_id);
       check('no "dsa_auto_ban" audit row is written for any report (no automatic ban happens, so none is claimed)', auto.length === 0, JSON.stringify(auto));
@@ -258,7 +259,11 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     check('admin ban still works (moderator path unaffected): banned -> 403 on next request; unban restores', afterBan && meBanned.status === 403 && !(await bannedIds()).includes('victim_plain_ban'), `banned=${afterBan} status=${meBanned.status}`);
     // ordinary (social) report path is a different route and must be untouched
     const social = await S.call('POST', '/api/report', { token: tok('reporter'), body: { targetId: 'plain_target', reason: 'rude' } });
-    check('ordinary social report unchanged: 200 and trust penalty applied', social.status === 200 && (await one(`SELECT trust_score FROM users WHERE id='plain_target'`)).trust_score === 30, JSON.stringify(social));
+    const socialTrust = (await one(`SELECT trust_score FROM users WHERE id='plain_target'`)).trust_score;
+    if (migrated) check('ordinary social report unchanged: 200 and trust penalty applied', social.status === 200 && socialTrust === 30, JSON.stringify(social));
+    // Its dedupe now filters on reports.type (the A7 safeguards), so on a schema WITHOUT that column it fails CLOSED:
+    // a loud 5xx with no row and no penalty, never a silent fail-open (see test-a7-report-safeguards.mjs).
+    else check('ordinary social report on a schema without reports.type fails CLOSED: 5xx, no penalty applied', social.status >= 500 && socialTrust === 40, JSON.stringify([social.status, socialTrust]));
     await S.stop();
   }
 

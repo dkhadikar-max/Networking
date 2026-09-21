@@ -6884,10 +6884,23 @@ app.post('/api/report', auth, async (req, res) => {
     if (!targetId || !reason) return res.status(400).json({ error: 'Required fields missing' });
     if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot report yourself' });
 
-    // Dedup: one report per (reporter, target) pair
-    const { data: dup } = await supabase.from('reports')
-      .select('id').eq('from_user', req.user.id).eq('target_id', targetId).maybeSingle();
-    if (dup) return res.status(400).json({ error: 'You have already reported this user' });
+    // Dedup: one ORDINARY report per (reporter, target) pair. The reports table
+    // also holds illegal-content reports (type='illegal_content', same
+    // from_user/target_id) - a separate channel that must not count here. This
+    // used to be maybeSingle() on (reporter, target) without looking at `type`:
+    // ONE illegal-content row made an ordinary report "already reported", and
+    // TWO made maybeSingle() return an error (multiple rows) which was ignored,
+    // so the dedupe failed open and every further report applied another -10
+    // trust penalty. `type` is set only by the server, so report text cannot
+    // spoof it. A lookup failure now fails closed (nothing recorded, no penalty).
+    const { data: dupRows, error: dupErr } = await supabase.from('reports')
+      .select('id').eq('from_user', req.user.id).eq('target_id', targetId)
+      .or('type.is.null,type.neq.illegal_content').limit(1);
+    if (dupErr) {
+      console.error('Report dedupe lookup failed:', dupErr.message);
+      return res.status(500).json({ error: 'Failed to process your report — please try again' });
+    }
+    if (dupRows && dupRows.length) return res.status(400).json({ error: 'You have already reported this user' });
 
     await supabase.from('reports').insert({
       id: uuidv4(), from_user: req.user.id, target_id: targetId,
@@ -6918,14 +6931,53 @@ app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res)
     if (!targetId || !category || !DSA_CATEGORIES.includes(category))
       return res.status(400).json({ error: 'targetId and valid category required', categories: DSA_CATEGORIES });
     const cleanDesc = description ? String(description).slice(0, 2000) : '';
+    // targetId is user-supplied and goes straight into queries and the stored
+    // row: it must be a plain, bounded string (a number, object, array or
+    // 5000-char string used to be accepted and stored as-is).
+    if (typeof targetId !== 'string' || targetId.length > 64)
+      return res.status(400).json({ error: 'Invalid targetId' });
+    // Same rule as the ordinary report route: you cannot report yourself.
+    if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot report yourself' });
+    // The target must be a real, live account. A nonexistent or soft-deleted
+    // target used to be accepted ("Report received") and stored as an orphan
+    // row that also inflated the DSA transparency counts. Deleted and
+    // nonexistent answer identically, so this cannot be used to probe which
+    // ids were ever real accounts.
+    const { data: target, error: targetErr } = await supabase.from('users')
+      .select('id, deleted_at').eq('id', targetId).maybeSingle();
+    if (targetErr) {
+      console.error(`[DSA] target lookup failed from=${req.user.id} target=${targetId}: ${targetErr.message}`);
+      return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+    }
+    if (!target || target.deleted_at) return res.status(404).json({ error: 'Target not found' });
+    // Duplicates collapse: the same reporter reporting the same target for the
+    // same category again adds nothing (idempotent 200, no second row).
+    // Category is the "[DSA:<category>]" prefix the route itself writes to
+    // `reason`; only server-typed rows are considered. NOTE: this is a
+    // check-then-insert, so two truly simultaneous identical requests can both
+    // pass it; a unique index would close that and needs a schema change (left
+    // to the moderation-workflow schema).
+    const { data: prior, error: priorErr } = await supabase.from('reports')
+      .select('id, reason').eq('from_user', req.user.id).eq('target_id', targetId)
+      .eq('type', 'illegal_content').limit(50);
+    if (priorErr) {
+      console.error(`[DSA] FAILED to persist illegal-content report from=${req.user.id} target=${targetId} category=${category}: could not check for a duplicate: ${priorErr.message}`);
+      return res.status(500).json({ error: 'Failed to record your report — please try again', code: 'REPORT_NOT_PERSISTED' });
+    }
+    const dupRow = (prior || []).find(r => typeof r.reason === 'string' && r.reason.startsWith(`[DSA:${category}]`));
+    if (dupRow) {
+      console.log(`[DSA] duplicate report from=${req.user.id} target=${targetId} category=${category} collapsed into report=${dupRow.id}`);
+      return res.json({ ok: true, message: 'Report received. Our team will review within 24 hours.', duplicate: true });
+    }
     // The report MUST be durably recorded before we tell the reporter it was
     // received (DSA Art. 16). supabase-js returns {error} rather than throwing:
     // this INSERT used to be unchecked, so with reports.type missing it was
     // rejected while the endpoint answered "Report received". If it fails, stop
     // here — no success response and no follow-on side effects for a report
     // that was never recorded.
+    const reportId = uuidv4();
     const { error: reportInsertErr } = await supabase.from('reports').insert({
-      id: uuidv4(), from_user: req.user.id, target_id: targetId,
+      id: reportId, from_user: req.user.id, target_id: targetId,
       reason: `[DSA:${category}] ${cleanDesc}`,
       type: 'illegal_content',
       created_at: new Date().toISOString(),
@@ -6943,9 +6995,9 @@ app.post('/api/report/illegal-content', auth, dsaReportLimiter, async (req, res)
     // account is a moderator action (POST /api/admin/ban) until the reviewed
     // hold/threshold workflow replaces this.
     if (category === 'CSAM' || category === 'Terrorism') {
-      console.warn(`[DSA] HIGH-SEVERITY report from=${req.user.id} target=${targetId} category=${category} — recorded; no automatic action taken, needs manual review`);
+      console.warn(`[DSA] HIGH-SEVERITY report from=${req.user.id} target=${targetId} category=${category} report=${reportId} — recorded; no automatic action taken, needs manual review`);
     }
-    console.log(`[DSA] report from=${req.user.id} target=${targetId} category=${category}`);
+    console.log(`[DSA] report from=${req.user.id} target=${targetId} category=${category} report=${reportId}`);
     res.json({ ok: true, message: 'Report received. Our team will review within 24 hours.' });
   } catch(e) {
     console.error('DSA report error:', e);
@@ -7121,7 +7173,14 @@ app.post('/api/admin/ban', adminAuth, async (req, res) => {
     const { targetId, banned } = req.body;
     const { data: user } = await supabase.from('users').select('id').eq('id', targetId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'Not found' });
-    await supabase.from('users').update({ banned: !!banned }).eq('id', targetId);
+    // supabase-js returns {error} rather than throwing: this UPDATE used to be
+    // unchecked, so a failed write answered {ok:true} (and wrote an audit row)
+    // for a ban/unban that never happened.
+    const { error: banErr } = await supabase.from('users').update({ banned: !!banned }).eq('id', targetId);
+    if (banErr) {
+      console.error(`Admin ban FAILED to apply (${banned ? 'ban' : 'unban'} ${targetId}):`, banErr.message);
+      return res.status(500).json({ error: 'Failed to update the account restriction', code: 'BAN_NOT_APPLIED' });
+    }
     authCacheInvalidate(targetId); // banned just changed
     if (!(await auditAdminAction(res, req.user.id, banned ? 'ban' : 'unban', targetId))) return;
     res.json({ ok: true });
