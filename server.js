@@ -6270,8 +6270,20 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
 // Used by the Discover screen to show "X new founders in [city] today".
 app.get('/api/discover/daily-signal', auth, async (req, res) => {
   try {
-    const me = req.userData;
-    if (!me) return res.status(404).json({ error: 'User not found' });
+    // On a warm auth-cache hit req.userData is the narrow cached slice (id, banned, premium,
+    // password_changed_at, deleted_at, role) - it never carries location / lat / lng. Reading
+    // them off it made the same user get { count: N, city: "Pune" } when cold and
+    // { count: 0, city: "" } when warm (the web app warms the cache with GET /api/me on every
+    // page load). Fetch the current row instead, so the answer never depends on cache state
+    // and reflects a location change at once. Only the fields this route needs.
+    let me = req.userData;
+    if (!me || me._cached) {
+      const { data: fresh, error } = await supabase.from('users')
+        .select('id, location, lat, lng').eq('id', req.user.id).maybeSingle();
+      if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+      if (!fresh) return res.status(404).json({ error: 'User not found' });
+      me = fresh;
+    }
 
     const since24h = new Date(Date.now() - 24 * 3600000).toISOString();
     const city = (me.location || '').trim();
