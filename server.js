@@ -4315,6 +4315,17 @@ async function activeGuard(req, res, next) {
   }
 }
 
+// The TARGET of a swipe / connect must be a real, live account: it exists, is not
+// soft-deleted and is not banned. Neither route used to look the target up at all
+// (swipe checked only that it was truthy, connect only that it looked like a UUID), so a
+// nonexistent id, a deleted (anonymised) or a banned account all answered 200 and wrote a
+// swipe row - and if that account had already liked the caller, created a real match and
+// connection with it. Callers answer 404 for anything else, with ONE message for all three
+// cases so the endpoints cannot be used to probe which ids were ever accounts or who was banned.
+function isLiveTarget(u) {
+  return !!u && !u.deleted_at && !u.banned;
+}
+
 // Lightweight guard for browsing discovery — only requires intent to be set (trust >= 10).
 // The discover route itself gates on having at least 1 photo (NO_PHOTO check).
 // profileGuard (70) and full trustGuard (20) are still enforced on swipe/connect.
@@ -6290,6 +6301,13 @@ app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, 
     if (!targetId || !['right','left'].includes(direction))
       return res.status(400).json({ error: 'Invalid swipe data' });
     if (targetId === req.user.id) return res.json({ ok: true });
+    // The target must be a well-formed id of a live account (see isLiveTarget). Checked before
+    // anything is counted or written, so a refused swipe consumes none of the daily limit.
+    if (!isValidId(targetId)) return res.status(400).json({ error: 'Invalid user id' });
+    const { data: target, error: targetErr } = await supabase.from('users')
+      .select('id, banned, deleted_at').eq('id', targetId).maybeSingle();
+    if (targetErr) throw targetErr;
+    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
 
     const swiper = req.userData;
     const SWIPE_LIMIT = swiper.premium ? 200 : 30;
@@ -6417,6 +6435,7 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
       { count: todayCount, error: countErr },
       { data: existingConn },
       { data: dupSwipe },
+      { data: target, error: targetErr },
     ] = await Promise.all([
       supabase.from('swipes').select('*', { count: 'exact', head: true })
         .eq('from_user', req.user.id).gte('created_at', todayStart.toISOString()),
@@ -6425,7 +6444,13 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
         .maybeSingle(),
       supabase.from('swipes').select('id')
         .eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle(),
+      // The target must be a live account (see isLiveTarget). One more independent read in the
+      // same batch. Judged FIRST below - before the limit and before the "already connected"
+      // shortcut - so a banned or deleted target is a 404 even where a connection already exists.
+      supabase.from('users').select('id, banned, deleted_at').eq('id', targetId).maybeSingle(),
     ]);
+    if (targetErr) throw targetErr;
+    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
     if (countErr) throw countErr;
     if ((todayCount || 0) >= SWIPE_LIMIT)
       return res.status(429).json({ error: 'Daily connection limit reached', limit: SWIPE_LIMIT, code: 'SWIPE_LIMIT' });
