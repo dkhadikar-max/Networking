@@ -4099,6 +4099,12 @@ async function auth(req, res, next) {
   // MISS always falls through to the authoritative DB path unchanged.
   const cached = authCacheGet(decoded.id);
   if (cached) {
+    // A soft-deleted account (anonymizeUser sets deleted_at, keeps the row)
+    // is unauthenticated. authCacheSet stores deleted_at in this slice, so no
+    // re-fetch is needed. Every deletion path also calls authCacheInvalidate,
+    // and the DB branch below never caches a deleted row — this check is the
+    // structural backstop so no cached entry can ever authorize one.
+    if (cached.deleted_at) return res.status(401).json({ error: 'Account not found' });
     if (cached.banned) return res.status(403).json({ error: 'Account restricted' });
     if (cached.password_changed_at && decoded.iat * 1000 < new Date(cached.password_changed_at).getTime()) {
       return res.status(401).json({ error: 'Password was changed — please sign in again' });
@@ -4125,6 +4131,9 @@ async function auth(req, res, next) {
       .select('*').eq('id', decoded.id).maybeSingle();
     if (error) return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
     if (!user) return res.status(401).json({ error: 'Account not found' });
+    // Soft-deleted account = unauthenticated, same as a missing one. Checked
+    // before banned and before authCacheSet so a deleted row is never cached.
+    if (user.deleted_at) return res.status(401).json({ error: 'Account not found' });
     if (user.banned) return res.status(403).json({ error: 'Account restricted' });
 
     // SECURITY: invalidate tokens issued before a password reset
