@@ -3331,26 +3331,39 @@ function notifySlackFeedback({ id, category, message, user, page, createdAt }) {
 }
 
 // ── CLEAN HELPERS ──
+// The ONLY fields of ANOTHER user's row that may reach a client: public profile
+// content plus the computed values set below. Everything else on `users` -
+// magic-link/OTP state and rate-limit counters, password_set / password_changed_at,
+// email_verified, onboarding_stage, premium_expires_at / premium_plan / premium_since,
+// is_premium, referred_by, consent_* / do_not_sell, email_suppressed*, deleted_at /
+// deletion_scheduled_at, reply stats, ... - is account-internal.
+//
+// This used to be a DENY-list (copy the whole row, delete a few known-sensitive
+// keys). It never got the hardening clean() received, so four endpoints that load
+// `select('*')` for another user (GET /api/profiles/:id, /api/search,
+// /api/liked-me, /api/connections/:id) handed all of it to any logged-in user - and,
+// being a deny-list, it would have leaked every column added to `users` later. An
+// allow-list fails safe: a new column stays private until it is added here on purpose.
+// (`is_online` is not a column: GET /api/connections computes it on the row before
+// calling this, exactly as it does for is_recently_active below.)
+const PUBLIC_USER_FIELDS = [
+  'id', 'name', 'bio', 'headline', 'photos', 'location', 'remote',
+  'intent', 'interests', 'skills', 'currently_exploring', 'working_on', 'interested_in',
+  'profession', 'industry', 'experience_level',
+  'instagram', 'linkedin', 'website', 'github', 'twitter', 'portfolio',
+  'verification', 'trust_score', 'profile_score', 'is_profile_complete', 'created_at',
+];
 function cleanPublic(u) {
   if (!u) return null;
-  const r = { ...u };
+  const r = {};
+  for (const k of PUBLIC_USER_FIELDS) if (u[k] !== undefined) r[k] = u[k];
   // Computed, not raw — every client-facing view of another user's premium
   // badge/status must reflect actual current entitlement, not the stored
   // boolean (isPremiumActive defined near the auth cache, further down).
   r.premium = isPremiumActive(u);
-  delete r.password;
-  delete r.email;
-  delete r.lat; delete r.lng;
-  delete r.banned;
-  delete r.otp_code;
-  delete r.otp_expires_at;
-  delete r.push_token;
-  delete r.role;           // admin status must not be publicly enumerable
-  delete r.failed_login_attempts;
-  delete r.lockout_until;
   r.is_recently_active = !!(u.last_active &&
     (Date.now() - new Date(u.last_active).getTime()) < 30 * 60 * 1000);
-  delete r.last_active;
+  if (u.is_online !== undefined) r.is_online = !!u.is_online;
   return r;
 }
 
