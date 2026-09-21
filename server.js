@@ -4993,7 +4993,21 @@ app.post('/api/auth/magic-link/verify', verifyLimiter, async (req, res) => {
 // intended "set password, then continue into onboarding" flow.
 app.post('/api/auth/set-password', auth, async (req, res) => {
   try {
-    if (req.userData?.password_set) {
+    // req.userData may be the narrow, TTL-cached auth slice (id/banned/
+    // premium/password_changed_at/deleted_at/role only — see authCacheSet)
+    // on a cache hit; it never carries password_set. Reading it directly
+    // made this guard evaluate `undefined` on every warm request (the SPA
+    // warms the cache with GET /api/me on each page load), silently
+    // skipping "Password already set" and letting a session overwrite an
+    // existing password without knowing the old one. Same fix as the
+    // onboarding handlers: reject the cached shape and fetch the real row.
+    let user = req.userData;
+    if (user._cached) {
+      const { data: fresh } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
+      if (!fresh) return res.status(404).json({ error: 'Not found' });
+      user = fresh;
+    }
+    if (user.password_set) {
       return res.status(400).json({ error: 'Password already set' });
     }
     const { password } = req.body;
