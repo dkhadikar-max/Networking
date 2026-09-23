@@ -1,46 +1,35 @@
-// Regression test for audit finding A21 - three independent check-then-act races, none backed by
-// anything at the database level (see migrations/024_concurrency_race_fixes.sql for the full writeup):
+// Regression test for audit finding A22 - trust_score conflated a stateless profile-quality value
+// (calcTrust) with an attempted persistent moderation penalty (POST /api/report writing
+// trust_score = stored - 10 directly). Seven other write paths (PUT /api/me, photo upload/reorder/
+// delete, onboarding profile, the peer-review bonus, admin verify, and POST /api/login's
+// unconditional "refresh scores" on every login) each recompute calcTrust() from scratch and
+// overwrite the column, silently erasing any report penalty - and trustGuard/discoverGuard (the
+// actual swipe/connect/discover/search eligibility gates) never read the stored column at all, so a
+// penalty never affected the reported user's own eligibility regardless of how long it survived.
 //
-//   A21a CONNECT.  Two mutual matches racing (both sides swipe/connect right within the same narrow
-//        window) could each pass "does the other side already have a matching swipe" before either
-//        had inserted its own connection row - connections had no unique constraint, so BOTH inserts
-//        succeeded: two connection rows for the same pair, two "You matched!" notifications. The
-//        23505-recovery code already in POST /api/swipe and POST /api/connect was written assuming a
-//        constraint that was never added - dead code until connections_pair_uidx exists - and even
-//        once it does, the recovery path still sent a second, duplicate set of match notifications
-//        (fixed here too). Investigating this surfaced a SECOND, more severe bug specific to
-//        POST /api/connect: it batched its own swipe-insert and its "did they already swipe me"
-//        check via Promise.all, reasoning they were "independent" (different rows). They are not -
-//        batching them removed the happens-before relationship that makes a genuine mutual match
-//        detectable at all, so both sides' checks could run and both find nothing BEFORE either
-//        side's insert committed - a real mutual right-swipe silently never became a connection at
-//        all. POST /api/swipe never had this (it already inserted, then checked, in sequence);
-//        /api/connect now does the same.
-//   A21b PRIORITY MESSAGE.  The monthly-quota check, the duplicate-recipient check and the insert
-//        were three separate REST calls with nothing serializing them. A burst of concurrent requests
-//        could each read the same under-the-limit count (or "no duplicate yet" state) before any of
-//        them committed - exceeding the monthly cap (3 free / 20 premium) and/or sending two priority
-//        messages to the same recipient in the same month.
-//   A21c DUPLICATE REPORTS.  The "already reported" dedupe SELECT and the insert were the same shape:
-//        concurrent identical reports from ONE reporter could each pass the check before either
-//        committed, each insert its own row, and each apply its own -10 trust penalty to the target -
-//        unboundedly, from a single reporter racing their own request. The insert's own error was
-//        never even checked.
+// DECISION (Option B, the smaller change): calcTrust()/trust_score keep their EXACT existing role,
+// formula, thresholds (trustGuard >=20, discoverGuard >=10) and every write path, unchanged.
+// profile_score/calcProfileScore (A13's onboarding-completion system) is untouched, a separate
+// concern. The only change: trust_score stops receiving report penalties. Moderation standing
+// becomes a new, independent, event-backed record (migrations/025's moderation_events) instead.
 //
-// This proves the fix with GENUINE concurrency - real overlapping HTTP requests against the spawned
-// server.js and a real multi-connection PostgreSQL (embedded-postgres), not a single-threaded
-// simulation - firing many competing pairs/bursts at once, since a single pair is not guaranteed to
-// hit the race window (statistical, like any true concurrency test; the batch sizes here give
-// negligible flake probability). migrations/024_concurrency_race_fixes.sql is applied VERBATIM.
-// process_priority_message's OWN atomicity (real multi-connection races, the row-lock/advisory-lock
-// mechanics, privilege checks) is proven independently and more exhaustively in
-// test-a21b-priority-message-sql.mjs, which talks to Postgres directly with no HTTP layer at all -
-// this file instead proves server.js is wired to it correctly end-to-end.
+// A22's qualifying trigger (deliberately narrow - see migrations/025's header for what is
+// out of scope: severity/category, a review queue, standing derivation, circles ranking, and the
+// six pre-existing trust_score/calcTrust anomalies found in production, which are NOT report-linked
+// and are explicitly NOT to be inferred into moderation events):
+//   valid ordinary report AND review_count(user_reviews) >= 3 AND avg_rating < 3.0
+//     -> exactly one moderation_event, snapshotting report_id / review_count / avg_rating at the
+//        moment the report qualified (never recalculated in place afterwards).
+// A report that does not meet that bar creates no event and touches nothing else automatically.
+//
+// Invariant enforced here: POST /api/report NEVER writes trust_score, under any circumstances,
+// while every EXISTING calcTrust() write path (registration, profile edit, photo changes,
+// onboarding, review bonus, admin verify, login) continues to write it exactly as before - this is
+// as much a regression guard for what must NOT change as it is a test of what's new.
 //
 // How it runs (nothing can touch production): the REAL server.js (or $SERVER_JS) against a
-// PostgREST-compatible translator (extended here with a genuine /rest/v1/rpc/<fn> passthrough that
-// executes the real Postgres function, so process_priority_message runs for real) over a REAL
-// PostgreSQL; empty cwd (no .env), whitelisted env.
+// PostgREST-compatible translator over a REAL PostgreSQL (embedded-postgres, UTF-8); empty cwd (no
+// .env), whitelisted env.
 // Requires (test-only): npm install --no-save embedded-postgres pg
 // Standalone script (repo convention); exit code = number of failed checks.
 
@@ -53,6 +42,7 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 let EmbeddedPostgres, pg;
 try { EmbeddedPostgres = (await import('embedded-postgres')).default; pg = (await import('pg')).default; }
@@ -80,7 +70,8 @@ CREATE TABLE users (
   is_profile_complete boolean DEFAULT false, verification jsonb DEFAULT '{"status":"none","confidence":0}', banned boolean DEFAULT false, deleted_at timestamptz,
   email_verified boolean, onboarding_stage text, password_set boolean DEFAULT true, password_changed_at timestamptz, push_token text,
   last_active timestamptz, created_at timestamptz DEFAULT now(),
-  reply_count int DEFAULT 0, avg_reply_minutes int DEFAULT 0, response_rate int DEFAULT 100);
+  reply_count int DEFAULT 0, avg_reply_minutes int DEFAULT 0, response_rate int DEFAULT 100,
+  failed_login_attempts int DEFAULT 0, lockout_until timestamptz);
 CREATE TABLE swipes (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, from_user text NOT NULL, to_user text NOT NULL, direction text NOT NULL, created_at timestamptz DEFAULT now());
 CREATE TABLE connections (id text PRIMARY KEY, user1 text NOT NULL, user2 text NOT NULL, created_at timestamptz DEFAULT now(), expires_at timestamptz, first_response_deadline timestamptz,
   user1_responded boolean DEFAULT false, user2_responded boolean DEFAULT false, active boolean DEFAULT false, status text, user1_last_read_at timestamptz, user2_last_read_at timestamptz);
@@ -206,7 +197,7 @@ const translator = http.createServer((req, res) => {
 });
 
 async function main() {
-  const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a21-pg-'));
+  const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a22-pg-'));
   const pgPort = await freePort();
   const epg = new EmbeddedPostgres({ databaseDir: dbDir, user: 'postgres', password: 'pw', port: pgPort, persistent: false, initdbFlags: ['--encoding=UTF8'], onLog: () => {}, onError: () => {} });
   await epg.initialise(); await epg.start(); await epg.createDatabase('byn');
@@ -214,15 +205,18 @@ async function main() {
   const q = (sql, args) => pool.query(sql, args); const one = async (sql, args) => (await q(sql, args)).rows[0];
   await q(DDL);
 
-  const shared = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a21-shared-'));
+  const shared = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a22-shared-'));
   const stub = path.join(shared, 'stub-resend.cjs');
   fs.writeFileSync(stub, `const Module = require('module'); const orig = Module._load;
 Module._load = function (request) { if (request === 'resend') { return { Resend: class { constructor() { this.emails = { send: async () => ({ data: { id: 'stub' }, error: null }) }; } } }; } return orig.apply(this, arguments); };`);
   const MIGRATION_024 = path.join(here, 'migrations', '024_concurrency_race_fixes.sql');
   await pool.query(fs.readFileSync(MIGRATION_024, 'utf8'));
   console.log('=== applied verbatim: migrations/024_concurrency_race_fixes.sql ===');
+  const MIGRATION_025 = path.join(here, 'migrations', '025_moderation_events.sql');
+  await pool.query(fs.readFileSync(MIGRATION_025, 'utf8'));
+  console.log('=== applied verbatim: migrations/025_moderation_events.sql ===');
   await new Promise(r => translator.listen(0, '127.0.0.1', r)); const dbPort = translator.address().port;
-  const port = await freePort(); const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a21-'));
+  const port = await freePort(); const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a22-'));
   const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, SYSTEMROOT: process.env.SYSTEMROOT, TEMP: os.tmpdir(), TMP: os.tmpdir(), HOME: cwd, USERPROFILE: cwd,
     SUPABASE_URL: `http://127.0.0.1:${dbPort}`, SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role-key', JWT_SECRET, ADMIN_SECRET: 'test-only-admin-secret', PORT: String(port), RESEND_API_KEY: 'test-only-resend-key' };
   let out = ''; const child = spawn(process.execPath, ['-r', stub, SERVER_JS], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -232,134 +226,107 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
   const base = `http://127.0.0.1:${port}`;
   const tok = id => jwt.sign({ id, email: `${id}@example.test`, name: 'T' }, JWT_SECRET, { expiresIn: '1h' });
   let ipN = 0;
-  const call = async (method, p, as, body) => { const r = await fetch(base + p, { method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(as ? { Authorization: `Bearer ${tok(as)}` } : {}), 'X-Forwarded-For': `10.17.${Math.floor(++ipN / 250)}.${ipN % 250 + 1}` }, body: body !== undefined ? JSON.stringify(body) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; };
+  const call = async (method, p, as, body) => { const r = await fetch(base + p, { method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(as ? { Authorization: `Bearer ${tok(as)}` } : {}), 'X-Forwarded-For': `10.18.${Math.floor(++ipN / 250)}.${ipN % 250 + 1}` }, body: body !== undefined ? JSON.stringify(body) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; };
 
   const uuid = () => crypto.randomUUID();
-  // A caller who clears activeGuard / profileGuard (score >= 70) / trustGuard (score >= 20) - the
-  // three guards in front of /api/swipe and /api/connect. Mirrors A11's "complete" viewer shape.
-  const mkViewer = async name => {
-    const id = uuid();
-    await q(`INSERT INTO users (id,email,name,bio,location,intent,photos,interests,skills,linkedin,email_verified,onboarding_stage,banned,last_active)
-             VALUES ($1,$2,$3,'A complete biography text','Pune','explore-network','["1","2","3","4"]'::jsonb,'["ai","design","music"]'::jsonb,'["react"]'::jsonb,'https://linkedin.com/in/x',true,'complete',false,now())`,
-      [id, `${id}@example.test`, name]);
-    return id;
-  };
-  // A bare account - enough to be a swipe/connect/report/priority-message target or a low-guard caller.
+  // A bare account, enough to be a report target/reporter (POST /api/report only requires auth).
   const mkTarget = async name => {
     const id = uuid();
     await q(`INSERT INTO users (id,email,name,email_verified,onboarding_stage,banned) VALUES ($1,$2,$3,true,'complete',false)`,
       [id, `${id}@example.test`, name]);
     return id;
   };
-  const swipe   = (as, targetId, direction) => call('POST', '/api/swipe', as, { targetId, direction });
-  const connect = (as, targetId) => call('POST', '/api/connect', as, { userId: targetId });
-  const pm = (as, targetId, text = 'Would love to connect and chat!') => call('POST', '/api/priority-message', as, { targetId, text });
-  const report = (as, targetId, reason = 'spam') => call('POST', '/api/report', as, { targetId, reason });
+  const mkReview = (reviewer, reviewed, rating) => q(`INSERT INTO user_reviews (reviewer_id, reviewed_id, rating) VALUES ($1,$2,$3)`, [reviewer, reviewed, rating]);
+  const report = (as, targetId, reason = 'inappropriate behavior') => call('POST', '/api/report', as, { targetId, reason });
+  const trustOf = async id => Number((await one(`SELECT trust_score t FROM users WHERE id=$1`, [id])).t);
+  const eventsFor = async id => (await q(`SELECT * FROM moderation_events WHERE user_id=$1 ORDER BY created_at`, [id])).rows;
+  const reportIdFor = async (from, target) => (await one(`SELECT id FROM reports WHERE from_user=$1 AND target_id=$2`, [from, target])).id;
 
   try {
     check('server booted', /Server on port/.test(out) && exited === null, out.slice(-300));
 
-    console.log('\n--- A21a: two mutual matches racing must never create two connection rows for the same pair ---');
-    // 25 independent pairs, both sides swiped concurrently, all 50 requests fired in ONE batch - a
-    // single pair racing is not guaranteed to hit the interleaving window; this many independent
-    // pairs makes the flake probability of the OLD (unfixed) code passing by luck negligible.
-    const N_PAIRS = 25;
-    const pairs = [];
-    for (let i = 0; i < N_PAIRS; i++) pairs.push([await mkViewer(`Racer A${i}`), await mkViewer(`Racer B${i}`)]);
-    const swipeResults = await Promise.all(pairs.flatMap(([a, b]) => [swipe(a, b, 'right'), swipe(b, a, 'right')]));
-    check('every racing swipe request completed cleanly (no 5xx)', swipeResults.every(r => r.status === 200), JSON.stringify(swipeResults.filter(r => r.status !== 200).slice(0, 5)));
-    let maxConnRows = 0, pairsWithDup = 0, pairsMatched = 0;
-    for (const [a, b] of pairs) {
-      const n = Number((await one(`SELECT count(*) c FROM connections WHERE (user1=$1 AND user2=$2) OR (user1=$2 AND user2=$1)`, [a, b])).c);
-      maxConnRows = Math.max(maxConnRows, n);
-      if (n > 1) pairsWithDup++;
-      if (n >= 1) pairsMatched++;
-    }
-    check(`all ${N_PAIRS} racing pairs matched (every mutual right-swipe produced at least one connection)`, pairsMatched === N_PAIRS, `pairsMatched=${pairsMatched}`);
-    check(`...and EXACTLY one connection row each - never two (was: possible, connections had no unique constraint; connections_pair_uidx / migrations/024 closes it)`, maxConnRows === 1 && pairsWithDup === 0, `maxConnRows=${maxConnRows} pairsWithDup=${pairsWithDup}`);
-    // Per PAIR, at least one of the two racing responses reports the match (which side depends on
-    // real timing - both can, if they genuinely interleave); a connectionId is only ever present
-    // alongside match:true. Neither side of any pair is ever left with a 5xx or a malformed body.
-    check('every racing response is well-formed: match is a boolean, and connectionId is a string exactly when match is true', swipeResults.every(r => typeof r.body?.match === 'boolean' && (r.body.match ? typeof r.body.connectionId === 'string' : r.body.connectionId == null)), JSON.stringify(swipeResults.slice(0, 4).map(r => r.body)));
+    console.log('\n--- POST /api/report must NEVER write trust_score, under any circumstances ---');
+    const reporter1 = await mkTarget('Reporter 1');
+    const noReviewsTarget = await mkTarget('No Reviews Target');
+    const before1 = await trustOf(noReviewsTarget);
+    let r = await report(reporter1, noReviewsTarget);
+    check('a report against a target with ZERO reviews -> 200', r.status === 200, JSON.stringify(r));
+    check('trust_score is completely unchanged (was: -10, unconditionally, on every report)', await trustOf(noReviewsTarget) === before1, `before=${before1} after=${await trustOf(noReviewsTarget)}`);
+    check('...and no moderation_event was created either (below the >=3-review corroboration bar)', (await eventsFor(noReviewsTarget)).length === 0, JSON.stringify(await eventsFor(noReviewsTarget)));
 
-    console.log('\n--- POST /api/connect exercises the SAME race, in its own separate match-creation code path ---');
-    // Same shape as the /api/swipe race above, but both sides go through /api/connect specifically -
-    // its match-creation branch is a near-duplicate of /api/swipe's, with its own independent 23505
-    // recovery code (also previously dead for the same reason).
-    const connPairs = [];
-    for (let i = 0; i < 15; i++) connPairs.push([await mkViewer(`ConnA${i}`), await mkViewer(`ConnB${i}`)]);
-    const connResults = await Promise.all(connPairs.flatMap(([a, b]) => [connect(a, b), connect(b, a)]));
-    check('every racing /api/connect call completed cleanly (no 5xx)', connResults.every(r => r.status === 200), JSON.stringify(connResults.filter(r => r.status !== 200).slice(0, 5)));
-    let connMax = 0, connPairsMatched = 0;
-    for (const [a, b] of connPairs) {
-      const n = Number((await one(`SELECT count(*) c FROM connections WHERE (user1=$1 AND user2=$2) OR (user1=$2 AND user2=$1)`, [a, b])).c);
-      connMax = Math.max(connMax, n);
-      if (n >= 1) connPairsMatched++;
-    }
-    check('all 15 pairs matched via /api/connect (was: a genuine mutual match could be silently missed entirely - see the fix in POST /api/connect\'s insert/check ordering)', connPairsMatched === 15, `connPairsMatched=${connPairsMatched}`);
-    check('...and EXACTLY one connection row each - never two', connMax === 1, `connMax=${connMax}`);
+    console.log('\n--- below the corroboration bar: 1 or 2 reviews, even a bad average, creates no event ---');
+    const oneReviewTarget = await mkTarget('One Review Target');
+    await mkReview(await mkTarget('R'), oneReviewTarget, 1);
+    const before2 = await trustOf(oneReviewTarget);
+    await report(await mkTarget('Reporter 2'), oneReviewTarget);
+    check('1 review (avg 1.0, clearly bad) is still below the >=3 sample-size bar -> no event', (await eventsFor(oneReviewTarget)).length === 0, JSON.stringify(await eventsFor(oneReviewTarget)));
+    check('...and trust_score is still untouched', await trustOf(oneReviewTarget) === before2);
 
-    console.log('\n--- A21c: concurrent identical reports from ONE reporter must produce exactly one report row ---');
-    const reporter = await mkTarget('Reporter');
-    const reportTarget = await mkTarget('Report Target');
-    await q(`UPDATE users SET trust_score = 50 WHERE id = $1`, [reportTarget]);
-    const N_REPORTS = 15;
-    const reportResults = await Promise.all(Array.from({ length: N_REPORTS }, () => report(reporter, reportTarget)));
-    check('every report request completed cleanly (200 or the expected 400 "already reported" - never a 5xx)', reportResults.every(r => r.status === 200 || r.status === 400), JSON.stringify(reportResults.map(r => r.status)));
-    const reportSuccesses = reportResults.filter(r => r.status === 200).length;
-    check(`of ${N_REPORTS} concurrent identical reports, exactly ONE succeeded (was: several could all succeed, racing the dedupe check - and the insert's own error was never even checked)`, reportSuccesses === 1, `successes=${reportSuccesses}`);
-    const reportRowCount = Number((await one(`SELECT count(*) c FROM reports WHERE from_user=$1 AND target_id=$2`, [reporter, reportTarget])).c);
-    check('exactly one report row stored', reportRowCount === 1, `reportRowCount=${reportRowCount}`);
-    // A22: reports no longer touch trust_score at all (that column is calcTrust's profile-quality
-    // value; a report is now corroborating evidence for a separate moderation_events record, not a
-    // direct penalty here). The dedup race this section proves is fully covered by the report-row
-    // count above; trust_score is asserted unchanged, not decremented.
-    const targetTrust = Number((await one(`SELECT trust_score t FROM users WHERE id=$1`, [reportTarget])).t);
-    check('the target\'s trust score is untouched by any of the racing reports (A22 - reports no longer write trust_score)', targetTrust === 50, `targetTrust=${targetTrust}`);
-    // A separate illegal-content report (a genuinely different channel, type='illegal_content') must
-    // still be allowed against the SAME target by the SAME reporter - the partial index must not
-    // block it (it is scoped to ordinary reports only).
-    await q(`INSERT INTO reports (id, from_user, target_id, reason, type) VALUES ($1,$2,$3,'csam','illegal_content')`, [uuid(), reporter, reportTarget]);
-    const illegalRowCount = Number((await one(`SELECT count(*) c FROM reports WHERE from_user=$1 AND target_id=$2 AND type='illegal_content'`, [reporter, reportTarget])).c);
-    check('an illegal-content report against the same target is NOT blocked by the ordinary-report dedupe index (separate channel)', illegalRowCount === 1, `illegalRowCount=${illegalRowCount}`);
+    const twoReviewTarget = await mkTarget('Two Review Target');
+    await mkReview(await mkTarget('R'), twoReviewTarget, 1); await mkReview(await mkTarget('R'), twoReviewTarget, 1);
+    await report(await mkTarget('Reporter 3'), twoReviewTarget);
+    check('2 reviews (avg 1.0) - still below >=3 -> no event', (await eventsFor(twoReviewTarget)).length === 0, JSON.stringify(await eventsFor(twoReviewTarget)));
 
-    console.log('\n--- A21b: the monthly quota race - a burst of concurrent sends must never exceed the monthly limit ---');
-    const quotaSender = await mkTarget('Quota Sender');   // premium defaults false -> limit 3/month
-    const quotaTargets = []; for (let i = 0; i < 10; i++) quotaTargets.push(await mkTarget(`Quota Target ${i}`));
-    const quotaResults = await Promise.all(quotaTargets.map(t => pm(quotaSender, t)));
-    check('every send completed cleanly (200 sent, or 429 limit reached - never a 5xx)', quotaResults.every(r => r.status === 200 || r.status === 429), JSON.stringify(quotaResults.map(r => r.status)));
-    const quotaSent = quotaResults.filter(r => r.status === 200).length;
-    check('of 10 concurrent sends (free limit: 3/month), EXACTLY 3 succeeded - not more (was: a burst could exceed the monthly cap, reading the same under-limit count before any commit)', quotaSent === 3, `sent=${quotaSent}`);
-    const quotaRowCount = Number((await one(`SELECT count(*) c FROM priority_msgs WHERE from_user=$1`, [quotaSender])).c);
-    check('exactly 3 rows stored (never more than the limit, whatever the race)', quotaRowCount === 3, `quotaRowCount=${quotaRowCount}`);
-    const limitMsgs = quotaResults.filter(r => r.status === 429).map(r => r.body?.error);
-    check('the 7 capped requests all get the correct, informative message', limitMsgs.length === 7 && limitMsgs.every(m => m === 'Priority message limit reached (3/month)'), JSON.stringify([...new Set(limitMsgs)]));
+    console.log('\n--- at the bar (3 reviews) but a GOOD average: no event (the average must be < 3.0, not just the count) ---');
+    const goodAvgTarget = await mkTarget('Good Average Target');
+    await mkReview(await mkTarget('R'), goodAvgTarget, 3); await mkReview(await mkTarget('R'), goodAvgTarget, 3); await mkReview(await mkTarget('R'), goodAvgTarget, 3);
+    await report(await mkTarget('Reporter 4'), goodAvgTarget);
+    check('3 reviews averaging EXACTLY 3.0 -> no event (the condition is strictly < 3.0, not <=)', (await eventsFor(goodAvgTarget)).length === 0, JSON.stringify(await eventsFor(goodAvgTarget)));
 
-    console.log('\n--- A21b: the duplicate-recipient race - concurrent sends to the SAME person must never produce two messages ---');
-    const dupSender = await mkTarget('Dup Sender');
-    const dupTarget = await mkTarget('Dup Target');
-    const N_DUP = 8;
-    const dupResults = await Promise.all(Array.from({ length: N_DUP }, () => pm(dupSender, dupTarget)));
-    check('every send completed cleanly (200 or the expected 400 "already sent" - never a 5xx)', dupResults.every(r => r.status === 200 || r.status === 400), JSON.stringify(dupResults.map(r => r.status)));
-    const dupSuccesses = dupResults.filter(r => r.status === 200).length;
-    check(`of ${N_DUP} concurrent sends to the SAME recipient, exactly ONE succeeded (was: several could all succeed, racing the duplicate-recipient check)`, dupSuccesses === 1, `successes=${dupSuccesses}`);
-    const dupRowCount = Number((await one(`SELECT count(*) c FROM priority_msgs WHERE from_user=$1 AND to_user=$2`, [dupSender, dupTarget])).c);
-    check('exactly one row stored for that (sender, recipient, month)', dupRowCount === 1, `dupRowCount=${dupRowCount}`);
-    const dup400s = dupResults.filter(r => r.status === 400).map(r => r.body?.error);
-    check('the rejected duplicates all get the correct message', dup400s.length === N_DUP - 1 && dup400s.every(m => m === 'Already sent a priority message to this person'), JSON.stringify([...new Set(dup400s)]));
+    console.log('\n--- qualifying: a report + >=3 reviews averaging < 3.0 -> exactly one moderation_event ---');
+    const qualifyingTarget = await mkTarget('Qualifying Target');
+    await mkReview(await mkTarget('R'), qualifyingTarget, 1); await mkReview(await mkTarget('R'), qualifyingTarget, 2); await mkReview(await mkTarget('R'), qualifyingTarget, 3);   // avg 2.0
+    const beforeQ = await trustOf(qualifyingTarget);
+    const qualifyingReporter = await mkTarget('Qualifying Reporter');
+    r = await report(qualifyingReporter, qualifyingTarget, 'harassed me in messages');
+    check('the report itself still succeeds normally -> 200, ok:true', r.status === 200 && r.body?.ok === true, JSON.stringify(r));
+    check('trust_score is STILL untouched by the qualifying report (this is the core A22 invariant)', await trustOf(qualifyingTarget) === beforeQ, `before=${beforeQ} after=${await trustOf(qualifyingTarget)}`);
+    const events = await eventsFor(qualifyingTarget);
+    check('exactly one moderation_event was created', events.length === 1, JSON.stringify(events));
+    const ev = events[0] || {};
+    const expectedReportId = await reportIdFor(qualifyingReporter, qualifyingTarget);
+    check('the event snapshots the correct report_id, review_count and avg_rating at creation time', ev.source_id === expectedReportId && ev.review_count_at_creation === 3 && Number(ev.avg_rating_at_creation) === 2, JSON.stringify(ev));
+    check('the event records who it is about and (where tracked) who reported them', ev.user_id === qualifyingTarget && ev.event_type === 'report_corroborated', JSON.stringify(ev));
 
-    console.log('\n--- A21b: the endpoint\'s own contract is otherwise unchanged (a single ordinary send) ---');
-    const ordinarySender = await mkTarget('Ordinary Sender');
-    const ordinaryTarget = await mkTarget('Ordinary Target');
-    let r = await pm(ordinarySender, ordinaryTarget, 'Check out http://spam.example for more!');
-    check('a normal send -> 200, ok:true, remaining reflects the limit just used (3 - 1 = 2)', r.status === 200 && r.body?.ok === true && r.body?.remaining === 2, JSON.stringify(r));
-    const stored = await one(`SELECT text FROM priority_msgs WHERE from_user=$1 AND to_user=$2`, [ordinarySender, ordinaryTarget]);
-    check('URL stripping still applies (unchanged) - the link is replaced', stored?.text === 'Check out [link removed] for more!', JSON.stringify(stored));
-    r = await call('POST', '/api/priority-message', ordinarySender, {});
-    check('missing targetId/text -> 400 (unchanged)', r.status === 400, JSON.stringify(r));
-    r = await pm(ordinarySender, uuid());
-    check('an unknown recipient -> 404 (unchanged)', r.status === 404, JSON.stringify(r));
-    r = await call('POST', '/api/priority-message', null, { targetId: ordinaryTarget, text: 'hi' });
+    console.log('\n--- a LATER review changing the average does not retroactively alter the already-created event ---');
+    await mkReview(await mkTarget('R'), qualifyingTarget, 5);   // pulls the average up to 2.75, still <3 but different
+    const eventsAfter = await eventsFor(qualifyingTarget);
+    check('still exactly one event, and its snapshot is UNCHANGED (2.0 / 3 reviews) - not recalculated in place', eventsAfter.length === 1 && Number(eventsAfter[0].avg_rating_at_creation) === 2 && eventsAfter[0].review_count_at_creation === 3, JSON.stringify(eventsAfter));
+
+    console.log('\n--- a SECOND qualifying report against the SAME target creates its OWN, separate event ---');
+    const secondReporter = await mkTarget('Second Reporter');
+    await report(secondReporter, qualifyingTarget, 'also had a bad experience');
+    const eventsFinal = await eventsFor(qualifyingTarget);
+    check('now two events, one per qualifying report, each with its own source_id', eventsFinal.length === 2 && new Set(eventsFinal.map(e => e.source_id)).size === 2, JSON.stringify(eventsFinal.map(e => e.source_id)));
+
+    console.log('\n--- existing calcTrust() write paths are completely unaffected by A22 (regression) ---');
+    const editViewer = await mkTarget('Edit Viewer');
+    // calcTrust(this bare profile + a linkedin url) = the linkedin/website/instagram component only
+    // (+10) - PUT /api/me writes the ABSOLUTE calcTrust(merged) result, not a delta on top of
+    // whatever was stored, so the new value is exactly 10 regardless of what was there before.
+    r = await call('PUT', '/api/me', editViewer, { linkedin: 'https://linkedin.com/in/example' });
+    check('PUT /api/me still recomputes and writes trust_score via calcTrust, unaffected by A22', r.status === 200 && (await trustOf(editViewer)) === 10, `trust_score=${await trustOf(editViewer)}`);
+
+    console.log('\n--- POST /api/login\'s "Step 5: refresh scores" still recomputes trust_score exactly as before - A22 only stops REPORTS from writing it, not this ---');
+    const loginId = uuid();
+    const rawPw = 'a-real-password-123';
+    await q(`INSERT INTO users (id,email,password,name,email_verified,onboarding_stage,banned,trust_score,location)
+             VALUES ($1,$2,$3,$4,true,'complete',false,0,'Pune')`,
+      [loginId, `${loginId}@example.test`, bcrypt.hashSync(rawPw, 4), 'Login Tester']);
+    // trust_score was stored as 0, but calcTrust(this profile) - location set (+10) - is 10. Login's
+    // own "refresh scores" step should still bring it up to 10, same behaviour as always.
+    r = await call('POST', '/api/login', null, { email: `${loginId}@example.test`, password: rawPw });
+    check('login succeeds', r.status === 200, JSON.stringify(r).slice(0, 200));
+    check('...and trust_score was refreshed to match calcTrust(profile) on login, exactly as before A22 (only WHO can write it changed, not whether login itself still does)', await trustOf(loginId) === 10, `trust_score=${await trustOf(loginId)}`);
+
+    console.log('\n--- unchanged behaviour: dedup, validation, self-report, block ---');
+    r = await report(qualifyingReporter, qualifyingTarget, 'trying to report the same person again');
+    check('a second report from the SAME reporter to the SAME target -> 400 "already reported" (unchanged, A21)', r.status === 400, JSON.stringify(r));
+    r = await call('POST', '/api/report', qualifyingReporter, { targetId: qualifyingReporter, reason: 'x' });
+    check('cannot report yourself -> 400 (unchanged)', r.status === 400, JSON.stringify(r));
+    r = await call('POST', '/api/report', qualifyingReporter, { targetId: qualifyingTarget });
+    check('missing reason -> 400 (unchanged)', r.status === 400, JSON.stringify(r));
+    r = await call('POST', '/api/report', null, { targetId: qualifyingTarget, reason: 'x' });
     check('no token -> 401 (unchanged)', r.status === 401, JSON.stringify(r));
 
   } finally {

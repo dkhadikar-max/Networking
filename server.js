@@ -7227,12 +7227,12 @@ app.post('/api/report', auth, async (req, res) => {
 
     // A21: the dedupe SELECT above and this INSERT are not atomic - two concurrent identical
     // reports from the same reporter could both pass the check before either commits, each insert
-    // its own row and each apply its own -10 penalty below. reports_ordinary_dedup_uidx
-    // (migrations/024) closes the window: a second concurrent insert for the same (reporter, target)
-    // hits 23505, and the race loser stops here - same outward response as the pre-check dedupe,
-    // and it never reaches (or repeats) the trust penalty.
+    // its own row. reports_ordinary_dedup_uidx (migrations/024) closes the window: a second
+    // concurrent insert for the same (reporter, target) hits 23505, and the race loser stops here -
+    // same outward response as the pre-check dedupe, and it never reaches the block below either.
+    const reportId = uuidv4();
     const { error: insertErr } = await supabase.from('reports').insert({
-      id: uuidv4(), from_user: req.user.id, target_id: targetId,
+      id: reportId, from_user: req.user.id, target_id: targetId,
       reason: String(reason).slice(0, 500),   // cap length
       created_at: new Date().toISOString()
     });
@@ -7242,13 +7242,33 @@ app.post('/api/report', auth, async (req, res) => {
       return res.status(500).json({ error: 'Failed to process your report — please try again' });
     }
 
-    // Penalize trust score once (idempotent because of dedup above)
-    const { data: target } = await supabase.from('users')
-      .select('trust_score').eq('id', targetId).maybeSingle();
-    if (target) {
-      await supabase.from('users').update({
-        trust_score: Math.max(0, (target.trust_score || 0) - 10)
-      }).eq('id', targetId);
+    // A22: a report is corroborating evidence, not itself a moderation penalty. trust_score is
+    // calcTrust's stateless profile-quality value - it is never written here (see
+    // migrations/025_moderation_events.sql for the full audit finding: nine other write paths,
+    // including every login, silently overwrote whatever penalty used to be written into this same
+    // column). A moderation_event is recorded only when this report is corroborated by an
+    // independently weak reputation - at least 3 peer reviews (the same sample-size bar calcTrust's
+    // own peer-review bonus already uses) averaging under 3.0 - and it snapshots that evidence as it
+    // stood at this moment; a later review does not retroactively change a past event. Nothing yet
+    // reads this table to derive a standing value or gate any surface on it (deferred, not in A22).
+    const { data: reviewRows, error: reviewErr } = await supabase.from('user_reviews')
+      .select('rating').eq('reviewed_id', targetId);
+    if (reviewErr) {
+      console.error('Moderation-event review lookup failed:', reviewErr.message);
+    } else {
+      const reviewCount = reviewRows.length;
+      const avgRating = reviewCount > 0 ? reviewRows.reduce((s, rv) => s + rv.rating, 0) / reviewCount : null;
+      if (reviewCount >= 3 && avgRating < 3.0) {
+        const { error: modErr } = await supabase.from('moderation_events').insert({
+          user_id: targetId, event_type: 'report_corroborated', weight: -10,
+          source_id: reportId, actor_id: req.user.id, reason: String(reason).slice(0, 500),
+          review_count_at_creation: reviewCount, avg_rating_at_creation: avgRating,
+        });
+        // 23505 here would mean this exact report already backed an event (not reachable today -
+        // the dedupe above already limits this code path to once per report - kept as defense in
+        // depth, same posture as the rest of this table's design).
+        if (modErr && modErr.code !== '23505') console.error('Moderation event insert failed:', modErr.message);
+      }
     }
     res.json({ ok: true });
   } catch(e) {

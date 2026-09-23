@@ -260,7 +260,9 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     // ordinary (social) report path is a different route and must be untouched
     const social = await S.call('POST', '/api/report', { token: tok('reporter'), body: { targetId: 'plain_target', reason: 'rude' } });
     const socialTrust = (await one(`SELECT trust_score FROM users WHERE id='plain_target'`)).trust_score;
-    if (migrated) check('ordinary social report unchanged: 200 and trust penalty applied', social.status === 200 && socialTrust === 30, JSON.stringify(social));
+    // A22: POST /api/report no longer writes trust_score directly (see test-a22-moderation-events.mjs) -
+    // trust stays at mk()'s starting value of 40.
+    if (migrated) check('ordinary social report unchanged: 200, trust_score untouched (A22)', social.status === 200 && socialTrust === 40, JSON.stringify(social));
     // Its dedupe now filters on reports.type (the A7 safeguards), so on a schema WITHOUT that column it fails CLOSED:
     // a loud 5xx with no row and no penalty, never a silent fail-open (see test-a7-report-safeguards.mjs).
     else check('ordinary social report on a schema without reports.type fails CLOSED: 5xx, no penalty applied', social.status >= 500 && socialTrust === 40, JSON.stringify([social.status, socialTrust]));

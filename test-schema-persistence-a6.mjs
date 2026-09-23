@@ -268,7 +268,8 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     const social1 = await s.call('POST', '/api/report', { token: repSocial, body: { targetId: 'victim', reason: 'rude' } });
     const social2 = await s.call('POST', '/api/report', { token: repSocial, body: { targetId: 'victim', reason: 'rude again' } });
     const socialType = (await hasCol('reports', 'type')) ? (await one(`SELECT type FROM reports WHERE from_user='rep_social'`)).type : undefined;   // undefined while the column does not exist
-    check('existing social report unchanged: 200, stored WITHOUT a type (NULL), trust penalty applied', social1.status === 200 && socialType === null && (await one(`SELECT trust_score FROM users WHERE id='victim'`)).trust_score === 30, JSON.stringify({ status: social1.status, socialType }));
+    // A22: POST /api/report no longer writes trust_score directly - stays at mkUser's default of 40.
+    check('existing social report unchanged: 200, stored WITHOUT a type (NULL), trust_score untouched (A22)', social1.status === 200 && socialType === null && (await one(`SELECT trust_score FROM users WHERE id='victim'`)).trust_score === 40, JSON.stringify({ status: social1.status, socialType }));
     check('existing social-report dedupe unchanged: second report of the same target -> 400', social2.status === 400, JSON.stringify(social2));
     const dsa = await s.call('GET', '/api/admin/dsa-report', { token: admin });
     check('admin DSA report: sees both illegal-content reports with their targets', dsa.status === 200 && dsa.body?.illegal_content_reports === 2 && (dsa.body?.report_log || []).map(r => r.target_id).sort().join() === 'victim,victim2', JSON.stringify(dsa.body).slice(0, 200));

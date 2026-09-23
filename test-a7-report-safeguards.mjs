@@ -261,17 +261,21 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     check('5. ONE illegal-content row no longer makes the reporter\'s first ORDINARY report "already reported" (200)', a1.status === 200, JSON.stringify(a1));
     const a2 = await soc('soc_a', { targetId: 'tgt2', reason: 'rude again' });
     check('...a second ordinary report is still refused (400 already reported)', a2.status === 400 && /already reported/i.test(a2.body?.error || ''), JSON.stringify(a2));
-    check('...and exactly ONE trust penalty was applied (40 -> 30)', (await trust('tgt2')) === 30, `trust=${await trust('tgt2')}`);
+    // A22: POST /api/report no longer writes trust_score at all (a report is now corroborating
+    // evidence for a separate moderation_events record, gated on >=3 reviews averaging <3.0 - none
+    // of these targets have any reviews, so no event is created here either). trust===40 (mk()'s
+    // starting value, untouched) replaces the old "penalised once" assertions throughout this block.
+    check('...and trust_score is untouched (A22 - reports no longer penalise it directly)', (await trust('tgt2')) === 40, `trust=${await trust('tgt2')}`);
 
     await mk('tgt3'); await rep('soc_b', { targetId: 'tgt3', category: 'Fraud', description: 'a' }); await rep('soc_b', { targetId: 'tgt3', category: 'Violence', description: 'b' });
     const seq = []; for (let i = 0; i < 4; i++) seq.push((await soc('soc_b', { targetId: 'tgt3', reason: 'x' + i })).status);
     check('5. TWO illegal-content rows no longer defeat the dedupe (was: maybeSingle() errored -> fail-open -> every report accepted)', seq[0] === 200 && seq.slice(1).every(s => s === 400), JSON.stringify(seq));
-    check('...trust is penalised exactly once (40 -> 30), not driven to 0', (await trust('tgt3')) === 30, `trust=${await trust('tgt3')}`);
+    check('...trust_score stays untouched regardless (A22)', (await trust('tgt3')) === 40, `trust=${await trust('tgt3')}`);
 
     await mk('tgt4'); const p1 = await soc('soc_c', { targetId: 'tgt4', reason: 'rude' }), p2 = await soc('soc_c', { targetId: 'tgt4', reason: 'rude again' });
-    check('ordinary dedupe unchanged when there are no illegal rows: 200 then 400, one penalty', p1.status === 200 && p2.status === 400 && (await trust('tgt4')) === 30, JSON.stringify([p1.status, p2.status, await trust('tgt4')]));
+    check('ordinary dedupe unchanged when there are no illegal rows: 200 then 400, trust_score untouched (A22)', p1.status === 200 && p2.status === 400 && (await trust('tgt4')) === 40, JSON.stringify([p1.status, p2.status, await trust('tgt4')]));
     await mk('tgt5'); const sp1 = await soc('soc_d', { targetId: 'tgt5', reason: '[DSA:Fraud] pretending to be an illegal-content report' }), sp2 = await soc('soc_d', { targetId: 'tgt5', reason: '[DSA:Fraud] and again' });
-    check('an ordinary report whose text imitates "[DSA:...]" cannot dodge the dedupe (keyed on the server-set type, not the text)', sp1.status === 200 && sp2.status === 400 && (await trust('tgt5')) === 30, JSON.stringify([sp1.status, sp2.status, await trust('tgt5')]));
+    check('an ordinary report whose text imitates "[DSA:...]" cannot dodge the dedupe (keyed on the server-set type, not the text)', sp1.status === 200 && sp2.status === 400 && (await trust('tgt5')) === 40, JSON.stringify([sp1.status, sp2.status, await trust('tgt5')]));
     const sIn = await soc('soc_a', { targetId: 'soc_a', reason: 'self' });
     check('ordinary route: self-report still refused (unchanged)', sIn.status === 400, JSON.stringify(sIn));
 
