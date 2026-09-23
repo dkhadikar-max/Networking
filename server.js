@@ -8759,10 +8759,24 @@ app.post('/api/onboarding/acquisition', onboardingLimiter, auth, async (req, res
       ? String(referral).trim().slice(0, 50) || null
       : null;
 
-    // Upsert so retries after network timeout don't 500
+    // A24: first-touch attribution. A referred signup (POST /api/auth/magic-link/request with a
+    // ref_code) already inserts { source: 'Friend/Referral', referral: referrer.id } here - an
+    // objective, code-verified signal - before this screen is ever shown. This upsert used to be an
+    // ordinary insert-or-REPLACE (`onConflict: 'user_id'` alone), so every user's generic self-report
+    // here unconditionally overwrote that verified attribution, deterministically, on every referred
+    // signup that completed onboarding - not a race, since onboarding always runs strictly after
+    // signup. `ignoreDuplicates: true` makes this INSERT ... ON CONFLICT (user_id) DO NOTHING instead
+    // of DO UPDATE: if a row already exists for this user (from signup, or - see below - from this
+    // same screen), it is left untouched; only a user with no prior recorded source gets this one
+    // written. Atomic at the database level, so this is also what makes concurrent submissions from
+    // the same user converge on a single, stable, first-written value instead of racing each other -
+    // still gated on `stage === 'acquisition'` above, so a genuine second submission after the stage
+    // has already advanced still 409s, same as before; a client retry after a dropped response is a
+    // harmless no-op either way, exactly the case the original comment ("so retries ... don't 500")
+    // was written for.
     const { error: upsertErr } = await supabase.from('user_acquisition').upsert(
       { user_id: user.id, source, referral: cleanReferral },
-      { onConflict: 'user_id' }
+      { onConflict: 'user_id', ignoreDuplicates: true }
     );
     if (upsertErr) throw new Error(upsertErr.message);
 
