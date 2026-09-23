@@ -1,34 +1,26 @@
-// Regression test for audit finding A19a - GET /api/discover ignores the `limit` and `offset` query
-// parameters the frontend sends.
+// Regression test for audit finding A20 - skipping (a left-swipe / "pass") counts toward the daily
+// swipe/connect limit, even though the code says it should not.
 //
-//   frontend/components/discover/DiscoverFeed.tsx always calls `/api/discover?limit=10&offset=N`, paging
-//   forward as the viewer swipes through cards (`buildUrl`, `load`). frontend/app/onboarding/page.tsx calls
-//   `/api/discover?limit=3` to preview a few matches right after onboarding. The handler destructured
-//   `skill, intent, location, remote, interest, sort, radius, worldwide` from req.query but never `limit` or
-//   `offset` - it always returned the full ranked list truncated only to `remaining` (the viewer's daily
-//   swipe budget: 30 free / 200 premium), from position 0, on every call. So:
-//     * a plain first load could return up to 30 (or 200) full profile objects in one response instead of
-//       the 10 requested - a large, silent over-fetch of exactly the payload the endpoint already computes
-//       (works, matchReasons, insight) for every candidate;
-//     * "load more" (offset=10, 20, ...) returned the SAME top-ranked window every time - not the next page -
-//       so real pagination only ever happened as a side effect of previously swiped candidates being excluded
-//       from the next call, never because of the requested offset;
-//     * onboarding's `limit=3` preview silently received up to 30 profiles (it happens to still work because
-//       the client itself slices to 3, but the endpoint was not honouring its own contract).
-//   Two callers intentionally send NEITHER parameter and must be unaffected: the NetworkApp and NetworkMobile
-//   apps call `/api/discover` with no query string at all and page purely client-side over one response
-//   (see NetworkApp/src/screens/DiscoverScreen.js, NetworkMobile/src/screens/DiscoverScreen.js) - for them,
-//   "return everything up to the daily remaining, in one call" is the intended contract, not a bug.
+//   POST /api/skip's own comment reads: "SKIP (left-swipe — persisted to DB, does not consume daily
+//   connect limit)". It inserts a `direction: 'left'` row into `swipes` and does not itself check any
+//   limit. But the three places that COMPUTE the daily count for gating - getTodaySwipeCountExact
+//   (used by GET /api/discover to compute `remaining` and the { limited: true } short-circuit),
+//   POST /api/swipe's own inline count (used for its own 429 SWIPE_LIMIT check - and /api/swipe is
+//   also how NetworkApp and NetworkMobile submit a skip: direction: 'left', not the dedicated
+//   /api/skip route), and POST /api/connect's own inline count - all counted EVERY row in `swipes`
+//   regardless of direction. So:
+//     * on the web app, repeatedly skipping (POST /api/skip) silently ate into `remaining` and could
+//       push GET /api/discover into { limited: true, profiles: [] } from passing alone, never having
+//       expressed interest in anyone - the opposite of what /api/skip's own comment promises;
+//     * on both mobile apps, which submit a skip as POST /api/swipe with direction:'left', a skip was
+//       WORSE THAN silently counted - it was directly gated by the same 429 SWIPE_LIMIT check as a
+//       real (right) swipe, so a user near their daily cap could no longer even pass on a profile.
 //
-// Invariant enforced here: `limit` and `offset`, when given, select a window of the SAME ranked candidate
-// list the unparameterised call would have produced (same order, no gaps, no duplicates across consecutive
-// pages), still bounded by the viewer's daily remaining; when neither is given, behaviour is byte-for-byte
-// what it was before this fix (every profile up to remaining, from position 0) - the mobile apps' contract.
-//
-// NOT covered here (found during this investigation, explicitly out of scope for this fix - the underlying
-// candidate query is itself hard-capped at .limit(200) rows ordered by last_active, with no offset ever
-// applied to it; a candidate ranked outside that window is unreachable regardless of what limit/offset the
-// caller sends. Raising or removing that cap is a separate, larger change and is not made here.)
+// Invariant enforced here: only RIGHT swipes (expressed interest / connect actions - from
+// POST /api/swipe with direction:'right' and POST /api/connect, which always records 'right') count
+// toward the daily limit anywhere it is computed. Left swipes (skip / pass), from either
+// POST /api/skip or POST /api/swipe with direction:'left', never do - not in Discover's `remaining`,
+// not in /api/swipe's own gate, not in /api/connect's own gate.
 //
 // How it runs (nothing can touch production): the REAL server.js (or $SERVER_JS) against a PostgREST-compatible
 // translator over a REAL PostgreSQL (embedded-postgres, UTF-8); empty cwd (no .env), whitelisted env.
@@ -180,7 +172,7 @@ const translator = http.createServer((req, res) => {
 });
 
 async function main() {
-  const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a19a-pg-'));
+  const dbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a20-pg-'));
   const pgPort = await freePort();
   const epg = new EmbeddedPostgres({ databaseDir: dbDir, user: 'postgres', password: 'pw', port: pgPort, persistent: false, initdbFlags: ['--encoding=UTF8'], onLog: () => {}, onError: () => {} });
   await epg.initialise(); await epg.start(); await epg.createDatabase('byn');
@@ -188,12 +180,12 @@ async function main() {
   const q = (sql, args) => pool.query(sql, args); const one = async (sql, args) => (await q(sql, args)).rows[0];
   await q(DDL);
 
-  const shared = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a19a-shared-'));
+  const shared = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a20-shared-'));
   const stub = path.join(shared, 'stub-resend.cjs');
   fs.writeFileSync(stub, `const Module = require('module'); const orig = Module._load;
 Module._load = function (request) { if (request === 'resend') { return { Resend: class { constructor() { this.emails = { send: async () => ({ data: { id: 'stub' }, error: null }) }; } } }; } return orig.apply(this, arguments); };`);
   await new Promise(r => translator.listen(0, '127.0.0.1', r)); const dbPort = translator.address().port;
-  const port = await freePort(); const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a19a-'));
+  const port = await freePort(); const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a20-'));
   const env = { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, SYSTEMROOT: process.env.SYSTEMROOT, TEMP: os.tmpdir(), TMP: os.tmpdir(), HOME: cwd, USERPROFILE: cwd,
     SUPABASE_URL: `http://127.0.0.1:${dbPort}`, SUPABASE_SERVICE_ROLE_KEY: 'mock-service-role-key', JWT_SECRET, ADMIN_SECRET: 'test-only-admin-secret', PORT: String(port), RESEND_API_KEY: 'test-only-resend-key' };
   let out = ''; const child = spawn(process.execPath, ['-r', stub, SERVER_JS], { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -203,106 +195,88 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
   const base = `http://127.0.0.1:${port}`;
   const tok = id => jwt.sign({ id, email: `${id}@example.test`, name: 'T' }, JWT_SECRET, { expiresIn: '1h' });
   let ipN = 0;
-  const call = async (method, p, as, body) => { const r = await fetch(base + p, { method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(as ? { Authorization: `Bearer ${tok(as)}` } : {}), 'X-Forwarded-For': `10.14.${Math.floor(++ipN / 250)}.${ipN % 250 + 1}` }, body: body !== undefined ? JSON.stringify(body) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; };
+  const call = async (method, p, as, body) => { const r = await fetch(base + p, { method, headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(as ? { Authorization: `Bearer ${tok(as)}` } : {}), 'X-Forwarded-For': `10.16.${Math.floor(++ipN / 250)}.${ipN % 250 + 1}` }, body: body !== undefined ? JSON.stringify(body) : undefined }); let j = null; try { j = await r.json(); } catch {} return { status: r.status, body: j }; };
 
   const uuid = () => crypto.randomUUID();
-  const MIN_AGO = m => new Date(Date.now() - m * 60000).toISOString();
-  // The viewer: intentionally NO skills / interests / intent / location / lat / lng, so matchScore(me, *)
-  // never varies by candidate on any of those axes - only the recency-based "active" boost (+8) does, and
-  // every candidate below is set active, so every candidate ties at the SAME matchScore. A stable sort over
-  // a tie preserves the array's incoming order (Node's Array#sort is a stable sort), which is exactly the
-  // DB query's `order('last_active', desc)` - so the ranked list is fully deterministic: most-recent first.
+  // A caller who clears activeGuard / profileGuard (score >= 70) / trustGuard (score >= 20) - the
+  // three guards in front of /api/swipe and /api/connect. Mirrors A11's "complete" viewer shape.
   const mkViewer = async name => {
     const id = uuid();
-    await q(`INSERT INTO users (id,email,name,bio,headline,location,photos,interests,skills,linkedin,trust_score,email_verified,onboarding_stage,banned,last_active)
-             VALUES ($1,$2,$3,'A complete biography text','','','["1","2","3","4"]'::jsonb,'[]'::jsonb,'[]'::jsonb,'https://linkedin.com/in/x',10,true,'complete',false,now())`,
+    await q(`INSERT INTO users (id,email,name,bio,location,intent,photos,interests,skills,linkedin,email_verified,onboarding_stage,banned,last_active)
+             VALUES ($1,$2,$3,'A complete biography text','Pune','explore-network','["1","2","3","4"]'::jsonb,'["ai","design","music"]'::jsonb,'["react"]'::jsonb,'https://linkedin.com/in/x',true,'complete',false,now())`,
       [id, `${id}@example.test`, name]);
     return id;
   };
-  // `rank` 1 = most recent (returned first); candidates never overlap the viewer on skills/interests/intent
-  // (it does not matter what they have - the viewer has none), and all sit inside the 24h "active" window,
-  // `rank` minutes apart, so the DB order and the final ranked order coincide (see mkViewer above).
-  const mkCandidate = async (name, rank) => {
+  // A skip/swipe TARGET - just needs to be a live account (/api/swipe and /api/connect check
+  // isLiveTarget; /api/skip does not check the target at all).
+  const mkTarget = async name => {
     const id = uuid();
-    await q(`INSERT INTO users (id,email,name,bio,headline,location,photos,interests,skills,linkedin,trust_score,email_verified,onboarding_stage,banned,last_active)
-             VALUES ($1,$2,$3,'A complete biography text','','Pune','["1"]'::jsonb,'["ai"]'::jsonb,'["react"]'::jsonb,'https://linkedin.com/in/x',10,true,'complete',false,$4)`,
-      [id, `${id}@example.test`, name, MIN_AGO(rank)]);
+    await q(`INSERT INTO users (id,email,name,email_verified,onboarding_stage,banned) VALUES ($1,$2,$3,true,'complete',false)`,
+      [id, `${id}@example.test`, name]);
     return id;
   };
-  // Direction defaults to 'right' (expressed interest) - both uses below exist to consume the
-  // viewer's daily swipe budget, which A20 scopes to right swipes only (a left swipe / skip never
-  // counts toward it, see test-a20-skip-daily-limit.mjs), so a 'left' default here would no longer
-  // exercise what these checks are actually about.
-  const swipe = (from, to, dir = 'right') => q(`INSERT INTO swipes (from_user, to_user, direction) VALUES ($1,$2,$3)`, [from, to, dir]);
-  const discover = (as, qs = '') => call('GET', `/api/discover${qs}`, as);
-  const ids = body => (body?.profiles || []).map(p => p.id);
+  const skip    = (as, targetId) => call('POST', '/api/skip', as, { targetId });
+  const swipe   = (as, targetId, direction) => call('POST', '/api/swipe', as, { targetId, direction });
+  const connect = (as, targetId) => call('POST', '/api/connect', as, { userId: targetId });
+  const discover = as => call('GET', '/api/discover', as);
 
   try {
     check('server booted', /Server on port/.test(out) && exited === null, out.slice(-300));
 
-    // ---- 15 candidates, ranked 1 (most recent) .. 15 (least recent) ----
-    const viewer = await mkViewer('Viewer');
-    const cand = [];
-    for (let i = 1; i <= 15; i++) cand.push(await mkCandidate(`Candidate ${i}`, i));
+    console.log('\n--- web: POST /api/skip must not touch the daily limit at all (its own comment: "does not consume daily connect limit") ---');
+    const webViewer = await mkViewer('Web Viewer');
+    const webTargets = []; for (let i = 0; i < 25; i++) webTargets.push(await mkTarget(`Web Target ${i}`));
+    let skipFailures = 0;
+    for (const t of webTargets) { const rr = await skip(webViewer, t); if (rr.status !== 200) skipFailures++; }
+    check('all 25 skips succeed', skipFailures === 0, `failures=${skipFailures}`);
+    let r = await discover(webViewer);
+    check('after 25 skips (more candidates than exist to browse): remaining is still the full daily limit (30) - unaffected by skipping', r.status === 200 && r.body?.remaining === 30 && r.body?.limited !== true, JSON.stringify([r.status, r.body?.remaining, r.body?.limited]));
 
-    console.log('\n--- callers that send NEITHER limit NOR offset are unaffected (NetworkApp / NetworkMobile / test.js contract) ---');
-    let r = await discover(viewer);
-    check('no limit/offset: every one of the 15 candidates, ranked most-recent-first, unpaginated - unchanged from before this fix', r.status === 200 && JSON.stringify(ids(r.body)) === JSON.stringify(cand), JSON.stringify([ids(r.body).length, ids(r.body).slice(0, 3)]));
-    check('remaining / daily_limit are still reported', typeof r.body?.remaining === 'number' && typeof r.body?.daily_limit === 'number', JSON.stringify([r.body?.remaining, r.body?.daily_limit]));
+    console.log('\n--- mobile: POST /api/swipe with direction:\'left\' is how NetworkApp / NetworkMobile submit a skip - same rule must apply, AND it must never 429 ---');
+    const mobileViewer = await mkViewer('Mobile Viewer');
+    const leftTargets = []; for (let i = 0; i < 35; i++) leftTargets.push(await mkTarget(`Left Target ${i}`));   // 35 > the 30 daily limit
+    let anyBlocked = false;
+    for (const t of leftTargets) { const rr = await swipe(mobileViewer, t, 'left'); if (rr.status === 429) anyBlocked = true; }
+    check('35 left-swipes (more than the 30 daily limit) - NONE were blocked (was: 429 once the count, shared with real swipes, hit 30)', !anyBlocked, `blocked=${anyBlocked}`);
+    r = await discover(mobileViewer);
+    check('...and Discover still reports the full 30 remaining - none of those left-swipes counted', r.status === 200 && r.body?.remaining === 30, JSON.stringify([r.status, r.body?.remaining]));
 
-    console.log('\n--- limit alone: the first N of the ranked list, not the full 15 (the bug: this used to ignore limit entirely) ---');
-    r = await discover(viewer, '?limit=5');
-    check('limit=5: exactly the first 5 ranked candidates (was: all 15)', r.status === 200 && JSON.stringify(ids(r.body)) === JSON.stringify(cand.slice(0, 5)), JSON.stringify(ids(r.body)));
-    r = await discover(viewer, '?limit=3');
-    check('limit=3 (onboarding\'s own call shape): exactly 3 (was: all 15)', r.status === 200 && ids(r.body).length === 3 && JSON.stringify(ids(r.body)) === JSON.stringify(cand.slice(0, 3)), JSON.stringify(ids(r.body)));
+    console.log('\n--- a genuine (right) swipe still counts, and still caps at the daily limit - the fix must not make the limit toothless ---');
+    const rightTargets = []; for (let i = 0; i < 31; i++) rightTargets.push(await mkTarget(`Right Target ${i}`));
+    let blockedAt = -1;
+    for (let i = 0; i < rightTargets.length; i++) {
+      const rr = await swipe(mobileViewer, rightTargets[i], 'right');
+      if (rr.status === 429) { blockedAt = i; break; }
+    }
+    check('the 31st right-swipe (after 30 real ones, on top of the 35 free left-swipes above) is the one that gets capped - exactly at 30, not sooner (skips didn\'t eat into it) and not later (right-swipes are still capped)', blockedAt === 30, `blockedAt=${blockedAt}`);
+    r = await discover(mobileViewer);
+    check('Discover now reports remaining: 0 and limited: true - from the 30 REAL swipes, not the 35 skips', r.status === 200 && r.body?.remaining === 0 && r.body?.limited === true, JSON.stringify([r.status, r.body?.remaining, r.body?.limited]));
 
-    console.log('\n--- limit + offset: consecutive pages tile the SAME ranked list with no gaps, no overlap, no reshuffling (the bug: offset was a total no-op - every page was page 1) ---');
-    const page1 = await discover(viewer, '?limit=5&offset=0');
-    const page2 = await discover(viewer, '?limit=5&offset=5');
-    const page3 = await discover(viewer, '?limit=5&offset=10');
-    const page4 = await discover(viewer, '?limit=5&offset=15');
-    check('page 1 (offset=0): ranks 1-5', JSON.stringify(ids(page1.body)) === JSON.stringify(cand.slice(0, 5)), JSON.stringify(ids(page1.body)));
-    check('page 2 (offset=5): ranks 6-10 - a DIFFERENT window, not the same one again', JSON.stringify(ids(page2.body)) === JSON.stringify(cand.slice(5, 10)), JSON.stringify(ids(page2.body)));
-    check('page 3 (offset=10): ranks 11-15, the last real page', JSON.stringify(ids(page3.body)) === JSON.stringify(cand.slice(10, 15)), JSON.stringify(ids(page3.body)));
-    check('page 4 (offset=15): nothing left - empty, not an error, not the list again', page4.status === 200 && ids(page4.body).length === 0, JSON.stringify([page4.status, ids(page4.body)]));
-    const union = [...page1.body.profiles, ...page2.body.profiles, ...page3.body.profiles].map(p => p.id);
-    check('the three pages together are exactly the 15 candidates, each exactly once (no duplicates, none skipped)', JSON.stringify(union) === JSON.stringify(cand), JSON.stringify(union));
+    console.log('\n--- POST /api/connect has its own, independent daily-limit check - it must apply the same rule ---');
+    const connectViewer = await mkViewer('Connect Viewer');
+    const preSkips = []; for (let i = 0; i < 32; i++) preSkips.push(await mkTarget(`Pre-skip ${i}`));           // 32 > the 30 limit, all skipped first
+    for (const t of preSkips) await skip(connectViewer, t);
+    const connectTargets = []; for (let i = 0; i < 31; i++) connectTargets.push(await mkTarget(`Connect Target ${i}`));
+    let connectBlockedAt = -1;
+    for (let i = 0; i < connectTargets.length; i++) {
+      const rr = await connect(connectViewer, connectTargets[i]);
+      if (rr.status === 429) { connectBlockedAt = i; break; }
+    }
+    check('32 prior skips did not consume any of the budget /api/connect enforces - it still allows exactly 30 connects before the 31st is capped', connectBlockedAt === 30, `connectBlockedAt=${connectBlockedAt}`);
+    r = await call('POST', '/api/connect', connectViewer, { userId: connectTargets[30] });
+    check('...and the cap response is still SWIPE_LIMIT / 429 (the code, not just the count, is unchanged)', r.status === 429 && r.body?.code === 'SWIPE_LIMIT', JSON.stringify(r));
 
-    console.log('\n--- offset alone (no limit): everything from that position to the end ---');
-    r = await discover(viewer, '?offset=12');
-    check('offset=12, no limit: ranks 13-15 (the tail), not empty and not the full list', JSON.stringify(ids(r.body)) === JSON.stringify(cand.slice(12)), JSON.stringify(ids(r.body)));
-
-    console.log('\n--- malformed / edge-case values degrade sanely, never 500 (still the full 15-candidate pool at this point) ---');
-    r = await discover(viewer, '?limit=0');
-    check('limit=0 -> treated as "use the default", not "return nothing" (matches the repo\'s existing limit-parsing convention elsewhere, e.g. circles feed)', r.status === 200 && ids(r.body).length > 0, JSON.stringify([r.status, ids(r.body).length]));
-    r = await discover(viewer, '?limit=abc&offset=xyz');
-    check('non-numeric limit/offset -> 200 with a sane default, not a crash', r.status === 200 && ids(r.body).length > 0, JSON.stringify(r.status));
-    r = await discover(viewer, '?offset=-5');
-    check('a negative offset is clamped to 0, not treated as "before the start" - the full 15 again', JSON.stringify(ids(r.body)) === JSON.stringify(cand), JSON.stringify(ids(r.body)));
-    r = await discover(viewer, '?limit=99999');
-    check('an oversized limit does not crash and stays bounded by the real candidate pool', r.status === 200 && ids(r.body).length === 15, JSON.stringify(ids(r.body).length));
-
-    console.log('\n--- pagination stays inside the daily-remaining cap ---');
-    for (let i = 0; i < 12; i++) await swipe(viewer, cand[i]);                                        // 12 of this free user's 30 swipes used
-    r = await discover(viewer, '?limit=10&offset=0');
-    const notSwiped = cand.slice(12);                                                                  // the 3 unswiped candidates remain eligible
-    check('after 12 swipes: only the 3 still-eligible (unswiped) candidates come back, still ranked - not the swiped ones', JSON.stringify(ids(r.body)) === JSON.stringify(notSwiped), JSON.stringify([ids(r.body), r.body?.remaining]));
-    check('remaining reflects the 12 swipes used (30 - 12 = 18)', r.body?.remaining === 18, JSON.stringify(r.body?.remaining));
-
-    console.log('\n--- filters, sort and the daily-limit short-circuit are unaffected by paginating ---');
-    r = await discover(viewer, '?skill=react&limit=2&offset=1');
-    check('a skill filter narrows the pool FIRST, then limit/offset windows the filtered+ranked result (all candidates have "react", so this is just pagination over the same 3 eligible)', r.status === 200 && JSON.stringify(ids(r.body)) === JSON.stringify(notSwiped.slice(1, 3)), JSON.stringify(ids(r.body)));
-    const maxedOut = await mkViewer('Maxed Out');
-    for (let i = 0; i < 30; i++) { const c = await mkCandidate(`Filler ${i}`, 100 + i); await swipe(maxedOut, c); }
-    r = await discover(maxedOut, '?limit=5&offset=0');
-    check('daily limit already reached: { limited: true, profiles: [] } regardless of limit/offset (short-circuits before either is read)', r.status === 200 && r.body?.limited === true && ids(r.body).length === 0, JSON.stringify(r.body));
-
-    console.log('\n--- the endpoint\'s own contract is otherwise unchanged ---');
-    r = await discover(viewer, '?limit=1');
-    const p0 = (r.body?.profiles || [])[0] || {};
-    check('a profile still carries matchScore, insight, matchReasons, works, distance - the same shape as before', 'matchScore' in p0 && 'insight' in p0 && Array.isArray(p0.matchReasons) && Array.isArray(p0.works) && 'distance' in p0, Object.keys(p0).join(','));
-    r = await call('GET', '/api/discover', null);
-    check('no token -> 401', r.status === 401, JSON.stringify(r).slice(0, 100));
+    console.log('\n--- unchanged behaviour: skip is still deduplicated and still 400s on a missing target ---');
+    const dedupViewer = await mkViewer('Dedup Viewer');
+    const dedupTarget = await mkTarget('Dedup Target');
+    r = await skip(dedupViewer, dedupTarget);
+    check('first skip -> 200', r.status === 200, JSON.stringify(r));
+    r = await skip(dedupViewer, dedupTarget);
+    check('skipping the same target again -> still 200, no error (idempotent)', r.status === 200, JSON.stringify(r));
+    r = await call('POST', '/api/skip', dedupViewer, {});
+    check('no targetId -> 400', r.status === 400, JSON.stringify(r));
+    r = await call('POST', '/api/skip', null, { targetId: dedupTarget });
+    check('no token -> 401', r.status === 401, JSON.stringify(r));
 
   } finally {
     const gone = new Promise(res => { if (exited !== null) res(); else child.once('exit', res); }); child.kill(); await Promise.race([gone, sleep(5000)]);

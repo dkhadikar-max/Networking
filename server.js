@@ -3905,9 +3905,15 @@ function thisMonthKey() { return new Date().toISOString().slice(0,7);  }
 // ── FIXED: Daily swipe count uses correct head:true response shape ──
 async function getTodaySwipeCountExact(userId) {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  // A20: only RIGHT swipes (expressed interest) consume the daily limit. A left swipe (skip / pass -
+  // from POST /api/skip, or POST /api/swipe with direction:'left', which is how both mobile apps
+  // submit a skip) used to be counted here too, contradicting /api/skip's own comment ("does not
+  // consume daily connect limit") and silently pushing Discover into { limited: true } from passing
+  // alone.
   const { count, error } = await supabase.from('swipes')
     .select('*', { count: 'exact', head: true })
     .eq('from_user', userId)
+    .eq('direction', 'right')
     .gte('created_at', todayStart.toISOString());
   if (error) throw error;
   return count || 0;
@@ -6444,11 +6450,13 @@ app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, 
     const swiper = req.userData;
     const SWIPE_LIMIT = swiper.premium ? 200 : 30;
 
-    // Check daily limit
+    // Check daily limit — A20: right swipes only (see getTodaySwipeCountExact). A left swipe
+    // (skip/pass) neither consumes this count below nor is gated by it.
     const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
     const { count: todayCount, error: countErr } = await supabase.from('swipes')
       .select('*', { count: 'exact', head: true })
       .eq('from_user', req.user.id)
+      .eq('direction', 'right')
       .gte('created_at', todayStart.toISOString());
 
     if (countErr) throw countErr;
@@ -6570,8 +6578,10 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
       { data: target, error: targetErr },
       { data: blockRows, error: blockErr },
     ] = await Promise.all([
+      // A20: right swipes only (see getTodaySwipeCountExact) — a prior skip must not eat into
+      // the budget a direct connect enforces.
       supabase.from('swipes').select('*', { count: 'exact', head: true })
-        .eq('from_user', req.user.id).gte('created_at', todayStart.toISOString()),
+        .eq('from_user', req.user.id).eq('direction', 'right').gte('created_at', todayStart.toISOString()),
       supabase.from('connections').select('id')
         .or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
         .maybeSingle(),
