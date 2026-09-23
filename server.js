@@ -3564,7 +3564,12 @@ function matchScore(a, b) {
     interest = Math.min(interest + aW.filter(w=>bW.includes(w)).length*4, 35);
   }
   if (a.intent && b.intent) {
-    intent = (INTENT_COMPAT[a.intent]||[]).includes(b.intent) ? 25 : 8;
+    // A19b: both sides are resolved onto the canonical vocabulary before comparing - see
+    // canonicalIntentSlug below. Without this, any value written by web ProfileEdit or the old
+    // NetworkApp mobile app's extra options never matched an INTENT_COMPAT key, so it silently
+    // scored as "not compatible" against everyone, including another user with the identical value.
+    const aSlug = canonicalIntentSlug(a.intent), bSlug = canonicalIntentSlug(b.intent);
+    intent = (aSlug && (INTENT_COMPAT[aSlug]||[]).includes(bSlug)) ? 25 : 8;
   }
   const aS = (a.skills||[]).map(s=>s.toLowerCase());
   const bS = (b.skills||[]).map(s=>s.toLowerCase());
@@ -3876,7 +3881,9 @@ function getIcebreakers(me, other) {
   }
 
   // 6. Same intent — least specific personalized signal, so lowest priority
-  if (me.intent && other.intent && normalizeStr(me.intent) === normalizeStr(other.intent)) {
+  // A19b: canonicalIntentSlug (not raw string equality) - "collaborate" (onboarding),
+  // "find-cofounder" (old mobile) and "Co-founder" (web) all mean the same thing.
+  if (me.intent && other.intent && canonicalIntentSlug(me.intent) && canonicalIntentSlug(me.intent) === canonicalIntentSlug(other.intent)) {
     const intent = truncField(formatIntent(other.intent), 40);
     chips.push({ label: '🎯 Shared intent', text: `We both matched on ${intent.toLowerCase()} — where are you at with it right now?` });
   }
@@ -5751,10 +5758,43 @@ app.get('/api/profile-status', auth, async (req, res) => {
 // VALID_INTENTS is declared further down this file.
 const PROFILE_INTENT_EXTRAS = ['find-cofounder', 'find-mentor', 'hire', 'find-investors',
   'Hiring', 'Freelance', 'Co-founder', 'Mentorship', 'Investing', 'Networking'];
+
+// A19b: matchScore, the Discover ?intent= filter, ice-breakers' "shared intent" chip and
+// /api/conversation-starters' intentPrompts all assumed users.intent held only the 5 INTENT_COMPAT
+// slugs - but three different writers put three non-overlapping vocabularies into that one column
+// (see the comment above PROFILE_INTENT_EXTRAS). canonicalIntentSlug folds every value any client
+// has ever written onto one of the 5 slugs: INTENT_LEGACY_MAP already maps the 10 VALID_INTENTS
+// labels (onboarding's own vocabulary); the remaining values - the old NetworkApp mobile app's 4
+// extra options, and the web's Freelance/Co-founder/Investing (Hiring/Mentorship/Networking already
+// overlap VALID_INTENTS) - are mapped here, using the closest of the 5 canonical slugs. This is a
+// many-to-one fold, by design (the user's decision): e.g. both "Hiring" and "Freelance" become
+// build-relationships, so they become indistinguishable from each other. Declared as a function so
+// it can be called from code both above and below INTENT_LEGACY_MAP's own declaration further down
+// this file (same forward-reference pattern already used for VALID_INTENTS/canonicalProfileIntent).
+const INTENT_EXTRA_ALIASES = {
+  'find-cofounder': 'collaborate',
+  'find-mentor':    'learn-mentorship',
+  'hire':           'build-relationships',
+  'find-investors': 'explore-network',
+  'freelance':      'build-relationships',
+  'co-founder':     'collaborate',
+  'investing':      'explore-network',
+};
+function canonicalIntentSlug(raw) {
+  if (!raw) return null;
+  const v = String(raw).toLowerCase();
+  if (INTENT_COMPAT[v]) return v;
+  const legacyKey = Object.keys(INTENT_LEGACY_MAP).find(k => k.toLowerCase() === v);
+  if (legacyKey) return INTENT_LEGACY_MAP[legacyKey];
+  return INTENT_EXTRA_ALIASES[v] || null;
+}
 function canonicalProfileIntent(value) {
   const v = String(value).toLowerCase();
-  return [...Object.keys(INTENT_COMPAT), ...PROFILE_INTENT_EXTRAS, ...VALID_INTENTS]
-    .find(x => x.toLowerCase() === v) || null;
+  const recognized = [...Object.keys(INTENT_COMPAT), ...PROFILE_INTENT_EXTRAS, ...VALID_INTENTS]
+    .find(x => x.toLowerCase() === v);
+  // Still accepts every value it always has (no new 400s) - it now stores the canonical slug
+  // instead of echoing back whatever vocabulary the client happened to send.
+  return recognized ? canonicalIntentSlug(recognized) : null;
 }
 
 // ── UPDATE ME ──
@@ -6205,7 +6245,16 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
 
     // Apply filters
     if (skill)    candidates = candidates.filter(u => (u.skills||[]).some(s => s.toLowerCase().includes(skill.toLowerCase())));
-    if (intent)   candidates = candidates.filter(u => u.intent === intent);
+    // A19b: resolve both sides onto the canonical slug before comparing - the web's own filter
+    // chips (DiscoverFilters.tsx) send the Title-Case vocabulary, which onboarding never writes,
+    // so an exact match here matched almost nobody. An unrecognised filter value falls back to the
+    // previous exact-match behaviour (still an empty result for garbage input, not everyone).
+    if (intent) {
+      const wantIntentSlug = canonicalIntentSlug(intent);
+      candidates = wantIntentSlug
+        ? candidates.filter(u => canonicalIntentSlug(u.intent) === wantIntentSlug)
+        : candidates.filter(u => u.intent === intent);
+    }
     if (location) candidates = candidates.filter(u => (u.location||'').toLowerCase().includes(location.toLowerCase()));
     if (interest) candidates = candidates.filter(u => (u.interests||[]).some(s => s.toLowerCase().includes(interest.toLowerCase())));
 
@@ -7368,7 +7417,8 @@ app.get('/api/conversation-starters/:connId', auth, async (req, res) => {
       'explore-network':     `What kind of connections have been most valuable to you so far?`,
       'build-relationships': `What does a meaningful professional relationship look like to you?`,
     };
-    if (other.intent && intentPrompts[other.intent]) prompts.push(intentPrompts[other.intent]);
+    const otherIntentSlug = canonicalIntentSlug(other.intent);   // A19b: resolve before the lookup
+    if (otherIntentSlug && intentPrompts[otherIntentSlug]) prompts.push(intentPrompts[otherIntentSlug]);
     if (other.working_on && other.working_on.trim())
       prompts.push(`I saw you're working on "${other.working_on.trim().slice(0,60)}" — what's the biggest challenge right now?`);
     if (other.currently_exploring && other.currently_exploring.trim())

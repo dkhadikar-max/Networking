@@ -16,6 +16,25 @@ type Props = {
 
 const INTENT_OPTIONS = ['Hiring', 'Freelance', 'Co-founder', 'Mentorship', 'Investing', 'Networking'];
 
+// server.js's canonicalProfileIntent() now stores one of 5 canonical slugs regardless of which of
+// these chips was clicked (A19b — the intent vocabulary mismatch across onboarding / web / the old
+// mobile app). Mirror that same mapping here so a chip picked in an earlier edit still shows as
+// selected after a reload, instead of appearing unselected just because the stored value is now a
+// slug rather than the label this chip sends. Hiring/Freelance both fold onto build-relationships,
+// and Investing/Networking onto explore-network — an intentional, lossy compression (A19b's chosen
+// resolution), so more than one chip can legitimately show as selected for those.
+const INTENT_CHIP_SLUG: Record<string, string> = {
+  Hiring: 'build-relationships',
+  Freelance: 'build-relationships',
+  'Co-founder': 'collaborate',
+  Mentorship: 'learn-mentorship',
+  Investing: 'explore-network',
+  Networking: 'explore-network',
+};
+function intentSlugOf(value: string): string {
+  return INTENT_CHIP_SLUG[value] ?? value.toLowerCase();
+}
+
 const INTERESTS_LIST = [
   'AI/ML', 'Startups', 'SaaS', 'Fintech', 'Design', 'Marketing',
   'Sales', 'Product', 'Engineering', 'VC', 'Crypto', 'Health Tech',
@@ -335,7 +354,7 @@ export default function ProfileEdit({ user, onSave, onCancel }: Props) {
                 key={opt}
                 type="button"
                 onClick={() => setForm(prev => ({ ...prev, intent: opt }))}
-                className={'pe-chip' + (form.intent.toLowerCase() === opt.toLowerCase() ? ' active' : '')}
+                className={'pe-chip' + (intentSlugOf(form.intent) === intentSlugOf(opt) ? ' active' : '')}
               >
                 {opt}
               </button>

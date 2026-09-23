@@ -228,9 +228,23 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     const WEB_CHIPS = ['Hiring', 'Freelance', 'Co-founder', 'Mentorship', 'Investing', 'Networking'];                                                                         // web ProfileEdit chips
     const ONBOARDING = ['Networking', 'Find Opportunities', 'Build Startup Connections', 'Find Co-founder', 'Hiring', 'Find Clients', 'Mentorship', 'Learn from People', 'Community', 'Investment Opportunities'];   // VALID_INTENTS
     const ALL = [...new Set([...SLUGS, ...WEB_CHIPS, ...ONBOARDING])];
+    // A19b (intent vocabulary mismatch): every one of these is still ACCEPTED (no new 400s), but is
+    // now folded onto one of the 5 INTENT_COMPAT slugs at write time instead of being echoed back
+    // verbatim — matching, the Discover filter and ice-breakers all compare against that one
+    // vocabulary now, wherever the value originally came from.
+    const CANONICAL = {
+      'explore-network': 'explore-network', 'exchange-ideas': 'exchange-ideas', 'learn-mentorship': 'learn-mentorship',
+      'build-relationships': 'build-relationships', 'collaborate': 'collaborate',
+      'find-cofounder': 'collaborate', 'find-mentor': 'learn-mentorship', 'hire': 'build-relationships', 'find-investors': 'explore-network',
+      'Hiring': 'build-relationships', 'Freelance': 'build-relationships', 'Co-founder': 'collaborate', 'Mentorship': 'learn-mentorship',
+      'Investing': 'explore-network', 'Networking': 'explore-network',
+      'Find Opportunities': 'explore-network', 'Build Startup Connections': 'build-relationships', 'Find Co-founder': 'collaborate',
+      'Find Clients': 'build-relationships', 'Learn from People': 'learn-mentorship', 'Community': 'build-relationships',
+      'Investment Opportunities': 'explore-network',
+    };
     u = await mk(); const rejected = [];
-    for (const v of ALL) { r = await put(u, { intent: v }); if (r.status !== 200 || (await row(u)).intent !== v) rejected.push(`${v}(${r.status})`); }
-    check(`all ${ALL.length} known intent values are accepted and stored exactly`, rejected.length === 0, `rejected: ${rejected.join(', ')}`);
+    for (const v of ALL) { r = await put(u, { intent: v }); const got = (await row(u)).intent; if (r.status !== 200 || got !== CANONICAL[v]) rejected.push(`${v}(${r.status}, got ${got})`); }
+    check(`all ${ALL.length} known intent values are accepted and stored in canonical form`, rejected.length === 0, `rejected: ${rejected.join(', ')}`);
     const stored = ['explore-network', 'build-relationships', 'Networking', 'Freelance', 'collaborate', 'Mentorship', 'learn-mentorship', 'Co-founder', 'find-cofounder'];   // what production holds today
     check('every value production holds today is inside the accepted set (an ordinary edit re-sends the stored intent)', stored.every(v => ALL.includes(v)), stored.filter(v => !ALL.includes(v)).join(','));
 
@@ -253,13 +267,13 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     u = await mk(); r = await put(u, { intent: '   ' });
     check('a whitespace-only intent is also a no-op (existing intent kept)', r.status === 200 && (await row(u)).intent === 'explore-network', JSON.stringify([r.status, (await row(u)).intent]));
     u = await mk(); r = await put(u, { intent: 'networking' }); const c1 = (await row(u)).intent; r = await put(u, { intent: 'EXPLORE-NETWORK' });
-    check('intents match case-insensitively and are stored in canonical form (networking -> Networking, EXPLORE-NETWORK -> explore-network)', c1 === 'Networking' && (await row(u)).intent === 'explore-network', JSON.stringify([c1, (await row(u)).intent]));
+    check('intents match case-insensitively and both fold onto the same canonical slug (networking -> explore-network, EXPLORE-NETWORK -> explore-network)', c1 === 'explore-network' && (await row(u)).intent === 'explore-network', JSON.stringify([c1, (await row(u)).intent]));
 
     console.log('\n--- the ordinary web-editor save is unaffected ---');
     u = await mk();
     r = await put(u, { name: 'Grace Hopper', bio: 'Compiler pioneer and rear admiral', location: 'Arlington', intent: 'Mentorship', skills: ['cobol', 'compilers'], interests: ['history', 'ai', 'navy'], instagram: '', linkedin: 'https://linkedin.com/in/grace', website: '', remote: true, lat: 38.87, lng: -77.05 });
     const g = await one(`SELECT name, bio, location, intent, skills, interests, remote, lat FROM users WHERE id=$1`, [u]);
-    check('a full edit (name, bio, location, intent, skills, interests, links, remote, coordinates) -> 200 and everything applied', r.status === 200 && g.name === 'Grace Hopper' && g.intent === 'Mentorship' && g.location === 'Arlington' && g.remote === true && g.skills.length === 2 && g.interests.length === 3 && Number(g.lat) === 38.87, JSON.stringify([r.status, r.body?.error, g]).slice(0, 260));
+    check('a full edit (name, bio, location, intent, skills, interests, links, remote, coordinates) -> 200 and everything applied (intent "Mentorship" -> canonical "learn-mentorship", A19b)', r.status === 200 && g.name === 'Grace Hopper' && g.intent === 'learn-mentorship' && g.location === 'Arlington' && g.remote === true && g.skills.length === 2 && g.interests.length === 3 && Number(g.lat) === 38.87, JSON.stringify([r.status, r.body?.error, g]).slice(0, 260));
     check('...the response still reports recomputed scores', typeof r.body?.trust_score === 'number' && typeof r.body?.profile_score === 'number' && 'is_profile_complete' in (r.body || {}), JSON.stringify(Object.keys(r.body || {})).slice(0, 200));
     r = await put(u, { lat: 40.71, lng: -74.0 });
     check('a location-only update (what the web app sends on GPS) -> 200', r.status === 200, JSON.stringify(r.status));
