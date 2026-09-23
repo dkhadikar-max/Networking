@@ -6488,6 +6488,11 @@ app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, 
       if (theirSwipe) {
         const now = new Date();
         connectionId = uuidv4();
+        // A21: two mutual matches racing (both sides swiped right within the same window) could
+        // both reach here and both insert - connections has no unique constraint, so both used to
+        // succeed, creating two rows for the same pair. connections_pair_uidx (migrations/024)
+        // closes that: a second concurrent insert for the same pair, in EITHER order, hits 23505.
+        let createdByMe = true;
         const { error: connErr } = await supabase.from('connections').insert({
           id: connectionId, user1: req.user.id, user2: targetId,
           created_at: now.toISOString(),
@@ -6503,21 +6508,26 @@ app.post('/api/swipe', auth, activeGuard, profileGuard, trustGuard, async (req, 
             const { data: existing } = await supabase.from('connections')
               .select('id').or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
               .maybeSingle();
-            if (existing) { connectionId = existing.id; } else throw connErr;
+            if (existing) { connectionId = existing.id; createdByMe = false; } else throw connErr;
           } else throw connErr;
         }
         match = true;
 
-        const [{ data: me2 }, { data: them }] = await Promise.all([
-          supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
-          supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
-        ]);
-        const myName    = me2   ? me2.name   : 'Someone';
-        const theirName = them  ? them.name  : 'Someone';
-        sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
-        sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
-        sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
-        sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+        // Only the request that actually created the connection sends the match notifications -
+        // the race loser (createdByMe === false) would otherwise send a second "You matched!" to
+        // both users for the same match.
+        if (createdByMe) {
+          const [{ data: me2 }, { data: them }] = await Promise.all([
+            supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
+            supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
+          ]);
+          const myName    = me2   ? me2.name   : 'Someone';
+          const theirName = them  ? them.name  : 'Someone';
+          sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
+          sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+          sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(()=>{});
+          sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(()=>{});
+        }
       } else {
         sendLikeNotification(req.user.id, targetId).catch(() => {});
       }
@@ -6604,29 +6614,31 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
     if (existingConn) return res.json({ ok: true, match: true, connectionId: existingConn.id, duplicate: true });
     if (dupSwipe) return res.json({ ok: true, match: false, duplicate: true });
 
-    // Inserting my swipe and checking whether they already swiped right on
-    // me are also independent of each other (different rows, no ordering
-    // requirement between them) — batched for the same reason as above.
-    const [
-      { error: insertErr },
-      { data: theirSwipe },
-    ] = await Promise.all([
-      supabase.from('swipes').insert({
-        from_user: req.user.id, to_user: targetId, direction: 'right',
-        created_at: new Date().toISOString(),
-      }),
-      supabase.from('swipes').select('id')
-        .eq('from_user', targetId).eq('to_user', req.user.id).eq('direction', 'right').maybeSingle(),
-    ]);
+    // A21: these two used to be batched via Promise.all, on the reasoning that they touch different
+    // rows so there is "no ordering requirement between them" - true for THIS request's own data
+    // dependency, but wrong for correctness: batching removed the happens-before relationship that
+    // makes a genuine mutual match detectable at all. If both sides call /api/connect (or /api/swipe)
+    // at nearly the same moment, their two theirSwipe checks could both run - and both find nothing -
+    // BEFORE either side's own insert has committed, so BOTH requests conclude match:false and a real
+    // mutual right-swipe is silently never turned into a connection. POST /api/swipe never had this
+    // bug (it already inserts, then checks, in sequence) - matching that ordering here closes it.
+    const { error: insertErr } = await supabase.from('swipes').insert({
+      from_user: req.user.id, to_user: targetId, direction: 'right',
+      created_at: new Date().toISOString(),
+    });
     if (insertErr) {
       if (insertErr.code === '23505') return res.json({ ok: true, match: false, duplicate: true });
       throw insertErr;
     }
+    const { data: theirSwipe } = await supabase.from('swipes').select('id')
+      .eq('from_user', targetId).eq('to_user', req.user.id).eq('direction', 'right').maybeSingle();
 
     let match = false, connectionId = null;
     if (theirSwipe) {
       const now = new Date();
       connectionId = uuidv4();
+      // A21: same race as POST /api/swipe's match branch - see connections_pair_uidx (migrations/024).
+      let createdByMe = true;
       const { error: connErr } = await supabase.from('connections').insert({
         id: connectionId, user1: req.user.id, user2: targetId,
         created_at: now.toISOString(),
@@ -6640,21 +6652,24 @@ app.post('/api/connect', auth, activeGuard, profileGuard, trustGuard, async (req
           const { data: existing } = await supabase.from('connections')
             .select('id').or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
             .maybeSingle();
-          if (existing) { connectionId = existing.id; } else throw connErr;
+          if (existing) { connectionId = existing.id; createdByMe = false; } else throw connErr;
         } else throw connErr;
       }
       match = true;
 
-      const [{ data: me2 }, { data: them }] = await Promise.all([
-        supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
-        supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
-      ]);
-      const myName    = me2  ? me2.name  : 'Someone';
-      const theirName = them ? them.name : 'Someone';
-      sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
-      sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
-      sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
-      sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+      // Only the request that actually created the connection notifies - see POST /api/swipe.
+      if (createdByMe) {
+        const [{ data: me2 }, { data: them }] = await Promise.all([
+          supabase.from('users').select('name').eq('id', req.user.id).maybeSingle(),
+          supabase.from('users').select('name').eq('id', targetId).maybeSingle(),
+        ]);
+        const myName    = me2  ? me2.name  : 'Someone';
+        const theirName = them ? them.name : 'Someone';
+        sendPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
+        sendPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+        sendWebPush([targetId],    '🎉 New Match!', `You matched with ${myName}! Say hello.`,    { screen: 'Chat', connectionId }).catch(() => {});
+        sendWebPush([req.user.id], '🎉 New Match!', `You matched with ${theirName}! Say hello.`, { screen: 'Chat', connectionId }).catch(() => {});
+      }
     } else {
       sendLikeNotification(req.user.id, targetId).catch(() => {});
     }
@@ -7051,28 +7066,33 @@ app.post('/api/priority-message', auth, async (req, res) => {
     if (await isBlockedEitherWay(req.user.id, target.id)) return res.status(404).json({ error: 'Recipient not found' });
 
     const month = thisMonthKey();
-    const { data: monthMsgs } = await supabase.from('priority_msgs')
-      .select('id').eq('from_user', req.user.id).eq('month', month);
-    const monthCount = (monthMsgs || []).length;
     const limit = sender.premium ? 20 : 3;
-    if (monthCount >= limit)
-      return res.status(429).json({ error: `Priority message limit reached (${limit}/month)` });
-
-    // Prevent duplicate to same person this month
-    const { data: dup } = await supabase.from('priority_msgs')
-      .select('id').eq('from_user', req.user.id).eq('to_user', targetId).eq('month', month).maybeSingle();
-    if (dup) return res.status(400).json({ error: 'Already sent a priority message to this person' });
 
     // FIXED: Stricter URL regex
     const STRICT_URL_PATTERN = /https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(\/[^\s]*)?/gi;
     const cleanText = text.trim().replace(STRICT_URL_PATTERN, '[link removed]');
-    const pm = { id: uuidv4(), from_user: req.user.id, to_user: targetId,
-      text: cleanText, month, read: false, created_at: new Date().toISOString() };
-    await supabase.from('priority_msgs').insert(pm);
+
+    // A21: the monthly-quota check, the duplicate-recipient check and the insert used to be three
+    // separate REST calls with nothing serializing them - a burst of concurrent requests could each
+    // read the same under-the-limit count (or the same "no duplicate yet" state) before any of them
+    // committed. process_priority_message (migrations/024) does all three atomically in one
+    // transaction, serialized per (sender, month) by an advisory lock. Fails closed if the migration
+    // has not been applied yet - nothing is sent, not "sent without the check".
+    const { data: result, error: rpcErr } = await supabase.rpc('process_priority_message', {
+      p_from_user: req.user.id, p_to_user: targetId, p_text: cleanText, p_month: month, p_limit: limit,
+    });
+    if (rpcErr) {
+      console.error('[priority-message] process_priority_message failed (has migrations/024 been applied?):', rpcErr.message);
+      return res.status(503).json({ error: 'Service temporarily unavailable — please retry' });
+    }
+    if (result.outcome === 'limit_reached')
+      return res.status(429).json({ error: `Priority message limit reached (${limit}/month)` });
+    if (result.outcome === 'duplicate_recipient')
+      return res.status(400).json({ error: 'Already sent a priority message to this person' });
 
     sendPush([targetId], `⚡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
     sendWebPush([targetId], `⚡ Priority Message from ${sender.name}`, cleanText.slice(0, 80), { screen: 'PriorityMessages' }).catch(()=>{});
-    res.json({ ok: true, remaining: limit - monthCount - 1 });
+    res.json({ ok: true, remaining: result.remaining });
   } catch(e) {
     console.error('Priority message error:', e);
     res.status(500).json({ error: 'Internal server error' });
@@ -7205,11 +7225,22 @@ app.post('/api/report', auth, async (req, res) => {
     }
     if (dupRows && dupRows.length) return res.status(400).json({ error: 'You have already reported this user' });
 
-    await supabase.from('reports').insert({
+    // A21: the dedupe SELECT above and this INSERT are not atomic - two concurrent identical
+    // reports from the same reporter could both pass the check before either commits, each insert
+    // its own row and each apply its own -10 penalty below. reports_ordinary_dedup_uidx
+    // (migrations/024) closes the window: a second concurrent insert for the same (reporter, target)
+    // hits 23505, and the race loser stops here - same outward response as the pre-check dedupe,
+    // and it never reaches (or repeats) the trust penalty.
+    const { error: insertErr } = await supabase.from('reports').insert({
       id: uuidv4(), from_user: req.user.id, target_id: targetId,
       reason: String(reason).slice(0, 500),   // cap length
       created_at: new Date().toISOString()
     });
+    if (insertErr) {
+      if (insertErr.code === '23505') return res.status(400).json({ error: 'You have already reported this user' });
+      console.error('Report insert failed:', insertErr.message);
+      return res.status(500).json({ error: 'Failed to process your report — please try again' });
+    }
 
     // Penalize trust score once (idempotent because of dedup above)
     const { data: target } = await supabase.from('users')

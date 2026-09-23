@@ -60,6 +60,7 @@ CREATE TABLE connections (id text PRIMARY KEY, user1 text NOT NULL, user2 text N
   user1_responded boolean DEFAULT false, user2_responded boolean DEFAULT false, active boolean DEFAULT false, status text, user1_last_read_at timestamptz, user2_last_read_at timestamptz);
 CREATE TABLE blocks (id text PRIMARY KEY DEFAULT gen_random_uuid()::text, from_user text NOT NULL, to_user text NOT NULL, created_at timestamptz DEFAULT now());
 CREATE TABLE priority_msgs (id text PRIMARY KEY, from_user text NOT NULL, to_user text NOT NULL, text text, month text, read boolean DEFAULT false, created_at timestamptz DEFAULT now());
+CREATE TABLE reports (id text PRIMARY KEY, from_user text NOT NULL, target_id text NOT NULL, reason text NOT NULL, type text, created_at timestamptz DEFAULT now());
 `;
 
 // ---- PostgREST-compatible translator over the real Postgres (select= lists, and(...) inside or(...)) ----
@@ -113,6 +114,18 @@ const translator = http.createServer((req, res) => {
     const wantObject = (req.headers.accept || '').includes('vnd.pgrst.object+json'); const prefer = req.headers.prefer || '';
     const send = (status, payload, extra = {}) => { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...extra }); res.end(payload === undefined ? undefined : JSON.stringify(payload)); };
     const objectOr406 = list => list.length === 1 ? send(200, list[0]) : send(406, { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned', details: null, hint: null });
+    const rpcMatch = /^\/rest\/v1\/rpc\/(\w+)$/.exec(url.pathname);
+    if (rpcMatch) {
+      const argNames = Object.keys(body || {});
+      const placeholders = argNames.map((k, i) => `${k} := $${i + 1}${typeof body[k] === 'number' ? '::int' : typeof body[k] === 'boolean' ? '::boolean' : '::text'}`).join(', ');
+      const args = argNames.map(k => body[k]);
+      try {
+        const result = await pool.query(`SELECT ${rpcMatch[1]}(${placeholders}) AS r`, args);
+        return send(200, result.rows[0].r);
+      } catch (e) {
+        return send(400, { code: e.code || 'XX000', message: e.message, details: e.detail ?? null, hint: e.hint ?? null });
+      }
+    }
     try {
       const cols = await tableCols(table);
       if (!cols) return req.method === 'GET' || req.method === 'HEAD' ? send(200, [], { 'Content-Range': '*/0' }) : (res.writeHead(req.method === 'POST' ? 201 : 204), res.end());
@@ -155,6 +168,7 @@ async function main() {
   pool = new pg.Pool({ host: '127.0.0.1', port: pgPort, user: 'postgres', password: 'pw', database: 'byn', max: 10 });
   const q = (sql, args) => pool.query(sql, args); const one = async (sql, args) => (await q(sql, args)).rows[0];
   await q(DDL);
+  await q(fs.readFileSync(path.join(here, 'migrations', '024_concurrency_race_fixes.sql'), 'utf8'));
 
   const shared = fs.mkdtempSync(path.join(os.tmpdir(), 'byn-a12-shared-'));
   const stub = path.join(shared, 'stub-resend.cjs');
