@@ -6124,7 +6124,15 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
     if (swipedToday >= DAILY_LIMIT)
       return res.json({ limited: true, remaining: 0, profiles: [] });
 
-    const { skill, intent, location, remote, interest, sort = 'relevance', radius, worldwide } = req.query;
+    const { skill, intent, location, remote, interest, sort = 'relevance', radius, worldwide, limit, offset } = req.query;
+    // The NetworkApp / NetworkMobile clients call this endpoint with no limit/offset at all and expect
+    // everything up to the daily remaining in one response (they page purely client-side over that single
+    // array) - that contract is preserved exactly: with no `limit`, the window is unbounded, same as before
+    // this fix. The web app (DiscoverFeed) and the onboarding preview DO send limit/offset (`?limit=10&offset=N`,
+    // `?limit=3`) and were silently ignored - every "page" was page 1, truncated only to the daily remaining.
+    // Same clamp convention as the circles feed's limit parsing (parseInt || default, then clamp).
+    const pageOffset = Math.max(parseInt(offset) || 0, 0);
+    const pageLimit  = limit !== undefined ? Math.min(Math.max(parseInt(limit) || 10, 1), 50) : Infinity;
 
     // Location mode resolution: nearby(default)/remote/worldwide — resolved
     // before the DB batch below so the PREMIUM_REQUIRED short-circuit still
@@ -6257,7 +6265,9 @@ app.get('/api/discover', auth, discoverGuard, async (req, res) => {
     else if (sort === 'distance') profiles.sort((a,b) => (a.distance ?? 9999) - (b.distance ?? 9999));
     else                          profiles.sort((a,b) => b.matchScore - a.matchScore);
 
-    profiles = profiles.slice(0, remaining);
+    // The daily-remaining cap still bounds every page (unchanged); limit/offset then windows within it.
+    const pageEnd = Math.min(pageOffset + pageLimit, remaining);
+    profiles = profiles.slice(Math.min(pageOffset, remaining), pageEnd);
     res.json({ limited: false, remaining, profiles, daily_limit: DAILY_LIMIT });
   } catch(e) {
     console.error('Discover error:', e);
