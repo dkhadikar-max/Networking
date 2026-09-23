@@ -6044,13 +6044,26 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
 
     const [{ data: worksData }, { data: userConns }, { data: reviews }] = await Promise.all([
       supabase.from('works').select('*').eq('user_id', user.id),
-      supabase.from('connections').select('user1,user2').or(`user1.eq.${user.id},user2.eq.${user.id}`),
+      supabase.from('connections').select('user1,user2,active,expires_at').or(`user1.eq.${user.id},user2.eq.${user.id}`),
       supabase.from('user_reviews').select('rating,tags').eq('reviewed_id', user.id),
     ]);
 
+    // A23: connections_count and mutual_count used to count EVERY row in `connections`, including a
+    // match that expired without either side ever responding — first_response_deadline is written on
+    // every connection but never read anywhere, so the only real expiry is `expires_at`, and the only
+    // place that was ever honoured was GET /api/connections (the inbox list: `active || expires_at >
+    // now`). These two counts now use that exact same "live connection" definition, so a fresh
+    // pending match still counts during its normal grace window (same as it still appears in the
+    // inbox), and a dead, never-opened match stops counting once it expires. is_connected is
+    // deliberately UNCHANGED — it still reflects "does any connection row exist", regardless of
+    // expiry, same as before; only the two counts below are affected.
+    const now = new Date();
+    const isLiveConn = c => c.active || new Date(c.expires_at) > now;
+
     const u = cleanPublic(user);
     u.works            = worksData || [];
-    u.connections_count = (userConns || []).length;
+    const liveUserConns = (userConns || []).filter(isLiveConn);
+    u.connections_count = liveUserConns.length;
     u.review_summary   = buildReviewSummary(reviews || []);
 
     // Viewer-relative fields — is_connected, mutual_count, my_review. The viewer is req.user, which auth()
@@ -6060,18 +6073,22 @@ app.get('/api/profiles/:id', auth, profileViewLimiter, async (req, res) => {
     // wrongly "not connected") answer. A failed lookup is an error now, like the rest of this handler.
     if (req.user.id !== user.id) {
       const viewerId = req.user.id;
-      const targetConnSet = new Set(
-        (userConns || []).map(c => c.user1 === user.id ? c.user2 : c.user1)
+      const targetLiveConnSet = new Set(
+        liveUserConns.map(c => c.user1 === user.id ? c.user2 : c.user1)
       );
       const { data: viewerConns, error: viewerConnsErr } = await supabase.from('connections')
-        .select('user1,user2').or(`user1.eq.${viewerId},user2.eq.${viewerId}`);
+        .select('user1,user2,active,expires_at').or(`user1.eq.${viewerId},user2.eq.${viewerId}`);
       if (viewerConnsErr) throw viewerConnsErr;
       const viewerConnSet = new Set(
         (viewerConns || []).map(c => c.user1 === viewerId ? c.user2 : c.user1)
       );
       u.is_connected = viewerConnSet.has(user.id);
+      // A23: a shared connection only counts as "mutual" when it is live on BOTH sides.
+      const viewerLiveConnSet = new Set(
+        (viewerConns || []).filter(isLiveConn).map(c => c.user1 === viewerId ? c.user2 : c.user1)
+      );
       let mutual = 0;
-      viewerConnSet.forEach(id => { if (targetConnSet.has(id)) mutual++; });
+      viewerLiveConnSet.forEach(id => { if (targetLiveConnSet.has(id)) mutual++; });
       u.mutual_count = mutual;
       if (u.is_connected) {
         const { data: myReview, error: myReviewErr } = await supabase.from('user_reviews')
