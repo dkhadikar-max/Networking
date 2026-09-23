@@ -2903,8 +2903,10 @@ ${cityHtml}`;
 
 // ── PHASE 5 — Public founder profile pages (crawlable, no auth) ──────────────
 // Safe public fields only — email, lat, lng, password, otp, push_token excluded by select.
-// Quality gate: profile_score >= 60, trust_score >= 10, not banned.
-const PROFILE_PUBLIC_FIELDS = 'id,name,bio,photos,location,intent,interests,skills,currently_exploring,working_on,profile_score,trust_score,is_profile_complete,banned,instagram,linkedin,website,created_at';
+// A25 eligibility gate: profile_score >= 60, trust_score >= 10, not banned, not deleted, verified,
+// onboarding complete. email_verified/onboarding_stage/deleted_at are selected only to be checked
+// below — never rendered onto the page itself.
+const PROFILE_PUBLIC_FIELDS = 'id,name,bio,photos,location,intent,interests,skills,currently_exploring,working_on,profile_score,trust_score,is_profile_complete,banned,instagram,linkedin,website,created_at,email_verified,onboarding_stage,deleted_at';
 
 app.get('/founders/:id', async (req, res) => {
   try {
@@ -2915,8 +2917,18 @@ app.get('/founders/:id', async (req, res) => {
     }
     const { data: user } = await supabase.from('users')
       .select(PROFILE_PUBLIC_FIELDS).eq('id', id).maybeSingle();
-    // Quality gate: must exist, not banned, profile complete enough
-    if (!user || user.banned || (user.profile_score || 0) < 60 || (user.trust_score || 0) < 10) {
+    // A25: this used to gate only on profile_score/trust_score/banned - never on deleted_at,
+    // email_verified or onboarding_stage, none of which were even selected. anonymizeUser() (soft
+    // delete) never touches profile_score/trust_score, so a deleted account that once cleared the
+    // score bar kept a public, indexable "Deleted User" page forever; an unverified or onboarding-
+    // incomplete account could equally clear the score bar (a function of filled-in fields, unrelated
+    // to verification) and get an identical page despite not meeting BYN's own "active user"
+    // definition enforced everywhere else. Every failure below - nonexistent, malformed, unverified,
+    // incomplete, deleted, banned, or below either score threshold - is deliberately the SAME 404
+    // with the SAME body: "does not exist" and "exists but ineligible" must not be distinguishable
+    // from the outside, so this endpoint never leaks account state.
+    if (!user || user.banned || user.deleted_at || user.email_verified !== true || user.onboarding_stage !== 'complete'
+      || (user.profile_score || 0) < 60 || (user.trust_score || 0) < 10) {
       return res.status(404).json({ error: 'Not found' });
     }
     const BASE = process.env.BASE_URL || 'https://buildyournetwork.online';
