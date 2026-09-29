@@ -5635,10 +5635,14 @@ app.delete('/api/me', auth, async (req, res) => {
 
     // 3. Only the deleting user's own messages are removed -- connections and
     // the other party's messages are left intact (see anonymizeUser below).
+    // A7: reports (ordinary and DSA/illegal-content alike) are durable evidence, per the locked
+    // retention spec - they reference this account's id, not its now-scrubbed PII, and must survive
+    // anonymization on EITHER side (reporter or target). Deliberately NOT deleted here (was, until
+    // this fix - contradicted the already-locked "kept as durable evidence" spec). blocks/swipes/
+    // priority_msgs deletion below is unrelated and unchanged.
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
-    await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
     await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('works').delete().eq('user_id', id);
     await supabase.from('user_education').delete().eq('user_id', id);
@@ -7650,10 +7654,11 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     if (user.role === 'admin') return res.status(403).json({ error: 'Cannot delete another admin' });
     // Cascade: remove the target's own records. Connections and the other
     // party's messages are left intact (see anonymizeUser).
+    // A7: reports are durable evidence (see the identical note in DELETE /api/me) - deliberately not
+    // deleted here either.
     await supabase.from('messages').delete().eq('sender_id', id);
     await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
-    await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
     await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
     await supabase.from('works').delete().eq('user_id', id);
     await supabase.from('user_education').delete().eq('user_id', id);
@@ -10493,10 +10498,11 @@ app.listen(PORT, () => {
         const id = u.id;
         // Only this user's own messages are removed -- connections and the
         // other party's messages are left intact (see anonymizeUser).
+        // A7: reports are durable evidence (see the identical note in DELETE /api/me) - deliberately
+        // not deleted here either.
         await supabase.from('messages').delete().eq('sender_id', id);
         await supabase.from('swipes').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
         await supabase.from('priority_msgs').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
-        await supabase.from('reports').delete().or(`from_user.eq.${id},target_id.eq.${id}`);
         await supabase.from('blocks').delete().or(`from_user.eq.${id},to_user.eq.${id}`);
         await supabase.from('works').delete().eq('user_id', id);
         await supabase.from('user_education').delete().eq('user_id', id);
