@@ -305,7 +305,10 @@ Module._load = function (request) { if (request === 'resend') { return { Resend:
     await q(`UPDATE users SET trust_score = 50 WHERE id = $1`, [reportTarget]);
     const N_REPORTS = 15;
     const reportResults = await Promise.all(Array.from({ length: N_REPORTS }, () => report(reporter, reportTarget)));
-    check('every report request completed cleanly (200 or the expected 400 "already reported" - never a 5xx)', reportResults.every(r => r.status === 200 || r.status === 400), JSON.stringify(reportResults.map(r => r.status)));
+    // A7: reportLimiter (5/hour, per-user) now sits in front of this route - a burst this large from
+    // one reporter also legitimately hits it. Still never a 5xx, and the race-safety invariant below
+    // (exactly one 200, exactly one row) is unaffected either way.
+    check('every report request completed cleanly (200, 400 "already reported", or 429 rate-limited - never a 5xx)', reportResults.every(r => r.status === 200 || r.status === 400 || r.status === 429), JSON.stringify(reportResults.map(r => r.status)));
     const reportSuccesses = reportResults.filter(r => r.status === 200).length;
     check(`of ${N_REPORTS} concurrent identical reports, exactly ONE succeeded (was: several could all succeed, racing the dedupe check - and the insert's own error was never even checked)`, reportSuccesses === 1, `successes=${reportSuccesses}`);
     const reportRowCount = Number((await one(`SELECT count(*) c FROM reports WHERE from_user=$1 AND target_id=$2`, [reporter, reportTarget])).c);

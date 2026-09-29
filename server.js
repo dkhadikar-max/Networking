@@ -291,6 +291,13 @@ const forgotPasswordLimiter = rateLimit({ windowMs: 60*60*1000, max: 3, message:
 const resetPasswordLimiter  = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Too many reset attempts — wait 15 minutes' } });
 // Strict limiter for DSA illegal-content reports — prevents mass auto-ban abuse
 const dsaReportLimiter  = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Report limit reached — try again in an hour' } });
+// A7: the ordinary report channel had no rate limit at all (unlike the DSA one above) — a single
+// account could fire unlimited reports against unlimited targets. Own separate quota, same shape, so
+// a burst on one channel never eats the other's budget. Keyed by the authenticated user id (auth()
+// already runs before this in POST /api/report's chain) rather than IP — a true per-user limit that
+// rotating X-Forwarded-For cannot bypass.
+const reportLimiter     = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Report limit reached — try again in an hour' },
+  keyGenerator: (req) => req.user?.id || req.ip });
 const feedbackLimiter   = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Feedback limit reached — try again later' } });
 const circlePostLimiter = rateLimit({ windowMs: 5*60*1000,  max: 10, message: { error: 'Post rate limit reached — slow down' } });
 const circleGroupCreateLimiter = rateLimit({ windowMs: 60*60*1000, max: 5,  message: { error: 'Too many circles created — try again in an hour' } });
@@ -7234,11 +7241,25 @@ app.get('/api/liked-me', auth, async (req, res) => {
 });
 
 // ── REPORT ──
-app.post('/api/report', auth, async (req, res) => {
+app.post('/api/report', auth, reportLimiter, async (req, res) => {
   try {
     const { targetId, reason } = req.body;
     if (!targetId || !reason) return res.status(400).json({ error: 'Required fields missing' });
     if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot report yourself' });
+
+    // The target must be a live account (see isLiveTarget) — previously unchecked here, so a report
+    // against a nonexistent, already-banned or already-soft-deleted id was silently accepted and
+    // stored as junk (reports.target_id has no FK constraint at all). Bound-check only (matches
+    // /api/report/illegal-content's own targetId guard just below in this file) — users.id is a
+    // free-form text primary key, not guaranteed to be a UUID, so this deliberately does NOT assume
+    // a specific id shape the way isValidId() (swipe/connect, A11) does; a real DB lookup decides
+    // existence either way. Same uniform 404 as every other isLiveTarget site, before the dedupe
+    // check or any write.
+    if (typeof targetId !== 'string' || targetId.length > 64) return res.status(400).json({ error: 'Invalid targetId' });
+    const { data: target, error: targetErr } = await supabase.from('users')
+      .select('id, banned, deleted_at').eq('id', targetId).maybeSingle();
+    if (targetErr) throw targetErr;
+    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
 
     // Dedup: one ORDINARY report per (reporter, target) pair. The reports table
     // also holds illegal-content reports (type='illegal_content', same
