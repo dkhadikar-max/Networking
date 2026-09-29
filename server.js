@@ -7155,7 +7155,11 @@ app.get('/api/priority-messages', auth, async (req, res) => {
     res.json({
       received: (received || []).map(pm => ({
         ...mapPriorityMsg(pm),
-        sender: clean(senderMap[pm.from_user] || null)
+        // A sender is someone ELSE's account, not the caller's own — clean() (the deny-list for a
+        // user's own record) was leaking their premium_expires_at. cleanPublic() is the same
+        // allow-list every other "show me another user" site already uses (A8); it recomputes
+        // `premium` itself from the same premium_expires_at above, so nothing else needs to change.
+        sender: cleanPublic(senderMap[pm.from_user] || null)
       })),
       sent:      (sent || []).map(mapPriorityMsg),
       remaining: limit - used,
