@@ -248,9 +248,10 @@ export default function AppNavigator() {
     );
   }
 
-  const profileComplete =
-    user?.is_profile_complete === true ||
-    (user?.profile_score != null && user.profile_score >= 70);
+  // Matches the server's isProfileComplete()/web's ME.is_profile_complete exactly - no
+  // score-only fallback. A no-photo, score>=70 user is NOT complete (A13); the old fallback
+  // here let them past this gate anyway, only to hit a 403 on their first swipe/connect.
+  const profileComplete = user?.is_profile_complete === true;
 
   // Gate 3: profile must be complete
   if (!profileComplete) {
