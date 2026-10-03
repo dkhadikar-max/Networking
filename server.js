@@ -5883,8 +5883,15 @@ app.put('/api/me', auth, async (req, res) => {
     updates.profile_score       = calcProfileScore(merged);
     updates.is_profile_complete = isProfileComplete(merged);
 
-    const { data: updated } = await supabase.from('users')
+    const { data: updated, error: updateErr } = await supabase.from('users')
       .update(updates).eq('id', user.id).select().single();
+    // supabase-js returns {error} instead of throwing. This used to be discarded: `updated` was
+    // null, trustSteps(null) threw a TypeError further down, and the real database error was never
+    // logged - only the misleading TypeError.
+    if (updateErr) {
+      console.error('Update me failed:', updateErr.message);
+      return res.status(500).json({ error: 'Failed to save your changes — please try again' });
+    }
 
     const { data: worksData } = await supabase.from('works')
       .select('*').eq('user_id', user.id).order('created_at', { ascending: false });
@@ -5918,9 +5925,15 @@ app.post('/api/me/photos', uploadLimiter, auth, upload.single('photo'), async (r
     const ps      = calcProfileScore(merged);
     const complete = isProfileComplete(merged);
 
-    await supabase.from('users').update({
+    // The write result must be checked: this used to be ignored, so a failed UPDATE still answered
+    // 200 with the new photo list - the client showed the photo as saved, the database never got it.
+    const { error: addErr } = await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
     }).eq('id', user.id);
+    if (addErr) {
+      console.error('Add photo failed:', addErr.message);
+      return res.status(500).json({ error: 'Failed to save your photo — please try again' });
+    }
 
     res.json({ url, photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
@@ -5955,9 +5968,16 @@ app.delete('/api/me/photos', auth, async (req, res) => {
     const ps      = calcProfileScore(merged);
     const complete = isProfileComplete(merged);
 
-    await supabase.from('users').update({
+    // Checked BEFORE the stored asset is deleted: a failed UPDATE used to be ignored, so the asset
+    // was deleted anyway while the database still pointed at it (a broken image) and the response
+    // claimed success.
+    const { error: deleteErr } = await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
     }).eq('id', user.id);
+    if (deleteErr) {
+      console.error('Delete photo failed:', deleteErr.message);
+      return res.status(500).json({ error: 'Failed to remove your photo — please try again' });
+    }
 
     deleteCloudinaryPhoto(photoUrl).catch(() => {});
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
@@ -5997,9 +6017,13 @@ app.put('/api/me/photos', auth, async (req, res) => {
     const ps = calcProfileScore(merged);
     const complete = isProfileComplete(merged);
 
-    await supabase.from('users').update({
+    const { error: reorderErr } = await supabase.from('users').update({
       photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete
     }).eq('id', user.id);
+    if (reorderErr) {
+      console.error('Reorder photos failed:', reorderErr.message);
+      return res.status(500).json({ error: 'Failed to reorder your photos — please try again' });
+    }
 
     res.json({ photos: newPhotos, trust_score: ts, profile_score: ps, is_profile_complete: complete });
   } catch(e) {
