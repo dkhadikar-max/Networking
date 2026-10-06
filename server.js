@@ -9828,7 +9828,7 @@ app.get('/api/circles/feed', auth, async (req, res) => {
 
     let query = supabase.from('circle_posts')
       .select(`id, text, tags, structured_meta, links, created_at, user_id, group_id,
-        author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline, skills, interests, lat, lng, location)`)
+        author:users!circle_posts_user_id_fkey(id, name, photos, intent, trust_score, verification, last_active, headline, skills, interests, lat, lng, location, banned, deleted_at)`)
       .order('created_at', { ascending: false })
       .range(off, off + lim - 1);
 
@@ -9844,7 +9844,13 @@ app.get('/api/circles/feed', auth, async (req, res) => {
 
     // author is a LEFT JOIN (no !inner) — filter out posts whose author
     // account no longer exists rather than shipping author: null to clients.
-    let posts = (data || []).filter(p => p.author);
+    // That alone is not enough: deletion here is anonymizeUser() (an UPDATE), so a deleted author's
+    // row still joins, a banned author's row joins, and blocks were never consulted - their posts
+    // all kept appearing. Apply the same predicates every other "show me another user" surface
+    // uses: a live account (isLiveTarget) with no block in either direction. Done in memory after
+    // the page is fetched, like the near-me filter below - hasMore still reflects the raw page.
+    const blocked = await blockedCounterparts(req.user.id);
+    let posts = (data || []).filter(p => p.author && isLiveTarget(p.author) && !blocked.has(p.user_id));
 
     // Near Me: filter by haversine proximity (150km) or city string
     if (mode === 'near-me') {
@@ -9895,7 +9901,7 @@ app.get('/api/circles/feed', auth, async (req, res) => {
         // Strip private author fields — never send lat/lng/skills/interests/location to client
         if (p.author) {
           // eslint-disable-next-line no-unused-vars
-          const { lat, lng, skills, interests, location, last_active, ...authorPublic } = p.author;
+          const { lat, lng, skills, interests, location, last_active, banned, deleted_at, ...authorPublic } = p.author;
           p = { ...p, author: authorPublic };
         }
         return { ...p, like_count: likeCounts[p.id] || 0, liked_by_me: likedByMe.has(p.id) };
@@ -10114,11 +10120,26 @@ app.delete('/api/circle-groups/:id', auth, async (req, res) => {
 
 // ── NOTIFICATIONS ────────────────────────────────────────────────────────────
 
+// Like and collaborate write an in-app notification AND a push to the post's author, carrying the
+// actor's name and photo. Neither checked blocks or whether the author is still a live account, so a
+// blocked user could still notify the person who blocked them, and a banned/deleted author's posts
+// could still be interacted with. Such a post is treated exactly like a nonexistent one (the same
+// uniform 404 every block-aware route gives), so a blocked user cannot tell they were blocked.
+async function circlePostAuthorReachable(post, callerId) {
+  if (post.user_id === callerId) return true;
+  const { data: author, error } = await supabase.from('users')
+    .select('id, banned, deleted_at').eq('id', post.user_id).maybeSingle();
+  if (error) throw error;
+  if (!isLiveTarget(author)) return false;
+  return !(await isBlockedEitherWay(callerId, post.user_id));   // post.user_id comes from the database
+}
+
 app.post('/api/circles/posts/:id/like', circleGroupActionLimiter, auth, async (req, res) => {
   try {
     const { data: post, error: postErr } = await supabase
       .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
     if (postErr || !post) return res.status(404).json({ error: 'Post not found' });
+    if (!(await circlePostAuthorReachable(post, req.user.id))) return res.status(404).json({ error: 'Post not found' });
 
     const { data: existing } = await supabase.from('circle_post_likes')
       .select('id').eq('post_id', req.params.id).eq('user_id', req.user.id).maybeSingle();
@@ -10176,6 +10197,7 @@ app.post('/api/circles/posts/:id/collaborate', circleGroupActionLimiter, auth, a
       .from('circle_posts').select('user_id, text').eq('id', req.params.id).single();
     if (postErr || !post) return res.status(404).json({ error: 'Post not found' });
     if (post.user_id === req.user.id) return res.status(400).json({ error: 'Cannot collaborate on own post' });
+    if (!(await circlePostAuthorReachable(post, req.user.id))) return res.status(404).json({ error: 'Post not found' });
 
     // Deduplicate — one notification per (actor, post)
     const { data: existing } = await supabase.from('notifications')
