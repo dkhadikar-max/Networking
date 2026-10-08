@@ -4378,6 +4378,23 @@ function isLiveTarget(u) {
   return !!u && !u.deleted_at && !u.banned;
 }
 
+// Looks users up by id in bounded chunks. `.in('id', ids)` puts every id into the request URL (~37
+// bytes each for a UUID), so one query over an unbounded list - e.g. everyone who liked a popular
+// user - eventually exceeds what the HTTP layers in front of the database accept and the whole route
+// answers 500. 100 ids is ~3.7 KB of URL. Throws on any chunk's error, like the single query did.
+const USER_ID_CHUNK = 100;
+async function selectUsersByIds(ids, columns) {
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += USER_ID_CHUNK) chunks.push(ids.slice(i, i + USER_ID_CHUNK));
+  const results = await Promise.all(chunks.map(chunk => supabase.from('users').select(columns).in('id', chunk)));
+  const rows = [];
+  for (const { data, error } of results) {
+    if (error) throw error;
+    rows.push(...(data || []));
+  }
+  return rows;
+}
+
 // A BLOCK must be honored, not just recorded. POST /api/block stores it and deletes the
 // pair's connection, messages and swipes - but Discover was the only reader of the blocks
 // table, so a blocked user could immediately swipe on, connect to, priority-message, VIEW
@@ -7262,10 +7279,8 @@ app.get('/api/liked-me', auth, async (req, res) => {
     // row untouched, so both used to keep appearing (a banned liker's real profile and photo were
     // shown), and the free-tier `count` included people who could never be shown.
     if (filteredIds.length) {
-      const { data: likerRows, error: likerErr } = await supabase.from('users')
-        .select('id, banned, deleted_at').in('id', filteredIds);
-      if (likerErr) throw likerErr;
-      const liveIds = new Set((likerRows || []).filter(isLiveTarget).map(u => u.id));
+      const likerRows = await selectUsersByIds(filteredIds, 'id, banned, deleted_at');   // chunked: see selectUsersByIds
+      const liveIds = new Set(likerRows.filter(isLiveTarget).map(u => u.id));
       filteredIds = filteredIds.filter(id => liveIds.has(id));
     }
 
@@ -7291,10 +7306,10 @@ app.get('/api/liked-me', auth, async (req, res) => {
     if (!filteredIds.length) {
       return res.json({ count: 0, profiles: [], premium_required: false });
     }
-    const { data: likers } = await supabase.from('users').select('*').in('id', filteredIds);
+    const likers = await selectUsersByIds(filteredIds, '*');
     res.json({
       count,
-      profiles: (likers || []).map(cleanPublic).filter(Boolean),
+      profiles: likers.map(cleanPublic).filter(Boolean),
       premium_required: false,
     });
   } catch(e) {
