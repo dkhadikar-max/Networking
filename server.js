@@ -6622,14 +6622,19 @@ app.post('/api/skip', auth, async (req, res) => {
     if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
     if (await isBlockedEitherWay(req.user.id, target.id)) return res.status(404).json({ error: 'User not found' });
 
-    const { data: existing } = await supabase.from('swipes')
+    // Neither query's error may be dropped: a failed lookup or insert used to fall through to
+    // `{ ok: true }`, so the client believed the skip was saved while nothing was stored and the
+    // same profile came back in Discover. A 23505 is a concurrent duplicate skip - already stored.
+    const { data: existing, error: existingErr } = await supabase.from('swipes')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
+    if (existingErr) throw existingErr;
     if (existing) return res.json({ ok: true });
 
-    await supabase.from('swipes').insert({
+    const { error: insertErr } = await supabase.from('swipes').insert({
       from_user: req.user.id, to_user: targetId, direction: 'left',
       created_at: new Date().toISOString(),
     });
+    if (insertErr && insertErr.code !== '23505') throw insertErr;
     res.json({ ok: true });
   } catch(e) {
     console.error('Skip error:', e);
@@ -7481,27 +7486,38 @@ app.post('/api/block', auth, async (req, res) => {
     if (targetErr) throw targetErr;
     if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
 
-    const { data: existing } = await supabase.from('blocks')
+    // Every write below is checked: "blocked" must mean the block row is stored AND the connection,
+    // messages and swipes are gone. A failure at any step answers 500 instead of ok, so the client
+    // never tells someone they are protected when they are not. The block row goes first and the
+    // whole sequence is idempotent, so a retry after a partial failure just finishes the teardown.
+    // A 23505 on the block insert is a concurrent duplicate block - already stored.
+    const { data: existing, error: existingErr } = await supabase.from('blocks')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
+    if (existingErr) throw existingErr;
     if (!existing) {
-      await supabase.from('blocks').insert({
+      const { error: blockErr } = await supabase.from('blocks').insert({
         from_user: req.user.id, to_user: targetId, created_at: new Date().toISOString()
       });
+      if (blockErr && blockErr.code !== '23505') throw blockErr;
     }
 
     // Remove any existing connection so the blocked user can no longer message
-    const { data: conn } = await supabase.from('connections')
+    const { data: conn, error: connErr } = await supabase.from('connections')
       .select('id')
       .or(`and(user1.eq.${req.user.id},user2.eq.${targetId}),and(user1.eq.${targetId},user2.eq.${req.user.id})`)
       .maybeSingle();
+    if (connErr) throw connErr;
     if (conn) {
-      await supabase.from('messages').delete().eq('connection_id', conn.id);
-      await supabase.from('connections').delete().eq('id', conn.id);
+      const { error: msgDelErr } = await supabase.from('messages').delete().eq('connection_id', conn.id);
+      if (msgDelErr) throw msgDelErr;
+      const { error: connDelErr } = await supabase.from('connections').delete().eq('id', conn.id);
+      if (connDelErr) throw connDelErr;
     }
 
     // Remove swipes in both directions so they can't re-match
-    await supabase.from('swipes').delete()
+    const { error: swipeDelErr } = await supabase.from('swipes').delete()
       .or(`and(from_user.eq.${req.user.id},to_user.eq.${targetId}),and(from_user.eq.${targetId},to_user.eq.${req.user.id})`);
+    if (swipeDelErr) throw swipeDelErr;
 
     res.json({ ok: true });
   } catch(e) {
