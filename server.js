@@ -7819,6 +7819,25 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
   }
 });
 
+// Read-only view of payment records and the refund / dispute ledger (migration 027), so a refund or
+// chargeback can be seen and reconciled without database access. No write endpoint by design.
+app.get('/api/admin/payments', adminAuth, async (req, res) => {
+  try {
+    const { data: payments, error: payErr } = await supabase.from('payments')
+      .select('id, user_id, razorpay_payment_id, plan, currency, amount, status, refunded_amount, entitlement_reversed_days, reversed_at, created_at')
+      .order('created_at', { ascending: false }).limit(500);
+    if (payErr) throw payErr;
+    const { data: events, error: evErr } = await supabase.from('payment_events')
+      .select('event_id, event_type, razorpay_payment_id, entity_id, amount, currency, entity_status, payment_row_id, outcome, detail, received_at')
+      .order('received_at', { ascending: false }).limit(200);
+    if (evErr) throw evErr;
+    res.json({ payments: payments || [], events: events || [] });
+  } catch(e) {
+    console.error('Admin payments error:', e);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 function normalizeSource(src) {
   const map = {
     'LinkedIn':        'linkedin',
@@ -8576,7 +8595,58 @@ async function processPaymentEntitlement(orderId, paymentId, storedPlan) {
     return { granted: true, outcome, expiresAt: data.expires_at, userId: data.user_id };
   }
   if (outcome === 'already_processed' || outcome === 'not_found') return { granted: false, outcome };
+  // A refund / lost dispute for this payment was recorded BEFORE its capture was processed (Razorpay can
+  // deliver out of order): migration 027 marks the payment refunded / chargeback_lost and grants nothing.
+  if (outcome === 'already_reversed') return { granted: false, outcome, userId: data.user_id };
   throw new Error(`process_payment_entitlement: unexpected result ${JSON.stringify(data)}`);
+}
+
+// ── REFUND / DISPUTE REVERSALS (migration 027) ──
+// One refund.* / payment.dispute.* webhook event -> process_payment_reversal(): ledger row (idempotent on
+// the Razorpay event id), payment status, and - only for a FULL refund or a LOST dispute - removal of
+// exactly the days that payment contributed. Partial refund / dispute opened = record only. All of it is
+// one Postgres transaction; any failure throws so the webhook answers 5xx and Razorpay redelivers.
+const PAYMENT_REVERSAL_EVENT_RE = /^(refund\.|payment\.dispute\.)/;
+const SLACK_PAYMENTS_WEBHOOK_URL = process.env.SLACK_PAYMENTS_WEBHOOK_URL || null;
+async function handlePaymentReversalEvent(event, rawBody, eventIdHeader) {
+  const entity = event.payload?.refund?.entity || event.payload?.dispute?.entity;
+  const paymentId = entity?.payment_id;
+  if (!entity || typeof paymentId !== 'string' || !paymentId) {
+    // Nothing a retry could fix: acknowledge, but leave a trace.
+    console.warn(`[payments/webhook] ${event.event}: no entity / payment_id in the payload - acknowledged, not recorded`);
+    return;
+  }
+  // x-razorpay-event-id is unique per event and is the idempotency key. If Razorpay ever omits it, a hash of the
+  // exact signed body is just as stable across redeliveries of the same event.
+  const eventId = (typeof eventIdHeader === 'string' && eventIdHeader)
+    ? eventIdHeader
+    : 'body-sha256:' + crypto.createHash('sha256').update(rawBody).digest('hex');
+  const planDays = Object.fromEntries(Object.entries(PLANS).map(([k, v]) => [k, v.days]));
+  const { data, error } = await supabase.rpc('process_payment_reversal', {
+    p_event_id:      eventId,
+    p_event_type:    event.event,
+    p_payment_id:    paymentId,
+    p_entity_id:     typeof entity.id === 'string' ? entity.id : null,
+    p_amount:        Number.isInteger(entity.amount) ? entity.amount : null,
+    p_currency:      typeof entity.currency === 'string' ? entity.currency : null,
+    p_entity_status: typeof entity.status === 'string' ? entity.status : null,
+    p_payload:       entity,
+    p_plan_days:     planDays,
+  });
+  if (error) {
+    console.error('[payments] process_payment_reversal failed (has migrations/027 been applied?):', error.message);
+    throw new Error(`process_payment_reversal: ${error.message}`);
+  }
+  const outcome = data && data.outcome;
+  console.log(`[payments/webhook] ${event.event} payment=${paymentId} outcome=${outcome}${data?.detail ? ' ' + data.detail : ''}`);
+  if (data?.user_changed && data.user_id) authCacheInvalidate(data.user_id); // premium just changed
+  // Alert on what a human should look at: an opened dispute (response deadline), and anything we could not match
+  // or refused to interpret. Fire-and-forget, never load-bearing; a no-op unless the optional URL is configured.
+  if (event.event === 'payment.dispute.created' || outcome === 'unmatched' || outcome === 'rejected') {
+    sendSlackWebhook(SLACK_PAYMENTS_WEBHOOK_URL,
+      `BYN payments: ${event.event} for ${paymentId} -> ${outcome}${event.event === 'payment.dispute.created' ? ' (respond to the dispute in the Razorpay dashboard before its deadline)' : ''}`)
+      .catch(e => console.error('Payments Slack alert failed:', e.message));
+  }
 }
 
 // ── VERIFY PAYMENT + ACTIVATE PREMIUM ──
@@ -8626,11 +8696,14 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     // IMPORTANT: If the SAME user's payment was already recorded (e.g. webhook fired before
     // the client verify call), treat it as success — don't punish the legitimate buyer.
     const { data: existingPayment } = await supabase.from('payments')
-      .select('id, user_id')
+      .select('id, user_id, status')
       .eq('razorpay_payment_id', razorpay_payment_id)
       .maybeSingle();
     if (existingPayment) {
       if (existingPayment.user_id === req.user.id) {
+        // Refunded / lost to a dispute (migration 027): the buyer must not be shown the premium success screen.
+        if (existingPayment.status === 'refunded' || existingPayment.status === 'chargeback_lost')
+          return res.status(409).json({ error: 'This payment was refunded or reversed' });
         // Same user — already activated (webhook was faster). Return success so the
         // client transitions to the premium success screen correctly.
         const { data: me } = await supabase.from('users').select('*').eq('id', req.user.id).maybeSingle();
@@ -8649,6 +8722,8 @@ app.post('/api/payments/verify', auth, async (req, res) => {
     // entitlements from the same persisted row.
     const result = await processPaymentEntitlement(razorpay_order_id, razorpay_payment_id, orderRec.plan);
     if (result.outcome === 'not_found') return res.status(404).json({ error: 'Order not found' });
+    // The payment was refunded / lost to a dispute before this verify ran: nothing was granted.
+    if (result.outcome === 'already_reversed') return res.status(409).json({ error: 'This payment was refunded or reversed' });
     if (!result.granted) {
       // Lost the race to a concurrent verify/webhook that processed this
       // payment first: the entitlement was applied exactly once, by them.
@@ -8695,7 +8770,9 @@ app.post('/api/payments/verify', auth, async (req, res) => {
 
 // ── RAZORPAY WEBHOOK (server-to-server, Razorpay signs the body) ──
 // Set webhook URL in Razorpay dashboard: https://buildyournetwork.online/api/payments/webhook
-// Events to subscribe: payment.captured
+// Events to subscribe: payment.captured, plus refund.processed, refund.failed, payment.dispute.created,
+// payment.dispute.won, payment.dispute.lost (and optionally the other refund.* / payment.dispute.* events -
+// they are recorded without effect). Enable the refund/dispute ones only once migration 027 and this code are live.
 app.post('/api/payments/webhook', async (req, res) => {
   try {
     // BUG FIX 10: Webhook secret must be its own env var — never fall back to key_secret
@@ -8721,7 +8798,9 @@ app.post('/api/payments/webhook', async (req, res) => {
       // Find the pending payment record
       const { data: payRec } = await supabase.from('payments')
         .select('*').eq('razorpay_order_id', orderId).maybeSingle();
-      if (payRec && payRec.status !== 'paid') {
+      // 'created' = not yet processed. Any other status (paid, refunded, disputed, ...) is already
+      // processed; the authoritative check is still the row lock inside the function.
+      if (payRec && payRec.status === 'created') {
         // Same atomic, idempotent path as /api/payments/verify (see
         // processPaymentEntitlement) — both paths must agree, since either can
         // be the one that actually lands first for a given purchase, and they
@@ -8731,6 +8810,9 @@ app.post('/api/payments/webhook', async (req, res) => {
         // Throws on failure -> 500 below -> Razorpay redelivers.
         await processPaymentEntitlement(payRec.id, payId, payRec.plan);
       }
+    } else if (PAYMENT_REVERSAL_EVENT_RE.test(String(event.event || ''))) {
+      // Refunds and disputes (migration 027). Throws on failure -> 500 below -> Razorpay redelivers.
+      await handlePaymentReversalEvent(event, body, req.headers['x-razorpay-event-id']);
     }
     res.json({ ok: true });
   } catch(e) {
