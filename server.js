@@ -5650,7 +5650,13 @@ app.delete('/api/me', auth, async (req, res) => {
     await supabase.from('user_intents').delete().eq('user_id', id);
     await supabase.from('user_acquisition').delete().eq('user_id', id);
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
-    await supabase.from('payments').delete().eq('user_id', id);
+    // Payment records are deliberately NOT deleted here (nor in the two other deletion paths): the
+    // published Privacy Policy keeps them up to 7 years and they hold only ids, plan, currency and
+    // amount, referencing the scrubbed users shell. This used to hard-delete them, contradicting that
+    // promise. The retention lifecycle is: created -> retained -> survives anonymization -> retained
+    // for the published period -> eligible for controlled expiry afterwards. The expiry job is a
+    // defined follow-up (docs/payments-refund-chargeback-retention-spec-2026-10-08.md), not built yet;
+    // migrations/026 makes the payments->users FK ON DELETE RESTRICT so nothing can erase them by accident.
     const { error: selfDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (selfDelErr) { console.error('Self-delete error:', selfDelErr); return res.status(500).json({ error: 'Failed to delete account' }); }
     authCacheInvalidate(id); // deleted_at just changed
@@ -7741,7 +7747,7 @@ app.delete('/api/admin/users/:id', adminAuth, async (req, res) => {
     await supabase.from('user_intents').delete().eq('user_id', id);
     await supabase.from('user_acquisition').delete().eq('user_id', id);
     await supabase.from('push_subscriptions').delete().eq('user_id', id);
-    await supabase.from('payments').delete().eq('user_id', id);
+    // payments: retained, see the note in DELETE /api/me.
     const { error: adminDelErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
     if (adminDelErr) { console.error('Admin delete error:', adminDelErr); return res.status(500).json({ error: 'Failed to delete user' }); }
     authCacheInvalidate(id); // deleted_at just changed
@@ -10611,7 +10617,7 @@ app.listen(PORT, () => {
         await supabase.from('user_intents').delete().eq('user_id', id);
         await supabase.from('user_acquisition').delete().eq('user_id', id);
         await supabase.from('push_subscriptions').delete().eq('user_id', id);
-        await supabase.from('payments').delete().eq('user_id', id);
+        // payments: retained, see the note in DELETE /api/me.
         const { error: anonymizeErr } = await supabase.from('users').update(anonymizeUser(id)).eq('id', id);
         if (anonymizeErr) {
           console.error(`[Retention] FAILED to anonymize ${id} (its related data was already removed):`, anonymizeErr.message);
