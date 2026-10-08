@@ -6610,6 +6610,18 @@ app.post('/api/skip', auth, async (req, res) => {
     if (!targetId) return res.status(400).json({ error: 'targetId required' });
     if (targetId === req.user.id) return res.json({ ok: true });
 
+    // Same target checks as POST /api/swipe: a well-formed id of a live account with no block in
+    // either direction, one uniform 404 for everything else. This used to validate nothing, so a
+    // skip against a nonexistent, banned, deleted or blocked id was stored as a swipe row.
+    // Deliberately NO activeGuard / profileGuard / trustGuard chain (skip is a harmless left-swipe
+    // that A10/A11 left ungated on purpose; the onboarding Discover preview may rely on it).
+    if (!isValidId(targetId)) return res.status(400).json({ error: 'Invalid user id' });
+    const { data: target, error: targetErr } = await supabase.from('users')
+      .select('id, banned, deleted_at').eq('id', targetId).maybeSingle();
+    if (targetErr) throw targetErr;
+    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
+    if (await isBlockedEitherWay(req.user.id, target.id)) return res.status(404).json({ error: 'User not found' });
+
     const { data: existing } = await supabase.from('swipes')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
     if (existing) return res.json({ ok: true });
@@ -7230,9 +7242,21 @@ app.get('/api/liked-me', auth, async (req, res) => {
       .select('to_user').eq('from_user', req.user.id);
     const swipedIds = new Set((mySwiped || []).map(s => s.to_user));
 
-    const filteredIds = likerIds.filter(
+    let filteredIds = likerIds.filter(
       id => id !== req.user.id && !connectedIds.has(id) && !swipedIds.has(id)
     );
+
+    // A liker who has since been banned or deleted - or whose users row is gone altogether - must
+    // not be listed or counted: deletion here is anonymizeUser() (an UPDATE) and a ban leaves the
+    // row untouched, so both used to keep appearing (a banned liker's real profile and photo were
+    // shown), and the free-tier `count` included people who could never be shown.
+    if (filteredIds.length) {
+      const { data: likerRows, error: likerErr } = await supabase.from('users')
+        .select('id, banned, deleted_at').in('id', filteredIds);
+      if (likerErr) throw likerErr;
+      const liveIds = new Set((likerRows || []).filter(isLiveTarget).map(u => u.id));
+      filteredIds = filteredIds.filter(id => liveIds.has(id));
+    }
 
     const count = filteredIds.length;
 
@@ -7448,6 +7472,14 @@ app.post('/api/block', auth, async (req, res) => {
     if (!targetId) return res.status(400).json({ error: 'targetId required' });
     if (!isValidId(targetId)) return res.status(400).json({ error: 'Invalid user id' });
     if (targetId === req.user.id) return res.status(400).json({ error: 'Cannot block yourself' });
+
+    // The target must be a live account (see isLiveTarget): this used to check only the id's shape,
+    // so blocking a nonexistent, banned or deleted id stored a junk block row and answered ok. Same
+    // uniform 404 and same predicate as the report route.
+    const { data: target, error: targetErr } = await supabase.from('users')
+      .select('id, banned, deleted_at').eq('id', targetId).maybeSingle();
+    if (targetErr) throw targetErr;
+    if (!isLiveTarget(target)) return res.status(404).json({ error: 'User not found' });
 
     const { data: existing } = await supabase.from('blocks')
       .select('id').eq('from_user', req.user.id).eq('to_user', targetId).maybeSingle();
