@@ -574,7 +574,10 @@ function renderUsers(users){
       // Locked spec: active = email_verified && onboarding_stage==='complete'
       // (computed server-side as u.is_active). Shown, not hidden — admin
       // still needs visibility into abandoned/incomplete registrations.
-      !u.is_active?'<span class="badge bi">Incomplete</span>':''
+      // A banned or deleted account is never is_active, but it is not "Incomplete" either: it
+      // already has its own badge (Banned / Deleted), so only label the genuinely unfinished ones.
+      u.deleted_at?'<span class="badge bb">Deleted</span>':'',
+      !u.is_active&&!u.banned&&!u.deleted_at?'<span class="badge bi">Incomplete</span>':''
     ].filter(Boolean).join(' ');
     const tr=u.trust_score||0;
     return`<tr id="row-${u.id}">

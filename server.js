@@ -7644,7 +7644,10 @@ app.get('/api/admin/users', adminAuth, async (req, res) => {
       // registrations, for moderation visibility) — this only labels which
       // ones are which, rather than a normal user being indistinguishable
       // from an abandoned/incomplete one.
-      u2.is_active = u.onboarding_stage === 'complete' && u.email_verified === true;
+      // Uses the shared isActiveUser rule (no hand-copied duplicate to drift), and a banned or
+      // deleted account is never "active": neither a ban nor anonymizeUser() touches
+      // onboarding_stage / email_verified, so both used to keep reading is_active:true.
+      u2.is_active = isActiveUser(u) && !u.banned && !u.deleted_at;
       return u2;
     }));
   } catch(e) {
@@ -7769,7 +7772,11 @@ app.get('/api/admin/analytics', adminAuth, async (req, res) => {
       supabase.from('users').select('*', { count: 'exact', head: true }).eq('is_profile_complete', true),
       supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_active', oneDayAgo),
       supabase.from('users').select('*', { count: 'exact', head: true }).gte('last_active', oneWeekAgo),
-      supabase.from('users').select('*', { count: 'exact', head: true }).eq('premium', true),
+      // Same rule as the "Premium" badge on each admin row (isPremiumActive: premium AND a NULL or
+      // future expiry) restricted to live accounts: a deleted user keeps premium=true on its
+      // anonymized shell, and a lapsed one keeps it until the next write - both used to be counted.
+      supabase.from('users').select('*', { count: 'exact', head: true }).eq('premium', true)
+        .is('deleted_at', null).or(`premium_expires_at.is.null,premium_expires_at.gt.${new Date(now).toISOString()}`),
       supabase.from('users').select('*', { count: 'exact', head: true }).contains('verification', { status: 'verified' }),
     ]);
 
