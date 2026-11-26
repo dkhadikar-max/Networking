@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import SwipeCard from './SwipeCard';
@@ -149,6 +150,8 @@ export default function DiscoverFeed() {
     if (!uid) return;
     try {
       const res = await apiPost<{ match?: boolean; connectionId?: string | null }>('/api/connect', { userId: uid });
+      track('connect_request', { source: 'discover' });
+      if (res.match) track('match', { source: 'discover' });
       if (res.match) {
         const pu = (profile.user ?? profile) as { name?: string; photos?: string[] };
         setMatchInfo({ connectionId: res.connectionId ?? null, theirPhoto: pu.photos?.[0], theirName: pu.name ?? 'Someone' });

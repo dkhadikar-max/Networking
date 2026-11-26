@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import NetworkBackground from '@/components/NetworkBackground';
 import { safeNext, withNext } from '@/lib/authRedirect';
 
@@ -23,6 +24,7 @@ function LoginInner() {
     setError(''); setLoading(true);
     try {
       const { user } = await login(email, password);
+      track('login', { method: 'password' });
       if (!user.email_verified) {
         apiPost('/api/auth/send-otp', {}).catch(() => {});
         router.replace(withNext('/verify?email=' + encodeURIComponent(email), next));

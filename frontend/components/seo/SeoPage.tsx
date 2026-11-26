@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import CookieSettingsLink from '@/components/ui/CookieSettingsLink';
 
 interface Faq { q: string; a: string }
 
@@ -210,6 +211,8 @@ export default function SeoPage({ headline, subheadline, body, tags, faqs, cta, 
           <a href="/privacy" style={{ color: C.primary, textDecoration: 'none' }}>Privacy</a>
           {' · '}
           <a href="/terms" style={{ color: C.primary, textDecoration: 'none' }}>Terms</a>
+          {' · '}
+          <CookieSettingsLink style={{ color: C.primary }} />
           {' · '}
           <a href="/support" style={{ color: C.primary, textDecoration: 'none' }}>Support</a>
         </p>

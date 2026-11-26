@@ -59,7 +59,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="4. Cookies and tracking">
-        <p>We use a cookie (<code>byn_consent</code>) to store your cookie preference. If you accept analytics cookies, we load Google Analytics (G-5NQDBYG4CJ) which sets its own cookies and collects anonymised usage data. You can withdraw consent at any time using the cookie settings link in the app footer.</p>
+        <p>We use a cookie (<code>byn_consent</code>) to store your cookie preference. If you accept analytics cookies, we load Google Analytics (G-5NQDBYG4CJ) which sets its own cookies and collects anonymised usage data: pages viewed, and which product steps are completed (for example requesting a sign-up link, finishing onboarding, matching, or sending a message). These events never include your name, email address, account ID or message content. You can withdraw consent at any time using the &ldquo;Cookie settings&rdquo; link in the site footer.</p>
         <p>We do not use advertising cookies, tracking pixels, or third-party retargeting.</p>
       </Section>
 

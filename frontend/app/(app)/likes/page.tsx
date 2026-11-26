@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiGet, apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/context/AuthContext';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
@@ -34,6 +35,8 @@ export default function LikesPage() {
     const target = data?.profiles?.find(p => p.id === uid);
     try {
       const res = await apiPost<{ match?: boolean; connectionId?: string | null }>('/api/connect', { userId: uid });
+      track('connect_request', { source: 'likes' });
+      if (res.match) track('match', { source: 'likes' });
       if (res.match) {
         setMatchInfo({
           connectionId: res.connectionId ?? null,

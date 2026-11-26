@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { OPEN_COOKIE_SETTINGS_EVENT } from '@/components/ui/CookieSettingsLink';
 
 declare global {
   interface Window {
@@ -21,9 +22,18 @@ function getConsent(): string | null {
   return match ? match[1] : null;
 }
 
+const GA_ID = 'G-5NQDBYG4CJ';
+
 function setConsent(value: 'analytics' | 'none') {
   document.cookie = `${COOKIE_NAME}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+  // Google's documented per-property opt-out: stops an already-loaded tag
+  // from sending anything more on this page once consent is withdrawn.
+  (window as unknown as Record<string, boolean>)[`ga-disable-${GA_ID}`] = value !== 'analytics';
   if (value === 'analytics') loadGA();
+}
+
+export function hasAnalyticsConsent(): boolean {
+  return getConsent() === 'analytics';
 }
 
 function loadGA() {
@@ -31,12 +41,14 @@ function loadGA() {
   window.__ga_loaded = true;
   const s = document.createElement('script');
   s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=G-5NQDBYG4CJ';
+  s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
   document.head.appendChild(s);
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) { window.dataLayer.push(args); };
+  // gtag.js reads `arguments` objects from dataLayer, not plain arrays.
+  // eslint-disable-next-line prefer-rest-params
+  window.gtag = function gtag() { window.dataLayer.push(arguments); };
   window.gtag('js', new Date());
-  window.gtag('config', 'G-5NQDBYG4CJ');
+  window.gtag('config', GA_ID);
 }
 
 export default function CookieBanner() {
@@ -51,6 +63,9 @@ export default function CookieBanner() {
     } else if (consent === 'analytics') {
       loadGA();
     }
+    const reopen = () => setVisible(true);
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, reopen);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, reopen);
   }, []);
 
   // Publish the banner's current height as `--byn-cookie-banner-h` on <body>

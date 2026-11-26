@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CookieSettingsLink from '@/components/ui/CookieSettingsLink';
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +22,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
           &copy; {new Date().getFullYear()} Build Your Network &middot;{' '}
           <Link href="/privacy" className="text-[var(--primary)] hover:underline">Privacy</Link> &middot;{' '}
           <Link href="/terms" className="text-[var(--primary)] hover:underline">Terms</Link> &middot;{' '}
+          <CookieSettingsLink className="text-[var(--primary)] hover:underline" /> &middot;{' '}
           <a href="mailto:support@buildyournetwork.online" className="text-[var(--primary)] hover:underline">Contact</a>
         </p>
       </footer>

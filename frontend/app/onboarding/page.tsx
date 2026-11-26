@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { apiGet, apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/context/AuthContext';
 import { safeNext } from '@/lib/authRedirect';
 import IntentSelector from '@/components/onboarding/IntentSelector';
@@ -85,6 +86,8 @@ export default function OnboardingPage() {
     setLoading(true); setError(null);
     try {
       await apiPost('/api/onboarding/acquisition', { source, referral: referral || undefined });
+      // source is one of the fixed "How did you hear about us?" options, not free text.
+      track('onboarding_step', { step: 'acquisition', source });
       setStage('intent');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -95,6 +98,7 @@ export default function OnboardingPage() {
     setLoading(true); setError(null);
     try {
       await apiPost('/api/onboarding/intent', { intents });
+      track('onboarding_step', { step: 'intent' });
       setStage('profile');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
@@ -112,6 +116,7 @@ export default function OnboardingPage() {
       const res = await apiGet<{ profiles: DiscoverProfile[] }>('/api/discover?limit=3')
         .catch(() => ({ profiles: [] }));
       setSuggestions((res.profiles ?? []).slice(0, 3));
+      track('onboarding_complete');
       setStage('complete');
     } catch (e) {
       // A 403 PROFILE_INCOMPLETE means the save itself succeeded (fields are

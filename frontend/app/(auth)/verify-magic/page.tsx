@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import Button from '@/components/ui/Button';
 import type { User } from '@/lib/types';
 import { safeNext, withNext } from '@/lib/authRedirect';
@@ -87,6 +88,9 @@ function VerifyMagicInner() {
     try {
       const res = await apiPost<{ user: User }>('/api/auth/magic-link/verify', { token: rawToken });
       setUser(res.user);
+      // password_set === false only for an account created by magic-link
+      // signup that hasn't chosen a password yet, i.e. a new signup.
+      track(res.user.password_set === false ? 'sign_up' : 'login', { method: 'magic_link' });
       // Strip the token from the URL/history immediately on success too —
       // it's single-use and now spent either way. `next` is kept (not just
       // dropped with the token) since routeAfterAuth below, and a later

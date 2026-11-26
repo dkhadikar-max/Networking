@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { apiGet, apiPost } from '@/lib/api';
+import { track } from '@/lib/analytics';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import { useProfileDrawer } from '@/context/ProfileDrawerContext';
@@ -172,6 +173,7 @@ export default function ChatWindow({ connectionId, onBack, isSplitView }: Props)
     }]);
     try {
       await apiPost(`/api/messages/${connectionId}`, { text: trimmed });
+      track('message_sent');
       await fetchMessages();
     } catch (err) {
       setText(trimmed);

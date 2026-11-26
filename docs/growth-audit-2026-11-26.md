@@ -20,8 +20,12 @@ BYN isn't growing because **new people can't get in**. It's not a marketing prob
 3. **Every failure looked like success.** Signup always said "a sign-in link is on its way", login said
    "wrong password" during outages, and `/api/health` said ok without touching the DB. Nobody, you
    included, could see the funnel was broken. **Fixed in code today (not deployed).**
-4. **No analytics at all.** No GA, Plausible, PostHog, etc. in `frontend/`. You can't see visits,
-   signup starts, or drop-off, so growth questions can't be answered with data.
+4. **Analytics that recorded nothing.** *(Corrected: the first version of this audit wrongly said
+   there was no analytics; the search had missed the file.)* GA4 (`G-5NQDBYG4CJ`) is installed in
+   `components/ui/CookieBanner.tsx` and loads after cookie consent. But its loader pushed plain
+   arrays into `dataLayer`, which gtag.js ignores, so it sent **zero hits** (verified in a browser
+   on 2026-11-26). There were also no funnel events, and the privacy policy promised a "cookie
+   settings" link that didn't exist. All three are fixed in the working tree (see below).
 
 Until 1 and 2 are fixed, SEO, referrals and content can't produce users: the traffic they bring hits a
 dead signup.
@@ -77,9 +81,11 @@ unfixed server fails 10 of them, including reproducing the live `{"users":0}`).
 4. Do one real signup end to end yourself from a fresh email address.
 
 **Next: measure, then cut friction**
-5. Add privacy-friendly analytics (Plausible or PostHog) with events for: landing view → signup
-   submit → link clicked → password set → onboarding complete → first like → first match → first
-   message. Without this, every item below is a guess.
+5. Deploy the GA4 fix and funnel events (`lib/analytics.ts`): `sign_up_link_requested`,
+   `sign_up_link_failed` (with error code), `sign_up` / `login`, `onboarding_step` (with the
+   self-reported acquisition source), `onboarding_complete`, `connect_request`, `match`,
+   `message_sent`. In GA, build a funnel exploration over them. Only visitors who accept cookies
+   are counted, so treat numbers as a sample, not a total.
 6. Add "Continue with Google" so signup doesn't depend on email delivery alone.
 7. Let people into Discover sooner (for example, after name + intent + photo) and nudge them to finish
    their profile afterwards, instead of a hard 70-point gate.

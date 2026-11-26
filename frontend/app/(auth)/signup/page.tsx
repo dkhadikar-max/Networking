@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { apiPost } from '@/lib/api';
 import NetworkBackground from '@/components/NetworkBackground';
 import { safeNext, withNext } from '@/lib/authRedirect';
+import { track } from '@/lib/analytics';
 
 const MAGIC_LINK_COOLDOWN_S = 60;
 
@@ -84,9 +85,11 @@ function SignupInner() {
       });
       setMagicSent(true);
       startMagicCooldown();
+      track('sign_up_link_requested', { referred: Boolean(refCode) });
     } catch (err) {
       setMagicError(magicLinkErrorMessage(err));
       const code = (err as { code?: string })?.code;
+      track('sign_up_link_failed', { code: code || 'unknown' });
       if (code === 'COOLDOWN') startMagicCooldown();
     } finally { setMagicSubmitting(false); }
   }

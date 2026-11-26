@@ -9,6 +9,7 @@ import MatchPreview from '@/components/landing/MatchPreview';
 import ConversationPreview from '@/components/landing/ConversationPreview';
 import CirclePreview from '@/components/landing/CirclePreviewClient';
 import { ToastProvider } from '@/components/ui/Toast';
+import CookieSettingsLink from '@/components/ui/CookieSettingsLink';
 // Real product-screen chrome (SwipeCard, ProfileView, CirclePostCard all
 // share these classes) — imported here, once, for the whole homepage.
 import './(app)/app.css';
@@ -154,8 +155,8 @@ const LANDING_CSS = `
   .footer-brand { font-size:19px; font-weight:800; color:var(--primary-light); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .footer-desc { font-size:13.5px; color:rgba(255,255,255,0.55); line-height:1.7; }
   .footer-col h3 { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.45); margin-bottom:18px; }
-  .footer-col a { display:block; color:rgba(255,255,255,0.72); text-decoration:none; font-size:13.5px; margin-bottom:11px; transition:color 0.2s; }
-  .footer-col a:hover { color:white; }
+  .footer-col a, .footer-col button { display:block; color:rgba(255,255,255,0.72); text-decoration:none; font-size:13.5px; margin-bottom:11px; transition:color 0.2s; }
+  .footer-col a:hover, .footer-col button:hover { color:white; }
   .footer-bottom { max-width:1080px; margin:36px auto 0; padding-top:22px; border-top:1px solid rgba(255,255,255,0.1); display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:rgba(255,255,255,0.45); }
 
   .feedback-tab { position:fixed; right:0; top:50%; transform:translateY(-50%) translateX(2px); background:var(--primary); color:white; padding:14px 10px 14px 14px; border-radius:12px 0 0 12px; cursor:pointer; z-index:99; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:11px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; box-shadow:-4px 4px 20px rgba(21,122,110,0.3); transition:all 0.3s cubic-bezier(0.22,1,0.36,1); writing-mode:vertical-rl; text-orientation:mixed; line-height:1; border:none; }
@@ -437,7 +438,7 @@ export default async function HomePage() {
             <p className="footer-desc">An intent-based networking platform for professionals who value relevance over volume.</p>
           </div>
           <div className="footer-col"><h3>Company</h3><a href="/about">About</a><a href="/contact">Contact</a></div>
-          <div className="footer-col"><h3>Legal</h3><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></div>
+          <div className="footer-col"><h3>Legal</h3><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a><CookieSettingsLink style={{ textAlign: 'left', fontSize: '13.5px' }} /></div>
           <div className="footer-col"><h3>Product</h3><a href="#screens">Product</a><a href="#circles">Circles</a><a href="#faq">FAQ</a><a href="/signup">Open Web App</a></div>
           <div className="footer-col"><h3>Support</h3><a href="mailto:support@buildyournetwork.online">support@buildyournetwork.online</a></div>
         </div>
