@@ -44,6 +44,29 @@ const resendPkg = optionalRequire('resend', null);
 const ResendClient = (resendPkg && process.env.RESEND_API_KEY)
   ? new resendPkg.Resend(process.env.RESEND_API_KEY)
   : null;
+// Provider-wide health, observed from real sends. Every send path
+// (OTP, magic link, notices, digests) goes through this one wrapper, so an
+// account-level failure such as a suspended Resend account is noticed after
+// the first failed send. Per-recipient suppressions don't count: they say
+// nothing about whether the provider itself works.
+let emailProviderDownSince = null;
+if (ResendClient && ResendClient.emails && typeof ResendClient.emails.send === 'function') {
+  const origSend = ResendClient.emails.send.bind(ResendClient.emails);
+  ResendClient.emails.send = async (...args) => {
+    try {
+      const result = await origSend(...args);
+      if (result && result.error) {
+        if (classifyResendError(result.error) === 'provider_error' && !emailProviderDownSince) emailProviderDownSince = new Date();
+      } else {
+        emailProviderDownSince = null;
+      }
+      return result;
+    } catch (e) {
+      if (!emailProviderDownSince) emailProviderDownSince = new Date();
+      throw e;
+    }
+  };
+}
 const razorpayPkg = optionalRequire('razorpay', null);
 const razorpay = (razorpayPkg && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
   ? new razorpayPkg({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
@@ -4501,6 +4524,22 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'buildyournetwork', timestamp: new Date().toISOString() });
 });
 
+// Deep check: /api/health stays a pure liveness probe (it never touched the
+// database, so it kept answering ok:true while every signup and login was
+// failing). Point an uptime monitor here to learn about a database or email
+// outage from an alert instead of from users who silently never return.
+app.get('/api/health/deep', async (req, res) => {
+  const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  let db = 'ok';
+  try {
+    const { error } = await withTimeout(supabase.from('users').select('id', { count: 'exact', head: true }).limit(1), 5000);
+    if (error) db = 'error';
+  } catch (_) { db = 'error'; }
+  const email = !ResendClient ? 'not_configured' : (emailProviderDownSince ? 'failing' : 'ok');
+  const ok = db === 'ok' && email === 'ok';
+  res.status(ok ? 200 : 503).json({ ok, db, email, timestamp: new Date().toISOString() });
+});
+
 // ── FIXED: SIGNUP with email validation ──
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -4869,9 +4908,20 @@ async function issueAndSendMagicLink(user, next) {
       }).eq('id', user.id);
       return { ok: false, code: 'EMAIL_SUPPRESSED' };
     }
+    // Nothing was delivered, so release the 60s cooldown: otherwise the
+    // visitor's retry is silently swallowed as COOLDOWN.
+    await releaseMagicLinkCooldown(user);
     return { ok: false, code: 'PROVIDER_ERROR' };
   }
   return { ok: true };
+}
+
+async function releaseMagicLinkCooldown(user) {
+  try {
+    await supabase.from('users')
+      .update({ magic_link_last_sent_at: user.magic_link_last_sent_at || null })
+      .eq('id', user.id);
+  } catch (e) { console.error('[MagicLink] cooldown release failed:', e.message); }
 }
 
 // Same shape as issueAndSendMagicLink (shared rate-limit counters, same
@@ -4933,6 +4983,7 @@ async function issueAlreadyRegisteredNotice(user) {
       }).eq('id', user.id);
       return { ok: false, code: 'EMAIL_SUPPRESSED' };
     }
+    await releaseMagicLinkCooldown(user);
     return { ok: false, code: 'PROVIDER_ERROR' };
   }
   return { ok: true };
@@ -5002,9 +5053,16 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
     const normalizedEmail = String(email).trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalizedEmail)) return res.status(400).json({ error: 'Invalid email format' });
 
-    const { data: existing } = await supabase.from('users')
+    const { data: existing, error: lookupErr } = await supabase.from('users')
       .select('id, email, name, email_suppressed, password_set, magic_link_last_sent_at, magic_link_hour_count, magic_link_hour_window_start, magic_link_day_count, magic_link_day_window_start')
       .eq('email', normalizedEmail).maybeSingle();
+    if (lookupErr) {
+      // Database unreachable: the same answer for every address, so no
+      // enumeration signal — and the visitor learns to retry instead of
+      // waiting for an email that will never be sent.
+      console.error('[magic-link] user lookup failed:', lookupErr.message);
+      return res.status(503).json({ error: 'Service temporarily unavailable. Please try again shortly.', code: 'SERVICE_UNAVAILABLE' });
+    }
 
     // Passwordless entry is scoped to signup + forgot-password, not a
     // side-door login for an account that already has a real password.
@@ -5016,7 +5074,7 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
     if (!user) {
       // New email — require the same consent gate /api/signup requires,
       // since this eagerly creates an account exactly like signup does.
-      if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 16 or older' });
+      if (!age_confirmed) return res.status(400).json({ error: 'You must confirm you are 18 or older' });
       // Canonical registration flow (locked spec): Basic Details (name +
       // email) -> Magic Link Verification -> Onboarding -> Active. This is
       // now the ONLY account-creation entry point (/api/signup is retired,
@@ -5104,10 +5162,18 @@ app.post('/api/auth/magic-link/request', otpIpBlockGate, otpIpLimiter, async (re
     }
 
     if (user) {
-      if (alreadyRegistered) {
-        issueAlreadyRegisteredNotice(user).catch(e => console.error('[magic-link] issueAlreadyRegisteredNotice failed:', e.message));
-      } else {
-        issueAndSendMagicLink(user, next).catch(e => console.error('[magic-link] issueAndSendMagicLink failed:', e.message));
+      // Awaited (was fire-and-forget): with the email provider down, every
+      // signup was told "a link is on its way" and nothing ever arrived.
+      // Both branches send through the same provider, so a provider failure
+      // looks identical for new and registered addresses: still no
+      // enumeration signal. Per-address outcomes (cooldown, limits,
+      // suppression) keep the generic answer below.
+      const result = await (alreadyRegistered
+        ? issueAlreadyRegisteredNotice(user)
+        : issueAndSendMagicLink(user, next)
+      ).catch(e => { console.error('[magic-link] send path threw:', e.message); return { ok: false, code: 'PROVIDER_ERROR' }; });
+      if (result && (result.code === 'PROVIDER_ERROR' || result.code === 'GLOBAL_BUDGET_EXHAUSTED')) {
+        return res.status(503).json({ error: 'Email service temporarily unavailable. Please try again shortly.', code: 'EMAIL_SERVICE_DOWN' });
       }
     }
     // Identical response regardless of new/existing/failed-to-queue — never
@@ -5331,7 +5397,13 @@ app.post('/api/login', authLimiter, async (req, res) => {
     // Step 2: fetch user from Supabase
     const { data: user, error: fetchErr } = await supabase.from('users')
       .select('*').eq('email', email).maybeSingle();
-    if (fetchErr) console.error(`${tag} step2 Supabase error — ${fetchErr.message}`);
+    if (fetchErr) {
+      // A lookup failure is NOT "no such user": answering 401 here told
+      // every user their password was wrong during a database outage.
+      // The 503 doesn't depend on the email, so it's no enumeration signal.
+      console.error(`${tag} step2 Supabase error — ${fetchErr.message}`);
+      return res.status(503).json({ error: 'Service temporarily unavailable. Please try again shortly.', code: 'SERVICE_UNAVAILABLE' });
+    }
     console.log(`${tag} step2 — user found=${!!user}, hasPassword=${!!user?.password}`);
 
     // Timing-safe rejection — always run bcrypt so response time doesn't
@@ -9273,7 +9345,7 @@ let _pubStats = null, _pubStatsTs = 0;
 app.get('/api/stats/public', async (req, res) => {
   if (_pubStats && Date.now() - _pubStatsTs < 300_000) return res.json(_pubStats);
   try {
-    const [{ count: users }, { count: connections }] = await Promise.all([
+    const [{ count: users, error: usersErr }, { count: connections, error: connErr }] = await Promise.all([
       // Real total headcount, not just fully-discoverable profiles -- was
       // undercounting real signups (is_profile_complete=true only) by more
       // than half. Excludes soft-deleted and banned accounts, which aren't
@@ -9288,10 +9360,18 @@ app.get('/api/stats/public', async (req, res) => {
       // is a cumulative "matches made" stat, not a "currently active" one.
       supabase.from('connections').select('*', { count: 'exact', head: true }),
     ]);
+    // A failed count used to become 0 and was CACHED for 5 minutes, so a
+    // database outage published "0 users" as if it were real. Never cache
+    // or publish a number the database didn't actually return.
+    if (usersErr || connErr) throw new Error((usersErr || connErr).message);
     _pubStats = { users: users || 0, connections: connections || 0 };
     _pubStatsTs = Date.now();
     res.json(_pubStats);
-  } catch(_) { res.json({ users: 0, connections: 0 }); }
+  } catch(e) {
+    console.error('[stats/public] count failed:', e.message);
+    if (_pubStats) return res.json(_pubStats); // last real value beats a fake zero
+    res.status(503).json({ error: 'Stats temporarily unavailable' });
+  }
 });
 
 // ── REFERRAL — short link redirect ──
