@@ -60,6 +60,7 @@ export default function PrivacyPage() {
 
       <Section title="4. Cookies and tracking">
         <p>We use a cookie (<code>byn_consent</code>) to store your cookie preference. If you accept analytics cookies, we load Google Analytics (G-5NQDBYG4CJ) which sets its own cookies and collects anonymised usage data: pages viewed, and which product steps are completed (for example requesting a sign-up link, finishing onboarding, matching, or sending a message). These events never include your name, email address, account ID or message content. You can withdraw consent at any time using the &ldquo;Cookie settings&rdquo; link in the site footer.</p>
+        <p>Separately, our network provider Cloudflare measures aggregated page views and page-load performance with Cloudflare Web Analytics. It sets no cookies, uses no local storage and does not build visitor profiles, so it runs without the consent banner.</p>
         <p>We do not use advertising cookies, tracking pixels, or third-party retargeting.</p>
       </Section>
 
@@ -72,6 +73,7 @@ export default function PrivacyPage() {
           <li><strong>Razorpay</strong> (payments, India) — processes premium subscriptions.</li>
           <li><strong>Expo</strong> (push notifications) — delivers in-app notifications.</li>
           <li><strong>Google Analytics</strong> (analytics, consent-gated) — aggregated usage stats.</li>
+          <li><strong>Cloudflare</strong> (network delivery and Cloudflare Web Analytics) — cookieless, aggregated page-view and performance statistics.</li>
           <li><strong>Railway</strong> (hosting) — runs the application server.</li>
         </ul>
         <p>We do not sell your personal data to any third party.</p>

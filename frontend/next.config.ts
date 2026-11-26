@@ -19,15 +19,17 @@ const NOINDEX_HEADER = [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }];
 // exist specifically for that. Everything else here is real: frame-ancestors,
 // object-src, base-uri, and a resource allowlist scoped to what this app
 // actually loads (verified 2026-08-01) — Razorpay checkout, GA4
-// (consent-gated), Cloudinary images. No external fonts/Tailwind CDN —
+// (consent-gated), Cloudinary images, and Cloudflare Web Analytics (cookieless
+// beacon Cloudflare injects at its edge: script from static.cloudflareinsights.com,
+// reports to cloudflareinsights.com; added 2026-11-26). No external fonts/Tailwind CDN —
 // next/font self-hosts, no CDN is used here.
 const CSP_HEADER = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com" + (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com https://static.cloudflareinsights.com" + (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://res.cloudinary.com https://*.cloudinary.com https://www.google-analytics.com",
   "font-src 'self'",
-  "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com",
+  "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://cloudflareinsights.com",
   "frame-src https://api.razorpay.com https://checkout.razorpay.com",
   "frame-ancestors 'none'",
   "object-src 'none'",
